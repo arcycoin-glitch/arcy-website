@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>ARCY | Research First. Hype Never.</title>
+
+  <meta name="description"
+        content="ARCY — Community-driven meme on Arc. Researching the Arc ecosystem and building in public.">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at 50% 0%, #12395a 0%, #071421 35%, #03080e 75%);
+      color: #ffffff;
+      min-height: 100vh;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .container {
+      width: min(1120px, 90%);
+      margin: auto;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(18px);
+      background: rgba(3, 8, 14, 0.78);
+      border-bottom: 1px solid rgba(68, 216, 255, 0.12);
+    }
+
+    .nav-inner {
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+
+    .logo span {
+      color: #42ddff;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 26px;
+      color: #a9bdcc;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .nav-links a:hover {
+      color: #42ddff;
+    }
+
+    .hero {
+      min-height: 720px;
+      display: flex;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glow {
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      background: rgba(0, 195, 255, 0.13);
+      filter: blur(110px);
+      left: 50%;
+      top: 45%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+    }
+
+    .owl {
+      font-size: 75px;
+      margin-bottom: 10px;
+      filter: drop-shadow(0 0 25px rgba(66,221,255,0.3));
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 9px 15px;
+      border-radius: 100px;
+      border: 1px solid rgba(66, 221, 255, 0.3);
+      background: rgba(66, 221, 255, 0.07);
+      color: #62e4ff;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 25px;
+    }
+
+    h1 {
+      font-size: clamp(64px, 11vw, 125px);
+      line-height: 0.9;
+      font-weight: 1000;
+      letter-spacing: -6px;
+    }
+
+    h1 span {
+      background: linear-gradient(90deg, #ffffff, #42ddff);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .tagline {
+      margin-top: 25px;
+      font-size: clamp(22px, 4vw, 38px);
+      font-weight: 800;
+    }
+
+    .subtitle {
+      max-width: 650px;
+      margin: 18px auto 0;
+      color: #94a9b8;
+      line-height: 1.7;
+      font-size: 17px;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 34px;
+    }
+
+    .btn {
+      padding: 16px 26px;
+      border-radius: 12px;
+      font-weight: 900;
+      font-size: 14px;
+      transition: 0.2s ease;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #20d7ff, #1689ff);
+      color: #00101a;
+      box-shadow: 0 0 35px rgba(32, 215, 255, 0.25);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 50px rgba(32, 215, 255, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.05);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      border-color: #42ddff;
+      color: #42ddff;
+      transform: translateY(-3px);
+    }
+
+    .contract {
+      margin: 26px auto 0;
+      max-width: 610px;
+      padding: 14px 16px;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.035);
+      color: #8196a5;
+      font-family: monospace;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+      cursor: pointer;
+    }
+
+    .contract strong {
+      color: #42ddff;
+    }
+
+    section {
+      padding: 95px 0;
+    }
+
+    .section-title {
+      font-size: clamp(34px, 5vw, 52px);
+      margin-bottom: 15px;
+      letter-spacing: -2px;
+    }
+
+    .section-text {
+      color: #8fa5b5;
+      max-width: 650px;
+      line-height: 1.7;
+      margin-bottom: 40px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .card {
+      min-height: 190px;
+      padding: 27px;
+      border-radius: 18px;
+      background: linear-gradient(
+        145deg,
+        rgba(255,255,255,0.065),
+        rgba(255,255,255,0.02)
+      );
+      border: 1px solid rgba(255,255,255,0.09);
+      transition: 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(66,221,255,0.35);
+    }
+
+    .card-number {
+      color: #42ddff;
+      font-size: 13px;
+      font-weight: 900;
+      margin-bottom: 18px;
+    }
+
+    .card h3 {
+      font-size: 23px;
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      color: #8fa5b5;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .token-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .stat {
+      padding: 32px;
+      border-radius: 18px;
+      border: 1px solid rgba(66,221,255,0.15);
+      background: rgba(6, 20, 32, 0.75);
+    }
+
+    .stat-big {
+      color: #42ddff;
+      font-size: 38px;
+      font-weight: 1000;
+      margin-bottom: 7px;
+    }
+
+    .stat p {
+      color: #8fa5b5;
+    }
+
+    .community {
+      text-align: center;
+    }
+
+    .community-box {
+      padding: 55px 25px;
+      border-radius: 25px;
+      border: 1px solid rgba(66,221,255,0.18);
+      background:
+        radial-gradient(circle at top, rgba(0,190,255,0.13), transparent 55%),
+        rgba(255,255,255,0.025);
+    }
+
+    .community-box h2 {
+      font-size: clamp(35px, 6vw, 60px);
+      margin-bottom: 15px;
+    }
+
+    .community-box p {
+      color: #8fa5b5;
+      max-width: 650px;
+      margin: auto;
+      line-height: 1.7;
+    }
+
+    .warning {
+      margin: 18px auto 0;
+      max-width: 700px;
+      font-size: 12px;
+      color: #647987;
+      line-height: 1.6;
+    }
+
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      color: #637887;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    footer strong {
+      color: #42ddff;
+    }
+
+    @media (max-width: 760px) {
+      .nav-links {
+        display: none;
+      }
+
+      h1 {
+        letter-spacing: -3px;
+      }
+
+      .hero {
+        min-height: 650px;
+      }
+
+      .grid,
+      .token-box {
+        grid-template-columns: 1fr;
+      }
+
+      section {
+        padding: 70px 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<nav>
+  <div class="container nav-inner">
+
+    <div class="logo">
+      $<span>ARCY</span> 🦉
+    </div>
+
+    <div class="nav-links">
+      <a href="#research">Research</a>
+      <a href="#tokenomics">Tokenomics</a>
+      <a href="#community">Community</a>
+      <a href="https://x.com/Arcy_usdc"
+         target="_blank"
+         rel="noopener noreferrer">
+        X
+      </a>
+    </div>
+
+  </div>
+</nav>
+
+
+<main>
+
+<section class="hero">
+
+  <div class="glow"></div>
+
+  <div class="container hero-content">
+
+    <div class="owl">🦉</div>
+
+    <div class="badge">
+      BUILT ON ARC
+    </div>
+
+    <h1>
+      $<span>ARCY</span>
+    </h1>
+
+    <div class="tagline">
+      Research First. Hype Never.
+    </div>
+
+    <p class="subtitle">
+      A community-driven meme on Arc.
+      Researching the ecosystem, tracking what is being built
+      and building ARCY in public.
+    </p>
+
+
+    <div class="buttons">
+
+      <!-- ARCY BUY ON UNISWAP -->
+      <a
+        class="btn btn-primary"
+        href="https://app.uniswap.org/swap?outputCurrency=0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        BUY $ARCY
+      </a>
+
+
+      <a
+        class="btn btn-secondary"
+        href="https://x.com/Arcy_usdc"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        FOLLOW ON X
+      </a>
+
+    </div>
+
+
+    <div
+      class="contract"
+      onclick="copyContract()"
+      title="Click to copy"
+    >
+
+      <strong>CONTRACT:</strong>
+
+      0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b
+
+      <br>
+
+      <span id="copyText">
+        Click to copy
+      </span>
+
+    </div>
+
+
+    <p class="warning">
+      Always verify the token contract and network before confirming a swap.
+    </p>
+
+  </div>
+
+</section>
+
+
+
+<section id="research">
+
+  <div class="container">
+
+    <h2 class="section-title">
+      🔍 ARCY Research
+    </h2>
+
+    <p class="section-text">
+      We research projects building across the Arc ecosystem.
+      Mechanisms, risks and real data — without the empty hype.
+    </p>
+
+
+    <div class="grid">
+
+      <div class="card">
+
+        <div class="card-number">
+          DISCOVER
+        </div>
+
+        <h3>
+          What caught our eye?
+        </h3>
+
+        <p>
+          We look for mechanisms, products and onchain activity
+          worth investigating across Arc.
+        </p>
+
+      </div>
+
+
+      <div class="card">
+
+        <div class="card-number">
+          MECHANISM
+        </div>
+
+        <h3>
+          How does it work?
+        </h3>
+
+        <p>
+          We break complicated token and protocol mechanics
+          into something understandable.
+        </p>
+
+      </div>
+
+
+      <div class="card">
+
+        <div class="card-number">
+          RISK
+        </div>
+
+        <h3>
+          What could go wrong?
+        </h3>
+
+        <p>
+          Research without risk analysis is marketing.
+          ARCY Research looks at both sides.
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+
+<section id="tokenomics">
+
+  <div class="container">
+
+    <h2 class="section-title">
+      🔥 ARCY Tokenomics
+    </h2>
+
+    <p class="section-text">
+      Simple mechanics. Public development.
+      Community-first positioning.
+    </p>
+
+
+    <div class="token-box">
+
+      <div class="stat">
+
+        <div class="stat-big">
+          40%
+        </div>
+
+        <p>
+          of trading tax allocated to Buyback & Burn.
+        </p>
+
+      </div>
+
+
+      <div class="stat">
+
+        <div class="stat-big">
+          0%
+        </div>
+
+        <p>
+          Dev allocation.
+        </p>
+
+      </div>
+
+
+      <div class="stat">
+
+        <div class="stat-big">
+          NO VC
+        </div>
+
+        <p>
+          No venture capital allocation.
+        </p>
+
+      </div>
+
+
+      <div class="stat">
+
+        <div class="stat-big">
+          PUBLIC
+        </div>
+
+        <p>
+          Building and researching in public.
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+
+<section
+  id="community"
+  class="community"
+>
+
+  <div class="container">
+
+    <div class="community-box">
+
+      <h2>
+        🦉 Build With ARCY.
+      </h2>
+
+      <p>
+        ARCY is building a research-driven community
+        around the Arc ecosystem.
+        Follow the research, verify the data and
+        watch the project develop in public.
+      </p>
+
+
+      <div class="buttons">
+
+        <a
+          class="btn btn-primary"
+          href="https://x.com/Arcy_usdc"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          JOIN ARCY ON X
+        </a>
+
+
+        <a
+          class="btn btn-secondary"
+          href="https://app.uniswap.org/swap?outputCurrency=0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          TRADE $ARCY
+        </a>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+</main>
+
+
+
+<footer>
+
+  <div class="container">
+
+    <strong>
+      $ARCY
+    </strong>
+
+    — Research First. Hype Never.
+
+    <br><br>
+
+    Crypto assets involve risk.
+    Always verify the contract address
+    before trading.
+
+  </div>
+
+</footer>
+
+
+
+<script>
+
+const CONTRACT =
+"0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b";
+
+
+function copyContract() {
+
+  navigator.clipboard.writeText(CONTRACT);
+
+  const text =
+    document.getElementById("copyText");
+
+  text.innerText =
+    "✓ Contract copied";
+
+  setTimeout(() => {
+
+    text.innerText =
+      "Click to copy";
+
+  }, 1800);
+
+}
+
+</script>
+
+
+</body>
+</html>
