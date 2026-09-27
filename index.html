@@ -12,17 +12,29 @@
 a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.nav{position:sticky;top:0;z-index:20;background:#050d18d9;backdrop-filter:blur(14px);border-bottom:1px solid #102638}.navin{height:72px;display:flex;align-items:center;justify-content:space-between}.brand{font-weight:900;letter-spacing:.08em;color:var(--cyan);font-size:22px}.links{display:flex;gap:24px;color:#a9bfcd;font-size:14px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 18px;border:1px solid #1e536d;border-radius:12px;background:#0b2031;font-weight:800;transition:.2s}.btn:hover{transform:translateY(-2px);border-color:var(--cyan);box-shadow:0 0 30px #22d9ff1f}.primary{background:linear-gradient(135deg,#16c9ef,#38efd0);color:#03101a;border:0}.hero{min-height:680px;display:grid;grid-template-columns:1.05fr .95fr;align-items:center;gap:40px;padding:80px 0}.eyebrow{color:var(--cyan);font-weight:800;letter-spacing:.14em;font-size:12px}.hero h1{font-size:clamp(52px,8vw,100px);line-height:.9;margin:14px 0 18px;letter-spacing:-.06em}.hero h2{font-size:clamp(24px,3vw,42px);margin:0 0 18px}.hero p{max-width:650px;color:var(--muted);font-size:18px;line-height:1.7}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.contract{margin-top:24px;color:#7595a8;font-family:ui-monospace,monospace;font-size:12px;word-break:break-all}.visual{display:flex;justify-content:center;align-items:center;min-height:430px}.visual img{max-width:100%;max-height:520px;object-fit:contain;filter:drop-shadow(0 25px 55px #00d9ff30)}section{padding:90px 0;border-top:1px solid #0d2638}.head{margin-bottom:34px}.head h3{font-size:clamp(32px,4vw,54px);margin:8px 0}.head p{color:var(--muted);max-width:760px;line-height:1.7}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center}.card{background:linear-gradient(180deg,#0b1c2b,#07131f);border:1px solid var(--line);border-radius:20px;padding:24px}.burnnum{font-size:clamp(42px,6vw,76px);font-weight:900;letter-spacing:-.05em;color:#fff}.burnnum span{color:var(--orange)}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}.stat{padding:18px;border-radius:14px;background:#07121d;border:1px solid #123047}.stat b{display:block;font-size:22px}.stat small{color:var(--muted)}.tabs{display:flex;gap:8px;margin:20px 0}.tab{border:1px solid var(--line);background:#081624;color:#a9bfcd;padding:10px 16px;border-radius:10px;font-weight:800;cursor:pointer}.tab.active{background:#10374a;color:#fff;border-color:#1fbfe3}.tablebox{overflow:auto;border:1px solid var(--line);border-radius:18px;background:#07131f}table{width:100%;border-collapse:collapse;min-width:720px}th,td{text-align:left;padding:16px;border-bottom:1px solid #10283a}th{font-size:12px;color:#7795a7;letter-spacing:.08em}td{font-size:14px}.rank{color:var(--cyan);font-weight:900}.note{color:#688799;font-size:12px;line-height:1.6;margin-top:14px}.research{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.r-card{min-height:220px;display:flex;flex-direction:column}.r-card h4{font-size:22px;margin:10px 0}.r-card p{color:var(--muted);line-height:1.6}.r-card a{margin-top:auto;color:var(--cyan);font-weight:800}.swapbox{text-align:center;padding:48px}.swapbox h3{font-size:46px;margin:10px}.chart{height:440px;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:#07131f}.chart iframe{width:100%;height:100%;border:0}.foot{padding:40px 0 55px;color:#7895a7}.footin{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.status{display:inline-flex;align-items:center;gap:7px;color:#84a5b8;font-size:12px}.dot{width:8px;height:8px;border-radius:50%;background:#3de6b0;box-shadow:0 0 12px #3de6b0}.loading{color:#7595a8}
 @media(max-width:850px){.links{display:none}.hero,.grid2{grid-template-columns:1fr}.hero{padding:50px 0;min-height:auto}.visual{min-height:300px}.stats,.research{grid-template-columns:1fr}.hero .visual{order:-1}.visual img{max-height:360px}section{padding:65px 0}.swapbox{padding:30px 18px}}
 
-.galleryShell{position:relative}.galleryViewport{overflow:hidden;border:1px solid var(--line);border-radius:22px;background:#07131f}
-.galleryTrack{display:flex;transition:transform .55s cubic-bezier(.22,.61,.36,1)}
-.gSlide{position:relative;min-width:100%;height:500px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at 50% 45%,#103f5b 0,#07131f 58%,#040b13 100%)}
-.gSlide img{width:100%;height:100%;object-fit:contain;padding:18px;filter:drop-shadow(0 24px 55px #00d9ff2e)}
-.gSlide.alt1 img{transform:scale(1.08)}.gSlide.alt2 img{transform:scale(1.12) translateX(-2%)}.gSlide.alt3 img{transform:scale(1.08) translateX(2%)}.gSlide.alt4 img{transform:scale(1.13)}
-.gCap{position:absolute;left:26px;bottom:24px;padding:14px 18px;border:1px solid #24546c;border-radius:14px;background:#03101bd9;backdrop-filter:blur(10px)}
-.gCap b{display:block;font-size:20px}.gCap span{display:block;color:#8eb1c4;margin-top:4px}
-.gArrow{position:absolute;z-index:3;top:46%;width:48px;height:48px;border-radius:50%;border:1px solid #27647f;background:#061724e8;color:#fff;font-size:34px;cursor:pointer}
-.gArrow.left{left:-18px}.gArrow.right{right:-18px}.gDots{display:flex;justify-content:center;gap:8px;margin-top:16px}
-.gDots button{width:8px;height:8px;border:0;border-radius:50%;background:#29495c;padding:0;cursor:pointer}.gDots button.active{background:var(--cyan);box-shadow:0 0 12px #22d9ff}
-@media(max-width:760px){.gSlide{height:360px}.gArrow{width:42px;height:42px}.gArrow.left{left:6px}.gArrow.right{right:6px}.gCap{left:14px;right:14px;bottom:14px}}
+.arcy-gallery{position:relative}
+.gallery-window{overflow:hidden;border:1px solid var(--line);border-radius:20px;background:#07131f}
+.gallery-track{display:flex;transition:transform .5s ease}
+.gallery-slide{min-width:100%;height:520px;margin:0;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at center,#0d3147 0,#07131f 60%,#040b13 100%)}
+.gallery-slide img{width:100%;height:100%;object-fit:contain;padding:20px;filter:drop-shadow(0 24px 50px #00d9ff2c)}
+.gallery-slide figcaption{position:absolute;left:22px;bottom:20px;background:#03101ad9;border:1px solid #1e536d;border-radius:12px;padding:11px 15px;font-weight:800;backdrop-filter:blur(8px)}
+.variant-a img{transform:scale(1.08)}
+.variant-b img{transform:scale(1.12) translateX(-2%)}
+.variant-c img{transform:scale(1.08) translateX(2%)}
+.variant-d img{transform:scale(1.12)}
+.gallery-arrow{position:absolute;z-index:4;top:46%;width:46px;height:46px;border-radius:50%;border:1px solid #1e536d;background:#061724e8;color:white;font-size:31px;cursor:pointer}
+.gallery-prev{left:12px}.gallery-next{right:12px}
+.gallery-dots{display:flex;justify-content:center;gap:8px;margin-top:14px}
+.gallery-dots button{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:#29495c;cursor:pointer}
+.gallery-dots button.active{background:var(--cyan);box-shadow:0 0 10px #22d9ff}
+@media(max-width:850px){.gallery-slide{height:360px}.gallery-slide img{padding:10px}.gallery-slide figcaption{left:14px;bottom:14px}}
+
+
+.live-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 14px}
+.live-strip>div{padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:#07131f}
+.live-strip small{display:block;color:#6f91a5;font-size:10px;letter-spacing:.08em}
+.live-strip strong{display:block;margin-top:5px;font-size:17px}
+@media(max-width:700px){.live-strip{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -66,23 +78,24 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
 
 <section id="gallery"><div class="wrap">
   <div class="eyebrow">ARCY VISUALS</div>
-  <div class="head"><h3>ARCY Gallery</h3><p>ARCY in motion — research, Arc, community, market watch and buyback & burn.</p></div>
-  <div class="galleryShell">
-    <button class="gArrow left" type="button" aria-label="Previous image" onclick="moveGallery(-1)">‹</button>
-    <div class="galleryViewport">
-      <div class="galleryTrack" id="galleryTrack">
-        <article class="gSlide"><img src="arcy-premium.png" alt="ARCY mascot"><div class="gCap"><b>ARCY</b><span>Research First. Hype Never.</span></div></article>
-        <article class="gSlide"><img src="arcy 3.png" alt="ARCY Buyback and Burn"><div class="gCap"><b>Buyback & Burn</b><span>40% of trading tax allocation.</span></div></article>
-        <article class="gSlide"><img src="acy 2.png" alt="ARCY research"><div class="gCap"><b>Research Mode</b><span>Watching the Arc ecosystem.</span></div></article>
-        <article class="gSlide"><img src="arcy 4.png" alt="Buy ARCY"><div class="gCap"><b>ARCY / USDC</b><span>Built on Arc.</span></div></article>
-        <article class="gSlide alt1"><img src="arcy-premium.png" alt="ARCY on Arc"><div class="gCap"><b>Built on Arc</b><span>Community-driven from day one.</span></div></article>
-        <article class="gSlide alt2"><img src="arcy 3.png" alt="ARCY burn watch"><div class="gCap"><b>Burn Watch</b><span>Transparency over hype.</span></div></article>
-        <article class="gSlide alt3"><img src="acy 2.png" alt="ARCY market watch"><div class="gCap"><b>Market Watch</b><span>Data before noise.</span></div></article>
-        <article class="gSlide alt4"><img src="arcy 4.png" alt="ARCY community"><div class="gCap"><b>ARCY Community</b><span>Build in public.</span></div></article>
+  <div class="head"><h3>ARCY Gallery</h3><p>A visual window into ARCY — Arc, community, research and buyback & burn.</p></div>
+
+  <div class="arcy-gallery">
+    <button class="gallery-arrow gallery-prev" type="button" aria-label="Previous">‹</button>
+    <div class="gallery-window">
+      <div class="gallery-track">
+        <figure class="gallery-slide"><img src="arcy-premium.png" alt="ARCY"><figcaption>ARCY • Research First</figcaption></figure>
+        <figure class="gallery-slide"><img src="arcy 3.png" alt="ARCY Buyback and Burn"><figcaption>Buyback & Burn 🔥</figcaption></figure>
+        <figure class="gallery-slide"><img src="acy 2.png" alt="ARCY Research"><figcaption>Researching Arc 🔎</figcaption></figure>
+        <figure class="gallery-slide"><img src="arcy 4.png" alt="ARCY on Arc"><figcaption>Built on Arc</figcaption></figure>
+        <figure class="gallery-slide variant-a"><img src="arcy-premium.png" alt="ARCY Community"><figcaption>Community Driven</figcaption></figure>
+        <figure class="gallery-slide variant-b"><img src="arcy 3.png" alt="ARCY Burn Watch"><figcaption>Burn Watch</figcaption></figure>
+        <figure class="gallery-slide variant-c"><img src="acy 2.png" alt="ARCY Market Watch"><figcaption>Market Watch</figcaption></figure>
+        <figure class="gallery-slide variant-d"><img src="arcy 4.png" alt="ARCY USDC"><figcaption>ARCY / USDC</figcaption></figure>
       </div>
     </div>
-    <button class="gArrow right" type="button" aria-label="Next image" onclick="moveGallery(1)">›</button>
-    <div class="gDots" id="gDots"></div>
+    <button class="gallery-arrow gallery-next" type="button" aria-label="Next">›</button>
+    <div class="gallery-dots" aria-label="Gallery navigation"></div>
   </div>
 </div></section>
 
@@ -91,7 +104,14 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
  <div class="card swapbox"><div class="eyebrow">DISCOVER $ARCY</div><h3>Trade onchain.</h3><p style="color:var(--muted);line-height:1.7">ARCY trades against USDC on Arc. Use the verified contract address before interacting with any pool.</p><div class="actions" style="justify-content:center"><a class="btn primary" target="_blank" rel="noopener" href="https://app.uniswap.org/swap?chain=arc&outputCurrency=0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">OPEN UNISWAP ↗</a><a class="btn" target="_blank" rel="noopener" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">CONTRACT ↗</a></div></div>
 </div></section>
 
-<section id="chart"><div class="wrap"><div class="eyebrow">MARKET</div><div class="head"><h3>Live Chart</h3><p>Live market view. If the embedded market provider has not indexed the pair yet, use the contract link to verify ARCY onchain.</p></div><div class="chart"><iframe title="ARCY chart" loading="lazy" src="https://dexscreener.com/arc/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b?embed=1&theme=dark"></iframe></div></div></section>
+<section id="chart"><div class="wrap"><div class="eyebrow">MARKET</div><div class="head"><h3>Live Chart</h3><p>Live market view. If the embedded market provider has not indexed the pair yet, use the contract link to verify ARCY onchain.</p></div><div class="chart">
+<div class="live-strip" translate="no">
+  <div><small>PRICE</small><strong id="arcyLivePrice">Loading…</strong></div>
+  <div><small>24H VOLUME</small><strong id="arcyLiveVolume">Loading…</strong></div>
+  <div><small>FDV</small><strong id="arcyLiveFdv">Loading…</strong></div>
+  <div><small>LIQUIDITY</small><strong id="arcyLiveLiquidity">Loading…</strong></div>
+</div>
+<iframe title="ARCY chart" loading="lazy" src="https://dexscreener.com/arc/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b?embed=1&theme=dark"></iframe></div></div></section>
 </main>
 
 <footer class="foot"><div class="wrap footin"><div><b style="color:#dff8ff">$ARCY 🦉</b><br>Research First. Hype Never.</div><div><a href="https://x.com/Arcy_usdc" target="_blank" rel="noopener">X / Twitter</a> · <a href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" target="_blank" rel="noopener">Explorer</a></div></div></footer>
@@ -165,25 +185,83 @@ document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
 </script>
 
 <script>
-let galleryIndex=0;
-const galleryTotal=8;
-function renderGallery(){
-  const t=document.getElementById('galleryTrack');
-  if(!t)return;
-  t.style.transform=`translateX(-${galleryIndex*100}%)`;
-  document.querySelectorAll('#gDots button').forEach((b,i)=>b.classList.toggle('active',i===galleryIndex));
-}
-function moveGallery(d){galleryIndex=(galleryIndex+d+galleryTotal)%galleryTotal;renderGallery();}
 (function(){
-  const dots=document.getElementById('gDots');
-  if(!dots)return;
-  for(let i=0;i<galleryTotal;i++){const b=document.createElement('button');b.setAttribute('aria-label','Image '+(i+1));b.onclick=()=>{galleryIndex=i;renderGallery()};dots.appendChild(b);}
-  renderGallery();
-  let startX=0;
-  const v=document.querySelector('.galleryViewport');
-  v.addEventListener('touchstart',e=>startX=e.touches[0].clientX,{passive:true});
-  v.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-startX;if(Math.abs(dx)>45)moveGallery(dx<0?1:-1)},{passive:true});
-  setInterval(()=>moveGallery(1),6500);
+  const track=document.querySelector('.gallery-track');
+  const dots=document.querySelector('.gallery-dots');
+  const slides=[...document.querySelectorAll('.gallery-slide')];
+  if(!track||!dots||!slides.length)return;
+  let i=0, timer, startX=0;
+  slides.forEach((_,n)=>{
+    const b=document.createElement('button');
+    b.type='button'; b.setAttribute('aria-label','Image '+(n+1));
+    b.onclick=()=>go(n);
+    dots.appendChild(b);
+  });
+  const dotButtons=[...dots.querySelectorAll('button')];
+  function render(){
+    track.style.transform=`translateX(-${i*100}%)`;
+    dotButtons.forEach((b,n)=>b.classList.toggle('active',n===i));
+  }
+  function go(n){i=(n+slides.length)%slides.length;render();restart();}
+  function restart(){clearInterval(timer);timer=setInterval(()=>{i=(i+1)%slides.length;render()},6500)}
+  document.querySelector('.gallery-prev').onclick=()=>go(i-1);
+  document.querySelector('.gallery-next').onclick=()=>go(i+1);
+  const win=document.querySelector('.gallery-window');
+  win.addEventListener('touchstart',e=>startX=e.touches[0].clientX,{passive:true});
+  win.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-startX;if(Math.abs(dx)>45)go(i+(dx<0?1:-1))},{passive:true});
+  render(); restart();
+})();
+</script>
+
+
+<script>
+(async function(){
+ const token="0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b";
+ const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+ const compact=n=>"$"+new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(Number(n));
+ const price=n=>"$"+Number(n).toLocaleString("en-US",{maximumSignificantDigits:7});
+ let ok=false;
+ try{
+   const r=await fetch("https://api.geckoterminal.com/api/v2/networks/arc/tokens/"+token,{headers:{accept:"application/json"}});
+   if(r.ok){
+     const j=await r.json(),a=j?.data?.attributes||{};
+     if(a.price_usd){set("arcyLivePrice",price(a.price_usd));ok=true;}
+     if(a.volume_usd?.h24!=null)set("arcyLiveVolume",compact(a.volume_usd.h24));
+     if(a.fdv_usd!=null)set("arcyLiveFdv",compact(a.fdv_usd));
+   }
+ }catch(e){}
+ try{
+   const r=await fetch("https://api.geckoterminal.com/api/v2/networks/arc/tokens/"+token+"/pools?page=1",{headers:{accept:"application/json"}});
+   if(r.ok){
+     const j=await r.json(), pools=j?.data||[];
+     if(pools.length){
+       const a=pools[0].attributes||{};
+       if(!ok && a.base_token_price_usd){set("arcyLivePrice",price(a.base_token_price_usd));ok=true;}
+       if(a.volume_usd?.h24!=null)set("arcyLiveVolume",compact(a.volume_usd.h24));
+       if(a.fdv_usd!=null)set("arcyLiveFdv",compact(a.fdv_usd));
+       if(a.reserve_in_usd!=null)set("arcyLiveLiquidity",compact(a.reserve_in_usd));
+     }
+   }
+ }catch(e){}
+ if(!ok){
+   try{
+     const r=await fetch("https://api.dexscreener.com/latest/dex/tokens/"+token);
+     if(r.ok){
+       const j=await r.json(), pairs=j?.pairs||[];
+       const a=pairs.find(x=>(x.chainId||"").toLowerCase()==="arc")||pairs[0];
+       if(a){
+         if(a.priceUsd)set("arcyLivePrice",price(a.priceUsd));
+         if(a.volume?.h24!=null)set("arcyLiveVolume",compact(a.volume.h24));
+         if(a.fdv!=null)set("arcyLiveFdv",compact(a.fdv));
+         if(a.liquidity?.usd!=null)set("arcyLiveLiquidity",compact(a.liquidity.usd));
+         ok=true;
+       }
+     }
+   }catch(e){}
+ }
+ ["arcyLivePrice","arcyLiveVolume","arcyLiveFdv","arcyLiveLiquidity"].forEach(id=>{
+   const e=document.getElementById(id); if(e && e.textContent==="Loading…") e.textContent="—";
+ });
 })();
 </script>
 
