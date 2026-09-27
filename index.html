@@ -43,12 +43,12 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
 
 <section id="unlocks"><div class="wrap">
  <div class="grid2">
-  <div><div class="eyebrow">MARKET INTELLIGENCE</div><div class="head"><h3>Token Unlocks 🔓</h3><p>Upcoming supply events, filtered for major crypto assets and ranked by estimated unlock value in USD.</p></div></div>
+  <div><div class="eyebrow">MARKET INTELLIGENCE</div><div class="head"><h3>Token Unlocks 🔓</h3><p>Upcoming token unlock events from public vesting calendars. This snapshot uses verified scheduled token amounts and dates; automatic live updating will be added later.</p></div></div>
   <div class="visual"><img src="acy 2.png" alt="ARCY Token Unlocks"></div>
  </div>
  <div class="tabs"><button class="tab active" data-days="1">TODAY</button><button class="tab" data-days="7">7 DAYS</button><button class="tab" data-days="30">30 DAYS</button></div>
- <div class="tablebox"><table><thead><tr><th>#</th><th>TOKEN</th><th>UNLOCK DATE</th><th>UNLOCK VALUE</th><th>% SUPPLY</th></tr></thead><tbody id="unlockRows"><tr><td colspan="5" class="loading">Unlock feed is being prepared. No fabricated data is displayed.</td></tr></tbody></table></div>
- <p class="note">Data Scope: upcoming unlocks among major crypto assets, ranked by estimated unlock value (USD). Unlock schedules can change; verify material events with the project's official vesting documentation. Research data only — not a trading signal.</p>
+ <div class="tablebox"><table><thead><tr><th>#</th><th>TOKEN</th><th>UNLOCK DATE</th><th>UNLOCK AMOUNT</th><th>% SUPPLY</th></tr></thead><tbody id="unlockRows"></tbody></table></div>
+ <p class="note">Data snapshot: 27 Sep 2026. Sources: CoinGecko and Tokenomics.com public unlock calendars. Token amounts and percentages are scheduled values, not estimates invented by ARCY. Schedules can change; verify material events with official project vesting documentation. Automatic updating will be added later.</p>
 </div></section>
 
 <section id="research"><div class="wrap">
@@ -92,6 +92,50 @@ async function loadBurn(){
  }catch(e){document.getElementById("burnStatus").textContent="Verified snapshot • live RPC unavailable";}
 }
 loadBurn();
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById("unlockRows").innerHTML='<tr><td colspan="5" class="loading">Live unlock API connection pending — no fabricated values shown.</td></tr>'}));
+
+const unlockData = {
+  1: [
+    {token:"YGG", date:"27 Sep 2026", amount:"3.42M YGG", pct:"0.34%"},
+    {token:"FORT", date:"27 Sep 2026", amount:"50K FORT", pct:"0.005%"}
+  ],
+  7: [
+    {token:"HYPE", date:"29 Sep 2026", amount:"14.18M HYPE", pct:"1.4%"},
+    {token:"TREE", date:"29 Sep 2026", amount:"20.82M TREE", pct:"2.1%"},
+    {token:"DYM", date:"29 Sep 2026", amount:"17.89M DYM", pct:"1.8%"},
+    {token:"EDEN", date:"30 Sep 2026", amount:"42.45M EDEN", pct:"4.2%"},
+    {token:"GRVT", date:"30 Sep 2026", amount:"17.14M GRVT", pct:"1.7%"},
+    {token:"TIA", date:"30 Sep 2026", amount:"10.69M TIA", pct:"1.1%"},
+    {token:"BEAT", date:"1 Oct 2026", amount:"11.25M BEAT", pct:"1.1%"},
+    {token:"ZAMA", date:"2 Oct 2026", amount:"114.58M ZAMA", pct:"1.0%"}
+  ],
+  30: [
+    {token:"HYPE", date:"29 Sep 2026", amount:"14.18M HYPE", pct:"1.4%"},
+    {token:"TREE", date:"29 Sep 2026", amount:"20.82M TREE", pct:"2.1%"},
+    {token:"DYM", date:"29 Sep 2026", amount:"17.89M DYM", pct:"1.8%"},
+    {token:"EDEN", date:"30 Sep 2026", amount:"42.45M EDEN", pct:"4.2%"},
+    {token:"GRVT", date:"30 Sep 2026", amount:"17.14M GRVT", pct:"1.7%"},
+    {token:"TIA", date:"30 Sep 2026", amount:"10.69M TIA", pct:"1.1%"},
+    {token:"BEAT", date:"1 Oct 2026", amount:"11.25M BEAT", pct:"1.1%"},
+    {token:"ZAMA", date:"2 Oct 2026", amount:"114.58M ZAMA", pct:"1.0%"},
+    {token:"CGPT", date:"10 Oct 2026", amount:"2.45M CGPT", pct:"0.2%"},
+    {token:"KIP", date:"10 Oct 2026", amount:"225.20M KIP", pct:"2.3%"},
+    {token:"SPK", date:"17 Oct 2026", amount:"168.75M SPK", pct:"1.7%"},
+    {token:"SOLV", date:"17 Oct 2026", amount:"189.66M SOLV", pct:"2.3%"},
+    {token:"IR", date:"17 Oct 2026", amount:"12.90M IR", pct:"1.3%"},
+    {token:"TRN", date:"17 Oct 2026", amount:"3.19M TRN", pct:"3.2%"}
+  ]
+};
+function renderUnlocks(days){
+  const rows=unlockData[days]||[];
+  document.getElementById("unlockRows").innerHTML=rows.length
+    ? rows.map((r,i)=>`<tr><td class="rank">${i+1}</td><td><b>${r.token}</b></td><td>${r.date}</td><td>${r.amount}</td><td>${r.pct}</td></tr>`).join("")
+    : '<tr><td colspan="5" class="loading">No verified scheduled unlocks in this snapshot.</td></tr>';
+}
+renderUnlocks(1);
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  renderUnlocks(Number(b.dataset.days));
+}));
 </script>
 </body></html>
