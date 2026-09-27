@@ -64,29 +64,32 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
 </div></section>
 
 
-<section id="live-analysis"><div class="wrap">
+<section id="live-analysis" translate="no"><div class="wrap">
  <div class="eyebrow">LIVE ARCY</div>
- <div class="head"><h2>Live Market Analysis</h2><p>ARCY market and onchain status. Values refresh in the browser when public endpoints are available.</p></div>
+ <div class="head"><h2>Live Market Analysis</h2><p>Live ARCY market data from CoinGecko's GeckoTerminal onchain feed, plus Arc supply data.</p></div>
  <div class="livegrid">
   <div class="livepanel">
-   <div><span class="statusdot"></span><b id="liveStatus">Connecting to Arc & CoinGecko…</b></div>
+   <div><span class="statusdot"></span><b id="liveStatus">Loading live market data…</b></div>
    <div class="metricgrid">
-    <div class="metric"><small>Price</small><strong id="livePrice">—</strong></div>
-    <div class="metric"><small>24H Change</small><strong id="liveChange">—</strong></div>
-    <div class="metric"><small>Market Cap</small><strong id="liveMcap">—</strong></div>
-    <div class="metric"><small>Current Supply</small><strong id="liveSupply">—</strong></div>
+    <div class="metric"><small>Price</small><strong id="livePrice">Loading…</strong></div>
+    <div class="metric"><small>24H Change</small><strong id="liveChange">Loading…</strong></div>
+    <div class="metric"><small>24H Volume</small><strong id="liveVolume">Loading…</strong></div>
+    <div class="metric"><small>FDV</small><strong id="liveFdv">Loading…</strong></div>
+    <div class="metric"><small>Current Supply</small><strong id="liveSupply">Loading…</strong></div>
+    <div class="metric"><small>Network</small><strong>Arc</strong></div>
    </div>
    <div class="actions" style="margin-top:20px">
-    <a class="btn primary" target="_blank" rel="noopener" href="https://www.coingecko.com/en/search?query=0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">COINGECKO ↗</a>
+    <a class="btn primary" target="_blank" rel="noopener" href="https://www.coingecko.com/en/chains/arc">COINGECKO ↗</a>
     <a class="btn" target="_blank" rel="noopener" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">ONCHAIN ↗</a>
    </div>
   </div>
   <div class="livepanel">
    <div class="eyebrow">LATEST FROM X</div>
-   <h3 style="font-size:28px;margin:6px 0 12px">@Arcy_usdc</h3>
-   <p style="color:var(--muted);line-height:1.7">Latest ARCY research and community posts are available directly from the official X profile.</p>
-   <div class="actions"><a class="btn primary" href="https://x.com/Arcy_usdc" target="_blank" rel="noopener">OPEN LATEST POSTS ON X ↗</a></div>
-   <p class="swapfallback">X may block automatic timeline embeds depending on browser privacy settings. This button always opens the official feed.</p>
+   <h3 style="font-size:28px;margin:6px 0 14px">@Arcy_usdc</h3>
+   <div class="xembed" style="background:transparent;min-height:460px">
+    <a class="twitter-timeline" data-theme="dark" data-height="460" data-chrome="noheader nofooter transparent" href="https://twitter.com/Arcy_usdc">Posts by @Arcy_usdc</a>
+   </div>
+   <div class="actions" style="margin-top:14px"><a class="btn primary" href="https://x.com/Arcy_usdc" target="_blank" rel="noopener">OPEN X PROFILE ↗</a></div>
   </div>
  </div>
 </div></section>
@@ -101,17 +104,18 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
 </div></section>
 
 
-<section id="buy"><div class="wrap">
+<section id="buy" translate="no"><div class="wrap">
  <div class="eyebrow">BUY ARCY</div>
- <div class="head"><h2>Swap USDC → ARCY</h2><p>Trade through Uniswap. Verify the ARCY contract before confirming any transaction.</p></div>
- <div class="card" style="padding:18px">
-  <iframe class="swapframe" src="https://app.uniswap.org/swap?chain=arc&outputCurrency=0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" title="Uniswap ARCY swap" loading="lazy" allow="clipboard-write"></iframe>
-  <div class="actions" style="margin-top:16px">
-   <a class="btn primary" href="https://app.uniswap.org/swap?chain=arc&outputCurrency=0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" target="_blank" rel="noopener">OPEN UNISWAP ↗</a>
-   <a class="btn" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" target="_blank" rel="noopener">VERIFY CONTRACT ↗</a>
-  </div>
+ <div class="head"><h2>Swap USDC → ARCY</h2><p>Open the official Uniswap web app with ARCY preselected on Arc. Connect your wallet there and review the quote before confirming.</p></div>
+ <div class="card swapbox" style="text-align:center">
+  <div style="font-size:14px;color:var(--muted);margin-bottom:8px">ARC • UNISWAP</div>
+  <h3 style="font-size:34px;margin:8px 0">USDC → ARCY</h3>
   <div class="contract">ARCY: 0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b</div>
-  <p class="swapfallback">If Uniswap prevents embedded trading in your browser, use “Open Uniswap” above; it opens the same ARCY contract directly in Uniswap.</p>
+  <div class="actions" style="justify-content:center;margin-top:22px">
+   <a class="btn primary" href="https://app.uniswap.org/swap?chain=arc&outputCurrency=0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" target="_blank" rel="noopener noreferrer">BUY ARCY ON UNISWAP ↗</a>
+   <a class="btn" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" target="_blank" rel="noopener noreferrer">VERIFY CONTRACT ↗</a>
+  </div>
+  <p class="swapfallback">Uniswap blocks reliable in-page embedding in some browsers, so the buy button opens the official Uniswap app directly instead of showing a broken blank frame.</p>
  </div>
 </div></section>
 
@@ -226,34 +230,47 @@ document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
 }));
 </script>
 
+
+
+
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 <script>
 (async function(){
  const token="0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b";
  const status=document.getElementById("liveStatus");
- const fmt=n=>n==null?"—":new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(n);
- try{
-   const r=await fetch("https://api.coingecko.com/api/v3/coins/arc/contract/"+token);
-   if(r.ok){
-     const d=await r.json();
-     const md=d.market_data||{};
-     const usd=md.current_price?.usd;
-     const ch=md.price_change_percentage_24h;
-     const mc=md.market_cap?.usd;
-     if(usd!=null) document.getElementById("livePrice").textContent="$"+Number(usd).toLocaleString("en-US",{maximumSignificantDigits:6});
-     if(ch!=null) document.getElementById("liveChange").textContent=(ch>=0?"+":"")+Number(ch).toFixed(2)+"%";
-     if(mc!=null) document.getElementById("liveMcap").textContent="$"+fmt(mc);
-     status.textContent="Live CoinGecko + Arc data";
-   } else status.textContent="Arc live • CoinGecko data unavailable";
- }catch(e){ status.textContent="Arc live • CoinGecko data unavailable"; }
- try{
+ const compact=n=>new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(Number(n));
+ const money=n=>"$"+compact(n);
+ try {
+   const u="https://api.geckoterminal.com/api/v2/networks/arc/tokens/"+token;
+   const r=await fetch(u,{headers:{"accept":"application/json"}});
+   if(!r.ok) throw new Error("market "+r.status);
+   const j=await r.json();
+   const a=j?.data?.attributes||{};
+   const price=Number(a.price_usd);
+   const vol=Number(a.volume_usd?.h24);
+   const fdv=Number(a.fdv_usd);
+   const ch=Number(a.price_change_percentage?.h24);
+   document.getElementById("livePrice").textContent=Number.isFinite(price)?"$"+price.toLocaleString("en-US",{maximumSignificantDigits:7}):"—";
+   document.getElementById("liveChange").textContent=Number.isFinite(ch)?(ch>=0?"+":"")+ch.toFixed(2)+"%":"—";
+   document.getElementById("liveVolume").textContent=Number.isFinite(vol)?money(vol):"—";
+   document.getElementById("liveFdv").textContent=Number.isFinite(fdv)?money(fdv):"—";
+   status.textContent="Live • CoinGecko / GeckoTerminal";
+ } catch(e) {
+   status.textContent="Market feed temporarily unavailable";
+   ["livePrice","liveChange","liveVolume","liveFdv"].forEach(id=>document.getElementById(id).textContent="—");
+ }
+ try {
    const payload={jsonrpc:"2.0",id:1,method:"eth_call",params:[{to:token,data:"0x18160ddd"},"latest"]};
    const r=await fetch("https://rpc.mainnet.arc.io",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
-   const d=await r.json();
-   if(d.result){
-      const supply=Number(BigInt(d.result))/1e18;
-      document.getElementById("liveSupply").textContent=fmt(supply)+" ARCY";
-   }
- }catch(e){}
+   const j=await r.json();
+   if(j.result){
+     const raw=BigInt(j.result);
+     const supply=Number(raw)/1e18;
+     document.getElementById("liveSupply").textContent=compact(supply)+" ARCY";
+   } else throw new Error("no supply");
+ } catch(e) {
+   document.getElementById("liveSupply").textContent="—";
+ }
 })();
 </script>
 
