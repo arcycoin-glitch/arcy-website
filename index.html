@@ -10,6 +10,18 @@
 :root{--bg:#050d18;--panel:#091725;--panel2:#0c2032;--text:#f4fbff;--muted:#8fa9ba;--cyan:#22d9ff;--cyan2:#4af4d5;--line:#15344a;--orange:#ff8a36}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 8%,#0a2d45 0,transparent 28%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
 a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.nav{position:sticky;top:0;z-index:20;background:#050d18d9;backdrop-filter:blur(14px);border-bottom:1px solid #102638}.navin{height:72px;display:flex;align-items:center;justify-content:space-between}.brand{font-weight:900;letter-spacing:.08em;color:var(--cyan);font-size:22px}.links{display:flex;gap:24px;color:#a9bfcd;font-size:14px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 18px;border:1px solid #1e536d;border-radius:12px;background:#0b2031;font-weight:800;transition:.2s}.btn:hover{transform:translateY(-2px);border-color:var(--cyan);box-shadow:0 0 30px #22d9ff1f}.primary{background:linear-gradient(135deg,#16c9ef,#38efd0);color:#03101a;border:0}.hero{min-height:680px;display:grid;grid-template-columns:1.05fr .95fr;align-items:center;gap:40px;padding:80px 0}.eyebrow{color:var(--cyan);font-weight:800;letter-spacing:.14em;font-size:12px}.hero h1{font-size:clamp(52px,8vw,100px);line-height:.9;margin:14px 0 18px;letter-spacing:-.06em}.hero h2{font-size:clamp(24px,3vw,42px);margin:0 0 18px}.hero p{max-width:650px;color:var(--muted);font-size:18px;line-height:1.7}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.contract{margin-top:24px;color:#7595a8;font-family:ui-monospace,monospace;font-size:12px;word-break:break-all}.visual{display:flex;justify-content:center;align-items:center;min-height:430px}.visual img{max-width:100%;max-height:520px;object-fit:contain;filter:drop-shadow(0 25px 55px #00d9ff30)}section{padding:90px 0;border-top:1px solid #0d2638}.head{margin-bottom:34px}.head h3{font-size:clamp(32px,4vw,54px);margin:8px 0}.head p{color:var(--muted);max-width:760px;line-height:1.7}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center}.card{background:linear-gradient(180deg,#0b1c2b,#07131f);border:1px solid var(--line);border-radius:20px;padding:24px}.burnnum{font-size:clamp(42px,6vw,76px);font-weight:900;letter-spacing:-.05em;color:#fff}.burnnum span{color:var(--orange)}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}.stat{padding:18px;border-radius:14px;background:#07121d;border:1px solid #123047}.stat b{display:block;font-size:22px}.stat small{color:var(--muted)}.tabs{display:flex;gap:8px;margin:20px 0}.tab{border:1px solid var(--line);background:#081624;color:#a9bfcd;padding:10px 16px;border-radius:10px;font-weight:800;cursor:pointer}.tab.active{background:#10374a;color:#fff;border-color:#1fbfe3}.tablebox{overflow:auto;border:1px solid var(--line);border-radius:18px;background:#07131f}table{width:100%;border-collapse:collapse;min-width:720px}th,td{text-align:left;padding:16px;border-bottom:1px solid #10283a}th{font-size:12px;color:#7795a7;letter-spacing:.08em}td{font-size:14px}.rank{color:var(--cyan);font-weight:900}.note{color:#688799;font-size:12px;line-height:1.6;margin-top:14px}.research{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.r-card{min-height:220px;display:flex;flex-direction:column}.r-card h4{font-size:22px;margin:10px 0}.r-card p{color:var(--muted);line-height:1.6}.r-card a{margin-top:auto;color:var(--cyan);font-weight:800}.swapbox{text-align:center;padding:48px}.swapbox h3{font-size:46px;margin:10px}.chart{height:440px;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:#07131f}.chart iframe{width:100%;height:100%;border:0}.foot{padding:40px 0 55px;color:#7895a7}.footin{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.status{display:inline-flex;align-items:center;gap:7px;color:#84a5b8;font-size:12px}.dot{width:8px;height:8px;border-radius:50%;background:#3de6b0;box-shadow:0 0 12px #3de6b0}.loading{color:#7595a8}.token-cell{display:flex;align-items:center;gap:11px;min-width:190px}.token-logo{width:30px;height:30px;border-radius:50%;object-fit:cover;background:#0d2434;border:1px solid #1c4056}.token-logo-fallback{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#0d2b3c;border:1px solid #1c526a;color:#39e6e1;font-size:11px;font-weight:900}.token-meta{display:flex;flex-direction:column;line-height:1.15}.token-symbol{font-weight:900;color:#fff}.token-name{font-size:11px;color:#7897aa;margin-top:4px}.marketbox{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center}.marketbox p{color:var(--muted);line-height:1.7}.socials{display:flex;gap:14px;flex-wrap:wrap}
+.livegrid{display:grid;grid-template-columns:1.15fr .85fr;gap:22px}
+.livepanel{padding:28px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(180deg,#0b2231,#071722)}
+.metricgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:20px}
+.metric{padding:17px;border:1px solid var(--line);border-radius:16px;background:#061520}
+.metric small{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.metric strong{display:block;margin-top:7px;font-size:21px}
+.statusdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#38e8b0;margin-right:7px;box-shadow:0 0 12px #38e8b0}
+.xembed{overflow:hidden;border-radius:20px;background:#fff;min-height:360px}
+.swapframe{width:100%;height:720px;border:0;border-radius:22px;background:#fff}
+.swapfallback{margin-top:14px;color:var(--muted);font-size:13px}
+@media(max-width:850px){.livegrid{grid-template-columns:1fr}.metricgrid{grid-template-columns:1fr 1fr}.swapframe{height:650px}}
+@media(max-width:520px){.metricgrid{grid-template-columns:1fr}}
 @media(max-width:850px){.links{display:none}.hero,.grid2{grid-template-columns:1fr}.hero{padding:50px 0;min-height:auto}.visual{min-height:300px}.stats,.research{grid-template-columns:1fr}.hero .visual{order:-1}.visual img{max-height:360px}section{padding:65px 0}.swapbox{padding:30px 18px}.marketbox{grid-template-columns:1fr}}
 </style>
 </head>
@@ -51,6 +63,33 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
  <p class="note">Data snapshot: 27 Sep 2026. Sources: CoinGecko and Tokenomics.com public unlock calendars. Token amounts and percentages are scheduled values, not estimates invented by ARCY. Schedules can change; verify material events with official project vesting documentation. Automatic updating will be added later.</p>
 </div></section>
 
+
+<section id="live-analysis"><div class="wrap">
+ <div class="eyebrow">LIVE ARCY</div>
+ <div class="head"><h2>Live Market Analysis</h2><p>ARCY market and onchain status. Values refresh in the browser when public endpoints are available.</p></div>
+ <div class="livegrid">
+  <div class="livepanel">
+   <div><span class="statusdot"></span><b id="liveStatus">Connecting to Arc & CoinGecko…</b></div>
+   <div class="metricgrid">
+    <div class="metric"><small>Price</small><strong id="livePrice">—</strong></div>
+    <div class="metric"><small>24H Change</small><strong id="liveChange">—</strong></div>
+    <div class="metric"><small>Market Cap</small><strong id="liveMcap">—</strong></div>
+    <div class="metric"><small>Current Supply</small><strong id="liveSupply">—</strong></div>
+   </div>
+   <div class="actions" style="margin-top:20px">
+    <a class="btn primary" target="_blank" rel="noopener" href="https://www.coingecko.com/en/search?query=0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">COINGECKO ↗</a>
+    <a class="btn" target="_blank" rel="noopener" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">ONCHAIN ↗</a>
+   </div>
+  </div>
+  <div class="livepanel">
+   <div class="eyebrow">LATEST FROM X</div>
+   <h3 style="font-size:28px;margin:6px 0 12px">@Arcy_usdc</h3>
+   <p style="color:var(--muted);line-height:1.7">Latest ARCY research and community posts are available directly from the official X profile.</p>
+   <div class="actions"><a class="btn primary" href="https://x.com/Arcy_usdc" target="_blank" rel="noopener">OPEN LATEST POSTS ON X ↗</a></div>
+   <p class="swapfallback">X may block automatic timeline embeds depending on browser privacy settings. This button always opens the official feed.</p>
+  </div>
+ </div>
+</div></section>
 <section id="research"><div class="wrap">
  <div class="eyebrow">ARC ECOSYSTEM</div><div class="head"><h3>ARCY Research</h3><p>Short, evidence-first research on projects building across the Arc ecosystem. Newest research appears first.</p></div>
  <div class="research">
@@ -61,10 +100,21 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
  <div class="actions"><a class="btn" href="https://x.com/Arcy_usdc" target="_blank" rel="noopener">VIEW ALL RESEARCH ↗</a></div>
 </div></section>
 
-<section id="buy"><div class="wrap grid2">
- <div class="visual"><img src="arcy 4.png" alt="Buy ARCY with USDC"></div>
- <div class="card swapbox"><div class="eyebrow">DISCOVER $ARCY</div><h3>Trade onchain.</h3><p style="color:var(--muted);line-height:1.7">ARCY trades against USDC on Arc. Use the verified contract address before interacting with any pool.</p><div class="actions" style="justify-content:center"><a class="btn primary" target="_blank" rel="noopener" href="https://app.uniswap.org/swap?chain=arc&outputCurrency=0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">OPEN UNISWAP ↗</a><a class="btn" target="_blank" rel="noopener" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">CONTRACT ↗</a></div></div>
+
+<section id="buy"><div class="wrap">
+ <div class="eyebrow">BUY ARCY</div>
+ <div class="head"><h2>Swap USDC → ARCY</h2><p>Trade through Uniswap. Verify the ARCY contract before confirming any transaction.</p></div>
+ <div class="card" style="padding:18px">
+  <iframe class="swapframe" src="https://app.uniswap.org/swap?chain=arc&outputCurrency=0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" title="Uniswap ARCY swap" loading="lazy" allow="clipboard-write"></iframe>
+  <div class="actions" style="margin-top:16px">
+   <a class="btn primary" href="https://app.uniswap.org/swap?chain=arc&outputCurrency=0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" target="_blank" rel="noopener">OPEN UNISWAP ↗</a>
+   <a class="btn" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" target="_blank" rel="noopener">VERIFY CONTRACT ↗</a>
+  </div>
+  <div class="contract">ARCY: 0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b</div>
+  <p class="swapfallback">If Uniswap prevents embedded trading in your browser, use “Open Uniswap” above; it opens the same ARCY contract directly in Uniswap.</p>
+ </div>
 </div></section>
+
 
 <section id="market"><div class="wrap">
  <div class="eyebrow">MARKET DATA</div>
@@ -175,4 +225,36 @@ document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
   renderUnlocks(Number(b.dataset.days));
 }));
 </script>
+
+<script>
+(async function(){
+ const token="0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b";
+ const status=document.getElementById("liveStatus");
+ const fmt=n=>n==null?"—":new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(n);
+ try{
+   const r=await fetch("https://api.coingecko.com/api/v3/coins/arc/contract/"+token);
+   if(r.ok){
+     const d=await r.json();
+     const md=d.market_data||{};
+     const usd=md.current_price?.usd;
+     const ch=md.price_change_percentage_24h;
+     const mc=md.market_cap?.usd;
+     if(usd!=null) document.getElementById("livePrice").textContent="$"+Number(usd).toLocaleString("en-US",{maximumSignificantDigits:6});
+     if(ch!=null) document.getElementById("liveChange").textContent=(ch>=0?"+":"")+Number(ch).toFixed(2)+"%";
+     if(mc!=null) document.getElementById("liveMcap").textContent="$"+fmt(mc);
+     status.textContent="Live CoinGecko + Arc data";
+   } else status.textContent="Arc live • CoinGecko data unavailable";
+ }catch(e){ status.textContent="Arc live • CoinGecko data unavailable"; }
+ try{
+   const payload={jsonrpc:"2.0",id:1,method:"eth_call",params:[{to:token,data:"0x18160ddd"},"latest"]};
+   const r=await fetch("https://rpc.mainnet.arc.io",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
+   const d=await r.json();
+   if(d.result){
+      const supply=Number(BigInt(d.result))/1e18;
+      document.getElementById("liveSupply").textContent=fmt(supply)+" ARCY";
+   }
+ }catch(e){}
+})();
+</script>
+
 </body></html>
