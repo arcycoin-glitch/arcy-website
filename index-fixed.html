@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050d18">
+<title>ARCY — Research First. Hype Never.</title>
+<meta name="description" content="ARCY is a community-driven meme on Arc. Research, onchain transparency and useful market data.">
+<style>
+:root{--bg:#050d18;--panel:#091725;--panel2:#0c2032;--text:#f4fbff;--muted:#8fa9ba;--cyan:#22d9ff;--cyan2:#4af4d5;--line:#15344a;--orange:#ff8a36}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 8%,#0a2d45 0,transparent 28%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.nav{position:sticky;top:0;z-index:20;background:#050d18d9;backdrop-filter:blur(14px);border-bottom:1px solid #102638}.navin{height:72px;display:flex;align-items:center;justify-content:space-between}.brand{font-weight:900;letter-spacing:.08em;color:var(--cyan);font-size:22px}.links{display:flex;gap:24px;color:#a9bfcd;font-size:14px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 18px;border:1px solid #1e536d;border-radius:12px;background:#0b2031;font-weight:800;transition:.2s}.btn:hover{transform:translateY(-2px);border-color:var(--cyan);box-shadow:0 0 30px #22d9ff1f}.primary{background:linear-gradient(135deg,#16c9ef,#38efd0);color:#03101a;border:0}.hero{min-height:680px;display:grid;grid-template-columns:1.05fr .95fr;align-items:center;gap:40px;padding:80px 0}.eyebrow{color:var(--cyan);font-weight:800;letter-spacing:.14em;font-size:12px}.hero h1{font-size:clamp(52px,8vw,100px);line-height:.9;margin:14px 0 18px;letter-spacing:-.06em}.hero h2{font-size:clamp(24px,3vw,42px);margin:0 0 18px}.hero p{max-width:650px;color:var(--muted);font-size:18px;line-height:1.7}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.contract{margin-top:24px;color:#7595a8;font-family:ui-monospace,monospace;font-size:12px;word-break:break-all}.visual{display:flex;justify-content:center;align-items:center;min-height:430px}.visual img{max-width:100%;max-height:520px;object-fit:contain;filter:drop-shadow(0 25px 55px #00d9ff30)}section{padding:90px 0;border-top:1px solid #0d2638}.head{margin-bottom:34px}.head h3{font-size:clamp(32px,4vw,54px);margin:8px 0}.head p{color:var(--muted);max-width:760px;line-height:1.7}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center}.card{background:linear-gradient(180deg,#0b1c2b,#07131f);border:1px solid var(--line);border-radius:20px;padding:24px}.burnnum{font-size:clamp(42px,6vw,76px);font-weight:900;letter-spacing:-.05em;color:#fff}.burnnum span{color:var(--orange)}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}.stat{padding:18px;border-radius:14px;background:#07121d;border:1px solid #123047}.stat b{display:block;font-size:22px}.stat small{color:var(--muted)}.tabs{display:flex;gap:8px;margin:20px 0}.tab{border:1px solid var(--line);background:#081624;color:#a9bfcd;padding:10px 16px;border-radius:10px;font-weight:800;cursor:pointer}.tab.active{background:#10374a;color:#fff;border-color:#1fbfe3}.tablebox{overflow:auto;border:1px solid var(--line);border-radius:18px;background:#07131f}table{width:100%;border-collapse:collapse;min-width:720px}th,td{text-align:left;padding:16px;border-bottom:1px solid #10283a}th{font-size:12px;color:#7795a7;letter-spacing:.08em}td{font-size:14px}.rank{color:var(--cyan);font-weight:900}.note{color:#688799;font-size:12px;line-height:1.6;margin-top:14px}.research{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.r-card{min-height:220px;display:flex;flex-direction:column}.r-card h4{font-size:22px;margin:10px 0}.r-card p{color:var(--muted);line-height:1.6}.r-card a{margin-top:auto;color:var(--cyan);font-weight:800}.swapbox{text-align:center;padding:48px}.swapbox h3{font-size:46px;margin:10px}.chart{height:440px;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:#07131f}.chart iframe{width:100%;height:100%;border:0}.foot{padding:40px 0 55px;color:#7895a7}.footin{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.status{display:inline-flex;align-items:center;gap:7px;color:#84a5b8;font-size:12px}.dot{width:8px;height:8px;border-radius:50%;background:#3de6b0;box-shadow:0 0 12px #3de6b0}.loading{color:#7595a8}
+@media(max-width:850px){.links{display:none}.hero,.grid2{grid-template-columns:1fr}.hero{padding:50px 0;min-height:auto}.visual{min-height:300px}.stats,.research{grid-template-columns:1fr}.hero .visual{order:-1}.visual img{max-height:360px}section{padding:65px 0}.swapbox{padding:30px 18px}}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="wrap navin"><a class="brand" href="#">$ARCY</a><div class="links"><a href="#burn">Burn</a><a href="#unlocks">Unlocks</a><a href="#research">Research</a><a href="#chart">Chart</a></div><a class="btn primary" id="navBuy" href="#buy">BUY $ARCY</a></div></nav>
+
+<main>
+<div class="wrap hero">
+  <div>
+    <div class="eyebrow">COMMUNITY-DRIVEN • BUILT ON ARC</div>
+    <h1>$ARCY</h1><h2>Research First.<br>Hype Never.</h2>
+    <p>ARCY combines a community meme with transparent onchain mechanics and practical research tools for the crypto market.</p>
+    <div class="actions"><a class="btn primary" href="#buy">BUY $ARCY</a><a class="btn" href="#research">ARCY RESEARCH</a></div>
+    <div class="contract">Contract: 0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b</div>
+  </div>
+  <div class="visual"><img src="arcy-premium.png" alt="ARCY owl mascot"></div>
+</div>
+
+<section id="burn"><div class="wrap grid2">
+ <div>
+  <div class="eyebrow">ONCHAIN MECHANISM</div>
+  <div class="head"><h3>Buyback & Burn 🔥</h3><p>40% of trading tax is allocated to Buyback & Burn. The dashboard attempts to read ARCY supply directly from Arc mainnet; if the RPC is temporarily unavailable, the last verified snapshot is shown.</p></div>
+  <div class="card">
+    <div class="burnnum"><span id="burned">3.57M</span> ARCY</div><div class="status"><i class="dot"></i><span id="burnStatus">Loading Arc onchain data…</span></div>
+    <div class="stats"><div class="stat"><small>Initial Supply</small><b>1.00B</b></div><div class="stat"><small>Current Supply</small><b id="supply">996.43M</b></div><div class="stat"><small>Burn Share</small><b>40%</b></div></div>
+    <div class="actions"><a class="btn" target="_blank" rel="noopener" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">VERIFY ONCHAIN ↗</a></div>
+  </div>
+ </div>
+ <div class="visual"><img src="arcy 3.png" alt="ARCY Buyback and Burn"></div>
+</div></section>
+
+<section id="unlocks"><div class="wrap">
+ <div class="grid2">
+  <div><div class="eyebrow">MARKET INTELLIGENCE</div><div class="head"><h3>Token Unlocks 🔓</h3><p>Upcoming supply events, filtered for major crypto assets and ranked by estimated unlock value in USD.</p></div></div>
+  <div class="visual"><img src="acy 2.png" alt="ARCY Token Unlocks"></div>
+ </div>
+ <div class="tabs"><button class="tab active" data-days="1">TODAY</button><button class="tab" data-days="7">7 DAYS</button><button class="tab" data-days="30">30 DAYS</button></div>
+ <div class="tablebox"><table><thead><tr><th>#</th><th>TOKEN</th><th>UNLOCK DATE</th><th>UNLOCK VALUE</th><th>% SUPPLY</th></tr></thead><tbody id="unlockRows"><tr><td colspan="5" class="loading">Unlock feed is being prepared. No fabricated data is displayed.</td></tr></tbody></table></div>
+ <p class="note">Data Scope: upcoming unlocks among major crypto assets, ranked by estimated unlock value (USD). Unlock schedules can change; verify material events with the project's official vesting documentation. Research data only — not a trading signal.</p>
+</div></section>
+
+<section id="research"><div class="wrap">
+ <div class="eyebrow">ARC ECOSYSTEM</div><div class="head"><h3>ARCY Research</h3><p>Short, evidence-first research on projects building across the Arc ecosystem. Newest research appears first.</p></div>
+ <div class="research">
+  <article class="card r-card"><div class="eyebrow">#015</div><h4>Morpho</h4><p>Credit infrastructure on Arc. We track whether borrowing demand and liquidity remain sustainable as incentives evolve.</p><a href="https://x.com/Arcy_usdc" target="_blank" rel="noopener">READ ON X →</a></article>
+  <article class="card r-card"><div class="eyebrow">#014</div><h4>Aave V4</h4><p>Lending infrastructure on Arc. Early liquidity is useful context, but utilization and sustained borrowing demand matter.</p><a href="https://x.com/Arcy_usdc" target="_blank" rel="noopener">READ ON X →</a></article>
+  <article class="card r-card"><div class="eyebrow">#013</div><h4>Aero</h4><p>Liquidity infrastructure on Arc. Arc-side liquidity, volume and sustained usage remain the metrics to watch.</p><a href="https://x.com/Arcy_usdc" target="_blank" rel="noopener">READ ON X →</a></article>
+ </div>
+ <div class="actions"><a class="btn" href="https://x.com/Arcy_usdc" target="_blank" rel="noopener">VIEW ALL RESEARCH ↗</a></div>
+</div></section>
+
+<section id="buy"><div class="wrap grid2">
+ <div class="visual"><img src="arcy 4.png" alt="Buy ARCY with USDC"></div>
+ <div class="card swapbox"><div class="eyebrow">DISCOVER $ARCY</div><h3>Trade onchain.</h3><p style="color:var(--muted);line-height:1.7">ARCY trades against USDC on Arc. Use the verified contract address before interacting with any pool.</p><div class="actions" style="justify-content:center"><a class="btn primary" target="_blank" rel="noopener" href="https://app.uniswap.org/swap?chain=arc&outputCurrency=0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">OPEN UNISWAP ↗</a><a class="btn" target="_blank" rel="noopener" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">CONTRACT ↗</a></div></div>
+</div></section>
+
+<section id="chart"><div class="wrap"><div class="eyebrow">MARKET</div><div class="head"><h3>Live Chart</h3><p>Live market view. If the embedded market provider has not indexed the pair yet, use the contract link to verify ARCY onchain.</p></div><div class="chart"><iframe title="ARCY chart" loading="lazy" src="https://dexscreener.com/arc/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b?embed=1&theme=dark"></iframe></div></div></section>
+</main>
+
+<footer class="foot"><div class="wrap footin"><div><b style="color:#dff8ff">$ARCY 🦉</b><br>Research First. Hype Never.</div><div><a href="https://x.com/Arcy_usdc" target="_blank" rel="noopener">X / Twitter</a> · <a href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" target="_blank" rel="noopener">Explorer</a></div></div></footer>
+
+<script>
+const TOKEN="0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b";
+const RPC="https://rpc.mainnet.arc.io";
+const INITIAL=1000000000n;
+function fmt(n){const x=Number(n);if(x>=1e9)return (x/1e9).toFixed(2)+"B";if(x>=1e6)return (x/1e6).toFixed(2)+"M";return x.toLocaleString()}
+async function rpc(method,params=[]){const r=await fetch(RPC,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})});const j=await r.json();if(j.error)throw Error(j.error.message);return j.result}
+async function loadBurn(){
+ try{
+  const decHex=await rpc("eth_call",[{to:TOKEN,data:"0x313ce567"},"latest"]);
+  const decimals=Number(BigInt(decHex));
+  const supplyHex=await rpc("eth_call",[{to:TOKEN,data:"0x18160ddd"},"latest"]);
+  const raw=BigInt(supplyHex), div=10n**BigInt(decimals), current=raw/div;
+  if(current>0n && current<=INITIAL){
+    const burned=INITIAL-current;
+    document.getElementById("burned").textContent=fmt(burned);
+    document.getElementById("supply").textContent=fmt(current);
+    document.getElementById("burnStatus").textContent="Live • Arc mainnet";
+  } else throw Error("Supply model differs");
+ }catch(e){document.getElementById("burnStatus").textContent="Verified snapshot • live RPC unavailable";}
+}
+loadBurn();
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById("unlockRows").innerHTML='<tr><td colspan="5" class="loading">Live unlock API connection pending — no fabricated values shown.</td></tr>'}));
+</script>
+</body></html>
