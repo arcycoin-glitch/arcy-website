@@ -197,7 +197,7 @@ function tokenIcon(symbol, directLogo){
 
 let unlockData = {1:[],7:[],30:[]};
 let unlockPage=1;
-const unlockPageSize=10;
+const unlockPageSize=5;
 function escapeHtml(v){return String(v??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));}
 function filteredUnlockRows(days){
   const q=(document.getElementById("unlockSearch")?.value||"").trim().toLowerCase();
@@ -358,10 +358,10 @@ loadUnlocks();
     const title=document.getElementById('pulseTitle');
     if(title) title.textContent=`ARCY ARC PULSE #${String(j.number).padStart(3,'0')} 📡`;
     const grid=document.getElementById('pulseGrid');
-    const classes=['pulse-week','pulse-new','pulse-watch','pulse-risk'];
-    const labels=['🔥 THIS WEEK','🆕 NEW','🔍 WATCH','⚠️ REALITY CHECK'];
+    const classes=['pulse-week','pulse-new','pulse-watch','pulse-risk','pulse-watch'];
+    const labels=['🔥 THIS WEEK','🆕 NEW','🔍 WATCH','⚠️ REALITY CHECK','📡 SIGNAL'];
     if(grid && j.cards?.length){
-      grid.innerHTML=j.cards.slice(0,4).map((c,i)=>`<article class="pulse-card ${classes[i]}"><span>${labels[i]}</span><small class="pulse-owner">${escapeHtml(c.owner||'ARC ECOSYSTEM')}</small><h4>${escapeHtml(c.title)}</h4><p>${escapeHtml(c.summary)}</p>${c.url?`<a href="${escapeHtml(c.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;color:var(--accent);font-size:12px;font-weight:800">SOURCE ↗</a>`:''}</article>`).join('');
+      grid.innerHTML=j.cards.slice(0,5).map((c,i)=>`<article class="pulse-card ${classes[i]}"><span>${labels[i]}</span><small class="pulse-owner">${escapeHtml(c.owner||'ARC ECOSYSTEM')}</small><h4>${escapeHtml(c.title)}</h4><p>${escapeHtml(c.summary)}</p>${c.url?`<a href="${escapeHtml(c.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;color:var(--accent);font-size:12px;font-weight:800">SOURCE ↗</a>`:''}</article>`).join('');
     }
     const take=document.getElementById('pulseTake');
     if(take && j.take) take.textContent=j.take;
