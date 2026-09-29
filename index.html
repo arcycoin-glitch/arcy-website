@@ -170,8 +170,8 @@ async function loadTokenLogos(){
     renderUnlocks(Number(document.querySelector(".tab.active")?.dataset.days||1));
   }catch(e){ /* initials remain visible; table never breaks */ }
 }
-function tokenIcon(symbol){
-  const id=tokenCoinGeckoIds[symbol], url=id&&tokenLogoCache[id];
+function tokenIcon(symbol, directLogo){
+  const id=tokenCoinGeckoIds[symbol], url=directLogo || (id&&tokenLogoCache[id]);
   return url
    ? `<img class="token-icon" src="${url}" alt="${symbol}" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<span class=&quot;token-icon-fallback&quot;>${symbol.slice(0,3)}</span>'">`
    : `<span class="token-icon-fallback">${symbol.slice(0,3)}</span>`;
@@ -184,7 +184,7 @@ function renderUnlocks(days){
   const body=document.getElementById("unlockRows");
   if(!body)return;
   body.innerHTML=rows.length
-    ? rows.map((r,i)=>`<tr><td class="rank">${i+1}</td><td translate="no"><span class="token-cell">${tokenIcon(r.symbol||r.token||'')}<b>${escapeHtml(r.symbol||r.token||r.name||'—')}</b>${r.name&&r.name!==(r.symbol||r.token)?` <small>${escapeHtml(r.name)}</small>`:''}</span></td><td>${escapeHtml(r.date||'—')}</td><td>${escapeHtml(r.amount||'—')}</td><td>${escapeHtml(r.percent||r.pct||'—')}</td></tr>`).join("")
+    ? rows.map((r,i)=>`<tr><td class="rank">${i+1}</td><td translate="no"><span class="token-cell">${tokenIcon(r.symbol||r.token||'', r.logo)}<b>${escapeHtml(r.symbol||r.token||r.name||'—')}</b>${r.name&&r.name!==(r.symbol||r.token)?` <small>${escapeHtml(r.name)}</small>`:''}</span></td><td>${escapeHtml(r.date||'—')}</td><td>${escapeHtml(r.amount||'—')}</td><td>${escapeHtml(r.percent||r.pct||'—')}</td></tr>`).join("")
     : '<tr><td colspan="5" class="loading">No verified scheduled unlocks in this window.</td></tr>';
 }
 async function loadUnlocks(){
