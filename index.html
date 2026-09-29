@@ -50,41 +50,25 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
 @media(max-width:850px){.pulse-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.pulse-grid{grid-template-columns:1fr}.pulse-card{padding:18px}}
 
-.nav-actions{display:flex;align-items:center;gap:10px}
-.telegram-btn{display:inline-flex;align-items:center;gap:7px;padding:10px 13px;border:1px solid #238db0;border-radius:12px;background:#081c29;color:#dff8ff;text-decoration:none;font-size:12px;font-weight:900}
-.telegram-btn:hover{border-color:#4fe8ff;background:#0b2636}
-.telegram-btn svg{width:18px;height:18px;fill:#48dfff;display:block}
-#burn .wrap.grid2{max-width:1120px;margin-left:auto;margin-right:auto;grid-template-columns:minmax(0,1fr) minmax(380px,1fr);gap:46px}
-#burn .visual{width:100%;min-height:460px;display:flex;align-items:center;justify-content:center;margin:0 auto}
-#burn .visual img{display:block;width:min(100%,520px);max-width:520px;height:auto;margin:0 auto;object-position:center center}
-@media(max-width:850px){
-  .nav-actions{gap:6px}
-  .telegram-btn{padding:9px}
-  .telegram-btn span{display:none}
-  #burn .wrap.grid2{grid-template-columns:1fr;gap:20px}
-  #burn .visual{min-height:300px}
-  #burn .visual img{width:min(92%,460px)}
-}
-
-
-/* FINAL Burn centering */
-#burn .wrap.grid2{width:min(1120px,92%);margin-left:auto!important;margin-right:auto!important;align-items:center!important}
-#burn .visual{width:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:0 auto!important;transform:none!important}
-#burn .visual img{display:block!important;width:min(100%,520px)!important;height:auto!important;margin:0 auto!important;transform:none!important;object-position:center center!important}
-@media(max-width:850px){#burn .wrap.grid2{grid-template-columns:1fr!important}#burn .visual{justify-content:center!important}}
+/* FINAL ARCY LAYOUT OVERRIDES */
+.arcy-y{color:#ff8a36!important;text-shadow:0 0 18px rgba(255,138,54,.24)}
+#burn .wrap.grid2{max-width:1180px;margin:0 auto;grid-template-columns:minmax(0,1fr) minmax(320px,.82fr);gap:64px;align-items:center}
+#burn .wrap.grid2>div:first-child{width:100%;max-width:650px;justify-self:end}
+#burn .wrap.grid2>.visual{width:100%;justify-self:start;display:flex;align-items:center;justify-content:center}
+#burn .wrap.grid2>.visual img{display:block;width:min(100%,470px)!important;height:auto!important;margin:0 auto!important}
+#burn .card{width:100%}
+@media(max-width:850px){#burn .wrap.grid2{grid-template-columns:1fr;gap:24px}#burn .wrap.grid2>div:first-child,#burn .wrap.grid2>.visual{justify-self:center;max-width:680px}#burn .wrap.grid2>.visual img{width:min(86%,430px)!important}}
 
 </style>
 </head>
 <body>
-<nav class="nav"><div class="wrap navin"><a class="brand" href="#">$ARC-<span style="color:#ff8a36">Y</span></a><div class="links"><a href="#burn">Burn</a><a href="#unlocks">Unlocks</a><a href="#pulse">Pulse</a><a href="#chart">Chart</a></div><div class="nav-actions">
-<a class="btn primary" id="navBuy" href="#buy">BUY $ARCY</a>
-</div></div></nav>
+<nav class="nav"><div class="wrap navin"><a class="brand" href="#">$ARC-<span class="arcy-y">Y</span></a><div class="links"><a href="#burn">Burn</a><a href="#unlocks">Unlocks</a><a href="#pulse">Pulse</a><a href="#chart">Chart</a></div><a class="btn primary" id="navBuy" href="#buy">BUY $ARCY</a></div></nav>
 
 <main>
 <div class="wrap hero">
   <div>
     <div class="eyebrow">COMMUNITY-DRIVEN • BUILT ON ARC</div>
-    <h1>$ARC-<span style="color:#ff8a36">Y</span></h1><h2>Research First.<br>Hype Never.</h2>
+    <h1>$ARC-<span class="arcy-y">Y</span></h1><h2>Research First.<br>Hype Never.</h2>
     <p>ARCY combines a community meme with transparent onchain mechanics and practical research tools for the crypto market.</p>
     <div class="actions"><a class="btn primary" href="#buy">BUY $ARCY</a><a class="btn" href="#pulse">ARCY ARC PULSE</a></div>
     <div class="contract">Contract: 0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b</div>
@@ -112,7 +96,7 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
  </div>
  <div class="tabs"><button class="tab active" data-days="1">TODAY</button><button class="tab" data-days="7">NEXT 7 DAYS</button><button class="tab" data-days="30">DAYS 8–30</button></div>
  <div class="tablebox"><table><thead><tr><th>#</th><th>TOKEN</th><th>UNLOCK DATE</th><th>UNLOCK AMOUNT</th><th>% SUPPLY</th></tr></thead><tbody id="unlockRows"></tbody></table></div>
- <p class="note">Live verified feed • Loading… • Unverified events are omitted rather than guessed.</p>
+ <p class="note">Loading live verified unlock data…</p>
 </div></section>
 
 
@@ -144,7 +128,7 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
 <iframe title="ARCY chart" loading="lazy" src="https://dexscreener.com/arc/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b?embed=1&theme=dark"></iframe></div></div></section>
 </main>
 
-<footer class="foot"><div class="wrap footin"><div><b style="color:#dff8ff">$ARCY 🦉</b><br>Research First. Hype Never.</div><div><a href="https://x.com/Arcy_usdc" target="_blank" rel="noopener">X / Twitter</a> · <a href="https://t.me/arcycommunitychat" target="_blank" rel="noopener">Telegram</a> · <a href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" target="_blank" rel="noopener">Explorer</a></div></div></footer>
+<footer class="foot"><div class="wrap footin"><div><b style="color:#dff8ff">$ARCY 🦉</b><br>Research First. Hype Never.</div><div><a href="https://x.com/Arcy_usdc" target="_blank" rel="noopener">X / Twitter</a> · <a href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" target="_blank" rel="noopener">Explorer</a></div></div></footer>
 
 <script>
 const TOKEN="0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b";
@@ -169,62 +153,68 @@ async function loadBurn(){
 loadBurn();
 
 
+const tokenCoinGeckoIds={
+ YGG:"yield-guild-games", FORT:"forta", HYPE:"hyperliquid", TREE:"treehouse",
+ DYM:"dymension", EDEN:"openeden", GRVT:"grvt", TIA:"celestia",
+ BEAT:"audiera", ZAMA:"zama", CGPT:"chaingpt", KIP:"kip-protocol",
+ SPK:"spark", SOLV:"solv-protocol", IR:"infrared-finance"
+};
 const tokenLogoCache={};
-let unlockData={1:[],7:[],30:[]};
-let unlockUpdatedAt=null;
-
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function fmtDate(iso){
-  const d=new Date(iso); if(Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(d);
-}
-function utcDay(iso){ const d=new Date(iso); return Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()); }
-function classify(events){
-  const now=new Date(), today=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()), day=86400000;
-  const out={1:[],7:[],30:[]};
-  for(const e of events){
-    const diff=Math.floor((utcDay(e.unlockDate)-today)/day);
-    if(diff===0) out[1].push(e); else if(diff>=1&&diff<=7) out[7].push(e); else if(diff>=8&&diff<=30) out[30].push(e);
-  }
-  return out;
-}
 async function loadTokenLogos(){
-  const symbols=[...new Set(Object.values(unlockData).flat().map(x=>x.symbol).filter(Boolean))];
-  await Promise.all(symbols.map(async symbol=>{
-    try{
-      const r=await fetch('https://api.coingecko.com/api/v3/search?query='+encodeURIComponent(symbol));
-      if(!r.ok)return; const j=await r.json();
-      const exact=(j.coins||[]).find(c=>String(c.symbol||'').toUpperCase()===symbol.toUpperCase());
-      if(exact?.large||exact?.thumb) tokenLogoCache[symbol]=exact.large||exact.thumb;
-    }catch(e){}
-  }));
-  renderUnlocks(Number(document.querySelector('.tab.active')?.dataset.days||1));
+  const ids=[...new Set(Object.values(tokenCoinGeckoIds))].join(",");
+  try{
+    const r=await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids="+encodeURIComponent(ids));
+    if(!r.ok) throw new Error("logo api");
+    const data=await r.json();
+    data.forEach(c=>tokenLogoCache[c.id]=c.image);
+    renderUnlocks(Number(document.querySelector(".tab.active")?.dataset.days||1));
+  }catch(e){ /* initials remain visible; table never breaks */ }
 }
 function tokenIcon(symbol){
-  const safe=esc(symbol),url=tokenLogoCache[symbol];
-  return url?`<img class="token-icon" src="${esc(url)}" alt="${safe} logo" loading="lazy" referrerpolicy="no-referrer">`:`<span class="token-icon-fallback">${safe.slice(0,3)}</span>`;
+  const id=tokenCoinGeckoIds[symbol], url=id&&tokenLogoCache[id];
+  return url
+   ? `<img class="token-icon" src="${url}" alt="${symbol}" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<span class=&quot;token-icon-fallback&quot;>${symbol.slice(0,3)}</span>'">`
+   : `<span class="token-icon-fallback">${symbol.slice(0,3)}</span>`;
 }
+
+let unlockData = {1:[],7:[],30:[]};
+function escapeHtml(v){return String(v??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));}
 function renderUnlocks(days){
-  const rows=unlockData[days]||[], body=document.getElementById('unlockRows');
-  body.innerHTML=rows.length?rows.map((r,i)=>`<tr><td class="rank">${i+1}</td><td><span class="token-cell" translate="no">${tokenIcon(r.symbol)}<span><b>${esc(r.name)}</b><small style="display:block;color:#6f91a5;margin-top:2px">${esc(r.symbol)}</small></span></span></td><td>${fmtDate(r.unlockDate)}</td><td translate="no">${esc(r.amountText||'—')}</td><td><a href="${esc(r.sourceUrl||'#')}" target="_blank" rel="noopener" style="color:#dff8ff;text-decoration:none">${esc(r.supplyPctText||'—')} ↗</a></td></tr>`).join(''):'<tr><td colspan="5" class="loading">No verified scheduled unlocks in this window.</td></tr>';
+  const rows=unlockData[days]||[];
+  const body=document.getElementById("unlockRows");
+  if(!body)return;
+  body.innerHTML=rows.length
+    ? rows.map((r,i)=>`<tr><td class="rank">${i+1}</td><td translate="no"><span class="token-cell">${tokenIcon(r.symbol||r.token||'')}<b>${escapeHtml(r.symbol||r.token||r.name||'—')}</b>${r.name&&r.name!==(r.symbol||r.token)?` <small>${escapeHtml(r.name)}</small>`:''}</span></td><td>${escapeHtml(r.date||'—')}</td><td>${escapeHtml(r.amount||'—')}</td><td>${escapeHtml(r.percent||r.pct||'—')}</td></tr>`).join("")
+    : '<tr><td colspan="5" class="loading">No verified scheduled unlocks in this window.</td></tr>';
 }
 async function loadUnlocks(){
-  const body=document.getElementById('unlockRows');
-  body.innerHTML='<tr><td colspan="5" class="loading">Loading verified unlock data…</td></tr>';
+  const body=document.getElementById("unlockRows");
+  if(body)body.innerHTML='<tr><td colspan="5" class="loading">Loading live verified unlocks…</td></tr>';
   try{
-    const r=await fetch('/api/unlocks',{cache:'no-store'}),j=await r.json();
-    if(!r.ok||!j.ok) throw Error(j?.message||'Unavailable');
-    unlockData=classify(j.events||[]); unlockUpdatedAt=j.updatedAt||null;
-    renderUnlocks(Number(document.querySelector('.tab.active')?.dataset.days||1));
-    loadTokenLogos();
+    const r=await fetch('/api/unlocks',{cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    if(!j.ok||!j.live)throw new Error('feed unavailable');
+    unlockData={1:j.windows?.today||[],7:j.windows?.next7||[],30:j.windows?.days8to30||[]};
     const note=document.querySelector('#unlocks .note');
-    if(note) note.textContent=`Live verified feed • Updated ${unlockUpdatedAt?new Date(unlockUpdatedAt).toLocaleString('en-GB',{timeZone:'UTC'}):'—'} UTC • Source: ${j.provider||'verified provider'}. Unverified events are omitted.`;
+    if(note){
+      const stamp=j.updatedAt?new Date(j.updatedAt).toLocaleString():'';
+      note.textContent=`Live verified feed${stamp?' • Updated: '+stamp:''} • Source: ${j.source||'public unlock calendar'}. TODAY, NEXT 7 DAYS and DAYS 8–30 are separate windows; events are not duplicated.`;
+    }
+    loadTokenLogos();
+    renderUnlocks(Number(document.querySelector('.tab.active')?.dataset.days||1));
   }catch(e){
-    body.innerHTML='<tr><td colspan="5" class="loading">Live unlock data is temporarily unavailable. No unverified data is shown.</td></tr>';
-    const note=document.querySelector('#unlocks .note'); if(note) note.textContent='Live feed unavailable • ARCY does not display stale or guessed unlock data.';
+    unlockData={1:[],7:[],30:[]};
+    if(body)body.innerHTML='<tr><td colspan="5" class="loading">Live unlock feed temporarily unavailable. ARCY does not display guessed or stale unlock data.</td></tr>';
+    const note=document.querySelector('#unlocks .note');
+    if(note)note.textContent='Live feed temporarily unavailable. No estimated or stale unlock schedule is being shown.';
   }
 }
-document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderUnlocks(Number(b.dataset.days));}));
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  renderUnlocks(Number(b.dataset.days));
+}));
 loadUnlocks();
 </script>
 
