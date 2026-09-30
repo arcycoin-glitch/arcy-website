@@ -6,8 +6,10 @@ import vm from 'node:vm';
 const root = new URL('../', import.meta.url);
 const html = fs.readFileSync(new URL('index.html', root), 'utf8');
 function api(file, fetch, date = Date) {
+  const evidence=fs.readFileSync(new URL('lib/unlock-evidence.js',root),'utf8').replaceAll('export const','const');
   const context = vm.createContext({fetch, Date: date, URL, URLSearchParams, process, AbortSignal});
-  vm.runInContext(fs.readFileSync(new URL(file, root), 'utf8').replace('export default async function handler', 'async function handler'), context);
+  vm.runInContext(evidence,context);
+  vm.runInContext(fs.readFileSync(new URL(file, root), 'utf8').replace(/^import .*unlock-evidence.*;\r?\n/m,'').replace('export default async function handler', 'async function handler'), context);
   return context;
 }
 function response() {
@@ -96,4 +98,36 @@ test('market keeps token-level volume and fills missing liquidity independently'
 test('ambiguous symbol logos are not assigned to an unrelated token',async()=>{
   const c=api('api/unlocks.js',async()=>({ok:true,json:async()=>({data:{ABC:[{name:'Wrong one',logo:'one'},{name:'Wrong two',logo:'two'}]}})}));
   assert.equal(Object.keys(await c.fetchCmcLogos([{symbol:'ABC',name:'Actual token'}])).length,0);
+});
+
+test('all three calendar sorts contribute unique events without duplicates',async()=>{
+  const c=api('api/unlocks.js',async url=>url.includes('coinbell')?{ok:true,text:async()=>row('01 Oct 2026')+(url.includes('impact')?row('02 Oct 2026','ARB'):url.includes('value')?row('03 Oct 2026','GRASS'):'')}:{ok:false});
+  const r=response();await c.handler({},r);assert.equal(r.code,200);assert.equal(r.body.events.length,3);assert.equal(r.body.coverage.sources.length,3);assert.equal(r.body.coverage.complete,false);
+});
+test('one unavailable sort does not break healthy calendar results',async()=>{
+  const c=api('api/unlocks.js',async url=>url.includes('impact')?{ok:false}:url.includes('coinbell')?{ok:true,text:async()=>row('01 Oct 2026')}:{ok:false});
+  const r=response();await c.handler({},r);assert.equal(r.code,200);assert.equal(r.body.events.length,1);assert.equal(r.body.partial,true);assert.equal(r.headers['Cache-Control'],'no-store');
+});
+test('conflicting amounts are withheld; distinct allocations and names survive',()=>{
+  const c=api('api/unlocks.js',()=>{}),a=c.parseRows(row('01 Oct 2026'))[0];
+  const result=c.mergeEvents([a,{...a,amount:'20K TIA'},{...a,allocation:'Team'},{...a,name:'Another project'}]);
+  assert.equal(result.conflicts.length,1);assert.equal(result.events.length,2);
+});
+test('unreviewed IO, PLUME, legacy OM and MANTRA records are not published',()=>{
+  const c=api('api/unlocks.js',()=>{});const rows=['IO','PLUME','OM','MANTRA'].flatMap(s=>c.parseRows(row('01 Oct 2026',s)));assert.equal(c.mergeEvents(rows).events.length,0);
+});
+function proof(overrides={}) {
+  return {projectId:'fixture-project',tokenVersion:'native-v1',name:'Fixture project',symbol:'FIX',date:'2026-10-11',amountTokens:'1000',allocation:'Investors',sourceUrl:'https://official.example/schedule',allowedHost:'official.example',publishedDateText:'11 October 2026',publishedAmountText:'1,000',evidenceText:'Investors unlock 1,000 FIX on 11 October 2026.',reviewedAt:new Date(Date.now()-1000).toISOString(),reviewExpiresAt:new Date(Date.now()+86400000).toISOString(),...overrides};
+}
+test('official supplements require explicit live evidence and retain provenance',async()=>{
+  const p=proof(),c=api('api/unlocks.js',async()=>({ok:true,text:async()=>p.evidenceText}));const result=await c.collectVerifiedEvents([p]);assert.equal(result.events.length,1);assert.equal(result.events[0].amount,'1000 FIX');assert.equal(result.events[0].verification,'project-confirmed');assert.equal(result.events[0].percent,'');
+});
+test('changed, expired, mismatched and redirected supplemental proof fails closed',async()=>{
+  const c=api('api/unlocks.js',async()=>({ok:true,url:'https://unrelated.example',text:async()=>proof().evidenceText}));
+  const records=[proof(),proof({reviewExpiresAt:'2020-01-01T00:00:00Z'}),proof({amountTokens:'999'}),proof({date:'2026-10-12'})];
+  const result=await c.collectVerifiedEvents(records);assert.equal(result.events.length,0);assert.equal(result.rejected.length,4);
+  const changed=api('api/unlocks.js',async()=>({ok:true,text:async()=> 'The original schedule has been revised.'}));assert.equal((await changed.collectVerifiedEvents([proof()])).events.length,0);
+});
+test('source percentage disagreements are hidden instead of arbitrarily selected',()=>{
+  const c=api('api/unlocks.js',()=>{}),a=c.parseRows(row('01 Oct 2026'))[0];assert.equal(c.mergeEvents([a,{...a,percent:'1%'}]).events[0].percent,'');
 });
