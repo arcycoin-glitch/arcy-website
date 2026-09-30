@@ -94,8 +94,8 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
   <div class="eyebrow">ONCHAIN MECHANISM</div>
   <div class="head"><h3>Buyback & Burn 🔥</h3><p>40% of trading tax is allocated to Buyback & Burn. The dashboard attempts to read ARCY supply directly from Arc mainnet; if the RPC is temporarily unavailable, the last verified snapshot is shown.</p></div>
   <div class="card">
-    <div class="burnnum"><span id="burned">3.57M</span> ARCY</div><div class="status"><i class="dot"></i><span class="burn-proof" title="0x000000000000000000000000000000000000dEaD">Dead wallet: 0x0000…dEaD</span><span id="burnStatus">Loading Arc onchain data…</span></div>
-    <div class="stats"><div class="stat"><small>Initial Supply</small><b>1.00B</b></div><div class="stat"><small>Current Supply</small><b id="supply">996.43M</b></div><div class="stat"><small>Burn Share</small><b>40%</b></div></div>
+    <div class="burnnum"><span id="burned">5.43M</span> ARCY</div><div class="status"><i class="dot"></i><span class="burn-proof" title="0x000000000000000000000000000000000000dEaD">Dead wallet: 0x0000…dEaD</span><span id="burnStatus">Loading Arc onchain data…</span></div>
+    <div class="stats"><div class="stat"><small>Initial Supply</small><b>1.00B</b></div><div class="stat"><small>Current Supply</small><b id="supply">Loading…</b></div><div class="stat"><small>Burn Share</small><b>40%</b></div></div>
     <div class="actions"><a class="btn" target="_blank" rel="noopener" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">VERIFY ONCHAIN ↗</a></div>
   </div>
  </div>
@@ -112,7 +112,7 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
   <input id="unlockSearch" type="search" placeholder="Search token (e.g. APT)" autocomplete="off" aria-label="Search token">
   <div class="unlock-pager"><button id="unlockPrev" type="button">‹</button><span id="unlockPage">1 / 1</span><button id="unlockNext" type="button">›</button></div>
  </div>
- <div class="tablebox"><table><thead><tr><th>#</th><th>TOKEN</th><th>UNLOCK DATE</th><th>UNLOCK AMOUNT</th><th>% SUPPLY</th></tr></thead><tbody id="unlockRows"></tbody></table></div>
+ <div class="tablebox"><table><thead><tr><th>#</th><th>TOKEN</th><th>UNLOCK DATE</th><th>UNLOCK AMOUNT</th><th>% CIRCULATING SUPPLY</th></tr></thead><tbody id="unlockRows"></tbody></table></div>
  <p class="note">Loading live verified unlock data…</p>
 </div></section>
 
@@ -151,22 +151,30 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
 <script>
 const TOKEN="0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b";
 const RPC="https://rpc.mainnet.arc.io";
-const INITIAL=1000000000n;
+const BURN_SNAPSHOT={amount:"5.43M",date:"2026-09-30"};
+function showBurnSnapshot(){document.getElementById("burned").textContent=BURN_SNAPSHOT.amount;document.getElementById("burnStatus").textContent=`Verified snapshot ${BURN_SNAPSHOT.date} • live RPC unavailable`;}
+
 function fmt(n){const x=Number(n);if(x>=1e9)return (x/1e9).toFixed(2)+"B";if(x>=1e6)return (x/1e6).toFixed(2)+"M";return x.toLocaleString()}
-async function rpc(method,params=[]){const r=await fetch(RPC,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})});const j=await r.json();if(j.error)throw Error(j.error.message);return j.result}
+async function dataFetch(url,options={}){return fetch(url,{...options,signal:AbortSignal.timeout(15000)});}
+async function rpc(method,params=[]){const r=await dataFetch(RPC,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})});if(!r.ok)throw Error("RPC HTTP "+r.status);const j=await r.json();if(j.error)throw Error(j.error.message);return j.result}
 async function loadBurn(){
- try{
-  const decHex=await rpc("eth_call",[{to:TOKEN,data:"0x313ce567"},"latest"]);
-  const decimals=Number(BigInt(decHex));
-  const supplyHex=await rpc("eth_call",[{to:TOKEN,data:"0x18160ddd"},"latest"]);
-  const raw=BigInt(supplyHex), div=10n**BigInt(decimals), current=raw/div;
-  if(current>0n && current<=INITIAL){
-    const burned=INITIAL-current;
-    
-    document.getElementById("supply").textContent=fmt(current);
-    document.getElementById("burnStatus").textContent="Connecting • Arc mainnet";
-  } else throw Error("Supply model differs");
- }catch(e){document.getElementById("burnStatus").textContent="Connecting • Arc mainnet";}
+  let decimals;
+  try{decimals=BigInt(await rpc("eth_call",[{to:TOKEN,data:"0x313ce567"},"latest"]));}
+  catch(_){document.getElementById("supply").textContent="—";showBurnSnapshot();return;}
+  const base=10n**decimals;
+  const supplyTask=(async()=>{
+    try{const raw=BigInt(await rpc("eth_call",[{to:TOKEN,data:"0x18160ddd"},"latest"]));document.getElementById("supply").textContent=fmt(Number(raw)/Number(base));}
+    catch(_){document.getElementById("supply").textContent="—";}
+  })();
+  const burnTask=(async()=>{
+    try{
+      const dead="000000000000000000000000000000000000dead".padStart(64,"0");
+      const raw=BigInt(await rpc("eth_call",[{to:TOKEN,data:"0x70a08231"+dead},"latest"]));
+      document.getElementById("burned").textContent=new Intl.NumberFormat("en-US",{maximumFractionDigits:2,notation:"compact"}).format(Number(raw)/Number(base));
+      document.getElementById("burnStatus").textContent="Live • Dead wallet • Arc mainnet";
+    }catch(_){showBurnSnapshot();}
+  })();
+  await Promise.all([supplyTask,burnTask]);
 }
 loadBurn();
 
@@ -181,7 +189,7 @@ const tokenLogoCache={};
 async function loadTokenLogos(){
   const ids=[...new Set(Object.values(tokenCoinGeckoIds))].join(",");
   try{
-    const r=await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids="+encodeURIComponent(ids));
+    const r=await dataFetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids="+encodeURIComponent(ids));
     if(!r.ok) throw new Error("logo api");
     const data=await r.json();
     data.forEach(c=>tokenLogoCache[c.id]=c.image);
@@ -189,13 +197,17 @@ async function loadTokenLogos(){
   }catch(e){ /* initials remain visible; table never breaks */ }
 }
 function tokenIcon(symbol, directLogo){
-  const id=tokenCoinGeckoIds[symbol], url=directLogo || (id&&tokenLogoCache[id]);
+  const id=tokenCoinGeckoIds[symbol];
+  const candidate=directLogo || (id&&tokenLogoCache[id]);
+  let url="";try{const parsed=new URL(candidate);if(parsed.protocol==="https:")url=parsed.href;}catch(_){}
+  const fallback=escapeHtml(symbol.slice(0,3));
   return url
-   ? `<img class="token-icon" src="${url}" alt="${symbol}" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<span class=&quot;token-icon-fallback&quot;>${symbol.slice(0,3)}</span>'">`
-   : `<span class="token-icon-fallback">${symbol.slice(0,3)}</span>`;
+   ? `<img class="token-icon" src="${escapeHtml(url)}" alt="${escapeHtml(symbol)}" loading="lazy" referrerpolicy="no-referrer">`
+   : `<span class="token-icon-fallback">${fallback}</span>`;
 }
 
 let unlockData = {1:[],7:[],30:[]};
+let unlockState="loading";
 let unlockPage=1;
 const unlockPageSize=5;
 function escapeHtml(v){return String(v??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));}
@@ -214,7 +226,8 @@ function renderUnlocks(days){
   const rows=all.slice(offset,offset+unlockPageSize);
   body.innerHTML=rows.length
     ? rows.map((r,i)=>`<tr><td class="rank">${offset+i+1}</td><td translate="no"><span class="token-cell">${tokenIcon(r.symbol||r.token||'', r.logo)}<b>${escapeHtml(r.symbol||r.token||r.name||'—')}</b>${r.name&&r.name!==(r.symbol||r.token)?` <small>${escapeHtml(r.name)}</small>`:''}</span></td><td>${escapeHtml(r.date||'—')}</td><td>${escapeHtml(r.amount||'—')}</td><td>${escapeHtml(r.percent||r.pct||'—')}</td></tr>`).join("")
-    : '<tr><td colspan="5" class="loading">No verified scheduled unlocks in this window.</td></tr>';
+    : `<tr><td colspan="5" class="loading">${unlockState==='error'?'Live unlock feed temporarily unavailable.':unlockState==='loading'?'Loading live unlocks…':document.getElementById('unlockSearch').value.trim()?'No matching unlocks in this window.':'No verified scheduled unlocks in this window.'}</td></tr>`;
+  body.querySelectorAll("img.token-icon").forEach(img=>img.addEventListener("error",()=>{const fallback=document.createElement("span");fallback.className="token-icon-fallback";fallback.textContent=img.alt.slice(0,3);img.replaceWith(fallback);},{once:true}));
   const page=document.getElementById("unlockPage"), prev=document.getElementById("unlockPrev"), next=document.getElementById("unlockNext");
   if(page)page.textContent=`${unlockPage} / ${pages}`;
   if(prev)prev.disabled=unlockPage<=1;
@@ -225,10 +238,11 @@ async function loadUnlocks(){
   const body=document.getElementById("unlockRows");
   if(body)body.innerHTML='<tr><td colspan="5" class="loading">Loading live unlocks…</td></tr>';
   try{
-    const r=await fetch('/api/unlocks',{cache:'no-store'});
+    const r=await dataFetch('/api/unlocks',{cache:'no-store'});
     if(!r.ok)throw new Error('HTTP '+r.status);
     const j=await r.json();
     if(!j.ok||!j.live)throw new Error('feed unavailable');
+    unlockState="ready";
     unlockData={1:j.windows?.today||[],7:j.windows?.next7||[],30:j.windows?.days8to30||[]};
     const note=document.querySelector('#unlocks .note');
     if(note){
@@ -238,7 +252,10 @@ async function loadUnlocks(){
     loadTokenLogos();
     unlockPage=1; renderUnlocks(activeUnlockDays());
   }catch(e){
+    unlockState="error";
     unlockData={1:[],7:[],30:[]};
+    const note=document.querySelector("#unlocks .note");
+    if(note)note.textContent="Live unlock source unavailable; verification could not be completed.";
     if(body)body.innerHTML='<tr><td colspan="5" class="loading">Live unlock feed temporarily unavailable. ARCY does not display guessed or stale unlock data.</td></tr>';
   }
 }
@@ -262,7 +279,7 @@ loadUnlocks();
  const price=n=>"$"+Number(n).toLocaleString("en-US",{maximumSignificantDigits:7});
  let ok=false;
  try{
-   const r=await fetch("https://api.geckoterminal.com/api/v2/networks/arc/tokens/"+token,{headers:{accept:"application/json"}});
+   const r=await dataFetch("https://api.geckoterminal.com/api/v2/networks/arc/tokens/"+token,{headers:{accept:"application/json"}});
    if(r.ok){
      const j=await r.json(),a=j?.data?.attributes||{};
      if(a.price_usd){set("arcyLivePrice",price(a.price_usd));ok=true;}
@@ -271,28 +288,29 @@ loadUnlocks();
    }
  }catch(e){}
  try{
-   const r=await fetch("https://api.geckoterminal.com/api/v2/networks/arc/tokens/"+token+"/pools?page=1",{headers:{accept:"application/json"}});
+   const r=await dataFetch("https://api.geckoterminal.com/api/v2/networks/arc/tokens/"+token+"/pools?page=1",{headers:{accept:"application/json"}});
    if(r.ok){
      const j=await r.json(), pools=j?.data||[];
-     if(pools.length){
-       const a=pools[0].attributes||{};
+     const pool=pools.find(p=>(p.relationships?.base_token?.data?.id||"").toLowerCase()==="arc_"+token.toLowerCase());
+     if(pool){
+       const a=pool.attributes||{};
        if(!ok && a.base_token_price_usd){set("arcyLivePrice",price(a.base_token_price_usd));ok=true;}
-       if(a.volume_usd?.h24!=null)set("arcyLiveVolume",compact(a.volume_usd.h24));
-       if(a.fdv_usd!=null)set("arcyLiveFdv",compact(a.fdv_usd));
+       if(document.getElementById("arcyLiveVolume").textContent==="Loading…" && a.volume_usd?.h24!=null)set("arcyLiveVolume",compact(a.volume_usd.h24));
+       if(document.getElementById("arcyLiveFdv").textContent==="Loading…" && a.fdv_usd!=null)set("arcyLiveFdv",compact(a.fdv_usd));
        if(a.reserve_in_usd!=null)set("arcyLiveLiquidity",compact(a.reserve_in_usd));
      }
    }
  }catch(e){}
- if(!ok){
+ if(!ok || ["arcyLiveVolume","arcyLiveFdv","arcyLiveLiquidity"].some(id=>document.getElementById(id).textContent==="Loading…")){
    try{
-     const r=await fetch("https://api.dexscreener.com/latest/dex/tokens/"+token);
+     const r=await dataFetch("https://api.dexscreener.com/latest/dex/tokens/"+token);
      if(r.ok){
        const j=await r.json(), pairs=j?.pairs||[];
-       const a=pairs.find(x=>(x.chainId||"").toLowerCase()==="arc")||pairs[0];
+       const a=pairs.find(x=>(x.chainId||"").toLowerCase()==="arc" && (x.baseToken?.address||"").toLowerCase()===token.toLowerCase());
        if(a){
-         if(a.priceUsd)set("arcyLivePrice",price(a.priceUsd));
-         if(a.volume?.h24!=null)set("arcyLiveVolume",compact(a.volume.h24));
-         if(a.fdv!=null)set("arcyLiveFdv",compact(a.fdv));
+         if(!ok && a.priceUsd)set("arcyLivePrice",price(a.priceUsd));
+         if(document.getElementById("arcyLiveVolume").textContent==="Loading…" && a.volume?.h24!=null)set("arcyLiveVolume",compact(a.volume.h24));
+         if(document.getElementById("arcyLiveFdv").textContent==="Loading…" && a.fdv!=null)set("arcyLiveFdv",compact(a.fdv));
          if(a.liquidity?.usd!=null)set("arcyLiveLiquidity",compact(a.liquidity.usd));
          ok=true;
        }
@@ -306,66 +324,27 @@ loadUnlocks();
 </script>
 
 
-<script>
-(async function liveArcyBurn(){
-  const rpc="https://rpc.mainnet.arc.io";
-  const token="0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b";
-  const dead="0x000000000000000000000000000000000000dEaD";
-  const selector="70a08231";
-  const encodedAddress=dead.toLowerCase().replace("0x","").padStart(64,"0");
-  const data="0x"+selector+encodedAddress;
 
-  function formatArcy(raw){
-    const decimals=18n;
-    const base=10n**decimals;
-    const whole=raw/base;
-    const frac=raw%base;
-    const value=Number(whole)+Number(frac)/1e18;
-    return new Intl.NumberFormat("en-US",{maximumFractionDigits:2,notation:"compact"}).format(value);
-  }
-
-  try{
-    const res=await fetch(rpc,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        jsonrpc:"2.0",id:1,method:"eth_call",
-        params:[{to:token,data:data},"latest"]
-      })
-    });
-    const j=await res.json();
-    if(!j.result) throw new Error("No RPC result");
-    const burned=BigInt(j.result);
-    const el=document.getElementById("burned");
-    if(el) el.textContent=formatArcy(burned);
-    const status=document.getElementById("burnStatus");
-    if(status) status.textContent="Live • Dead wallet • Arc mainnet";
-  }catch(e){
-    const status=document.getElementById("burnStatus");
-    if(status) status.textContent="3.57M verified snapshot • live RPC unavailable";
-  }
-})();
-</script>
 
 
 <script>
 (async function loadPulse(){
   try{
-    const r=await fetch('/api/pulse',{cache:'no-store'});
-    if(!r.ok) return;
+    const r=await dataFetch('/api/pulse',{cache:'no-store'});
+    if(!r.ok) throw new Error("Pulse HTTP "+r.status);
     const j=await r.json();
-    if(!j.ok) return;
+    if(!j.ok) throw new Error("Pulse feed unavailable");
     const title=document.getElementById('pulseTitle');
     if(title) title.textContent=`ARCY ARC PULSE #${String(j.number).padStart(3,'0')} 📡`;
     const grid=document.getElementById('pulseGrid');
-    const classes=['pulse-week','pulse-new','pulse-watch','pulse-risk','pulse-watch'];
-    const labels=['🔥 THIS WEEK','🆕 NEW','🔍 WATCH','⚠️ REALITY CHECK','📡 SIGNAL'];
+    const styles={week:["pulse-week","🔥 THIS WEEK"],new:["pulse-new","🆕 NEW"],watch:["pulse-watch","🔍 WATCH"],reality:["pulse-risk","⚠️ REALITY CHECK"],signal:["pulse-watch","📡 SIGNAL"]};
+
     if(grid && j.cards?.length){
-      grid.innerHTML=j.cards.slice(0,5).map((c,i)=>`<article class="pulse-card ${classes[i]}"><span>${labels[i]}</span><small class="pulse-owner">${escapeHtml(c.owner||'ARC ECOSYSTEM')}</small><h4>${escapeHtml(c.title)}</h4><p>${escapeHtml(c.summary)}</p>${c.url?`<a href="${escapeHtml(c.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;color:var(--accent);font-size:12px;font-weight:800">SOURCE ↗</a>`:''}</article>`).join('');
+      grid.innerHTML=j.cards.slice(0,5).map((c,i)=>`<article class="pulse-card ${(styles[c.kind]||styles.watch)[0]}"><span>${(styles[c.kind]||styles.watch)[1]}</span><small class="pulse-owner">${escapeHtml(c.owner||'ARC ECOSYSTEM')}</small><h4>${escapeHtml(c.title)}</h4><p>${escapeHtml(c.summary)}</p>${c.url?`<a href="${escapeHtml(c.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;color:var(--accent);font-size:12px;font-weight:800">SOURCE ↗</a>`:''}</article>`).join('');
     }
     const take=document.getElementById('pulseTake');
     if(take && j.take) take.textContent=j.take;
-  }catch(_){}
+  }catch(_){const grid=document.getElementById("pulseGrid");if(grid)grid.innerHTML='<article class="pulse-card pulse-week"><span>📡 PULSE</span><h4>Updates temporarily unavailable</h4><p>Please try again later.</p></article>';}
 })();
 </script>
 

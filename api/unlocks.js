@@ -1,3 +1,5 @@
+async function fetchWithTimeout(url,options={}){return fetch(url,{...options,signal:AbortSignal.timeout(15000)});}
+
 // ARCY Token Unlocks API — zero-key live feed
 // Source page: CoinBell token unlock calendar (unlock schedules attributed there to DefiLlama).
 // No API key required. Server-side only. 6-hour cache.
@@ -24,6 +26,7 @@ function isoDate(text) {
   if (!m) return null;
   const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
   const d = new Date(Date.UTC(+m[3], months[m[2].toLowerCase()], +m[1]));
+  if(d.getUTCDate()!==+m[1])return null;
   return d.toISOString().slice(0,10);
 }
 
@@ -83,14 +86,14 @@ async function fetchCmcLogos(events) {
   const base = key ? "https://pro-api.coinmarketcap.com" : "https://pro-api.coinmarketcap.com/public-api";
   const headers = {"accept":"application/json"};
   if (key) headers["X-CMC_PRO_API_KEY"] = key;
-  const r = await fetch(`${base}/v2/cryptocurrency/info?${qs}`, {headers});
+  const r = await fetchWithTimeout(`${base}/v2/cryptocurrency/info?${qs}`, {headers});
   if (!r.ok) return {};
   const j = await r.json(), result = {};
   for (const symbol of symbols) {
     const raw = j?.data?.[symbol];
     const candidates = Array.isArray(raw) ? raw : (raw ? [raw] : []);
     const names = events.filter(x=>x.symbol===symbol).map(x=>String(x.name||"").toLowerCase());
-    const chosen = candidates.find(c=>names.includes(String(c.name||"").toLowerCase())) || candidates[0];
+    const chosen = candidates.find(c=>names.includes(String(c.name||"").toLowerCase())) || (candidates.length===1 ? candidates[0] : null);
     if (chosen?.logo) result[symbol] = chosen.logo;
   }
   return result;
@@ -98,10 +101,11 @@ async function fetchCmcLogos(events) {
 
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "s-maxage=21600, stale-while-revalidate=900");
+  const secondsToMidnight=Math.max(1,Math.floor((Date.parse(utcToday()+"T00:00:00Z")+86400000-Date.now())/1000));
+  res.setHeader("Cache-Control", `s-maxage=${Math.min(21600,secondsToMidnight)}, must-revalidate`);
 
   try {
-    const r = await fetch(SOURCE_URL, {
+    const r = await fetchWithTimeout(SOURCE_URL, {
       headers: {
         "accept": "text/html,application/xhtml+xml",
         "user-agent": "ARCY-Research/1.0 (+https://arcyusdc.xyz)"
@@ -139,6 +143,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json(payload);
   } catch (e) {
+    res.setHeader("Cache-Control","no-store");
     return res.status(503).json({
       ok: false,
       live: false,
