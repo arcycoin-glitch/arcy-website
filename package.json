@@ -1,0 +1,14 @@
+{
+  "name": "arcy-website",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.js tests/*.test.mjs",
+    "dev": "node dev.cjs",
+    "test:live": "node test/live.cjs",
+    "test:browser": "node test/browser-regression.cjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
