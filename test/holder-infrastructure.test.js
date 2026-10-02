@@ -38,7 +38,7 @@ test('configured storage outage fails closed without rebuilding history, while A
 }));
 test('Redis protocol uses non-expiring documents and token-fenced atomic commits; an expired owner cannot publish',()=>fixture(async()=>{
  process.env.ARC_INDEX_REDIS_URL='https://storage.invalid';process.env.ARC_INDEX_REDIS_TOKEN='unit-test-only';const map=new Map(),commands=[];c.json=async(_u,o)=>{const args=JSON.parse(o.body);commands.push(args);const [cmd,...v]=args;if(cmd==='GET')return {result:map.get(v[0])??null};if(cmd==='SET'){if(v.includes('NX')&&map.has(v[0]))return {result:null};map.set(v[0],v[1]);return {result:'OK'};}if(cmd==='EVAL'){const n=v[1],keys=v.slice(2,2+n),argv=v.slice(2+n);if(map.get(keys[0])!==argv[0])return {result:0};if(n===2){map.set(keys[1],argv[1]);return {result:1};}map.delete(keys[0]);return {result:1};}throw Error('Unexpected command');};
- await storage.save(name,state());assert.equal((await storage.snapshot(name)).holderCount,2);assert.ok(commands.some(args=>args[0]==='EVAL'&&args[2]===2));assert.ok(!commands.some(args=>args.includes('EX')));
+ await storage.save(name,state());await storage.save(name,{version:1,address:a,chainId:5042,phase:'CATCHUP',startedAt:Date.now(),offset:0,addresses:[x,y,...c.BURNS],balances:[],balanceCursor:0,block:'0xa',anchor,total:'1000',catchupStart:1,catchupCursor:5});assert.equal((await storage.load(name)).catchupCursor,5);assert.equal((await storage.snapshot(name)).holderCount,2);assert.ok(commands.some(args=>args[0]==='EVAL'&&args[2]===2));assert.ok(!commands.some(args=>args.includes('EX')));
  await storage.withLease(name,async()=>{const lock=[...map.keys()].find(k=>k.endsWith(':lease'));map.delete(lock);await storage.withLease(name,()=>storage.save(name,state('0xb')));await assert.rejects(storage.save(name,{...state(),phase:'READ'}),{code:'HOLDER_LEASE_LOST'});});assert.equal((await storage.snapshot(name)).block,'0xb');
 }));
 test('durable refresh queue resumes due work and worker endpoint requires configured authentication',()=>fixture(async()=>{
@@ -57,3 +57,58 @@ test('corrupt unpinned balances and mixed-block field evidence cannot be publish
  const s=state();assert.equal(storage.validCheckpoint({...s,phase:'READ',block:null},a),false);assert.equal(storage.validCheckpoint({...s,phase:'TAIL',tailRange:0},a),false);const mixed=structuredClone(s);mixed.result.fields.top20Pct.evidence=[{block:'0x9',anchor}];assert.equal(storage.validSnapshot(mixed.result,a),false);await assert.rejects(storage.save(name,mixed),{code:'CORRUPTED_HOLDER_CHECKPOINT'});assert.equal(await storage.snapshot(name),null);
 }));
 
+
+test('indexer-to-pin catchup checkpoints the entire interval and resumes after provider failure',()=>fixture(async({calls})=>{
+ const json=c.json,rpc=c.rpc;c.json=async url=>url.endsWith('/stats')?{chainId:5042,latestIndexedBlock:1,indexedBlocks:999}:json(url);
+ let r=await worker.advance(a,{maxPages:2,maxBatches:0});assert.equal(r.coverage.phase,'READ');assert.equal(calls.logs[0].fromBlock,'0x1');
+ // Start another cold token state with a deliberately bounded catchup window.
+ await storage.save(name,{version:1,address:a,chainId:5042,phase:'CATCHUP',startedAt:Date.now(),offset:0,addresses:[x,y,...c.BURNS],balances:[],balanceCursor:0,block:'0xb',anchor,total:'1000',catchupStart:1,catchupCursor:5});
+ c.rpc=async(m,p)=>m==='eth_getLogs'?Promise.reject(Object.assign(Error(),{httpStatus:429})):rpc(m,p);
+ await assert.rejects(worker.advance(a),{httpStatus:429});assert.equal((await storage.load(name)).catchupCursor,5);assert.equal((await storage.load(name)).block,'0xb');
+ c.rpc=rpc;r=await worker.advance(a,{maxPages:1,maxBatches:1});assert.equal(calls.logs.at(-1).fromBlock,'0x5');assert.equal(r.value.block,'0xb');assert.equal(r.value.holderCount,2);assert.equal(r.value.evidence[0].transferTail.fromBlock,1);
+}));
+
+test('failed reconciliation retains candidate union across a new pagination pass',()=>fixture(async()=>{
+ let pass=0;c.json=async url=>url.endsWith('/stats')?{chainId:5042,latestIndexedBlock:11}:!url.includes('holders?')?{address:a}:{items:[{address:pass===0?x:y}],nextOffset:null};
+ let r=await worker.advance(a,{maxPages:1,maxBatches:1});assert.equal(r.value,null);assert.equal(r.reasonCode,'HOLDER_SUPPLY_RECONCILIATION_FAILED');let stored=await storage.load(name);assert.equal(stored.phase,'DISCOVER');assert.ok(stored.addresses.includes(x));assert.equal(stored.lastReconciliationFailure.reconciledSupplyRaw,'600');assert.equal(await storage.snapshot(name),null);
+ pass=1;r=await worker.advance(a,{maxPages:1,maxBatches:1});assert.equal(r.value.holderCount,2);assert.equal(r.value.top10Pct,100);assert.ok((await storage.load(name)).addresses.includes(x));
+}));
+
+test('failed refresh reconciliation preserves the previous atomic COMPLETE snapshot',()=>fixture(async()=>{
+ const original=state('0xa',700000);await storage.save(name,original);reader.balances=async(_a,addresses)=>({method:'test pinned',values:addresses.map(v=>word(v===x?550:v===y?400:0))});
+ const r=await worker.advance(a,{maxPages:1,maxBatches:1});assert.equal(r.value.block,'0xa');assert.equal(r.value.snapshot.freshness,'STALE');assert.equal(r.value.snapshot.refresh.reasonCode,'HOLDER_SUPPLY_RECONCILIATION_FAILED');assert.equal((await storage.snapshot(name)).top20Pct,100);assert.equal((await storage.load(name)).phase,'DISCOVER');
+}));
+
+test('cold source failure still queues the contract for durable worker retry',()=>fixture(async()=>{
+ c.json=async()=>{throw Object.assign(Error(),{httpStatus:429});};const gp=require('../lib/goplus'),old=[index.explorer,index.advance,gp.holders];index.explorer=index.advance=gp.holders=async()=>({value:null,status:'NOT_VERIFIED',dataState:'SOURCE_API_FAILED'});
+ try{const r=await require('../api/holders')({method:'GET',query:{address:a}},{setHeader(){},status(){return this},json(d){return d;}});assert.equal(r.holderCount,null);assert.deepEqual(await storage.due(),[a]);}finally{[index.explorer,index.advance,gp.holders]=old;}
+}));
+
+test('catchup never clips a lagging index to the last 5000 blocks and survives a separate execution',()=>fixture(async({folder,calls})=>{
+ const json=c.json;c.json=async url=>url.endsWith('/stats')?{chainId:5042,latestIndexedBlock:1,indexedBlocks:9999}:url.includes('holders?')?{items:[{address:x},{address:y}],nextOffset:null}:json(url);c.context=async()=>({block:'0x2710'});
+ const first=await worker.advance(a,{maxPages:1,maxBatches:0});assert.equal(first.coverage.phase,'CATCHUP');assert.equal(calls.logs[0].fromBlock,'0x1');const s=await storage.load(name);assert.equal(s.catchupCursor,1001);assert.equal(s.block,'0x2710');assert.equal(s.balanceCursor,0);
+ const output=execFileSync(process.execPath,['-e',`require(${JSON.stringify(path.resolve(__dirname,'../lib/holder-storage'))}).load(${JSON.stringify(name)}).then(s=>console.log(JSON.stringify(s)));`],{env:{...process.env,ARC_INDEX_CACHE_DIR:folder},windowsHide:true,encoding:'utf8'});assert.equal(JSON.parse(output).catchupCursor,1001);
+ await worker.advance(a,{maxPages:1,maxBatches:0});assert.equal(calls.logs.at(-1).fromBlock,'0x3e9');assert.equal((await storage.load(name)).catchupCursor,2001);assert.equal(await storage.snapshot(name),null);
+}));
+
+test('authenticated scheduled runs continue a queued checkpoint and atomically replace an older COMPLETE snapshot',()=>fixture(async({folder,calls})=>{
+ const refresh=require('../lib/holder-refresh'),advance=worker.advance,previousSecret=process.env.CRON_SECRET;process.env.CRON_SECRET='unit-test-scheduled-worker';let pass=0;
+ worker.advance=(a,options)=>advance(a,{...options,maxPages:1,maxBatches:pass<2?0:1});
+ const invoke=()=>require('../api/holderrefresh')({method:'GET',headers:{authorization:'Bearer unit-test-scheduled-worker','user-agent':'vercel-cron/1.0'}},{setHeader(){},status(code){this.code=code;return this;},json(data){return {code:this.code,data};}});
+ try{
+  await storage.enqueue(a);let r=await invoke();assert.equal(r.code,200);assert.equal(r.data.results[0].state,'BUILDING');assert.equal((await storage.load(name)).offset,2);assert.equal(await storage.snapshot(name),null);
+  const output=execFileSync(process.execPath,['-e',`require(${JSON.stringify(path.resolve(__dirname,'../lib/holder-storage'))}).load(${JSON.stringify(name)}).then(s=>console.log(JSON.stringify(s)));`],{env:{...process.env,ARC_INDEX_CACHE_DIR:folder},windowsHide:true,encoding:'utf8'});assert.equal(JSON.parse(output).offset,2);
+  // Make the persisted queue member due, representing the next cron day without sleeping.
+  await storage.enqueue(a,Date.now()-1,true);pass=1;r=await invoke();assert.equal((await storage.load(name)).phase,'READ');assert.equal((await storage.load(name)).block,'0xb');assert.equal(await storage.snapshot(name),null);
+  await storage.enqueue(a,Date.now()-1,true);pass=2;r=await invoke();assert.equal(r.data.results[0].state,'COMPLETE');assert.equal((await storage.snapshot(name)).holderCount,2);assert.deepEqual(calls.pages,[0,2]);
+  const old=state('0xa',700000);const file=path.join(folder,name+'.v2.json');const d=JSON.parse(await fs.readFile(file));d.checkpoint=old;d.completedSnapshot=old.result;d.completedIndex={block:old.block,totalSupplyRaw:old.total,candidateAddresses:old.addresses,balances:old.balances};await fs.writeFile(file,JSON.stringify(d));await storage.enqueue(a,Date.now()-1,true);
+  r=await invoke();assert.equal(r.data.results[0].state,'COMPLETE');const snapshot=await storage.snapshot(name);assert.equal(snapshot.block,'0xb');assert.equal(snapshot.holderCount,2);for(const field of Object.values(snapshot.fields))assert.ok(field.evidence.some(e=>e.block===snapshot.block));
+ }finally{worker.advance=advance;if(previousSecret===undefined)delete process.env.CRON_SECRET;else process.env.CRON_SECRET=previousSecret;}
+}));
+
+test('worker deadline cannot publish a late balance result and retains the last COMPLETE snapshot',()=>fixture(async()=>{
+ const budget=require('../lib/holder-budget'),original=state('0xa',700000);await storage.save(name,original);
+ reader.balances=async(_a,addresses)=>{await new Promise(resolve=>setTimeout(resolve,80));return {method:'late public read',values:addresses.map(v=>word(v===x?600:v===y?400:0))};};
+ await assert.rejects(budget.run(15,()=>budget.operation(()=>worker.advance(a))),{code:'HOLDER_WORKER_BUDGET_EXHAUSTED'});
+ await new Promise(resolve=>setTimeout(resolve,120));assert.equal((await storage.snapshot(name)).block,'0xa');assert.notEqual((await storage.load(name)).phase,'COMPLETE');assert.equal((await storage.load(name)).balanceCursor,0);
+}));

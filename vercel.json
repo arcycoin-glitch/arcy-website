@@ -1,12 +1,20 @@
 {
   "functions": {
-    "api/holders.js": { "maxDuration": 60 },
-    "api/holderrefresh.js": { "maxDuration": 60 }
+    "api/holders.js": {
+      "maxDuration": 60
+    },
+    "api/holderrefresh.js": {
+      "maxDuration": 60
+    }
   },
   "crons": [
     {
       "path": "/api/pulse",
       "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/holderrefresh",
+      "schedule": "0 2 * * *"
     }
   ],
   "rewrites": [
