@@ -409,30 +409,43 @@ View details →
 <script>
 const TOKEN="0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b";
 const RPC="https://rpc.mainnet.arc.io";
-const BURN_SNAPSHOT={amount:"5.43M",date:"2026-09-30"};
+let BURN_SNAPSHOT={amount:"10.49M",date:"2026-10-02",raw:"10485992727269135471961091",decimals:18,block:"0x16be832",source:RPC};
 function showBurnSnapshot(){document.getElementById("burned").textContent=BURN_SNAPSHOT.amount;document.getElementById("burnStatus").textContent=`Verified snapshot ${BURN_SNAPSHOT.date} • live RPC unavailable`;}
 
 function fmt(n){const x=Number(n);if(x>=1e9)return (x/1e9).toFixed(2)+"B";if(x>=1e6)return (x/1e6).toFixed(2)+"M";return x.toLocaleString()}
 async function dataFetch(url,options={}){return fetch(url,{...options,signal:AbortSignal.timeout(15000)});}
-async function rpc(method,params=[]){const r=await dataFetch(RPC,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})});if(!r.ok)throw Error("RPC HTTP "+r.status);const j=await r.json();if(j.error)throw Error(j.error.message);return j.result}
+// Burn-only RPC failover. Every successful balance uses one provider and one fixed block.
+const BURN_RPCS=[RPC,"https://rpc.quicknode.mainnet.arc.io"];
+async function burnRpc(source,method,params=[]){
+  const r=await dataFetch(source,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})});
+  if(!r.ok)throw Error("RPC HTTP "+r.status);
+  const j=await r.json();
+  if(j.error||j.jsonrpc!=="2.0"||j.id!==1||typeof j.result!=="string"||!/^0x[0-9a-f]+$/i.test(j.result))throw Error("Invalid Burn RPC response");
+  return j.result;
+}
+function burnUint(value){if(!/^0x[0-9a-f]{64}$/i.test(value))throw Error("Invalid ABI uint");return BigInt(value);}
 async function loadBurn(){
-  let decimals;
-  try{decimals=BigInt(await rpc("eth_call",[{to:TOKEN,data:"0x313ce567"},"latest"]));}
-  catch(_){document.getElementById("supply").textContent="—";showBurnSnapshot();return;}
-  const base=10n**decimals;
-  const supplyTask=(async()=>{
-    try{const raw=BigInt(await rpc("eth_call",[{to:TOKEN,data:"0x18160ddd"},"latest"]));document.getElementById("supply").textContent=fmt(Number(raw)/Number(base));}
-    catch(_){document.getElementById("supply").textContent="—";}
-  })();
-  const burnTask=(async()=>{
-    try{
-      const dead="000000000000000000000000000000000000dead".padStart(64,"0");
-      const raw=BigInt(await rpc("eth_call",[{to:TOKEN,data:"0x70a08231"+dead},"latest"]));
-      document.getElementById("burned").textContent=new Intl.NumberFormat("en-US",{maximumFractionDigits:2,notation:"compact"}).format(Number(raw)/Number(base));
-      document.getElementById("burnStatus").textContent="Live • Dead wallet • Arc mainnet";
-    }catch(_){showBurnSnapshot();}
-  })();
-  await Promise.all([supplyTask,burnTask]);
+  for(const source of BURN_RPCS){
+    for(let attempt=0;attempt<2;attempt++){
+      try{
+        if(BigInt(await burnRpc(source,"eth_chainId"))!==5042n)throw Error("Wrong chain");
+        const block=await burnRpc(source,"eth_blockNumber");
+        const decimals=burnUint(await burnRpc(source,"eth_call",[{to:TOKEN,data:"0x313ce567"},block]));
+        if(decimals>255n)throw Error("Invalid decimals");
+        const base=10n**decimals;
+        const raw=burnUint(await burnRpc(source,"eth_call",[{to:TOKEN,data:"0x70a08231"+"dead".padStart(64,"0")},block]));
+        const amount=new Intl.NumberFormat("en-US",{maximumFractionDigits:2,notation:"compact"}).format(Number(raw)/Number(base));
+        BURN_SNAPSHOT={amount,date:new Date().toISOString().slice(0,10),raw:raw.toString(),decimals:Number(decimals),block,source};
+        document.getElementById("burned").textContent=amount;
+        document.getElementById("burnStatus").textContent="Live • Dead wallet • Arc mainnet";
+        try{const supply=burnUint(await burnRpc(source,"eth_call",[{to:TOKEN,data:"0x18160ddd"},block]));document.getElementById("supply").textContent=fmt(Number(supply)/Number(base));}
+        catch(_){document.getElementById("supply").textContent="—";}
+        return;
+      }catch(_){if(attempt===0)await new Promise(resolve=>setTimeout(resolve,350));}
+    }
+  }
+  document.getElementById("supply").textContent="—";
+  showBurnSnapshot();
 }
 loadBurn();
 

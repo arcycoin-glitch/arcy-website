@@ -25,7 +25,7 @@ function browser(fetch) {
     return elements.get(id);
   };
   const document = {getElementById:element,querySelector:selector=>selector==='.tab.active'?element('tab'):element(selector),querySelectorAll:()=>[]};
-  const context = vm.createContext({fetch,document,URL,AbortSignal,Intl,console});
+  const context = vm.createContext({fetch,document,URL,AbortSignal,Intl,console,setTimeout});
   const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
   vm.runInContext(scripts[0].replace(/^loadBurn\(\);$/m,'').replace(/^loadUnlocks\(\);$/m,''), context);
   return {context,element,scripts};
@@ -67,12 +67,29 @@ test('Pulse deduplicates URLs and preserves fixed card categories with one story
 test('Pulse reports total source failure',async()=>{
   const c=api('api/pulse.js',async()=>({ok:false}));const r=response();await c.handler({},r);assert.equal(r.code,503);assert.equal(r.body.ok,false);
 });
+function burnResponse(request,raw=3570000n*1000000n){
+ const {method,params}=JSON.parse(request.body);
+ const word=n=>'0x'+n.toString(16).padStart(64,'0');
+ const result=method==='eth_chainId'?'0x13b2':method==='eth_blockNumber'?'0x123':params[0].data==='0x313ce567'?word(6n):word(raw);
+ return {ok:true,json:async()=>({jsonrpc:'2.0',id:1,result})};
+}
 test('Burn reads actual decimals; supply failure cannot overwrite burn success',async()=>{
-  const b=browser(async(_,options)=>{const data=JSON.parse(options.body).params[0].data;
-    if(data==='0x18160ddd')throw Error('supply offline');
-    return {ok:true,json:async()=>({result:data==='0x313ce567'?'0x06':'0x'+(3570000n*1000000n).toString(16)})};
-  });await b.context.loadBurn();assert.equal(b.element('supply').textContent,'—');assert.equal(b.element('burned').textContent,'3.57M');assert.match(b.element('burnStatus').textContent,/^Live/);
+ const b=browser(async(_,options)=>{const q=JSON.parse(options.body);if(q.params[0]?.data==='0x18160ddd')throw Error('supply offline');return burnResponse(options);});
+ await b.context.loadBurn();assert.equal(b.element('supply').textContent,'—');assert.equal(b.element('burned').textContent,'3.57M');assert.match(b.element('burnStatus').textContent,/^Live/);
 });
+test('Burn retries primary then falls back; all contract reads share the fixed block',async()=>{
+ const calls=[];const b=browser(async(url,options)=>{calls.push({url,...JSON.parse(options.body)});if(url==='https://rpc.mainnet.arc.io')return {ok:false,status:429};return burnResponse(options);});
+ await b.context.loadBurn();assert.equal(calls.filter(c=>c.url==='https://rpc.mainnet.arc.io').length,2);assert.equal(b.element('burned').textContent,'3.57M');assert.ok(calls.filter(c=>c.method==='eth_call').every(c=>c.params[1]==='0x123'));
+});
+test('Burn rejects wrong chain and malformed ABI instead of displaying false data',async()=>{
+ const b=browser(async(url,options)=>{const r=burnResponse(options);if(url.includes('quicknode'))return {ok:true,json:async()=>({jsonrpc:'2.0',id:1,result:'0x01'})};return {ok:true,json:async()=>({jsonrpc:'2.0',id:1,result:'0x1'})};});
+ await b.context.loadBurn();assert.equal(b.element('burned').textContent,'10.49M');assert.match(b.element('burnStatus').textContent,/snapshot/);
+});
+test('Burn preserves the latest successfully verified snapshot when every source fails',async()=>{
+ let offline=false;const b=browser(async(_,options)=>{if(offline)throw Error('offline');return burnResponse(options);});
+ await b.context.loadBurn();offline=true;await b.context.loadBurn();assert.equal(b.element('burned').textContent,'3.57M');assert.match(b.element('burnStatus').textContent,/snapshot/);
+});
+
 test('Unlock failure remains unavailable after search or tab rendering',async()=>{
   const b=browser(async()=>({ok:false,status:503}));await b.context.loadUnlocks();b.context.renderUnlocks(7);
   assert.match(b.element('unlockRows').innerHTML,/temporarily unavailable/);assert.match(b.element('#unlocks .note').textContent,/unavailable/);
