@@ -1,1 +1,0 @@
-const c=require('../lib/core'),f=require('../lib/fields');module.exports=c.route(a=>f.cached('activity:'+a,60000,async()=>{const tokenIdentity=await require('../lib/token-identity').inspect(a);return {tokenIdentity,...await require('../lib/market-activity').read(a)};}));
