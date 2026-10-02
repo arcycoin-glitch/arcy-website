@@ -32,7 +32,7 @@
    if(fields[1].dataState==='DATA_FOUND'&&(d.market.status!=='SOURCE_REPORTED'||d.market.contractMatched!==true||Number(d.market.circulatingSupply)<=0))fields[1]={text:'NOT VERIFIED',dataState:'NOT_VERIFIED',reasonCode:'CIRCULATING_IDENTITY_OR_STATUS_UNVERIFIED',reason:'Circulating supply needs positive contract-matched source-reported data.'};
    const u=d?.unlock;
    let unlock;if(!u)unlock={text:'…',dataState:'LOADING'};else if(u.ok===false)unlock=read(u,'nextUnlock.date');else {const x=get(u,'nextUnlock.date');unlock=!x.exists?missing(u,'Expected nextUnlock.date.') :x.value===null?{text:'NO SOURCE-REPORTED SCHEDULE',dataState:u.dataState||'NOT_VERIFIED',reasonCode:u.reasonCode||'NO_CONTRACT_MATCHED_SCHEDULE_SOURCE',reason:u.reason}:/^\d{4}-\d{2}-\d{2}/.test(x.value)?{text:x.value,dataState:'DATA_FOUND'}:missing(u,'Invalid schedule date.');}fields.push(unlock);
-  }else if(name==='whales')fields=paths.whales.map((p,i)=>read(d,p,i?x=>compact(x)+'%':compact));
+  }else if(name==='whales')fields=paths.whales.map((p,i)=>d?read(d,p,i?x=>compact(x)+'%':compact):({text:'NOT VERIFIED',dataState:'NOT_VERIFIED',reasonCode:'HOLDER_SNAPSHOT_BUILDING',reason:'Building a complete reconciled holder snapshot; partial metrics are not displayed.'}));
   else if(name==='control'){
    fields=['mint','pause','blacklist'].map(p=>fact(d,p));
    const owner=fact(d,'owner'),admin=fact(d,'admin');fields.push(d?.ok!==false&&[d?.owner,d?.admin].some(detected)?{text:'DETECTED',dataState:'DATA_FOUND'}:owner.dataState==='FRONTEND_MAPPING_FAILED'?owner:admin.dataState==='FRONTEND_MAPPING_FAILED'?admin:{text:'NOT VERIFIED',dataState:d?.dataState==='SOURCE_API_FAILED'?'SOURCE_API_FAILED':'NOT_VERIFIED',reasonCode:'NO_VALIDATED_OWNER_ADMIN',reason:'No nonzero owner/admin authority getter established. Proxy evidence is shown separately.'});
@@ -54,6 +54,9 @@
   }
   const states=fields.map(f=>f.dataState);let badge=states.includes('FRONTEND_MAPPING_FAILED')?'MAPPING FAILED':states.includes('LOADING')?'SCANNING':states.every(x=>x==='SOURCE_API_FAILED')?'SOURCE/API FAILED':states.includes('DATA_FOUND')?'PARTIAL EVIDENCE':states.includes('SOURCE_API_FAILED')?'SOURCE/API FAILED':states.every(x=>x==='SOURCE_HAS_NO_DATA')?'SOURCE HAS NO DATA':'NOT VERIFIED';
   if(name==='claims'&&d?.statusId==='NO_CLAIMS_SUPPLIED')badge='NO CLAIMS SUPPLIED';
+  if(name==='whales'&&!d)badge='BUILDING VERIFIED HOLDER SNAPSHOT';
+  if(name==='whales'&&d?.snapshot?.freshness==='LAST_VERIFIED'&&states.every(s=>s==='DATA_FOUND'))badge='LAST VERIFIED SNAPSHOT';
+  if(name==='whales'&&d?.ok!==false&&d?.coverage?.complete===false&&!states.includes('DATA_FOUND')&&!states.includes('FRONTEND_MAPPING_FAILED'))badge='BUILDING VERIFIED HOLDER SNAPSHOT';
   if(name==='control'&&d?.ok!==false&&detected(d?.proxy))badge='PROXY DETECTED';
   return {fields:fields.map((f,i)=>({...f,label:(labels[name]||['Claims Checked','Verified','Mismatch','Unverified'])[i],path:paths[name][i]})),badge,data:d};
  }
