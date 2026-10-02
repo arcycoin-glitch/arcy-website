@@ -1,4 +1,8 @@
 {
+  "functions": {
+    "api/holders.js": { "maxDuration": 60 },
+    "api/holderrefresh.js": { "maxDuration": 60 }
+  },
   "crons": [
     {
       "path": "/api/pulse",
