@@ -1,3 +1,4 @@
+process.env.ARC_HOLDER_WORKER_RPC='1';
 const storage=require('../lib/holder-storage'),refresh=require('../lib/holder-refresh');
 const {setTimeout:sleep}=require('node:timers/promises');
 async function main(){
