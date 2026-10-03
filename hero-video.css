@@ -1,7 +1,7 @@
 /* Overlay the video within the existing owl's reserved frame. */
 #hero .hero-video{position:absolute;inset:0;width:100%;height:100%;padding:4%;box-sizing:border-box;object-fit:contain;opacity:0;pointer-events:none;mix-blend-mode:screen;mask-image:linear-gradient(to right,transparent,#000 6%,#000 94%,transparent),linear-gradient(to bottom,transparent,#000 6%,#000 94%,transparent);mask-composite:intersect;-webkit-mask-image:linear-gradient(to right,transparent,#000 6%,#000 94%,transparent),linear-gradient(to bottom,transparent,#000 6%,#000 94%,transparent);-webkit-mask-composite:source-in}
-#hero .hero-energy:has(.video-playing){mix-blend-mode:lighten}
-#hero .hero-flight.video-playing{background:radial-gradient(ellipse at center,#22d9ff0d,transparent 68%)}
+#hero .hero-energy:has(.video-playing){isolation:auto;mix-blend-mode:screen}
+#hero .hero-flight.video-playing{mix-blend-mode:screen;background:radial-gradient(ellipse at center,#22d9ff0d,transparent 68%)}
 #hero .hero-flight.video-playing .hero-video{opacity:1}
 #hero .hero-flight.video-playing>img{visibility:hidden}
 @media(prefers-reduced-motion:reduce){#hero .hero-video{display:none!important}#hero .hero-flight.video-playing>img{visibility:visible}}
