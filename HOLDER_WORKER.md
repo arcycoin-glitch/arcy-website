@@ -1,0 +1,13 @@
+# Persistent holder worker
+
+Host: a separate Railway Hobby service ($5 minimum monthly usage; additional resource usage may cost more). Vercel remains the web/API host. No public worker domain or HTTP port is needed.
+
+Deployment settings, after approval: repository root, Dockerfile path `Dockerfile.holder-worker`, one replica, restart policy ALWAYS, application sleeping disabled, termination grace period at least 45 seconds. The worker command is `npm run worker:holders`. Supply existing private Redis variables through host secret settings: ARC_INDEX_REDIS_URL/ARC_INDEX_REDIS_TOKEN or UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN. Never commit credentials. Startup refuses ephemeral local storage. The Docker image copies only worker application files, excluding audit artifacts, website files and environment files.
+
+Search reads the existing non-expiring COMPLETE Redis document and queues the exact chain-5042 contract. It never invokes holder discovery/reconciliation. The existing authenticated holderrefresh route only inspects due queue work; no Vercel holder cron remains. Start the external worker before releasing the snapshot-only API.
+
+The worker polls the durable sorted-set queue, takes existing token-fenced leases, and runs bounded checkpointed discovery/Transfer-tail/reconciliation slices. Incomplete work is rescheduled after five seconds; provider failures back off at least one minute. COMPLETE snapshots refresh after ten minutes. An idle worker polls every thirty seconds. Existing queue capacity remains 1,000 contracts and per-contract candidate capacity 100,000; rejected queue additions are reported, never treated as verified data.
+
+Snapshots publish atomically only after every candidate balance reconciles to total supply at one block with a matching canonical anchor. The existing checkpoint, complete index, chain/contract, block, timestamp and evidence metadata remain in the same Redis document. Partial/failing refreshes retain COMPLETE evidence. Redis leases fence overlapping/restarted processes. SIGINT/SIGTERM stop polling and let the current bounded batch finish; interrupted work resumes from its durable cursor. `node scripts/holder-worker.cjs --once` is available for bounded acceptance runs, still requiring Redis. Optional exact contract arguments enqueue work before processing.
+
+The worker has no web request deadline, but each batch retains the existing 40-second budget. Redis/provider outages produce sanitized status logs, never URLs, credentials or raw errors. Cost and completion time depend on queue size, Redis operations, RPC availability, indexer pagination and token holder count; first-ever indexing is asynchronous and has no guaranteed completion deadline.

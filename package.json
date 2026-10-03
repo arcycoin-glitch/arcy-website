@@ -5,6 +5,7 @@
   "scripts": {
     "test": "node --test test/*.test.js tests/*.test.mjs",
     "dev": "node dev.cjs",
+    "worker:holders": "node scripts/holder-worker.cjs",
     "test:live": "node test/live.cjs",
     "test:browser": "node test/browser-regression.cjs"
   },

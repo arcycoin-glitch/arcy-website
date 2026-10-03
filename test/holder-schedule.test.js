@@ -2,10 +2,8 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const refresh=require('../lib/holder-refresh'),storage=require('../lib/holder-storage'),worker=require('../lib/holder-candidates'),budget=require('../lib/holder-budget');
 const address=n=>'0x'+n.toString(16).padStart(40,'0');
 
-test('daily Hobby schedule invokes the existing authenticated holder endpoint without adding a function',async()=>{
- const config=JSON.parse(fs.readFileSync(path.join(__dirname,'../vercel.json')));const cron=config.crons.find(c=>c.path==='/api/holderrefresh');assert.equal(cron.schedule,'0 2 * * *');assert.deepEqual(config.crons.find(c=>c.path==='/api/pulse'),{path:'/api/pulse',schedule:'0 6 * * 1'});assert.ok(fs.readdirSync(path.join(__dirname,'../api')).filter(f=>f.endsWith('.js')).length<=12);assert.equal(config.functions['api/holderrefresh.js'].maxDuration,60);
- const previous=process.env.CRON_SECRET,run=refresh.run;process.env.CRON_SECRET='unit-test-schedule-only';let invocations=0;refresh.run=async()=>{invocations++;return [{contract:address(1),state:'BUILDING'}];};
- try{const result=await require('../api/holderrefresh')({method:'GET',headers:{authorization:'Bearer unit-test-schedule-only','user-agent':'vercel-cron/1.0'}},{setHeader(){},status(code){this.code=code;return this;},json(data){return {code:this.code,data};}});assert.equal(result.code,200);assert.equal(invocations,1);assert.equal(result.data.results[0].state,'BUILDING');}finally{refresh.run=run;if(previous===undefined)delete process.env.CRON_SECRET;else process.env.CRON_SECRET=previous;}
+test('Vercel leaves holder processing to the persistent worker and preserves Pulse cron and function limit',()=>{
+ const config=JSON.parse(fs.readFileSync(path.join(__dirname,'../vercel.json')));assert.ok(!config.crons.some(c=>c.path==='/api/holderrefresh'));assert.deepEqual(config.crons.find(c=>c.path==='/api/pulse'),{path:'/api/pulse',schedule:'0 6 * * 1'});assert.ok(fs.readdirSync(path.join(__dirname,'../api')).filter(f=>f.endsWith('.js')).length<=12);
 });
 
 test('scheduled queue processes multiple batches and rotates unfinished jobs behind untouched work',async()=>{
@@ -22,4 +20,11 @@ test('scheduled work has one shared invocation budget and yields a slow job with
 
 test('request-local worker deadline does not cancel an ordinary concurrent scan',async()=>{
  const read=()=>new Promise(resolve=>setTimeout(()=>resolve('public onchain data'),60));const limited=budget.run(10,()=>budget.operation(read));const ordinary=budget.operation(read);await assert.rejects(limited,{code:'HOLDER_WORKER_BUDGET_EXHAUSTED'});assert.equal(await ordinary,'public onchain data');assert.equal(budget.remaining(),Infinity);
+});
+
+test('persistent batches continue incomplete work quickly but back off a failed stale refresh',async()=>{
+ const previous=[worker.advance,storage.enqueue],queued=[];storage.enqueue=async(a,at)=>{queued.push(at);return true;};
+ try{worker.advance=async()=>({value:null,reasonCode:'HOLDER_PINNED_RECONCILIATION_IN_PROGRESS'});let start=Date.now();await refresh.run({addresses:[address(1)],incompleteDelayMs:5000});assert.ok(queued[0]>=start+5000&&queued[0]<start+10000);
+ worker.advance=async()=>({value:{block:'0xa',snapshot:{freshness:'STALE',refresh:{state:'FAILED',httpStatus:429}}}});start=Date.now();const r=await refresh.run({addresses:[address(1)],incompleteDelayMs:5000});assert.equal(r[0].state,'STALE');assert.equal(r[0].httpStatus,429);assert.ok(queued[1]>=start+60000);
+ }finally{[worker.advance,storage.enqueue]=previous;}
 });

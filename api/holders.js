@@ -1,23 +1,11 @@
-const c=require('../lib/core'),f=require('../lib/fields'),index=require('../lib/holder-index'),worker=require('../lib/holder-candidates'),storage=require('../lib/holder-storage'),health=require('../lib/search-health');
-const unknown=result=>({status:'NOT_VERIFIED',source:null,holderCount:null,largestWalletPct:null,top10Pct:null,top20Pct:null,dataState:result.attempts?.every(x=>x.dataState==='SOURCE_API_FAILED')?'SOURCE_API_FAILED':'NOT_VERIFIED',reasonCode:result.reasonCode,reason:result.reason,attempts:result.attempts||[],coverage:result.coverage,fields:Object.fromEntries(['holderCount','largestWalletPct','top10Pct','top20Pct'].map(k=>[k,{...result}]))});
+const c=require('../lib/core'),storage=require('../lib/holder-storage'),display=require('../lib/holder-display'),budget=require('../lib/holder-budget'),health=require('../lib/search-health');
 module.exports=c.route(async a=>{
- // Read the durable COMPLETE snapshot before a pending process-local refresh cache.
- let previous;try{previous=await require('../lib/holder-display').cached(a);}catch{health.record('STORAGE_UNAVAILABLE',{contract:a});}
+ let previous,queued=false,failed=false;
+ try{previous=await budget.run(2500,()=>budget.operation(()=>display.cached(a)));}
+ catch{failed=true;health.record('STORAGE_UNAVAILABLE',{contract:a});}
  if(previous)return previous;
- return f.cached('holders:'+a,60000,async()=>{
- // Queue cold contracts before discovery, including source failures with no checkpoint yet.
- let queued=false;try{queued=await storage.enqueue(a);}catch{health.record('STORAGE_UNAVAILABLE',{contract:a});}
- let primary;try{primary=await worker.advance(a);}catch(e){primary={value:null,status:'NOT_VERIFIED',...c.failure(e)};}
- const pending=result=>unknown({...result,coverage:queued?{...primary.coverage,...result.coverage,complete:false,refreshQueued:true}:result.coverage||primary.coverage});
- // An active job on another instance must not trigger a competing enumeration.
- if(['HOLDER_JOB_COALESCED','HOLDER_SNAPSHOT_ANCHOR_CHANGED'].includes(primary.reasonCode))return pending(primary);
- const result=await f.resolve([
-  {name:'Resumable pinned-block candidate snapshot',tier:'ONCHAIN_VERIFIED',read:()=>primary},
-  {name:'A/X Explorer + pinned Arc RPC balance reconciliation',tier:'ONCHAIN_VERIFIED',read:()=>index.explorer(a)},
-  {name:'GoPlus candidate wallets + pinned Arc RPC',tier:'ONCHAIN_VERIFIED',read:()=>require('../lib/goplus').holders(a)},
-  {name:'Resumable Arc Transfer history',tier:'ONCHAIN_VERIFIED',read:()=>index.advance(a,{budgetMs:7000,maxRanges:8})}
- ]);
- if(result.value)return {...result.value,attempts:result.attempts};
- // Adapter exhaustion does not cancel the durable job. Keep failures in evidence.
- return pending(result);
-});});
+ if(!failed)try{queued=await budget.run(1500,()=>budget.operation(()=>storage.enqueue(a)));}
+ catch{failed=true;health.record('STORAGE_UNAVAILABLE',{contract:a});}
+ const result={value:null,status:'NOT_VERIFIED',dataState:failed||!queued?'SOURCE_API_FAILED':'NOT_VERIFIED',reasonCode:failed?'STORAGE_UNAVAILABLE':queued?'HOLDER_SNAPSHOT_BUILDING':'HOLDER_QUEUE_FULL',reason:failed?'Durable holder storage unavailable.':queued?'Building a complete reconciled holder snapshot in the background worker.':'Holder queue is full; retry later.',coverage:queued?{complete:false,refreshQueued:true}:{refreshQueued:false}};
+ return {status:'NOT_VERIFIED',source:null,holderCount:null,largestWalletPct:null,top10Pct:null,top20Pct:null,...result,fields:Object.fromEntries(['holderCount','largestWalletPct','top10Pct','top20Pct'].map(k=>[k,{...result}]))};
+});
