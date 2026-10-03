@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.ARCYModel=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const labels={supply:['Total Supply','Circulating Supply','Burn Address Balance','Next Unlock'],whales:['Holder Count','Largest Wallet %','Top 10 Concentration','Top 20 Concentration'],control:['Mint Capability','Pause Capability','Blacklist Capability','Owner / Admin'],liquidity:['Liquidity USD','24H Volume','DEX / Pair Count','LP Status'],activity:['Price','Market Cap / FDV','24H Change','24H Volume'],mechanics:['Buy Tax','Sell Tax','Transfer Tax','Burn / Buyback']};
- const paths={supply:['supply.totalSupply.amount','market.circulatingSupply','supply.burnAddressBalance.amount','unlock.nextUnlock.date'],whales:['holderCount','largestWalletPct','top10Pct','top20Pct'],control:['mint','pause','blacklist','owner / admin (proxy in badge/evidence)'],liquidity:['liquidityUsd','volume24h','dexCount / pairCount','lpStatus'],claims:['counts.checked','counts.verified','counts.mismatch','counts.unverified'],mechanics:['buyTax','sellTax','transferTax','burnMechanism / buybackAndBurn']};
+ const labels={supply:['Total Supply','Circulating Supply','Burn Address Balance','Next Unlock'],whales:['Holder Count','Largest Wallet %','Top 10 Concentration','Top 20 Concentration'],liquidity:['Liquidity USD','24H Volume','DEX / Pair Count','LP Status'],activity:['Price','Market Cap / FDV','24H Change','24H Volume'],mechanics:['Buy Tax','Sell Tax','Transfer Tax','Burn Mechanism','Buyback Mechanism','Mint Capability','Pause Capability','Blacklist / Restrictions','Owner / Admin','Proxy / Upgradeable']};
+ const paths={supply:['supply.totalSupply.amount','market.circulatingSupply','supply.burnAddressBalance.amount','unlock.nextUnlock.date'],whales:['holderCount','largestWalletPct','top10Pct','top20Pct'],liquidity:['liquidityUsd','volume24h','dexCount / pairCount','lpStatus'],claims:['counts.checked','counts.verified','counts.mismatch','counts.unverified'],mechanics:['buyTax','sellTax','transferTax','burnMechanism','buybackMechanism','mint','pause','blacklist','ownerAdmin','proxyUpgradeable'].map(k=>'contractFields.'+k)};
  paths.activity=['priceUsd','valuation','change24h','volume24h'];
  const zero='0x0000000000000000000000000000000000000000';
  function compact(v){if(v===null||v===undefined||v==='')return 'NOT VERIFIED';const n=Number(v);if(!Number.isFinite(n))return 'NOT VERIFIED';if(n!==0&&Math.abs(n)<0.000001)return Number(n.toPrecision(4)).toString();for(const [d,s]of [[1e9,'B'],[1e6,'M'],[1e3,'K']])if(Math.abs(n)>=d)return (n/d).toFixed(1).replace(/\.0$/,'')+s;return new Intl.NumberFormat('en-US',{maximumFractionDigits:6}).format(n);}
@@ -36,10 +36,7 @@
    let unlock;if(!u)unlock={text:'…',dataState:'LOADING'};else if(u.ok===false)unlock=read(u,'nextUnlock.date');else {const x=get(u,'nextUnlock.date');unlock=!x.exists?missing(u,'Expected nextUnlock.date.') :x.value===null?{text:'NO SOURCE-REPORTED SCHEDULE',dataState:u.dataState||'NOT_VERIFIED',reasonCode:u.reasonCode||'NO_CONTRACT_MATCHED_SCHEDULE_SOURCE',reason:u.reason}:/^\d{4}-\d{2}-\d{2}/.test(x.value)?{text:x.value,dataState:'DATA_FOUND'}:missing(u,'Invalid schedule date.');}fields.push(unlock);
    if(unlock.dataState==='DATA_FOUND'&&u?.freshness?.state==='LAST_VERIFIED')Object.assign(unlock,{freshness:u.freshness,reason:'Last verified source-reported schedule; refresh failed.'});
   }else if(name==='whales')fields=paths.whales.map((p,i)=>d?read(d,p,i?x=>compact(x)+'%':compact):({text:'NOT VERIFIED',dataState:'NOT_VERIFIED',reasonCode:'HOLDER_SNAPSHOT_BUILDING',reason:'Building a complete reconciled holder snapshot; partial metrics are not displayed.'}));
-  else if(name==='control'){
-   fields=['mint','pause','blacklist'].map(p=>fact(d,p));
-   const owner=fact(d,'owner'),admin=fact(d,'admin');fields.push(d?.ok!==false&&[d?.owner,d?.admin].some(detected)?{text:'DETECTED',dataState:'DATA_FOUND'}:owner.dataState==='FRONTEND_MAPPING_FAILED'?owner:admin.dataState==='FRONTEND_MAPPING_FAILED'?admin:{text:'NOT VERIFIED',dataState:d?.dataState==='SOURCE_API_FAILED'?'SOURCE_API_FAILED':'NOT_VERIFIED',reasonCode:'NO_VALIDATED_OWNER_ADMIN',reason:'No nonzero owner/admin authority getter established. Proxy evidence is shown separately.'});
-  }else if(name==='liquidity'){
+  else if(name==='liquidity'){
    fields=[read(d,'liquidityUsd',money),read(d,'volume24h',money)];const dex=read(d,'dexCount'),pairs=read(d,'pairCount');fields.push(dex.dataState==='DATA_FOUND'&&pairs.dataState==='DATA_FOUND'?{text:d.dexCount+' DEX · '+d.pairCount+' pairs',dataState:'DATA_FOUND'}:dex.dataState!=='DATA_FOUND'?dex:pairs);fields.push(fact(d,'lpStatus'));
   }else if(name==='activity'){
    const price=f=>Number.isFinite(f.value)&&f.value>0?'$'+(f.value<0.01?Number(f.value.toPrecision(6)).toString():compact(f.value)):'NOT VERIFIED';
@@ -51,18 +48,17 @@
    else if(typeof d.statusId!=='string')fields=paths.claims.map(()=>missing(d,'Missing application statusId.'));
    else fields=paths.claims.map(p=>read(d,p));
   }else if(name==='mechanics'){
-   fields=['buyTax','sellTax','transferTax'].map(p=>fact(d,p,percent));
-   for(let i=0;i<3;i++)if(fields[i].text==='NOT VERIFIED'&&fields[i].dataState==='DATA_FOUND')fields[i]=missing(d,'Invalid percentage at '+paths.mechanics[i]+'.value.');
-   const burn=fact(d,'burnMechanism'),buyback=fact(d,'buybackAndBurn');fields.push(burn.dataState==='FRONTEND_MAPPING_FAILED'?burn:buyback.dataState==='FRONTEND_MAPPING_FAILED'?buyback:burn.dataState==='DATA_FOUND'||buyback.dataState==='DATA_FOUND'?{text:'Burn '+burn.text+' · Buyback '+buyback.text,dataState:burn.dataState==='DATA_FOUND'&&buyback.dataState==='DATA_FOUND'?'DATA_FOUND':'NOT_VERIFIED',reason:buyback.reason||burn.reason}:burn);
+   fields=paths.mechanics.map((p,i)=>fact(d,p,f=>i<3?percent(f)+' · '+f.status:i===9&&f.status==='VERIFIED'?(f.upgradeable?.value===true?'UPGRADEABLE · VERIFIED':'PROXY · VERIFIED'):f.status.replaceAll('_',' ')));
+   for(let i=0;i<3;i++)if(fields[i].text.startsWith('NOT VERIFIED')&&fields[i].dataState==='DATA_FOUND')fields[i]=missing(d,'Invalid verified tax percentage.');
   }
-  const combined=name==='control'?['owner','admin']:name==='mechanics'?['burnMechanism','buybackAndBurn']:name==='liquidity'?['dexCount','pairCount']:[],combinedIndex=name==='liquidity'?2:3;
+  const combined=name==='liquidity'?['dexCount','pairCount']:[],combinedIndex=name==='liquidity'?2:3;
   const historical=combined.map(k=>d?.[k]?.freshness||d?.fields?.[k]?.freshness||d?.freshness).find(f=>f?.state==='LAST_VERIFIED');if(historical&&fields[combinedIndex]?.dataState==='DATA_FOUND')Object.assign(fields[combinedIndex],{freshness:historical,reason:'Includes last verified data; refresh has not established a replacement.'});
   const states=fields.map(f=>f.dataState);let badge=states.includes('FRONTEND_MAPPING_FAILED')?'MAPPING FAILED':states.includes('LOADING')?'SCANNING':states.every(x=>x==='SOURCE_API_FAILED')?'SOURCE/API FAILED':states.includes('DATA_FOUND')?'PARTIAL EVIDENCE':states.includes('SOURCE_API_FAILED')?'SOURCE/API FAILED':states.every(x=>x==='SOURCE_HAS_NO_DATA')?'SOURCE HAS NO DATA':'NOT VERIFIED';
   if(name==='claims'&&d?.statusId==='NO_CLAIMS_SUPPLIED')badge='NO CLAIMS SUPPLIED';
   if(name==='whales'&&!d)badge='BUILDING VERIFIED HOLDER SNAPSHOT';
   if(name==='whales'&&d?.snapshot?.freshness==='LAST_VERIFIED'&&states.every(s=>s==='DATA_FOUND'))badge='LAST VERIFIED SNAPSHOT';
   if(name==='whales'&&d?.ok!==false&&d?.coverage?.complete===false&&!states.includes('DATA_FOUND')&&!states.includes('FRONTEND_MAPPING_FAILED'))badge='BUILDING VERIFIED HOLDER SNAPSHOT';
-  if(name==='control'&&d?.ok!==false&&detected(d?.proxy))badge='PROXY DETECTED';
+
   if(name!=='whales'&&states.includes('DATA_FOUND')&&(d?.freshness?.state==='LAST_VERIFIED'||fields.some(f=>f.dataState==='DATA_FOUND'&&f.freshness?.state==='LAST_VERIFIED')))badge='LAST VERIFIED DATA';
   return {fields:fields.map((f,i)=>({...f,label:(labels[name]||['Claims Checked','Verified','Mismatch','Unverified'])[i],path:paths[name][i]})),badge,data:d};
  }

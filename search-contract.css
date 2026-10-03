@@ -1,0 +1,7 @@
+/* Search-only five-card layout; the rest of the website is frozen. */
+#search .grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:auto!important;align-items:start}
+#search .mechanics{grid-column:1/-1}
+#search .mechanics-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
+#search .mechanics .row{min-width:0;gap:12px}
+#search .mechanics .row b{font-size:11px;white-space:normal;overflow-wrap:anywhere;text-align:right}
+@media(max-width:760px){#search .grid{grid-template-columns:minmax(0,1fr)}#search .mechanics-fields{grid-template-columns:minmax(0,1fr)}}
