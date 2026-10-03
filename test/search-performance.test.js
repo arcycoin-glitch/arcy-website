@@ -1,0 +1,45 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),c=require('../lib/core'),f=require('../lib/fields'),refresh=require('../lib/search-request');
+const a='0x'+'a'.repeat(40),word=n=>'0x'+BigInt(n).toString(16).padStart(64,'0'),res={setHeader(){},status(){return this},json(d){return d}};
+test('nonzero dust balances do not render as a verified zero; historical burn custody stays explicitly labelled',()=>{
+ const model=require('../ui-model');assert.notEqual(model.compact('0.000000000250239775'),'0');assert.equal(model.compact(0),'0');const d={supply:{ok:true,totalSupply:{amount:'100'},burnAddressBalance:{amount:'1',freshness:{state:'LAST_VERIFIED',observedAt:'2026-10-01T00:00:00Z'}}}};const view=model.summarize('supply',d);assert.equal(view.badge,'LAST VERIFIED DATA');assert.equal(view.fields[2].freshness.state,'LAST_VERIFIED');assert.match(view.fields[2].reason,/2026-10-01/);
+});
+test('derived compact rows retain historical field labels rather than presenting old owner/control evidence as current',()=>{
+ const model=require('../ui-model'),last={state:'LAST_VERIFIED',observedAt:'2026-10-01T00:00:00Z'},fact=value=>({value,status:'ON_CHAIN',dataState:'DATA_FOUND'});const d={ok:true,mint:fact(false),pause:fact(false),blacklist:fact(false),owner:{...fact(a),freshness:last},admin:{value:null,status:'NOT_VERIFIED'}};const view=model.summarize('control',d);assert.equal(view.fields[3].text,'DETECTED');assert.equal(view.fields[3].freshness.state,'LAST_VERIFIED');assert.equal(view.badge,'LAST VERIFIED DATA');
+ const liquidity=model.summarize('liquidity',{ok:true,liquidityUsd:100,volume24h:10,dexCount:1,pairCount:2,lpStatus:fact('LOCKED'),fields:{volume24h:{freshness:last}}});assert.equal(liquidity.fields[1].freshness.state,'LAST_VERIFIED');assert.equal(liquidity.badge,'LAST VERIFIED DATA');
+});
+test('explicit Search refresh bypasses volatile results without clearing holder or reviewed-source caches',async()=>{
+ f.clearCache();let live=0,holder=0,source=0;const route=refresh.route(async()=>({live:await f.cached('control:'+a,60000,async()=>++live),holder:await f.cached('holders:'+a,60000,async()=>++holder),source:await f.cached('source:'+a,60000,async()=>++source)}));
+ const first=await route({query:{address:a}},res),cached=await route({query:{address:a}},res),fresh=await route({query:{address:a,refresh:'1'}},res);assert.equal(first.live,1);assert.equal(cached.live,1);assert.equal(fresh.live,2);assert.equal(fresh.holder,1);assert.equal(fresh.source,1);f.clearCache();
+});
+test('parallel fresh Search readers share in-flight data but subsequent scans read again',async()=>{
+ f.clearCache();let count=0,release;const gate=new Promise(r=>release=r),route=refresh.route(async()=>({value:await f.cached('dex-pairs:'+a,60000,async()=>{count++;await gate;return count;})}));
+ const one=route({query:{address:a,refresh:'1'}},res),two=route({query:{address:a,refresh:'1'}},res);await new Promise(r=>setImmediate(r));assert.equal(count,1);release();assert.equal((await one).value,1);assert.equal((await two).value,1);assert.equal((await route({query:{address:a,refresh:'1'}},res)).value,2);f.clearCache();
+});
+test('fallback pool datasets and contract-selected metadata refresh only inside an explicit Search request',async()=>{
+ f.clearCache();for(const prefix of ['gecko-pairs','project-metadata']){let reads=0;const key=prefix+':'+a,route=refresh.route(async()=>({value:await f.cached(key,300000,async()=>++reads)}));assert.equal((await route({query:{address:a}},res)).value,1);assert.equal((await route({query:{address:a}},res)).value,1);assert.equal((await route({query:{address:a,refresh:'1'}},res)).value,2);}f.clearCache();
+});
+test('failed fresh market refresh serves labelled last verified data and successful refresh replaces it',async()=>{
+ f.clearCache();let mode='good',calls=0;const route=refresh.route(async()=>f.cached('activity:'+a,60000,async()=>{calls++;if(mode==='throw')throw Object.assign(Error(),{httpStatus:429});if(mode==='failed')return {dataState:'SOURCE_HAS_NO_DATA',fields:{priceUsd:{value:null,status:'NOT_VERIFIED',dataState:'SOURCE_API_FAILED'}}};return {dataState:'DATA_FOUND',priceUsd:{value:mode==='new'?2:1,status:'MARKET_API_VERIFIED',dataState:'DATA_FOUND'},fields:{priceUsd:{value:mode==='new'?2:1,status:'MARKET_API_VERIFIED',dataState:'DATA_FOUND'}}};}));
+ await route({query:{address:a}},res);mode='failed';const failed=await route({query:{address:a,refresh:'1'}},res);assert.equal(failed.priceUsd.value,1);assert.equal(failed.freshness.state,'LAST_VERIFIED');assert.equal(failed.refreshFailure.fields.priceUsd.dataState,'SOURCE_API_FAILED');const observedAt=failed.freshness.observedAt;
+ mode='throw';const limited=await route({query:{address:a,refresh:'1'}},res);assert.equal(limited.priceUsd.value,1);assert.equal(limited.freshness.observedAt,observedAt);assert.equal(limited.refreshFailure.httpStatus,429);
+ mode='new';const replaced=await route({query:{address:a,refresh:'1'}},res);assert.equal(replaced.priceUsd.value,2);assert.equal(replaced.freshness,undefined);assert.equal(calls,4);f.clearCache();
+});
+test('one scan reuses its completed reads while a new scan reads again and retains labelled prior data on failure',async()=>{
+ f.clearCache();let calls=0,fail=false;const route=refresh.route(()=>f.cached('control-card:'+a,0,async()=>{calls++;if(fail)throw Object.assign(Error(),{httpStatus:429});return {dataState:'DATA_FOUND',block:'0x'+calls,value:calls};}));
+ const request=id=>({query:{address:a,refresh:'1',scanId:id}});assert.equal((await route(request('scan-1'),res)).value,1);assert.equal((await route(request('scan-1'),res)).value,1);assert.equal((await route(request('scan-2'),res)).value,2);fail=true;const last=await route(request('scan-3'),res);assert.equal(last.value,2);assert.equal(last.freshness.state,'LAST_VERIFIED');assert.equal(calls,3);f.clearCache();
+});
+test('old control state is never used as fresh input for mechanics or implementation verification',async()=>{
+ f.clearCache();await f.cached('control:'+a,10000,async()=>({dataState:'DATA_FOUND',block:'0x123',owner:{value:a,status:'ON_CHAIN'}}));const route=refresh.route(()=>f.cached('control:'+a,10000,async()=>{throw Object.assign(Error(),{httpStatus:429});}));const result=await route({query:{address:a,refresh:'1',scanId:'source-input-refresh'}},res);assert.equal(result.ok,false);assert.equal(result.dataState,'SOURCE_API_FAILED');assert.equal(result.owner,undefined);f.clearCache();
+});
+test('a cold refresh cannot invent stale values, and raw provider caches cannot disguise old data as fresh',async()=>{
+ f.clearCache();const route=refresh.route(()=>f.cached('activity:'+a,60000,async()=>{throw Object.assign(Error(),{httpStatus:429});}));const cold=await route({query:{address:a,refresh:'1'}},res);assert.equal(cold.ok,false);assert.equal(cold.dataState,'SOURCE_API_FAILED');assert.equal(cold.httpStatus,429);
+ const raw=refresh.route(()=>f.cached('dex-pairs:'+a,60000,async()=>{throw Object.assign(Error(),{httpStatus:429});}));await f.cached('dex-pairs:'+a,60000,async()=>[{pair:'recorded'}]);const failed=await raw({query:{address:a,refresh:'1'}},res);assert.equal(failed.ok,false);assert.equal(failed.httpStatus,429);f.clearCache();
+});
+test('Search supply starts all getters at one block and reports live zero/dead balances without derived circulation',async()=>{
+ const oldContext=c.context,oldCall=c.call,started=[];let release;const gate=new Promise(r=>release=r);c.context=async()=>({block:'0x123'});c.call=async(address,selector,block)=>{started.push({address,selector,block});if(selector==='0x313ce567'){await gate;return word(2);}return word(selector==='0x18160ddd'?10000:selector.endsWith('dead')?1234:66);};
+ try{const promise=require('../api/supply')({query:{address:a}},res);await new Promise(r=>setImmediate(r));assert.equal(started.length,4);assert.ok(started.every(x=>x.block==='0x123'));release();const d=await promise;assert.equal(d.burnAddressBalance.raw,'1300');assert.equal(d.burnAddressBalance.amount,'13');assert.equal(d.freshness.state,'LIVE');assert.equal(d.freshness.block,'0x123');assert.equal(Object.hasOwn(d,'circulatingSupply'),false);}finally{c.context=oldContext;c.call=oldCall;}
+});
+test('one failed burn getter does not publish a partial burn balance or discard verified total supply',async()=>{
+ const oldContext=c.context,oldCall=c.call;c.context=async()=>({block:'0x123'});c.call=async(address,selector)=>{if(selector.endsWith('dead'))throw Object.assign(Error(),{httpStatus:429});return word(selector==='0x313ce567'?0:100);};
+ try{const d=await require('../api/supply')({query:{address:a}},res);assert.equal(d.totalSupply.amount,'100');assert.equal(d.burnAddressBalance.amount,null);assert.equal(d.fields.burnAddressBalance.dataState,'SOURCE_API_FAILED');assert.equal(d.burnAddressBalance.failures[0].httpStatus,429);}finally{c.context=oldContext;c.call=oldCall;}
+});

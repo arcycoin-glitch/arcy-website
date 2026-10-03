@@ -1,1 +1,1 @@
-const c=require('../lib/core');module.exports=c.route(require('../lib/control').inspect);
+module.exports=require('../lib/search-request').route(a=>require('../lib/fields').cached('control-card:'+a,0,()=>require('../lib/control').inspect(a)));
