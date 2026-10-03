@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.ARCYModel=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const labels={supply:['Total Supply','Circulating Supply','Burn Address Balance','Next Unlock'],whales:['Holder Count','Largest Wallet %','Top 10 Concentration','Top 20 Concentration'],liquidity:['Liquidity USD','24H Volume','DEX / Pair Count','LP Status'],activity:['Price','Market Cap / FDV','24H Change','24H Volume'],mechanics:['Buy Tax','Sell Tax','Transfer Tax','Burn Mechanism','Buyback Mechanism','Mint Capability','Pause Capability','Blacklist / Restrictions','Owner / Admin','Proxy / Upgradeable']};
- const paths={supply:['supply.totalSupply.amount','market.circulatingSupply','supply.burnAddressBalance.amount','unlock.nextUnlock.date'],whales:['holderCount','largestWalletPct','top10Pct','top20Pct'],liquidity:['liquidityUsd','volume24h','dexCount / pairCount','lpStatus'],claims:['counts.checked','counts.verified','counts.mismatch','counts.unverified'],mechanics:['buyTax','sellTax','transferTax','burnMechanism','buybackMechanism','mint','pause','blacklist','ownerAdmin','proxyUpgradeable'].map(k=>'contractFields.'+k)};
+ const labels={supply:['Total Supply','Circulating Supply','Burn Address Balance','Next Unlock'],whales:['Holder Count','Largest Wallet %','Top 10 Concentration','Top 20 Concentration'],liquidity:['Liquidity USD','24H Volume','DEX / Pair Count','LP Status'],activity:['Price','Market Cap / FDV','24H Change','24H Volume'],mechanics:['Trading Taxes','Mint Capability','Owner / Admin','Contract Architecture']};
+ const paths={supply:['supply.totalSupply.amount','market.circulatingSupply','supply.burnAddressBalance.amount','unlock.nextUnlock.date'],whales:['holderCount','largestWalletPct','top10Pct','top20Pct'],liquidity:['liquidityUsd','volume24h','dexCount / pairCount','lpStatus'],claims:['counts.checked','counts.verified','counts.mismatch','counts.unverified'],mechanics:['contractFields.buyTax / contractFields.sellTax / contractFields.transferTax','contractFields.mint','contractFields.ownerAdmin','contractFields.proxyUpgradeable']};
  paths.activity=['priceUsd','valuation','change24h','volume24h'];
  const zero='0x0000000000000000000000000000000000000000';
  function compact(v){if(v===null||v===undefined||v==='')return 'NOT VERIFIED';const n=Number(v);if(!Number.isFinite(n))return 'NOT VERIFIED';if(n!==0&&Math.abs(n)<0.000001)return Number(n.toPrecision(4)).toString();for(const [d,s]of [[1e9,'B'],[1e6,'M'],[1e3,'K']])if(Math.abs(n)>=d)return (n/d).toFixed(1).replace(/\.0$/,'')+s;return new Intl.NumberFormat('en-US',{maximumFractionDigits:6}).format(n);}
@@ -48,8 +48,16 @@
    else if(typeof d.statusId!=='string')fields=paths.claims.map(()=>missing(d,'Missing application statusId.'));
    else fields=paths.claims.map(p=>read(d,p));
   }else if(name==='mechanics'){
-   fields=paths.mechanics.map((p,i)=>fact(d,p,f=>i<3?percent(f)+' · '+f.status:i===9&&f.status==='VERIFIED'?(f.upgradeable?.value===true?'UPGRADEABLE · VERIFIED':'PROXY · VERIFIED'):f.status.replaceAll('_',' ')));
-   for(let i=0;i<3;i++)if(fields[i].text.startsWith('NOT VERIFIED')&&fields[i].dataState==='DATA_FOUND')fields[i]=missing(d,'Invalid verified tax percentage.');
+   const taxKeys=['buyTax','sellTax','transferTax'],taxLabels=['Buy','Sell','Transfer'];
+   const taxes=taxKeys.map(k=>fact(d,'contractFields.'+k,f=>percent(f)));
+   for(let i=0;i<taxes.length;i++)if(taxes[i].text==='NOT VERIFIED'&&taxes[i].dataState==='DATA_FOUND')taxes[i]=missing(d,'Invalid verified tax percentage.');
+   const established=taxes.filter(f=>f.dataState==='DATA_FOUND'),allKnown=established.length===3;
+   let taxText=taxes.map((f,i)=>taxLabels[i]+' '+f.text+(f.dataState==='DATA_FOUND'&&!allKnown?' VERIFIED':'')).join(' · ');
+   if(taxes[0].text===taxes[1].text&&!allKnown)taxText='Buy/Sell '+taxes[0].text+(taxes[0].dataState==='DATA_FOUND'?' VERIFIED':'')+' · Transfer '+taxes[2].text+(taxes[2].dataState==='DATA_FOUND'?' VERIFIED':'');
+   if(allKnown)taxText+=' · VERIFIED';else if(!established.length)taxText='NOT VERIFIED';
+   const mapping=taxes.find(f=>f.dataState==='FRONTEND_MAPPING_FAILED'),historical=taxes.find(f=>f.freshness?.state==='LAST_VERIFIED');
+   const trading={text:!d?'…':d.ok===false?'NOT VERIFIED':taxText,dataState:mapping?'FRONTEND_MAPPING_FAILED':established.length?'DATA_FOUND':taxes[0].dataState,status:allKnown?'VERIFIED':'NOT_VERIFIED',components:taxes.map((f,i)=>({...f,label:taxLabels[i],path:'contractFields.'+taxKeys[i]})),reason:mapping?.reason||'Buy / Sell / Transfer token taxes. Unverified components remain unknown; external DEX/hook fees are not established.',...(historical?{freshness:historical.freshness}:{}),...(mapping?{reasonCode:mapping.reasonCode}:{})};
+   fields=[trading,fact(d,paths.mechanics[1],f=>f.status.replaceAll('_',' ')),fact(d,paths.mechanics[2],f=>f.status.replaceAll('_',' ')),fact(d,paths.mechanics[3],f=>f.status==='VERIFIED'?(f.upgradeable?.value===true&&f.upgradeable?.status==='VERIFIED'?'UPGRADEABLE · VERIFIED':'PROXY · VERIFIED'):f.status.replaceAll('_',' '))];
   }
   const combined=name==='liquidity'?['dexCount','pairCount']:[],combinedIndex=name==='liquidity'?2:3;
   const historical=combined.map(k=>d?.[k]?.freshness||d?.fields?.[k]?.freshness||d?.freshness).find(f=>f?.state==='LAST_VERIFIED');if(historical&&fields[combinedIndex]?.dataState==='DATA_FOUND')Object.assign(fields[combinedIndex],{freshness:historical,reason:'Includes last verified data; refresh has not established a replacement.'});
