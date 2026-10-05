@@ -1,7 +1,8 @@
 {
   "functions": {
     "api/holders.js": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "data/holder-snapshots/**"
     },
     "api/holderrefresh.js": {
       "maxDuration": 60

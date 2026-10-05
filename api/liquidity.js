@@ -1,6 +1,6 @@
 const c=require('../lib/core');
 function aggregate(rows,a){if(!Array.isArray(rows))throw Error('Malformed pairs');const unique=new Map();for(const p of rows){if(p.chainId!=='arc'||![p.baseToken?.address,p.quoteToken?.address].some(x=>String(x).toLowerCase()===a)||!/^0x[0-9a-f]{40}(?:[0-9a-f]{24})?$/i.test(p.pairAddress||''))continue;const key=p.pairAddress.toLowerCase();if(!unique.has(key))unique.set(key,p);}const pairs=[...unique.values()].sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0));const sum=f=>pairs.length&&pairs.every(p=>typeof f(p)==='number'&&Number.isFinite(f(p))&&f(p)>=0)?pairs.reduce((n,p)=>n+f(p),0):null;return {dataState:pairs.length?'DATA_FOUND':'SOURCE_HAS_NO_DATA',reasonCode:pairs.length?null:'NO_MATCHING_ARC_PAIRS',reason:pairs.length?null:'DexScreener returned no exact contract-matched Arc pairs.',status:pairs.length?'SOURCE_REPORTED':'NOT_VERIFIED',liquidityUsd:sum(p=>p.liquidity?.usd),volume24h:sum(p=>p.volume?.h24),pairCount:pairs.length||null,dexCount:pairs.length&&pairs.every(p=>typeof p.dexId==='string'&&p.dexId.length)?new Set(pairs.map(p=>p.dexId)).size:null,primaryPair:pairs[0]?.pairAddress||null,pairs,lpStatus:c.unknown('Market liquidity does not prove LP locks or burns'),methodology:'Unique source-returned Arc pairs with exact base/quote contract match; counts and sums cover the returned dataset, not a guaranteed exhaustive chain-wide pool inventory. Market depth does not guarantee exit without slippage.'};}
-module.exports=require('../lib/search-request').route(a=>require('../lib/fields').cached('liquidity:'+a,0,async()=>{
+async function read(a,req){
  const [tokenIdentity,pairRead]=await Promise.all([require('../lib/token-identity').inspect(a),require('../lib/market-activity').dexPairs(a).then(value=>({value}),error=>({error}))]);
  const attempts=[];let result;
  try{if(pairRead.error)throw pairRead.error;result=aggregate(pairRead.value,a);attempts.push({source:'DexScreener',dataState:result.dataState});}
@@ -10,9 +10,18 @@ module.exports=require('../lib/search-request').route(a=>require('../lib/fields'
  if(result.liquidityUsd===null){try{const g=await require('../lib/market-activity').gecko(a),reserve=require('../lib/market-activity').finite(g.attributes.total_reserve_in_usd,true);attempts.push({source:'GeckoTerminal token reserves',dataState:reserve!==null?'DATA_FOUND':'SOURCE_HAS_NO_DATA'});if(reserve!==null){result.liquidityUsd=reserve;result.liquiditySource='GeckoTerminal';result.liquidityEvidence=g.priceUsd.evidence;result.methodology+=' Liquidity USD uses contract-matched token reserves as a separate fallback dataset.';}}catch(e){attempts.push({source:'GeckoTerminal reserves',...c.failure(e)});}}
  result.marketAttempts=attempts;
  if(result.liquidityUsd!==null||result.volume24h!==null){result.dataState='DATA_FOUND';result.status='SOURCE_REPORTED';result.reasonCode=null;result.reason=null;}
- result.lpStatus=await require('../lib/lp-status').inspect(result.pairs,a);
- if(result.lpStatus.value===null){try{const security=await require('../lib/goplus').read(a),candidate=require('../lib/security-evidence').lp(security,result.pairs);result.lpEvidence=candidate;if(candidate.value!==null)result.lpStatus=candidate;}catch(e){result.lpFallbackFailure=c.failure(e);}}
+ if(req.query.summary==='1')result.lpStatus=c.unknown('LP custody evidence is loading independently. Market liquidity does not prove ownership or locks.','LP_EVIDENCE_PENDING');
+ else await custody(result,a);
  const field=(value,provider,evidence)=>({...require('../lib/fields').field(value,'MARKET_API_VERIFIED',provider,evidence),...(value===null?{dataState:attempts.some(x=>x.dataState==='SOURCE_API_FAILED')?'SOURCE_API_FAILED':'SOURCE_HAS_NO_DATA',reasonCode:attempts.some(x=>x.dataState==='SOURCE_API_FAILED')?'LIQUIDITY_FALLBACK_API_FAILED':'NO_CONTRACT_MATCHED_POOL_VALUE',attempts}: {})});
  result.fields={liquidityUsd:field(result.liquidityUsd,result.liquiditySource||source,result.liquidityEvidence||pairEvidence),volume24h:field(result.volume24h,source,pairEvidence),dexCount:field(result.dexCount,source,pairEvidence),pairCount:field(result.pairCount,source,pairEvidence),lpStatus:result.lpStatus};
  return {source,tokenIdentity,...result};
-}));module.exports.aggregate=aggregate;
+}
+async function custody(result,a){result.lpStatus=await require('../lib/lp-status').inspect(result.pairs,a);
+ if(result.lpStatus.value===null){try{const security=await require('../lib/goplus').read(a),candidate=require('../lib/security-evidence').lp(security,result.pairs);result.lpEvidence=candidate;if(candidate.value!==null)result.lpStatus=candidate;}catch(e){result.lpFallbackFailure=c.failure(e);}}}
+module.exports=require('../lib/search-request').route(async(a,req)=>{
+ const f=require('../lib/fields');if(req.query.details==='1'){
+  const summary=await f.cached('liquidity-summary:'+a,0,()=>read(a,{...req,query:{...req.query,summary:'1'}}));
+  const result=structuredClone(summary);await custody(result,a);result.fields.lpStatus=result.lpStatus;return result;
+ }
+ return f.cached((req.query.summary==='1'?'liquidity-summary:':'liquidity:')+a,0,()=>read(a,req));
+});module.exports.aggregate=aggregate;

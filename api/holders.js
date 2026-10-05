@@ -1,11 +1,9 @@
-const c=require('../lib/core'),storage=require('../lib/holder-storage'),display=require('../lib/holder-display'),budget=require('../lib/holder-budget'),health=require('../lib/search-health');
-module.exports=c.route(async a=>{
- let previous,queued=false,failed=false;
- try{previous=await budget.run(2500,()=>budget.operation(()=>display.cached(a)));}
- catch{failed=true;health.record('STORAGE_UNAVAILABLE',{contract:a});}
- if(previous)return previous;
- if(!failed)try{queued=await budget.run(1500,()=>budget.operation(()=>storage.enqueue(a)));}
- catch{failed=true;health.record('STORAGE_UNAVAILABLE',{contract:a});}
- const result={value:null,status:'NOT_VERIFIED',dataState:failed||!queued?'SOURCE_API_FAILED':'NOT_VERIFIED',reasonCode:failed?'STORAGE_UNAVAILABLE':queued?'HOLDER_SNAPSHOT_BUILDING':'HOLDER_QUEUE_FULL',reason:failed?'Durable holder storage unavailable.':queued?'Building a complete reconciled holder snapshot in the background worker.':'Holder queue is full; retry later.',coverage:queued?{complete:false,refreshQueued:true}:{refreshQueued:false}};
- return {status:'NOT_VERIFIED',source:null,holderCount:null,largestWalletPct:null,top10Pct:null,top20Pct:null,...result,fields:Object.fromEntries(['holderCount','largestWalletPct','top10Pct','top20Pct'].map(k=>[k,{...result}]))};
+const c=require('../lib/core'),publication=require('../lib/holder-publication'),display=require('../lib/holder-display');
+// Queue and CDN reads are separate background requests, never initial Search work.
+module.exports=c.route(async(a,req)=>{
+ if(req.query.action==='queue')return require('../lib/holder-queue-client').enqueue(a);
+ const snapshot=await (req.query.action==='published'?publication.remote(a):publication.read(a));
+ if(snapshot)return display.historical(snapshot,{state:'BACKGROUND'});
+ const result=c.unknown('No published COMPLETE verified holder snapshot is available. Background work is separate.','HOLDER_SNAPSHOT_NOT_PUBLISHED');
+ return {status:'NOT_VERIFIED',source:null,holderCount:null,largestWalletPct:null,top10Pct:null,top20Pct:null,...result,coverage:{complete:false,refreshQueued:false},fields:Object.fromEntries(['holderCount','largestWalletPct','top10Pct','top20Pct'].map(k=>[k,{...result}]))};
 });

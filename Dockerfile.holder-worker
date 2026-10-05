@@ -1,7 +1,8 @@
 FROM node:22-alpine
+RUN apk add --no-cache su-exec
 WORKDIR /app
 COPY package.json ./
 COPY lib ./lib
 COPY scripts/holder-worker.cjs ./scripts/holder-worker.cjs
-USER node
-CMD ["npm", "run", "worker:holders"]
+COPY scripts/export-holder-snapshots.cjs ./scripts/export-holder-snapshots.cjs
+CMD ["sh", "-c", "test \"$ARC_HOLDER_STORAGE\" = local && test -n \"$ARC_INDEX_CACHE_DIR\" && test -n \"$ARC_HOLDER_PUBLISHED_DIR\" && mkdir -p \"$ARC_INDEX_CACHE_DIR\" \"$ARC_HOLDER_PUBLISHED_DIR\" && chown -R node:node \"$ARC_INDEX_CACHE_DIR\" \"$ARC_HOLDER_PUBLISHED_DIR\" && exec su-exec node sh -c 'node scripts/export-holder-snapshots.cjs \"$ARC_INDEX_CACHE_DIR\" && exec node scripts/holder-worker.cjs'"]
