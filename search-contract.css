@@ -3,3 +3,6 @@
 #search .mechanics .row{min-width:0;gap:12px}
 #search .mechanics .row b{white-space:normal;overflow-wrap:anywhere;text-align:right}
 @media(max-width:760px){#search .grid{grid-template-columns:minmax(0,1fr)}}
+
+/* Established Mechanics facts, including proven absence; unknowns stay neutral. */
+#search .mechanics .row b[data-verified="true"],#search .mechanics .badge[data-verified="true"]{color:#79dba7}

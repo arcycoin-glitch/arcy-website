@@ -57,11 +57,20 @@
    if(allKnown)taxText+=' · VERIFIED';else if(!established.length)taxText='NOT VERIFIED';
    const mapping=taxes.find(f=>f.dataState==='FRONTEND_MAPPING_FAILED'),historical=taxes.find(f=>f.freshness?.state==='LAST_VERIFIED');
    const trading={text:!d?'…':d.ok===false?'NOT VERIFIED':taxText,dataState:mapping?'FRONTEND_MAPPING_FAILED':established.length?'DATA_FOUND':taxes[0].dataState,status:allKnown?'VERIFIED':'NOT_VERIFIED',components:taxes.map((f,i)=>({...f,label:taxLabels[i],path:'contractFields.'+taxKeys[i]})),reason:mapping?.reason||'Buy / Sell / Transfer token taxes. Unverified components remain unknown; external DEX/hook fees are not established.',...(historical?{freshness:historical.freshness}:{}),...(mapping?{reasonCode:mapping.reasonCode}:{})};
-   fields=[trading,fact(d,paths.mechanics[1],f=>f.status.replaceAll('_',' ')),fact(d,paths.mechanics[2],f=>f.status.replaceAll('_',' ')),fact(d,paths.mechanics[3],f=>f.status==='VERIFIED'?(f.upgradeable?.value===true&&f.upgradeable?.status==='VERIFIED'?'UPGRADEABLE · VERIFIED':'PROXY · VERIFIED'):f.status.replaceAll('_',' '))];
+   const mechanicsFact=(path,architecture=false)=>{
+    const raw=get(d,path).value;
+    const supported=raw&&['VERIFIED','NOT_DETECTED'].includes(raw.status)&&raw.dataState==='DATA_FOUND'&&Array.isArray(raw.evidence)&&raw.evidence.length>0&&(raw.status!=='NOT_DETECTED'||raw.value===false)&&(raw.status!=='VERIFIED'||raw.value!==false);
+    const row=fact(d,path,f=>f.status==='NOT_DETECTED'?(architecture?'NON-PROXY · VERIFIED':'NONE DETECTED ✓'):architecture?(f.upgradeable?.value===true&&f.upgradeable?.status==='VERIFIED'?'UPGRADEABLE · VERIFIED':'PROXY · VERIFIED'):'VERIFIED');
+    if(row.dataState==='DATA_FOUND'&&!supported)return {text:'NOT VERIFIED',dataState:'NOT_VERIFIED',reason:'Sufficient verified exact-contract evidence is required.'};
+    return {...row,verifiedPresentation:supported&&row.dataState==='DATA_FOUND'};
+   };
+   trading.verifiedPresentation=allKnown&&!mapping&&taxKeys.every(k=>d?.contractFields?.[k]?.status==='VERIFIED'&&d.contractFields[k].dataState==='DATA_FOUND'&&d.contractFields[k].evidence?.length>0);
+   fields=[trading,mechanicsFact(paths.mechanics[1]),mechanicsFact(paths.mechanics[2]),mechanicsFact(paths.mechanics[3],true)];
   }
   const combined=name==='liquidity'?['dexCount','pairCount']:[],combinedIndex=name==='liquidity'?2:3;
   const historical=combined.map(k=>d?.[k]?.freshness||d?.fields?.[k]?.freshness||d?.freshness).find(f=>f?.state==='LAST_VERIFIED');if(historical&&fields[combinedIndex]?.dataState==='DATA_FOUND')Object.assign(fields[combinedIndex],{freshness:historical,reason:'Includes last verified data; refresh has not established a replacement.'});
   const states=fields.map(f=>f.dataState);let badge=states.includes('FRONTEND_MAPPING_FAILED')?'MAPPING FAILED':states.includes('LOADING')?'SCANNING':states.every(x=>x==='SOURCE_API_FAILED')?'SOURCE/API FAILED':states.includes('DATA_FOUND')?'PARTIAL EVIDENCE':states.includes('SOURCE_API_FAILED')?'SOURCE/API FAILED':states.every(x=>x==='SOURCE_HAS_NO_DATA')?'SOURCE HAS NO DATA':'NOT VERIFIED';
+  if(name==='mechanics'&&fields.every(f=>f.verifiedPresentation))badge='VERIFIED';
   if(name==='claims'&&d?.statusId==='NO_CLAIMS_SUPPLIED')badge='NO CLAIMS SUPPLIED';
   if(name==='whales'&&!d)badge='NOT VERIFIED';
   if(name==='whales'&&d?.snapshot?.freshness==='LAST_VERIFIED'&&states.every(s=>s==='DATA_FOUND'))badge='LAST VERIFIED SNAPSHOT';
