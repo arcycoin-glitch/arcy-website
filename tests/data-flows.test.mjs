@@ -48,27 +48,40 @@ test('unlock windows do not overlap and cache expires by midnight',async()=>{
   const r=response();await c.handler({},r);
   assert.equal(r.code,200);assert.equal(r.body.events.length,5);
   assert.deepEqual(Object.values(r.body.windows).map(w=>w.length),[1,2,2]);
-  assert.equal(r.headers['Cache-Control'],'s-maxage=60, must-revalidate');
+  assert.equal(r.headers['Cache-Control'],'public, s-maxage=60, must-revalidate');
+  assert.equal(r.body.windowTimeZone,'UTC');assert.equal(r.body.refreshAt,'2026-10-01T00:00:00.000Z');
 });
 test('unlock upstream failure is not cached as live data',async()=>{
   const c=api('api/unlocks.js',async()=>{throw Error('offline');});const r=response();await c.handler({},r);
   assert.equal(r.code,503);assert.equal(r.body.live,false);assert.equal(r.headers['Cache-Control'],'no-store');
 });
 test('Pulse excludes menus and downloads and keeps long article titles',async()=>{
-  const long='Circle stablecoin update '+ 'details '.repeat(25);
+  const long='Circle Arc stablecoin update '+ 'details '.repeat(25);
   const c=api('api/pulse.js',async()=>({ok:true,text:async()=>`<p>October 6, 2026</p><a href="/cpn/stablecoin-payments">Stablecoin Payments</a><a href="https://other.test/logo.zip">Download Circle logos</a><a href="/pressroom/update">${long}</a>`}));
   const items=await c.collect('https://www.circle.com/pressroom');assert.equal(items.length,1);assert.equal(items[0].title,long.trim());assert.equal(items[0].owner,'OFFICIAL CIRCLE');
 });
 test('Pulse deduplicates URLs and preserves fixed card categories with one story',async()=>{
   class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
-  const c=api('api/pulse.js',async url=>({ok:true,text:async()=>url.includes('circle.com')?'<p>October 6, 2026</p><a href="/pressroom/update">Circle stablecoin announcement</a><a href="/pressroom/update">Circle duplicate announcement</a>':''}),PulseDate);
-  const r=response();await c.handler({},r);assert.equal(r.body.cards.length,3);
-  assert.deepEqual(Array.from(r.body.cards,c=>c.kind),['week','reality','signal']);
+  const c=api('api/pulse.js',async url=>({ok:true,text:async()=>url.includes('circle.com')?'<a href="/pressroom/update">October 6, 2026 Circle Arc stablecoin announcement</a><a href="/pressroom/update">October 6, 2026 Circle Arc duplicate announcement</a>':''}),PulseDate);
+  const r=response();await c.handler({},r);assert.equal(r.body.cards.length,1);
+  assert.deepEqual(Array.from(r.body.cards,c=>c.kind),['week']);
+  assert.equal(r.body.cards[0].publishedAt,'2026-10-06T00:00:00.000Z');
   assert.equal(r.body.number,2);assert.equal(r.headers['Cache-Control'],'no-store');
+});
+test('Pulse binds an article to its own date, never a page-level publish timestamp',async()=>{
+  class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
+  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>'<html><!-- Last Published: October 7, 2026 --><a href="/pressroom/september">September 28, 2026 Circle Arc stablecoin update</a></html>'}),PulseDate);
+  const r=response();await c.handler({},r);assert.equal(r.code,503);assert.match(r.body.message,/current Pulse cycle/);
+});
+test('Pulse limits a cycle to five dated developments and removes duplicate titles',async()=>{
+  class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
+  const links=Array.from({length:7},(_,i)=>`<a href="/pressroom/update-${i}">October 6, 2026 Circle Arc update ${i}</a>`).join('')+'<a href="/pressroom/copy">October 6, 2026 Circle Arc update 0</a>';
+  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>links}),PulseDate);const r=response();await c.handler({},r);
+  assert.equal(r.body.cards.length,5);assert.equal(new Set(r.body.cards.map(x=>x.title)).size,5);
 });
 test('Pulse refuses stale prior-cycle stories rather than labeling them current',async()=>{
   class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
-  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>'<p>September 28, 2026</p><a href="/pressroom/old">Circle stablecoin update</a>'}),PulseDate);
+  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>'<p>September 28, 2026</p><a href="/pressroom/old">September 28, 2026 Circle Arc stablecoin update</a>'}),PulseDate);
   const r=response();await c.handler({},r);assert.equal(r.code,503);assert.match(r.body.message,/current Pulse cycle/);assert.equal(r.headers['Cache-Control'],'no-store');
 });
 test('Pulse reports total source failure',async()=>{

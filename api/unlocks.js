@@ -156,7 +156,7 @@ async function collectVerifiedEvents(records) {
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   const secondsToMidnight=Math.max(1,Math.floor((Date.parse(utcToday()+"T00:00:00Z")+86400000-Date.now())/1000));
-  res.setHeader("Cache-Control", `s-maxage=${Math.min(21600,secondsToMidnight)}, must-revalidate`);
+  res.setHeader("Cache-Control", `public, s-maxage=${Math.min(21600,secondsToMidnight)}, must-revalidate`);
 
   try {
     const collected = await Promise.all(SOURCE_URLS.map(async url=>{
@@ -191,6 +191,8 @@ export default async function handler(req, res) {
       coverage: {complete:false, sources:collected.map(({url,status,rows})=>({url,status,rowCount:rows.length})), reviews:COVERAGE_REVIEWS, conflicts:merged.conflicts, rejectedSupplements:supplemental.rejected},
       sourceUrl: SOURCE_URL,
       updatedAt: new Date().toISOString(),
+      windowTimeZone: "UTC",
+      refreshAt: new Date(Date.parse(utcToday()+"T00:00:00Z")+86400000).toISOString(),
       windows: {
         today: enriched.filter(x => x.daysFromToday === 0),
         next7: enriched.filter(x => x.daysFromToday >= 1 && x.daysFromToday <= 7),

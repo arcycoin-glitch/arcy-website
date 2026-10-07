@@ -439,7 +439,7 @@ async function loadUnlocks(){
     const note=document.querySelector('#unlocks .note');
     if(note){
       const stamp=j.updatedAt?new Date(j.updatedAt).toLocaleString():'';
-      note.textContent=`Published schedules${stamp?' • Checked: '+stamp:''} • Source: ${j.source||'public unlock calendar'}. Coverage is limited${j.partial?' • Some sources or records are unavailable':''}. TODAY, NEXT 7 DAYS and DAYS 8–30 are separate windows. Source-published records are not independent onchain confirmations.`;
+      note.textContent=`Published schedules${stamp?' • Checked: '+stamp:''} • Source: ${j.source||'public unlock calendar'}. Coverage is limited${j.partial?' • Some sources or records are unavailable':''}. TODAY, NEXT 7 DAYS and DAYS 8–30 are separate UTC windows. Source-published records are not independent onchain confirmations.`;
     }
     loadTokenLogos();
     unlockPage=1; renderUnlocks(activeUnlockDays());
