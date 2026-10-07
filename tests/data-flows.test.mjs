@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import pulse from '../lib/pulse-edition.js';
 
 const root = new URL('../', import.meta.url);
 const html = fs.readFileSync(new URL('index.html', root), 'utf8');
@@ -55,51 +56,33 @@ test('unlock upstream failure is not cached as live data',async()=>{
   const c=api('api/unlocks.js',async()=>{throw Error('offline');});const r=response();await c.handler({},r);
   assert.equal(r.code,503);assert.equal(r.body.live,false);assert.equal(r.headers['Cache-Control'],'no-store');
 });
-test('Pulse excludes menus and downloads and keeps long article titles',async()=>{
-  const long='Circle Arc stablecoin update '+ 'details '.repeat(25);
-  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>`<p>October 6, 2026</p><a href="/cpn/stablecoin-payments">Stablecoin Payments</a><a href="https://other.test/logo.zip">Download Circle logos</a><a href="/pressroom/update">${long}</a>`}));
-  const items=await c.collect('https://www.circle.com/pressroom');assert.equal(items.length,1);assert.equal(items[0].title,long.trim());assert.equal(items[0].owner,'OFFICIAL CIRCLE');
+test('Pulse builds three current-cycle cards from canonical Arc article dates and a source-derived take',async()=>{
+ const now=Date.parse('2026-10-07T12:00:00Z'),landing='<a href="/blog/a">a</a><a href="/blog/b">b</a><a href="/blog/c">c</a><a href="/blog/old">old</a>',article=(title,date,url)=>`<script type="application/ld+json">{"@type":"BlogPosting","headline":"${title}","datePublished":"${date}","mainEntityOfPage":"${url}"}</script>`,fetcher=async url=>({ok:true,text:async()=>url===pulse.SOURCES[0].url?landing:url.endsWith('/a')?article('Arc A','2026-10-06T12:00:00Z',url):url.endsWith('/b')?article('Arc B','2026-10-05T12:00:00Z',url):url.endsWith('/c')?article('Arc C','2026-10-05T11:00:00Z',url):article('Old Arc','2026-09-30T12:00:00Z',url)});
+ const d=await pulse.generate({now,fetcher,trigger:'cron'});assert.equal(d.cards.length,3);assert.equal(d.status,'updated');assert.equal(d.trigger,'cron');assert.match(d.take,/Arc A/);assert.equal(d.audit.rejected.stale,1);assert.equal(d.audit.sourcesChecked.length,5);assert.equal(d.number,2);
 });
-test('Pulse deduplicates URLs and preserves fixed card categories with one story',async()=>{
-  class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
-  const c=api('api/pulse.js',async url=>({ok:true,text:async()=>url.includes('circle.com')?'<a href="/pressroom/update">October 6, 2026 Circle Arc stablecoin announcement</a><a href="/pressroom/update">October 6, 2026 Circle Arc duplicate announcement</a>':''}),PulseDate);
-  const r=response();await c.handler({},r);assert.equal(r.body.cards.length,1);
-  assert.deepEqual(Array.from(r.body.cards,c=>c.kind),['week']);
-  assert.equal(r.body.cards[0].publishedAt,'2026-10-06T00:00:00.000Z');
-  assert.equal(r.body.number,2);assert.equal(r.headers['Cache-Control'],'no-store');
+test('Pulse saves a quiet weekly edition when all verified source checks succeed without a meaningful current update',async()=>{
+ const d=await pulse.generate({now:Date.parse('2026-10-07T12:00:00Z'),fetcher:async()=>({ok:true,text:async()=>'<html></html>'})});
+ assert.equal(d.status,'quiet_week');assert.equal(d.cards.length,3);assert.ok(d.cards.every(card=>!card.url));assert.match(d.cards[0].title,/No major verified update/i);assert.match(d.take,/No major verified update/i);
 });
-test('Pulse uses canonical Arc article datePublished rather than a blog landing timestamp',async()=>{
-  class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
-  const landing='<a href="/blog/current-kit">Current kit</a><a href="/blog/stale">Stale kit</a>';
-  const current='<script type="application/ld+json">{"@type":"BlogPosting","headline":"Build with Arc Kit","datePublished":"2026-10-06T12:00:00.000Z","mainEntityOfPage":"https://www.arc.network/blog/current-kit"}</script>';
-  const stale='<script type="application/ld+json">{"@type":"BlogPosting","headline":"Old Arc Kit","datePublished":"2026-09-30T12:00:00.000Z","mainEntityOfPage":"https://www.arc.network/blog/stale"}</script>';
-  const c=api('api/pulse.js',async url=>({ok:true,text:async()=>url==='https://www.arc.network/blog'?landing:url.includes('current-kit')?current:url.includes('stale')?stale:''}),PulseDate);
-  const r=response();await c.handler({},r);
-  assert.equal(r.code,200);assert.equal(r.body.cards.length,1);assert.equal(r.body.cards[0].publishedAt,'2026-10-06T12:00:00.000Z');assert.equal(r.body.audit.acceptedItemCount,1);assert.equal(r.body.audit.rejected.stale,1);assert.equal(r.body.audit.sourcesChecked.length,5);
+test('Pulse keeps meaningful cards and fills only missing categories with verified quiet-week copy',async()=>{
+ const now=Date.parse('2026-10-07T12:00:00Z'),landing='<a href="/blog/a">a</a>',article='<script type="application/ld+json">{"@type":"BlogPosting","headline":"Arc only update","datePublished":"2026-10-06T12:00:00Z"}</script>',d=await pulse.generate({now,fetcher:async url=>({ok:true,text:async()=>url===pulse.SOURCES[0].url?landing:url.endsWith('/a')?article:'<html></html>'})});
+ assert.equal(d.status,'updated');assert.equal(d.cards.length,3);assert.equal(d.cards[0].title,'Arc only update');assert.ok(d.cards.slice(1).every(card=>!card.url));assert.match(d.cards[1].title,/No additional verified development/i);
 });
-test('Pulse audit distinguishes an empty researched cycle from an unavailable source',async()=>{
-  class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
-  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>'<html></html>'}),PulseDate);
-  const r=response();await c.handler({},r);assert.equal(r.code,503);assert.equal(r.body.audit.acceptedItemCount,0);assert.equal(r.body.audit.sourcesChecked.filter(s=>s.status==='checked').length,5);assert.equal(r.body.cycle.start,'2026-10-05T00:00:00.000Z');
+test('Pulse records partial source failure as unavailable coverage rather than a false quiet week',async()=>{
+ await assert.rejects(pulse.generate({now:Date.parse('2026-10-07T12:00:00Z'),fetcher:async url=>url.includes('circle.com')?{ok:false,status:503,text:async()=>''}:{ok:true,text:async()=>'<html></html>'}}),error=>error.code==='PULSE_SOURCE_COVERAGE_INCOMPLETE'&&error.audit.sourcesSuccessfullyChecked===3&&error.audit.sourceFailures.length===2);
 });
-test('Pulse binds an article to its own date, never a page-level publish timestamp',async()=>{
-  class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
-  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>'<html><!-- Last Published: October 7, 2026 --><a href="/pressroom/september">September 28, 2026 Circle Arc stablecoin update</a></html>'}),PulseDate);
-  const r=response();await c.handler({},r);assert.equal(r.code,503);assert.match(r.body.message,/current Pulse cycle/);
+test('Pulse rejects total discovery, malformed official content and timeout states without publishing a quiet week',async()=>{
+ const now=Date.parse('2026-10-07T12:00:00Z');
+ await assert.rejects(pulse.generate({now,fetcher:async()=>{throw Error('timeout');}}),{code:'PULSE_DISCOVERY_UNAVAILABLE'});
+ await assert.rejects(pulse.generate({now,fetcher:async url=>({ok:true,text:async()=>url===pulse.SOURCES[0].url?'<a href="/blog/current">current</a>':url.endsWith('/current')?'<script type="application/ld+json">{bad</script>':'<html></html>'})}),error=>error.code==='PULSE_SOURCE_COVERAGE_INCOMPLETE'&&error.audit.sourceFailures[0].errorCode==='SOURCE_PARSE_FAILURE');
 });
-test('Pulse limits a cycle to five dated developments and removes duplicate titles',async()=>{
-  class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
-  const links=Array.from({length:7},(_,i)=>`<a href="/pressroom/update-${i}">October 6, 2026 Circle Arc update ${i}</a>`).join('')+'<a href="/pressroom/copy">October 6, 2026 Circle Arc update 0</a>';
-  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>links}),PulseDate);const r=response();await c.handler({},r);
-  assert.equal(r.body.cards.length,5);assert.equal(new Set(r.body.cards.map(x=>x.title)).size,5);
+test('Pulse rejects stale, future, unrelated and duplicate candidates while retaining current exact-source Arc developments',async()=>{
+ const now=Date.parse('2026-10-07T12:00:00Z'),landing=['current','duplicate','stale','future'].map(v=>`<a href="/blog/${v}">${v}</a>`).join(''),article=(title,date)=>`<script type="application/ld+json">{"@type":"BlogPosting","headline":"${title}","datePublished":"${date}"}</script>`,d=await pulse.generate({now,fetcher:async url=>({ok:true,text:async()=>url===pulse.SOURCES[0].url?landing:url===pulse.SOURCES[2].url?'<a href="/pressroom/unrelated">October 6, 2026 unrelated crypto story</a>':url.endsWith('/current')?article('Arc Mainnet integration','2026-10-06T00:00:00Z'):url.endsWith('/duplicate')?article('Arc Mainnet integration','2026-10-06T00:00:00Z'):url.endsWith('/stale')?article('Arc old story','2026-09-30T00:00:00Z'):article('Arc future story','2026-10-13T00:00:00Z')})});
+ assert.equal(d.cards[0].title,'Arc Mainnet integration');assert.equal(d.audit.acceptedItemCount,1);assert.equal(d.audit.rejected.duplicate,1);assert.equal(d.audit.rejected.stale,1);assert.equal(d.audit.rejected.future,1);assert.equal(d.audit.rejected.irrelevant,1);
 });
-test('Pulse refuses stale prior-cycle stories rather than labeling them current',async()=>{
-  class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
-  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>'<p>September 28, 2026</p><a href="/pressroom/old">September 28, 2026 Circle Arc stablecoin update</a>'}),PulseDate);
-  const r=response();await c.handler({},r);assert.equal(r.code,503);assert.match(r.body.message,/current Pulse cycle/);assert.equal(r.headers['Cache-Control'],'no-store');
-});
-test('Pulse reports total source failure',async()=>{
-  const c=api('api/pulse.js',async()=>({ok:false}));const r=response();await c.handler({},r);assert.equal(r.code,503);assert.equal(r.body.ok,false);
+test('Pulse caps current verified developments at three card slots and derives a new cycle cache identity and number without content edits',async()=>{
+ const current=Date.parse('2026-10-05T12:00:00Z'),next=Date.parse('2026-10-12T12:00:00Z'),landing=Array.from({length:6},(_,i)=>`<a href="/blog/${i}">${i}</a>`).join(''),article=(i,date)=>`<script type="application/ld+json">{"@type":"BlogPosting","headline":"Arc launch ${i}","datePublished":"${date}"}</script>`,fetcher=async url=>({ok:true,text:async()=>url===pulse.SOURCES[0].url?landing:article(url.split('/').at(-1),'2026-10-06T00:00:00Z')});
+ const d=await pulse.generate({now:current,fetcher}),rollover=await pulse.generate({now:next,fetcher});assert.equal(d.cards.length,3);assert.equal(d.number,2);assert.equal(d.cacheKey,'pulse:2026-W41');assert.equal(pulse.number(next),3);assert.equal(pulse.cacheKey(next),'pulse:2026-W42');assert.notEqual(d.cacheKey,pulse.cacheKey(next));assert.deepEqual(pulse.cycle(next),{start:Date.parse('2026-10-12T00:00:00Z'),end:Date.parse('2026-10-19T00:00:00Z')});assert.equal(rollover.status,'quiet_week');assert.equal(rollover.audit.rejected.stale,6);
 });
 function liveSupply(amount='3570000',block='0x123'){return {ok:true,block,totalSupply:{amount:'1000000000'},burnAddressBalance:{amount,dataState:'DATA_FOUND',methodology:'Current balances at zero and 0xdead'}};}
 test('Burn uses the canonical cache-bypassed supply API and its zero/dead methodology',async()=>{
