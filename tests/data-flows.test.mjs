@@ -56,38 +56,32 @@ test('unlock upstream failure is not cached as live data',async()=>{
 });
 test('Pulse excludes menus and downloads and keeps long article titles',async()=>{
   const long='Circle stablecoin update '+ 'details '.repeat(25);
-  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>`<a href="/cpn/stablecoin-payments">Stablecoin Payments</a><a href="https://other.test/logo.zip">Download Circle logos</a><a href="/pressroom/update">${long}</a>`}));
+  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>`<p>October 6, 2026</p><a href="/cpn/stablecoin-payments">Stablecoin Payments</a><a href="https://other.test/logo.zip">Download Circle logos</a><a href="/pressroom/update">${long}</a>`}));
   const items=await c.collect('https://www.circle.com/pressroom');assert.equal(items.length,1);assert.equal(items[0].title,long.trim());assert.equal(items[0].owner,'OFFICIAL CIRCLE');
 });
 test('Pulse deduplicates URLs and preserves fixed card categories with one story',async()=>{
-  const c=api('api/pulse.js',async url=>({ok:true,text:async()=>url.includes('circle.com')?'<a href="/pressroom/update">Circle stablecoin announcement</a><a href="/pressroom/update">Circle duplicate announcement</a>':''}));
+  class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
+  const c=api('api/pulse.js',async url=>({ok:true,text:async()=>url.includes('circle.com')?'<p>October 6, 2026</p><a href="/pressroom/update">Circle stablecoin announcement</a><a href="/pressroom/update">Circle duplicate announcement</a>':''}),PulseDate);
   const r=response();await c.handler({},r);assert.equal(r.body.cards.length,3);
   assert.deepEqual(Array.from(r.body.cards,c=>c.kind),['week','reality','signal']);
+  assert.equal(r.body.number,2);assert.equal(r.headers['Cache-Control'],'no-store');
+});
+test('Pulse refuses stale prior-cycle stories rather than labeling them current',async()=>{
+  class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
+  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>'<p>September 28, 2026</p><a href="/pressroom/old">Circle stablecoin update</a>'}),PulseDate);
+  const r=response();await c.handler({},r);assert.equal(r.code,503);assert.match(r.body.message,/current Pulse cycle/);assert.equal(r.headers['Cache-Control'],'no-store');
 });
 test('Pulse reports total source failure',async()=>{
   const c=api('api/pulse.js',async()=>({ok:false}));const r=response();await c.handler({},r);assert.equal(r.code,503);assert.equal(r.body.ok,false);
 });
-function burnResponse(request,raw=3570000n*1000000n){
- const {method,params}=JSON.parse(request.body);
- const word=n=>'0x'+n.toString(16).padStart(64,'0');
- const result=method==='eth_chainId'?'0x13b2':method==='eth_blockNumber'?'0x123':params[0].data==='0x313ce567'?word(6n):word(raw);
- return {ok:true,json:async()=>({jsonrpc:'2.0',id:1,result})};
-}
-test('Burn reads actual decimals; supply failure cannot overwrite burn success',async()=>{
- const b=browser(async(_,options)=>{const q=JSON.parse(options.body);if(q.params[0]?.data==='0x18160ddd')throw Error('supply offline');return burnResponse(options);});
- await b.context.loadBurn();assert.equal(b.element('supply').textContent,'—');assert.equal(b.element('burned').textContent,'3.57M');assert.match(b.element('burnStatus').textContent,/^Live/);
+function liveSupply(amount='3570000',block='0x123'){return {ok:true,block,totalSupply:{amount:'1000000000'},burnAddressBalance:{amount,dataState:'DATA_FOUND',methodology:'Current balances at zero and 0xdead'}};}
+test('Burn uses the canonical cache-bypassed supply API and its zero/dead methodology',async()=>{
+ const calls=[];const b=browser(async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>liveSupply()};});
+ await b.context.loadBurn();assert.equal(calls.length,1);assert.match(calls[0].url,/^\/api\/supply\?address=/);assert.equal(calls[0].options.cache,'no-store');assert.equal(b.element('burned').textContent,'3.57M');assert.match(b.element('burnStatus').textContent,/zero\/dead addresses.*0x123/);
 });
-test('Burn retries primary then falls back; all contract reads share the fixed block',async()=>{
- const calls=[];const b=browser(async(url,options)=>{calls.push({url,...JSON.parse(options.body)});if(url==='https://rpc.mainnet.arc.io')return {ok:false,status:429};return burnResponse(options);});
- await b.context.loadBurn();assert.equal(calls.filter(c=>c.url==='https://rpc.mainnet.arc.io').length,2);assert.equal(b.element('burned').textContent,'3.57M');assert.ok(calls.filter(c=>c.method==='eth_call').every(c=>c.params[1]==='0x123'));
-});
-test('Burn rejects wrong chain and malformed ABI instead of displaying false data',async()=>{
- const b=browser(async(url,options)=>{const r=burnResponse(options);if(url.includes('quicknode'))return {ok:true,json:async()=>({jsonrpc:'2.0',id:1,result:'0x01'})};return {ok:true,json:async()=>({jsonrpc:'2.0',id:1,result:'0x1'})};});
- await b.context.loadBurn();assert.equal(b.element('burned').textContent,'10.49M');assert.match(b.element('burnStatus').textContent,/snapshot/);
-});
-test('Burn preserves the latest successfully verified snapshot when every source fails',async()=>{
- let offline=false;const b=browser(async(_,options)=>{if(offline)throw Error('offline');return burnResponse(options);});
- await b.context.loadBurn();offline=true;await b.context.loadBurn();assert.equal(b.element('burned').textContent,'3.57M');assert.match(b.element('burnStatus').textContent,/snapshot/);
+test('Burn never substitutes an obsolete browser snapshot when canonical live data fails',async()=>{
+ const b=browser(async()=>({ok:false,status:503,json:async()=>({ok:false})}));
+ await b.context.loadBurn();assert.equal(b.element('burned').textContent,'NOT VERIFIED');assert.match(b.element('burnStatus').textContent,/unavailable/);
 });
 
 test('Unlock failure remains unavailable after search or tab rendering',async()=>{
@@ -101,7 +95,7 @@ test('logo values are escaped and non-HTTPS URLs rejected',()=>{
   assert.ok(!b.context.tokenIcon('TIA','https://example.test/a').includes('onerror='));
 });
 test('Pulse failure replaces permanent loading card',async()=>{
-  const b=browser(async()=>({ok:false,status:503}));await vm.runInContext(b.scripts.at(-1),b.context);assert.match(b.element('pulseGrid').innerHTML,/temporarily unavailable/);
+  const b=browser(async()=>({ok:false,status:503,json:async()=>({message:'No dated official update is available for the current Pulse cycle.'})}));await vm.runInContext(b.scripts.at(-1),b.context);assert.match(b.element('pulseGrid').innerHTML,/unavailable/);
 });
 test('market fallback never displays another chain or quote token price',async()=>{
   const b=browser(async url=>({ok:true,json:async()=>url.includes('dexscreener')?{pairs:[{chainId:'ethereum',baseToken:{address:'0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'},priceUsd:'99'}]}:{data:[]}}));

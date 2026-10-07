@@ -301,7 +301,7 @@ View details →
   <div class="eyebrow">ONCHAIN MECHANISM</div>
   <div class="head"><h3>Buyback <span>& Burn</span></h3><p>40% of trading tax is allocated to Buyback & Burn. The dashboard attempts to read ARCY supply directly from Arc mainnet; if the RPC is temporarily unavailable, the last verified snapshot is shown.</p></div>
   <div class="card">
-    <div class="burn-kicker">DEAD-ADDRESS BALANCE</div><div class="burnnum"><span id="burned">5.43M</span> ARCY</div><p class="burn-caption">Onchain burn-address holdings · verify the evidence</p><div class="status"><i class="dot"></i><span class="burn-proof" title="0x000000000000000000000000000000000000dEaD">Dead wallet: 0x0000…dEaD</span><span id="burnStatus">Loading Arc onchain data…</span></div>
+    <div class="burn-kicker">DEAD-ADDRESS BALANCE</div><div class="burnnum"><span id="burned">—</span> ARCY</div><p class="burn-caption">Onchain burn-address holdings · verify the evidence</p><div class="status"><i class="dot"></i><span class="burn-proof" title="zero address and 0x000000000000000000000000000000000000dEaD">Zero/dead addresses</span><span id="burnStatus">Loading canonical Arc onchain data…</span></div>
     <div class="burn-flow" aria-label="Buyback and burn mechanism"><span>TRADING TAX</span><i>→</i><span>BUYBACK / BURN</span><i>→</i><span>DEAD ADDRESS</span></div><div class="stats"><div class="stat"><small>Initial Supply</small><b>1.00B</b></div><div class="stat"><small>Current Supply</small><b id="supply">Loading…</b></div><div class="stat"><small>Burn Share</small><b>40%</b></div></div>
     <div class="actions"><a class="btn" target="_blank" rel="noopener" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">VERIFY ONCHAIN ↗</a></div>
   </div>
@@ -326,7 +326,7 @@ View details →
 
 <section id="pulse"><div class="wrap">
   <div class="eyebrow">WEEKLY ARC SIGNAL</div>
-  <div class="head"><h3><span id="pulseTitle">ARCY ARC PULSE #001 📡</span></h3><p>A concise weekly filter for the Arc ecosystem — what changed, what is new, what to watch and what risk actually matters.</p></div>
+  <div class="head"><h3><span id="pulseTitle">ARCY ARC PULSE — 📡</span></h3><p>A concise weekly filter for the Arc ecosystem — what changed, what is new, what to watch and what risk actually matters.</p></div>
   <div class="pulse-grid" id="pulseGrid">
     <article class="pulse-card pulse-week"><span>🔥 THIS WEEK</span><small class="pulse-owner">ARC / CIRCLE</small><h4>Loading weekly signal…</h4><p>Fetching the latest official Arc/Circle updates.</p></article>
   </div>
@@ -350,44 +350,23 @@ View details →
 
 <script>
 const TOKEN="0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b";
-const RPC="https://rpc.mainnet.arc.io";
-let BURN_SNAPSHOT={amount:"10.49M",date:"2026-10-02",raw:"10485992727269135471961091",decimals:18,block:"0x16be832",source:RPC};
-function showBurnSnapshot(){document.getElementById("burned").textContent=BURN_SNAPSHOT.amount;document.getElementById("burnStatus").textContent=`Verified snapshot ${BURN_SNAPSHOT.date} • live RPC unavailable`;}
-
 function fmt(n){const x=Number(n);if(x>=1e9)return (x/1e9).toFixed(2)+"B";if(x>=1e6)return (x/1e6).toFixed(2)+"M";return x.toLocaleString()}
 async function dataFetch(url,options={}){return fetch(url,{...options,signal:AbortSignal.timeout(15000)});}
-// Burn-only RPC failover. Every successful balance uses one provider and one fixed block.
-const BURN_RPCS=[RPC,"https://rpc.quicknode.mainnet.arc.io"];
-async function burnRpc(source,method,params=[]){
-  const r=await dataFetch(source,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})});
-  if(!r.ok)throw Error("RPC HTTP "+r.status);
-  const j=await r.json();
-  if(j.error||j.jsonrpc!=="2.0"||j.id!==1||typeof j.result!=="string"||!/^0x[0-9a-f]+$/i.test(j.result))throw Error("Invalid Burn RPC response");
-  return j.result;
-}
-function burnUint(value){if(!/^0x[0-9a-f]{64}$/i.test(value))throw Error("Invalid ABI uint");return BigInt(value);}
 async function loadBurn(){
-  for(const source of BURN_RPCS){
-    for(let attempt=0;attempt<2;attempt++){
-      try{
-        if(BigInt(await burnRpc(source,"eth_chainId"))!==5042n)throw Error("Wrong chain");
-        const block=await burnRpc(source,"eth_blockNumber");
-        const decimals=burnUint(await burnRpc(source,"eth_call",[{to:TOKEN,data:"0x313ce567"},block]));
-        if(decimals>255n)throw Error("Invalid decimals");
-        const base=10n**decimals;
-        const raw=burnUint(await burnRpc(source,"eth_call",[{to:TOKEN,data:"0x70a08231"+"dead".padStart(64,"0")},block]));
-        const amount=new Intl.NumberFormat("en-US",{maximumFractionDigits:2,notation:"compact"}).format(Number(raw)/Number(base));
-        BURN_SNAPSHOT={amount,date:new Date().toISOString().slice(0,10),raw:raw.toString(),decimals:Number(decimals),block,source};
-        document.getElementById("burned").textContent=amount;
-        document.getElementById("burnStatus").textContent="Live • Dead wallet • Arc mainnet";
-        try{const supply=burnUint(await burnRpc(source,"eth_call",[{to:TOKEN,data:"0x18160ddd"},block]));document.getElementById("supply").textContent=fmt(Number(supply)/Number(base));}
-        catch(_){document.getElementById("supply").textContent="—";}
-        return;
-      }catch(_){if(attempt===0)await new Promise(resolve=>setTimeout(resolve,350));}
-    }
+  try{
+    // One canonical, cache-bypassed production API also powers Search's burn-address methodology.
+    const r=await dataFetch(`/api/supply?address=${TOKEN}`,{cache:"no-store",headers:{"Cache-Control":"no-cache"}});
+    const j=await r.json();
+    const burn=j?.burnAddressBalance;
+    if(!r.ok||!j?.ok||burn?.dataState!=="DATA_FOUND"||typeof burn.amount!=="string")throw Error("Live burn balance unavailable");
+    document.getElementById("burned").textContent=fmt(burn.amount);
+    document.getElementById("burnStatus").textContent=`Live • zero/dead addresses • Arc mainnet • block ${j.block}`;
+    document.getElementById("supply").textContent=typeof j.totalSupply?.amount==="string"?fmt(j.totalSupply.amount):"—";
+  }catch(_){
+    document.getElementById("burned").textContent="NOT VERIFIED";
+    document.getElementById("supply").textContent="—";
+    document.getElementById("burnStatus").textContent="Live zero/dead-address balance unavailable";
   }
-  document.getElementById("supply").textContent="—";
-  showBurnSnapshot();
 }
 loadBurn();
 
@@ -545,11 +524,11 @@ loadUnlocks();
 (async function loadPulse(){
   try{
     const r=await dataFetch('/api/pulse',{cache:'no-store'});
-    if(!r.ok) throw new Error("Pulse HTTP "+r.status);
     const j=await r.json();
-    if(!j.ok) throw new Error("Pulse feed unavailable");
     const title=document.getElementById('pulseTitle');
-    if(title) title.textContent=`ARCY ARC PULSE #${String(j.number).padStart(3,'0')} 📡`;
+    if(title && Number.isSafeInteger(j.number)) title.textContent=`ARCY ARC PULSE #${String(j.number).padStart(3,'0')} 📡`;
+    if(!r.ok) throw new Error(j.message||"Pulse HTTP "+r.status);
+    if(!j.ok) throw new Error("Pulse feed unavailable");
     const grid=document.getElementById('pulseGrid');
     const styles={week:["pulse-week","🔥 THIS WEEK"],new:["pulse-new","🆕 NEW"],watch:["pulse-watch","🔍 WATCH"],reality:["pulse-risk","⚠️ REALITY CHECK"],signal:["pulse-watch","📡 SIGNAL"]};
 
@@ -558,7 +537,7 @@ loadUnlocks();
     }
     const take=document.getElementById('pulseTake');
     if(take && j.take) take.textContent=j.take;
-  }catch(_){const grid=document.getElementById("pulseGrid");if(grid)grid.innerHTML='<article class="pulse-card pulse-week"><span>📡 PULSE</span><h4>Updates temporarily unavailable</h4><p>Please try again later.</p></article>';}
+  }catch(error){const grid=document.getElementById("pulseGrid");if(grid)grid.innerHTML=`<article class="pulse-card pulse-week"><span>📡 PULSE</span><h4>Updates unavailable for this cycle</h4><p>${escapeHtml(error.message||'Please try again later.')}</p></article>`;}
 })();
 </script>
 
