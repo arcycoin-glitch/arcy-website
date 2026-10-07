@@ -68,6 +68,20 @@ test('Pulse deduplicates URLs and preserves fixed card categories with one story
   assert.equal(r.body.cards[0].publishedAt,'2026-10-06T00:00:00.000Z');
   assert.equal(r.body.number,2);assert.equal(r.headers['Cache-Control'],'no-store');
 });
+test('Pulse uses canonical Arc article datePublished rather than a blog landing timestamp',async()=>{
+  class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
+  const landing='<a href="/blog/current-kit">Current kit</a><a href="/blog/stale">Stale kit</a>';
+  const current='<script type="application/ld+json">{"@type":"BlogPosting","headline":"Build with Arc Kit","datePublished":"2026-10-06T12:00:00.000Z","mainEntityOfPage":"https://www.arc.network/blog/current-kit"}</script>';
+  const stale='<script type="application/ld+json">{"@type":"BlogPosting","headline":"Old Arc Kit","datePublished":"2026-09-30T12:00:00.000Z","mainEntityOfPage":"https://www.arc.network/blog/stale"}</script>';
+  const c=api('api/pulse.js',async url=>({ok:true,text:async()=>url==='https://www.arc.network/blog'?landing:url.includes('current-kit')?current:url.includes('stale')?stale:''}),PulseDate);
+  const r=response();await c.handler({},r);
+  assert.equal(r.code,200);assert.equal(r.body.cards.length,1);assert.equal(r.body.cards[0].publishedAt,'2026-10-06T12:00:00.000Z');assert.equal(r.body.audit.acceptedItemCount,1);assert.equal(r.body.audit.rejected.stale,1);assert.equal(r.body.audit.sourcesChecked.length,5);
+});
+test('Pulse audit distinguishes an empty researched cycle from an unavailable source',async()=>{
+  class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
+  const c=api('api/pulse.js',async()=>({ok:true,text:async()=>'<html></html>'}),PulseDate);
+  const r=response();await c.handler({},r);assert.equal(r.code,503);assert.equal(r.body.audit.acceptedItemCount,0);assert.equal(r.body.audit.sourcesChecked.filter(s=>s.status==='checked').length,5);assert.equal(r.body.cycle.start,'2026-10-05T00:00:00.000Z');
+});
 test('Pulse binds an article to its own date, never a page-level publish timestamp',async()=>{
   class PulseDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-07T12:00:00Z']));}static now(){return Date.parse('2026-10-07T12:00:00Z');}}
   const c=api('api/pulse.js',async()=>({ok:true,text:async()=>'<html><!-- Last Published: October 7, 2026 --><a href="/pressroom/september">September 28, 2026 Circle Arc stablecoin update</a></html>'}),PulseDate);
