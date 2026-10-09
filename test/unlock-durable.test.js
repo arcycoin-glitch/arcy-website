@@ -87,6 +87,7 @@ test('Vercel Unlocks API returns a verified worker edition before attempting leg
     const res = { setHeader() {}, status(code) { this.code = code; return this; }, json(value) { this.body = value; return value; } };
     await context.handler({}, res);
     assert.equal(res.code, 200);
+    assert.equal(res.body.ok, true);
     assert.equal(res.body.success, true);
     assert.equal(res.body.audit.lastSuccessful.trigger, 'worker');
     assert.equal(fetches, 1);

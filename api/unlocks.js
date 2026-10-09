@@ -59,7 +59,7 @@ async function savedEdition() {
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   const saved = await savedEdition();
-  if (saved) { res.setHeader('Cache-Control', 'no-store'); return res.status(200).json({ ...saved, audit: { lastSuccessful: { generatedAt: saved.generatedAt, trigger: saved.trigger, eventCount: saved.events.length }, nextScheduledAt: saved.refreshAt } }); }
+  if (saved) { res.setHeader('Cache-Control', 'no-store'); return res.status(200).json({ ok: true, ...saved, audit: { lastSuccessful: { generatedAt: saved.generatedAt, trigger: saved.trigger, eventCount: saved.events.length }, nextScheduledAt: saved.refreshAt } }); }
   const secondsToMidnight = Math.max(1, Math.floor((Date.parse(utcToday() + 'T00:00:00Z') + 86400000 - Date.now()) / 1000));
   res.setHeader('Cache-Control', `public, s-maxage=${Math.min(21600, secondsToMidnight)}, must-revalidate`);
   try {
