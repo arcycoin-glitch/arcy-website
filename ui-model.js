@@ -74,7 +74,7 @@
   if(name==='claims'&&d?.statusId==='NO_CLAIMS_SUPPLIED')badge='NO CLAIMS SUPPLIED';
   if(name==='whales'&&!d)badge='NOT VERIFIED';
   if(name==='whales'&&d?.snapshot?.freshness==='LAST_VERIFIED'&&states.every(s=>s==='DATA_FOUND'))badge='LAST VERIFIED SNAPSHOT';
-  if(name==='whales'&&d?.ok!==false&&d?.coverage?.refreshQueued===true&&d?.coverage?.complete===false&&!states.includes('DATA_FOUND')&&!states.includes('FRONTEND_MAPPING_FAILED'))badge='BUILDING VERIFIED HOLDER SNAPSHOT';
+  if(name==='whales'&&d?.ok!==false&&d?.coverage?.refreshQueued===true&&d?.coverage?.complete===false&&!states.includes('DATA_FOUND')&&!states.includes('FRONTEND_MAPPING_FAILED')){const state=d.backgroundRefresh?.state;badge=state==='QUEUED'?'HOLDER SNAPSHOT QUEUED':state==='INDEXING'?'INDEXING VERIFIED HOLDER SNAPSHOT':state==='VERIFYING'?'VERIFYING HOLDER SNAPSHOT':state==='FAILED'?'HOLDER SNAPSHOT RETRYING':state==='UNSUPPORTED'?'HOLDER INDEXING UNSUPPORTED':'BUILDING VERIFIED HOLDER SNAPSHOT';}
 
   if(name!=='whales'&&states.includes('DATA_FOUND')&&(d?.freshness?.state==='LAST_VERIFIED'||fields.some(f=>f.dataState==='DATA_FOUND'&&f.freshness?.state==='LAST_VERIFIED')))badge='LAST VERIFIED DATA';
   return {fields:fields.map((f,i)=>({...f,label:(labels[name]||['Claims Checked','Verified','Mismatch','Unverified'])[i],path:paths[name][i]})),badge,data:d};

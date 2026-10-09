@@ -2,6 +2,7 @@ const c=require('../lib/core'),publication=require('../lib/holder-publication'),
 // Only signed COMPLETE publications are read here; queue/indexing remain separate.
 module.exports=c.route(async(a,req)=>{
  if(req.query.action==='queue')return require('../lib/holder-queue-client').enqueue(a);
+ if(req.query.action==='status')return require('../lib/holder-queue-client').status(a);
  const snapshot=req.query.action==='published'?(await publication.remote(a)||await publication.read(a)):(await publication.read(a)||await publication.remote(a));
  if(snapshot)return display.historical(snapshot,{state:'BACKGROUND'});
  const publicationLookup=publication.lookupState(a),failed=publicationLookup.state!=='ABSENT';

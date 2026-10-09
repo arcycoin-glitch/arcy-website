@@ -45,6 +45,13 @@ test('holder first-scan model has four unverified values and a building status, 
  const model=require('../ui-model'),view=model.summarize('whales');assert.notEqual(view.badge,'BUILDING VERIFIED HOLDER SNAPSHOT');assert.equal(view.fields.length,4);assert.ok(view.fields.every(f=>f.text==='NOT VERIFIED'&&f.dataState==='NOT_VERIFIED'));
  const snapshot=require('../lib/holder-display').historical(state().result);assert.equal(model.summarize('whales',{ok:true,...snapshot}).badge,'LAST VERIFIED SNAPSHOT');
 });
+test('durable holder jobs expose queued, indexing, verifying, failed and unsupported states without publishing metrics',()=>fixture(async()=>{
+ await storage.enqueue(a);let job=await storage.jobStatus(a);assert.equal(job.state,'QUEUED');assert.equal(job.hasCompleteSnapshot,false);
+ await storage.setJob(a,{state:'INDEXING'});job=await storage.jobStatus(a);assert.equal(job.state,'INDEXING');assert.equal(job.progress.phase,'DISCOVER');
+ await storage.setJob(a,{state:'VERIFYING'});job=await storage.jobStatus(a);assert.equal(job.state,'VERIFYING');
+ await storage.setJob(a,{state:'FAILED',reasonCode:'RPC_RATE_LIMIT',retryAt:Date.now()+60000});job=await storage.jobStatus(a);assert.equal(job.state,'FAILED');assert.equal(job.reasonCode,'RPC_RATE_LIMIT');assert.equal(job.hasCompleteSnapshot,false);
+ await storage.setJob(a,{state:'UNSUPPORTED',reasonCode:'HOLDER_WORKER_CAPACITY_LIMIT'});job=await storage.jobStatus(a);assert.equal(job.state,'UNSUPPORTED');assert.equal(job.reasonCode,'HOLDER_WORKER_CAPACITY_LIMIT');assert.equal(await storage.snapshot(name),null);
+}));
 test('cold Search leaves all provider adapters to the worker and publishes no partial metrics',()=>fixture(async()=>{
  const gp=require('../lib/goplus'),old=[worker.advance,index.explorer,index.advance,gp.holders];worker.advance=async()=>({value:null,status:'NOT_VERIFIED',reasonCode:'HOLDER_PINNED_RECONCILIATION_IN_PROGRESS',coverage:{complete:false,phase:'READ'}});index.explorer=index.advance=gp.holders=async()=>({value:null,status:'NOT_VERIFIED',dataState:'SOURCE_API_FAILED',reasonCode:'UPSTREAM_HTTP_ERROR',httpStatus:429});
  try{const d=await require('../api/holders')({method:'GET',query:{address:a}},{setHeader(){},status(){return this},json(d){return d;}});assert.equal(d.reasonCode,'HOLDER_PUBLICATION_UNAVAILABLE');assert.equal(d.publicationLookup.state,'FAILED');assert.equal(d.coverage.refreshQueued,false);assert.equal(d.coverage.complete,false);const view=require('../ui-model').summarize('whales',d);assert.equal(view.badge,'SOURCE/API FAILED');assert.ok(view.fields.every(f=>f.text==='NOT VERIFIED'&&f.dataState!=='DATA_FOUND'));}finally{[worker.advance,index.explorer,index.advance,gp.holders]=old;}
