@@ -310,21 +310,22 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 @media(max-width:550px){header .return-arcy{font-size:11px;padding:9px 10px}
  header .sub{font-size:9px;max-width:220px}}
 </style>
+<link rel="stylesheet" href="/search/hero-redesign.css">
 </head>
 <body>
 <main>
 <header>
 <div>
-<h1>ARCY <span>SEARCH</span></h1>
+<h1><span class="brand-arcy">ARC<span class="brand-y">Y</span></span><span class="brand-search">SEARCH</span></h1>
 <div class="sub">ARC + ETHEREUM + ROBINHOOD CHAIN · TOKEN INTELLIGENCE · READ ONLY</div>
 </div>
 <a class="return-arcy" href="https://arcyusdc.xyz/" aria-label="Return to the existing ARCY home page">← ARCY home</a>
 </header>
 <section id="discovery">
 <div class="hero">
-  <div class="hero-mascot" aria-label="Original ARCY owl mascot"><img src="/assets/hero-arcy.png" width="184" height="184" alt="ARCY's original blue-and-white owl mascot" decoding="async" fetchpriority="high"><video class="hero-greeting-video" data-src="/assets/1000266146.mp4" muted playsinline loop preload="none" aria-hidden="true"></video></div>
+  <div class="hero-mascot"><img src="/search/assets/arcy-neon-owl.svg" width="760" height="480" alt="ARCY neon blue cyber owl with glowing cyan eyes" decoding="async" fetchpriority="high"></div>
   <div class="eyebrow">ARCY · TOKEN INTELLIGENCE</div>
-  <h2>Know what you're buying.</h2>
+  <h2>Know what you're buying<span class="accent-dot">.</span></h2>
   <p>Three chains. One clear picture. Search any token, verify its contract, and research the evidence before you decide.</p>
 </div>
 <div class="network"><span class="network-label">NETWORK</span>
@@ -342,9 +343,13 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
   </div>
 </div><span id="networkNote">Results never mix token data from different networks.</span></div>
 <div class="search">
-<input id="address" aria-label="Token name, ticker or contract address" spellcheck="false" value="" placeholder="Token name, ticker or 0x contract address">
-<button id="go">SEARCH / SCAN</button>
+  <div class="search-input-wrap">
+    <span class="search-glass" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none"><circle cx="12.5" cy="12.5" r="8" stroke="currentColor" stroke-width="2.4"/><path d="m18.5 18.5 6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span>
+    <input id="address" aria-label="Token name, ticker or contract address" spellcheck="false" value="" placeholder="Token name, ticker or 0x contract address">
+  </div>
+  <button id="go" type="button">SEARCH / SCAN</button>
 </div>
+<div class="trust-line" aria-label="Research standards"><span>◈ Exact contracts</span><span>▤ Verified sources</span><span>▥ 20 research checks</span></div>
 <div id="matches" class="results" hidden aria-live="polite"></div>
 <p id="state" role="status" aria-live="polite">Select a network, then search a token name, symbol, or contract. Name matches are not issuer verification.</p>
 <nav class="home-entry-links" aria-label="ARCY search shortcuts">
