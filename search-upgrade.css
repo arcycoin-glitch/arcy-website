@@ -61,3 +61,16 @@ html.search-upgraded #search .grid{display:none!important}
  #search .home-result-status{grid-column:3;grid-row:1/3;white-space:normal;text-align:right;max-width:72px;line-height:1.3}
 }
 @media(prefers-reduced-motion:reduce){#search .home-search-result{scroll-behavior:auto}}
+
+/* Clear visual proof tiers; do not confuse listing or art with issuer identity. */
+#search .home-token-placeholder{position:relative;overflow:hidden}
+#search .home-token-placeholder img{position:absolute;inset:0;display:block;width:100%;height:100%;border:0;border-radius:50%;object-fit:contain;background:#0c2232}
+#search .home-result-copy .home-result-proof{display:block;color:#7edac9;font-size:9px;font-weight:550;line-height:1.4;margin-top:1px;white-space:normal}
+#search .home-result-status{display:inline-flex;justify-content:center;align-items:center;min-height:23px;padding:4px 6px;border:1px solid #435f6e;border-radius:6px;background:#112b39;line-height:1.2}
+#search .home-result-status.official{color:#a5ffe0;border-color:#318e72;background:#123d32;font-weight:800}
+#search .home-result-status.registry{color:#a9eaff;border-color:#367e9e;background:#163c55}
+#search .home-result-status.indexed{color:#bedbff;border-color:#5277a6;background:#233957}
+#search .home-result-status.unverified{color:#c8c0ac;border-color:#615f53;background:#292b2b}
+@media(max-width:560px){
+ #search .home-result-status{max-width:105px;min-width:76px;padding:4px 5px;font-size:8px;overflow-wrap:anywhere}
+}
