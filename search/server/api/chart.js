@@ -12,7 +12,7 @@ module.exports=async function handler(req,res){
   !Object.keys(q).every(k=>['chain','address'].includes(k))||
   typeof q.chain!=='string'||typeof q.address!=='string'||!ADDRESS.test(q.address))
   return res.status(400).json({ok:false,error:'INVALID_CHART_QUERY'});
- if(!['arc','ethereum'].includes(q.chain))
+ if(!['arc','ethereum','robinhood'].includes(q.chain))
   return res.status(404).json({ok:false,error:'CHART_NETWORK_NOT_SUPPORTED',
    reason:'Historical pool data has not been verified for this chain.'});
  if(!enforce(req,res))return;
