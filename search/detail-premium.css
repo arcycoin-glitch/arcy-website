@@ -155,3 +155,9 @@
 @media(max-width:420px){#tokenDetail #deepResearch{padding:0 12px}
  #tokenDetail #deepResearch>summary{min-height:79px;padding:14px 2px}
  #tokenDetail #deepResearch .report-summary-label small{font-size:10px}}
+
+
+#tokenDetail #deepResearch .buyers{padding:6px 5px 10px;color:#9abaca;
+ font-size:11px;line-height:1.6}
+#tokenDetail #deepResearch #evidenceCount{color:#91d4e6;font-size:11px;
+ display:block;margin:0;font-weight:550}
