@@ -930,10 +930,10 @@ function renderQuickFacts(report){
   root.append(empty);
  }else{
   for(const [label,card,key,formatKey] of prioritized){
-   const field=report.cards[card].fields[key];
+   const field=report.cards?.[card]?.fields?.[key];
    const box=document.createElement('div');box.className='quick';
    const a=document.createElement('span');a.className='quick-label';
-   a.textContent=key==='valuation'?(field.kind==='MARKET_CAP'?'MARKET CAP':field.kind==='FDV'?'FDV':'VALUATION'):label;
+   a.textContent=key==='valuation'?(field?.kind==='MARKET_CAP'?'MARKET CAP':field?.kind==='FDV'?'FDV':'VALUATION'):label;
    const b=document.createElement('div');b.className='quick-value';
    const backed=valid([label,card,key,formatKey]);
    // MARKET CAP / FDV is the label, not part of the numeric value.
