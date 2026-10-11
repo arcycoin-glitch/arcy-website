@@ -67,3 +67,22 @@ test('Chart endpoint separates GeckoTerminal service outages from absent price d
   assert.equal(noMarket.body.error,'CHART_SOURCE_NOT_VERIFIED');
  }finally{history.load=original}
 });
+
+
+test('Five research-card coverage statuses distinguish full 4/4 from partial and absent',()=>{
+ const engine=require('../search/server/lib/data-engine');
+ const cfg={id:'ethereum',chainId:1};
+ const field=value=>({value,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',
+  chainId:1,network:'ethereum',source:'Exact-chain source',evidence:[{sourceUrl:'https://example.org/'}]});
+ const source={fields:{totalSupply:field(1000000),circulatingSupply:field(950000),
+  burnAddressBalance:field(1000),burnAddressPct:field(0.1)}};
+ const good=engine.formatCard('supply',source,cfg);
+ assert.equal(good.status,'SOURCE_BACKED');
+ assert.equal(Object.values(good.fields).filter(x=>x.dataState==='DATA_FOUND').length,4);
+ const partial=engine.formatCard('supply',{fields:{totalSupply:field(1000000)}},cfg);
+ assert.equal(partial.status,'PARTIAL_EVIDENCE');
+ assert.equal(Object.values(partial.fields).filter(x=>x.dataState==='DATA_FOUND').length,1);
+ const empty=engine.formatCard('supply',{fields:{}},cfg);
+ assert.equal(empty.status,'NOT_VERIFIED');
+ assert.equal(Object.values(empty.fields).filter(x=>x.dataState==='DATA_FOUND').length,0);
+});
