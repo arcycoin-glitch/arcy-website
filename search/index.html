@@ -429,6 +429,7 @@ function shortReason(field){
 function render(report){
   const root=$('cards');
   root.replaceChildren();
+  const withoutEvidence=[];
   const count=$('evidenceCount');count.textContent='';
   if(report&&report.cards){
    let valid=0,total=0;
@@ -559,7 +560,19 @@ function render(report){
       advanced.append(more,pre);details.append(advanced);
       section.append(details);
     }
-    root.append(section);
+    if(card&&present===0)withoutEvidence.push(section);
+    else root.append(section);
+  }
+  // Zero-data categories remain inspectable but do not dominate the page.
+  if(report&&withoutEvidence.length){
+   const groups=document.createElement('details');
+   groups.className='unverifiedModules';
+   const label=document.createElement('summary');
+   label.textContent=withoutEvidence.length+' research '+(withoutEvidence.length===1?'category':'categories')+
+    ' without source-backed metrics · Review reasons';
+   const nested=document.createElement('div');nested.className='grid';
+   nested.append(...withoutEvidence);
+   groups.append(label,nested);root.append(groups);
   }
 }
 render(null);
