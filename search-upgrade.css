@@ -1,0 +1,28 @@
+/* Only the original ARCY SEARCH section is upgraded. Hero, Burn, Unlocks, Pulse,
+   Swap, research, footer and their selectors/behaviors remain untouched. */
+html.search-upgraded #search .search,
+html.search-upgraded #search .helper,
+html.search-upgraded #search .token,
+html.search-upgraded #search .grid{display:none!important}
+html.search-upgraded #search{min-height:0;padding:45px 0 70px;background:linear-gradient(175deg,#061523,#04101c)}
+html.search-upgraded #search .app{padding:24px 0;max-width:930px}
+html.search-upgraded #search .header{margin-bottom:28px}
+#search .search-launch{max-width:800px;margin:4px auto 0;padding:30px clamp(18px,4vw,38px);
+ background:linear-gradient(125deg,rgba(14,39,55,.94),rgba(7,24,38,.95));
+ border:1px solid rgba(92,174,206,.23);border-radius:22px;text-align:left}
+#search .search-launch .launch-kicker{color:#74cce1;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}
+#search .search-launch h2{margin:13px 0 11px;line-height:1.2;font-size:clamp(23px,4vw,37px);letter-spacing:-.04em;color:#eaf9ff}
+#search .search-launch p{font-size:13px;line-height:1.8;max-width:580px;color:#9ab4c3}
+#search .launch-networks{display:flex;flex-wrap:wrap;gap:9px;margin:19px 0 24px}
+#search .launch-networks span{background:#0e293b;border:1px solid rgba(138,194,211,.19);
+ color:#abd1df;border-radius:9px;padding:8px 12px;font-size:11px;font-weight:700}
+#search .search-launch .launch-button{display:inline-flex;min-height:49px;align-items:center;justify-content:center;
+ padding:13px 25px;text-decoration:none;background:linear-gradient(110deg,#58cdea,#43d7cd);
+ border-radius:12px;color:#052330;font-size:13px;font-weight:800;letter-spacing:.02em}
+#search .search-launch .launch-button:hover,#search .search-launch .launch-button:focus-visible{
+ background:#a1ebf6;outline-offset:4px}
+@media(max-width:560px){
+ html.search-upgraded #search{padding:17px 0 39px}
+ #search .search-launch{padding:22px 17px}
+ #search .search-launch .launch-button{width:100%}
+}
