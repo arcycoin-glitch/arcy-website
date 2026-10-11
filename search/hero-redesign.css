@@ -102,3 +102,19 @@ header .return-arcy:hover{background:rgba(12,43,70,.94);border-color:#4fbddd}
  #discovery .hero h2{font-size:clamp(21px,6.05vw,24px);letter-spacing:-.055em}
  #discovery .hero p{font-size:12.5px;line-height:1.55}
 }
+
+/* SEARCH-specific identity: large hero only on discovery, compact mark on report. */
+#tokenDetail .search-detail-brand{
+ display:inline-flex;align-items:center;gap:10px;
+ padding:5px 11px 5px 5px;margin:0 0 12px;
+ background:rgba(3,22,42,.7);border:1px solid rgba(54,146,186,.25);
+ border-radius:11px;color:#f5faff;letter-spacing:.025em;font-weight:750;
+ font-size:12px;line-height:1;
+}
+#tokenDetail .search-detail-brand img{
+ display:block;flex:none;object-fit:cover;object-position:center;
+ width:44px;height:30px;border-radius:6px;
+}
+#tokenDetail .detail-brand-y{color:#ff9a2b}
+#tokenDetail .detail-brand-search{color:#08d7f3}
+@media(max-width:390px){#tokenDetail .search-detail-brand{font-size:11px}}
