@@ -42,10 +42,10 @@ test('GeckoTerminal ranges map to exact documented aggregates and isolated cache
   assert.equal(result.address,address);
   assert.equal(result.chainId,1);
   assert.equal(result.lastCandleTime,result.points.at(-1).time);
-  assert.equal(requests,2);
+  assert.equal(requests,range==='1W'?0:2,'Weekly must reuse source-verified 30D daily closes');
   const cached=await chart.load('ethereum',address,{range,now,fetcher});
   assert.deepEqual(cached,result);
-  assert.equal(requests,2,'No duplicate provider calls for same chain+contract+range');
+  assert.equal(requests,range==='1W'?0:2,'No duplicate provider calls for same chain+contract+range');
  }
 });
 test('Unsupported chart ranges cannot trigger provider or grow cache',async()=>{
@@ -69,4 +69,25 @@ test('Sparse old 4-hour pool candles fail closed rather than fake recent prices'
  };
  await assert.rejects(chart.load('ethereum',address,{range:'4H',now,fetcher,disableCache:true}),
   /Not enough recent exact-pool candles/);
+});
+
+
+test('Weekly daily closes can be built from real 30D closes without additional requests',()=>{
+ const daily={
+  ok:true,network:'arc',chainId:5042,address,range:'30D',interval:'1d',
+  poolAddress:pool,source:'GeckoTerminal',
+  lastCandleTime:Math.floor(now/1000),
+  points:Array.from({length:30},(_,i)=>({time:Math.floor(now/1000)-(29-i)*86400,close:1+i/100}))
+ };
+ const w=chart.weekFromDaily(daily,now);
+ assert.equal(w.range,'1W');assert.equal(w.interval,'1d');
+ assert.equal(w.points.length,7);
+ assert.equal(w.points.at(-1).time,daily.lastCandleTime);
+ assert.equal(w.poolAddress,pool);assert.equal(w.address,address);
+ assert.equal(w.source,'GeckoTerminal');
+ assert.deepEqual(w.points,daily.points.slice(-7));
+ assert.deepEqual(daily.points.length,30,'Original 30D proof must stay unchanged');
+ assert.equal(chart.weekFromDaily({...daily,lastCandleTime:Math.floor(now/1000)-3*86400},now),null,
+  'Stale history must not be presented as the last week');
+ assert.equal(chart.weekFromDaily({...daily,points:[]},now),null);
 });
