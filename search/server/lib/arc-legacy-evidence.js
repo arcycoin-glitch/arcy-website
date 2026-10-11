@@ -98,15 +98,22 @@ function liquidity(result,address){
 function circulation(result,address){
  return sourceField(result?.field,address,'Contract-matched circulating supply from established providers.');
 }
-function holders(result,address){
+const MAX_HOLDER_AGE_MS=48*60*60*1000;
+function holders(result,address,{now=Date.now()}={}){
  const output={};
+ const date=Date.parse(result?.snapshot?.completedAt||result?.scannedAt||'');
+ const fresh=Number.isFinite(date)&&date>=now-MAX_HOLDER_AGE_MS&&date<=now+60000;
  for(const name of ['holderCount','largestWalletPct','top10Pct','top20Pct']){
   const candidate=result?.fields?.[name];
   const validated=sourceField(candidate,address,'Historical COMPLETE Arc holder snapshot, not live.');
   if(validated.dataState==='DATA_FOUND'&&result?.coverage?.complete!==true)
    output[name]=NO('Legacy holder read is not a complete reconciled snapshot.','ARC_HOLDER_COVERAGE_INCOMPLETE');
+  else if(validated.dataState==='DATA_FOUND'&&!fresh)
+   output[name]=NO('Only a historical Arc COMPLETE holder snapshot exists (last '+(
+    Number.isFinite(date)?new Date(date).toISOString():'unknown')+
+    '). It is older than 48 hours and cannot describe current wallet concentration.','ARC_HOLDER_SNAPSHOT_STALE');
   else output[name]=validated;
  }
  return output;
 }
-module.exports={callOriginal,contract,liquidity,circulation,holders,sourceField,NO};
+module.exports={callOriginal,contract,liquidity,circulation,holders,sourceField,NO,MAX_HOLDER_AGE_MS};
