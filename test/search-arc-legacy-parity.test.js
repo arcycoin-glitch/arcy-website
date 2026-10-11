@@ -38,14 +38,21 @@ test('Legacy circulation requires original source evidence and exact Arc identit
 });
 test('Only original reconciled COMPLETE holder snapshots are admitted',()=>{
  const holderNames=['holderCount','largestWalletPct','top10Pct','top20Pct'];
- const data={coverage:{complete:true},fields:Object.fromEntries(holderNames.map((name,i)=>
+ const now=Date.parse('2026-10-11T19:00:00Z');
+ const data={coverage:{complete:true},snapshot:{completedAt:new Date(now-3600000).toISOString()},
+  fields:Object.fromEntries(holderNames.map((name,i)=>
   [name,field(i===0?1495:(i+1)*2,'ONCHAIN_VERIFIED')]))};
- const good=bridge.holders(data,ADDRESS);
+ const good=bridge.holders(data,ADDRESS,{now});
  assert.equal(good.holderCount.value,1495);
  assert.equal(good.top20Pct.dataState,'DATA_FOUND');
- const unsafe=bridge.holders({...data,coverage:{complete:false}},ADDRESS);
+ const unsafe=bridge.holders({...data,coverage:{complete:false}},ADDRESS,{now});
  assert.equal(unsafe.holderCount.dataState,'NOT_VERIFIED');
  assert.equal(unsafe.top20Pct.dataState,'NOT_VERIFIED');
+ const archival=bridge.holders({...data,snapshot:{completedAt:'2026-10-02T10:44:08.667Z'}},
+  ADDRESS,{now});
+ assert.equal(archival.holderCount.dataState,'NOT_VERIFIED');
+ assert.equal(archival.top20Pct.reasonCode,'ARC_HOLDER_SNAPSHOT_STALE');
+ assert.match(archival.top20Pct.reason,/2026-10-02/);
 });
 test('Legacy public Arc route call never accepts a wrong address or chain response',async()=>{
  const request=async(req,res)=>{
