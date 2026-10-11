@@ -465,7 +465,7 @@ function render(report){
       const row=document.createElement('div');
       row.className='metric';
       const name=document.createElement('span');
-      name.textContent=label;
+      name.textContent=key==='valuation'?(data?.kind==='MARKET_CAP'?'Market Cap':data?.kind==='FDV'?'FDV':'Valuation'):label;
       const result=document.createElement('div');result.className='result';
       const value=document.createElement('b');
       const missing=!data||data.value===null||data.value===undefined;
