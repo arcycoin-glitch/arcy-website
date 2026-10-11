@@ -111,8 +111,16 @@ async function main(){
     await page.waitForURL('**/search/');
     assert.equal(await page.locator('#discovery').isVisible(),true);
    }
+   // A temporary upstream outage must not be misreported as a nonexistent chart.
+   await page.route('**/api/search?action=chart&**',route=>route.fulfill({
+    status:503,contentType:'application/json',
+    body:JSON.stringify({ok:false,error:'CHART_PROVIDER_TEMPORARILY_UNAVAILABLE',network:'arc',address:token})
+   }));
    await page.goto(base+'/search/token/arc/'+token,{waitUntil:'domcontentloaded'});
    await page.waitForFunction(()=>document.querySelector('#detailState').textContent.includes('Snapshot complete'));
+   await page.waitForFunction(()=>document.querySelector('#chartNote').textContent.includes('temporarily unavailable'));
+   assert.equal(await page.locator('#chartPlot').isVisible(),false);
+   await page.unroute('**/api/search?action=chart&**');
    assert.equal(await page.locator('#currentChainName').innerText(),'Arc');
    assert.equal(await page.locator('#tokenDetail').isVisible(),true);
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
