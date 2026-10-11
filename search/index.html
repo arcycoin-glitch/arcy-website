@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="ARCY SEARCH — Arc, Ethereum and Robinhood Chain token intelligence research lab.">
 <link rel="icon" href="/assets/hero-arcy.png" type="image/png">
+<link rel="stylesheet" href="/search/detail-premium.css">
 
 <title>ARCY SEARCH — Multichain Lab</title>
 <style>
@@ -365,9 +366,15 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
     <div id="detailState" role="status" aria-live="polite">Select a token to scan source-backed data.</div>
   </div>
   <div id="quickFacts" class="detail-quick" aria-label="Key token metrics"></div>
-  <div class="chart-shell" aria-label="Price history status">
-    <h2>Price history</h2>
-    <div id="chartPlot" hidden role="img" aria-label="Verified daily USD price history" class="price-canvas"></div>
+  <div class="chart-shell" aria-label="Pool-specific price history">
+    <div class="chart-heading">
+      <div><span class="chart-kicker">SOURCE-MATCHED PRICE DATA</span><h2>Price history</h2></div>
+      <span class="chart-period">30D · DAILY</span>
+    </div>
+    <div id="chartStats" class="chart-stats" hidden></div>
+    <div id="chartPlot" hidden role="img" tabindex="0" aria-label="Verified daily USD price history; use left and right arrows to inspect" class="price-canvas"></div>
+    <div id="chartAxis" class="chart-axis" hidden aria-label="Chart start and end dates"></div>
+    <div id="chartInspector" class="chart-inspector" hidden role="status" aria-live="polite"></div>
     <p id="chartNote" class="chart-note">No exact-chain, contract-bound candle series verified for this token yet. We will never draw invented price history.</p>
     <a id="marketLink" hidden target="_blank" rel="noopener noreferrer">View source-matched market ↗</a>
   </div>
@@ -657,7 +664,7 @@ function activateDetail(address,network,{push=true,identity=null,logoUrl=null}={
  $('quickFacts').replaceChildren();
  $('detailState').textContent='Reading '+NETWORKS[network].label+' contract evidence…';
  $('chartNote').textContent='No exact-chain price history has been verified for this contract. Never rely on fabricated chart data.';
- $('marketLink').hidden=true;$('chartPlot').hidden=true;$('chartPlot').replaceChildren();
+ $('marketLink').hidden=true;clearPriceChart();
  document.title='Token research · '+NETWORKS[network].label+' · ARCY SEARCH';
  window.scrollTo({top:0,behavior:'instant'});
  void scanAddress(address.toLowerCase(),network,searchVersion,identity,logoUrl);
@@ -668,35 +675,121 @@ function restoreRoute(){
  else activateHome();
 }
 const NS='http://www.w3.org/2000/svg';
+function clearPriceChart(){
+ for(const id of ['chartStats','chartAxis','chartInspector']){
+  $(id).replaceChildren();$(id).hidden=true;
+ }
+ const root=$('chartPlot');root.replaceChildren();root.hidden=true;
+}
+function chartDate(timestamp){
+ return new Intl.DateTimeFormat('en-US',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(timestamp*1000));
+}
+function chartValue(value){return metricFormat.display(value,'priceUsd');}
 function drawVerifiedChart(data){
  const points=data.points;
  if(!Array.isArray(points)||points.length<3||points.length>60||
-  !points.every(p=>Number.isFinite(p.close)&&p.close>0&&Number.isSafeInteger(p.time)))return false;
+  !points.every(p=>Number.isFinite(p.close)&&p.close>0&&Number.isSafeInteger(p.time))||
+  !points.every((p,i)=>i===0||p.time>points[i-1].time))return false;
  const min=Math.min(...points.map(p=>p.close)),max=Math.max(...points.map(p=>p.close));
- const delta=max-min||Math.max(max*.02,Number.MIN_VALUE),top=max+delta*.14,bottom=Math.max(0,min-delta*.12);
- const span=top-bottom;
+ const delta=max-min||Math.max(max*.02,Number.MIN_VALUE);
+ const top=max+delta*.18,bottom=Math.max(0,min-delta*.15),span=top-bottom;
  if(!Number.isFinite(span)||span<=0)return false;
- const y=p=>155-(p.close-bottom)/span*135;
- const step=(800-24)/(points.length-1);
+ const baseline=176;
+ const y=p=>baseline-(p.close-bottom)/span*149;
+ const step=776/(points.length-1);
  const coords=points.map((p,i)=>[12+i*step,y(p)]);
  if(!coords.every(p=>p.every(Number.isFinite)))return false;
  const svg=document.createElementNS(NS,'svg');
- svg.setAttribute('viewBox','0 0 800 170');
- svg.setAttribute('preserveAspectRatio','none');
- const line=document.createElementNS(NS,'line');
- for(const [k,v] of Object.entries({x1:'12',x2:'788',y1:'155',y2:'155',stroke:'#274355','stroke-width':'1'}))line.setAttribute(k,v);
- svg.append(line);
- const path=document.createElementNS(NS,'path');
- path.setAttribute('d',coords.map(([x,y],i)=>(i?'L':'M')+x.toFixed(2)+' '+y.toFixed(2)).join(' '));
- path.setAttribute('fill','none');path.setAttribute('stroke','#7ed5ec');
- path.setAttribute('stroke-width','2.2');path.setAttribute('stroke-linejoin','round');
- path.setAttribute('stroke-linecap','round');
- svg.append(path);
- $('chartPlot').replaceChildren(svg);$('chartPlot').hidden=false;
+ svg.setAttribute('viewBox','0 0 800 190');svg.setAttribute('preserveAspectRatio','none');
+ svg.setAttribute('aria-hidden','true');
+ const svgEl=(tag,attributes={})=>{
+  const el=document.createElementNS(NS,tag);
+  for(const [name,value] of Object.entries(attributes))el.setAttribute(name,String(value));
+  return el;
+ };
+ const gradient=svgEl('linearGradient',{id:'arcyDailyCloseFill',x1:'0',y1:'0',x2:'0',y2:'1'});
+ for(const [offset,opacity] of [['0%','.26'],['65%','.065'],['100%','0']]){
+  gradient.append(svgEl('stop',{offset,'stop-color':'#55d4ea','stop-opacity':opacity}));
+ }
+ const defs=svgEl('defs');defs.append(gradient);svg.append(defs);
+ for(const level of [28,76,125,176]){
+  svg.append(svgEl('line',{x1:12,x2:788,y1:level,y2:level,class:'chart-grid-line'}));
+ }
+ const trace=coords.map(([x,y],i)=>(i?'L':'M')+x.toFixed(2)+' '+y.toFixed(2)).join(' ');
+ const area=svgEl('path',{d:trace+' L 788 176 L 12 176 Z',
+  fill:'url(#arcyDailyCloseFill)',stroke:'none'});
+ svg.append(area);
+ svg.append(svgEl('path',{d:trace,fill:'none',stroke:'#75d9ef','stroke-width':2.6,
+  'stroke-linejoin':'round','stroke-linecap':'round'}));
+ const guide=svgEl('line',{x1:788,x2:788,y1:17,y2:176,stroke:'#6dcadd',
+  'stroke-width':1,'stroke-dasharray':'4 6','stroke-opacity':'.7'});
+ const dotHalo=svgEl('circle',{cx:coords[coords.length-1][0],cy:coords[coords.length-1][1],r:7,
+  fill:'rgba(91,211,235,.17)'});
+ const dot=svgEl('circle',{cx:coords[coords.length-1][0],cy:coords[coords.length-1][1],r:3.6,
+  fill:'#c4f7ff',stroke:'#0f3143','stroke-width':1.6});
+ svg.append(guide,dotHalo,dot);
+ const axis=$('chartAxis'),inspector=$('chartInspector'),stats=$('chartStats'),root=$('chartPlot');
+ axis.replaceChildren();
+ for(const p of [points[0],points[points.length-1]]){
+  const label=document.createElement('span');label.textContent=chartDate(p.time);axis.append(label);
+ }
+ axis.hidden=false;
+ const change=(points[points.length-1].close/points[0].close-1)*100;
+ stats.replaceChildren();
+ if(Number.isFinite(change)){
+  const headline=document.createElement('span');
+  const label=document.createElement('span');label.className='chart-stat-caption';
+  label.textContent=(points.length-1)+' daily close intervals';
+  const value=document.createElement('strong');
+  value.className='chart-stat-value '+(change>=0?'positive':'negative');
+  value.textContent=(change>0?'+':'')+metricFormat.display(change,'change24h');
+  headline.append(label,value);stats.append(headline);
+ }
+ const range=document.createElement('span');
+ const rangeLabel=document.createElement('span');
+ rangeLabel.className='chart-stat-caption';rangeLabel.textContent='Observed range';
+ const rangeValue=document.createElement('strong');
+ rangeValue.className='chart-stat-value';rangeValue.textContent=chartValue(min)+' – '+chartValue(max);
+ range.append(rangeLabel,rangeValue);stats.append(range);stats.hidden=false;
+ const dateText=document.createElement('span'),priceText=document.createElement('strong');
+ inspector.replaceChildren(dateText,priceText);
+ let cursor=points.length-1;
+ const show=index=>{
+  cursor=Math.max(0,Math.min(points.length-1,index));
+  const [x,pY]=coords[cursor];
+  guide.setAttribute('x1',String(x));guide.setAttribute('x2',String(x));
+  dotHalo.setAttribute('cx',String(x));dotHalo.setAttribute('cy',String(pY));
+  dot.setAttribute('cx',String(x));dot.setAttribute('cy',String(pY));
+  dateText.textContent=chartDate(points[cursor].time)+' · Daily pool close';
+  priceText.textContent=chartValue(points[cursor].close);
+  inspector.hidden=false;
+ };
+ root.onpointermove=event=>{
+  const rect=root.getBoundingClientRect();
+  if(rect.width<=0)return;
+  show(Math.round((event.clientX-rect.left)/rect.width*(points.length-1)));
+ };
+ root.onpointerdown=event=>{
+  const rect=root.getBoundingClientRect();
+  if(rect.width>0)show(Math.round((event.clientX-rect.left)/rect.width*(points.length-1)));
+ };
+ root.onpointerleave=()=>{inspector.hidden=true;};
+ root.onfocus=()=>show(cursor);
+ root.onblur=()=>{inspector.hidden=true;};
+ root.onkeydown=event=>{
+  if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  event.preventDefault();
+  show(event.key==='Home'?0:event.key==='End'?points.length-1:
+   cursor+(event.key==='ArrowRight'?1:-1));
+ };
+ root.replaceChildren(svg);root.hidden=false;
+ root.setAttribute('aria-label','Verified pool daily price closes from '+chartDate(points[0].time)+
+  ' to '+chartDate(points[points.length-1].time)+'. Use arrow keys to inspect.');
  return true;
 }
 async function loadVerifiedChart(address,network,version){
- const root=$('chartPlot');root.replaceChildren();root.hidden=true;
+ clearPriceChart();
+ const root=$('chartPlot');
  $('chartNote').textContent='Checking exact-chain historical pool data…';
  $('marketLink').hidden=true;
  if(network==='robinhood'){
@@ -719,7 +812,7 @@ async function loadVerifiedChart(address,network,version){
   $('chartNote').textContent='GeckoTerminal · Last 30 daily USD closes · One verified pool · Latest candle: '+last+' · Source data, not a market-wide aggregate.';
  }catch{
   if(version!==searchVersion||location.pathname!==tokenPath(network,address))return;
-  root.replaceChildren();root.hidden=true;$('marketLink').hidden=true;
+  clearPriceChart();$('marketLink').hidden=true;
   $('chartNote').textContent='No reliable exact-contract historical chart available. We do not invent price movement.';
  }
 }
