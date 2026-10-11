@@ -1,0 +1,61 @@
+name: Stage the same-site premium multichain Search (branch only)
+on:
+  push:
+    branches: [feature/search-multichain-premium-20261011]
+    paths:
+      - '.github/workflows/stage-search-in-original.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout the existing site feature branch only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feature/search-multichain-premium-20261011
+          persist-credentials: true
+      - name: Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Integrate the reviewed three-chain Search under /search only
+        run: node scripts/integrate-search.cjs
+      - name: Validate new Search import, old homepage and route boundaries
+        run: |
+          node --check dev.cjs
+          node --check search-upgrade.js
+          node - <<'NODE'
+          const fs=require('node:fs'), assert=require('node:assert/strict');
+          const original=fs.readFileSync('index.html','utf8');
+          const search=fs.readFileSync('search/index.html','utf8');
+          for(const section of ['hero','search','burn','unlocks','pulse','buy'])assert.match(original,new RegExp('id="'+section+'"'));
+          assert.match(original,/assets\/1000266146\.mp4/);
+          assert.match(original,/search-upgrade\.js/);
+          assert.match(search,/\/api\/search-discover\?/);
+          assert.match(search,/\/api\/search-report\?/);
+          assert.match(search,/\/search\/token\//);
+          assert.match(search,/Robinhood Chain/);
+          assert.match(search,/Ethereum/);
+          assert.match(search,/id="tokenDetail"/);
+          assert.doesNotMatch(search,/id="arcyBurn"/);
+          for(const api of ['discover','report','chart','token'])assert.equal(typeof require('./api/search-'+api+'.js'),'function');
+          console.log('Original homepage preserved; same-domain three-chain Search modules load.');
+          NODE
+          for f in search/server/api/*.js search/server/lib/*.js; do node --check "$f"; done
+      - name: Run all original website regression tests
+        run: npm test
+      - name: Commit reviewed output to feature branch ONLY
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html dev.cjs vercel.json search search-upgrade.js search-upgrade.css api/search-discover.js api/search-report.js api/search-chart.js api/search-token.js
+          if git diff --cached --quiet; then
+            echo 'Already staged'
+          else
+            git commit -m 'Add premium Arc Ethereum Robinhood Search inside original website'
+            git push origin HEAD:refs/heads/feature/search-multichain-premium-20261011
+          fi
