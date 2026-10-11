@@ -89,6 +89,10 @@ async function main(){
     await page.waitForURL('**/search/token/'+network+'/'+token);
     await page.waitForFunction(()=>document.querySelector('#detailState').textContent.includes('Snapshot complete'),{timeout:12000});
     assert.equal(await page.locator('#tokenDetail').isVisible(),true);
+    assert.equal(await page.locator('#deepResearch').evaluate(x=>x.open),false,
+      'Newly selected token must not inherit an expanded previous report');
+    await page.locator('#deepResearch > summary').click();
+    assert.equal(await page.locator('#deepResearch').evaluate(x=>x.open),true);
     assert.equal(await page.locator('#cards .card').count(),5);
     assert.equal(await page.locator('#cards .metric').count(),20);
     assert.equal(await page.locator('#moreResearch').count(),0,'Unfinished marketing-only tools must not appear');
