@@ -63,3 +63,43 @@
 #tokenDetail .quick-facts-notice{margin:0;padding:19px 21px;border:1px solid rgba(127,194,215,.19);
  border-radius:15px;background:#0b2231;color:#aac6d5;font-size:12px;line-height:1.7}
 #tokenDetail .quick .quick-value{word-break:normal}
+
+
+/* Research cards: sourced evidence first; unsupported modules are accessible
+   in one compact disclosure instead of a wall of incomplete "features". */
+#tokenDetail #deepResearch #cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#tokenDetail #deepResearch .card{border:1px solid rgba(111,176,202,.17);
+ border-top:3px solid var(--accent);border-left:1px solid rgba(111,176,202,.17);
+ background:linear-gradient(150deg,#0c2131,#091927);padding:20px;min-height:0}
+#tokenDetail #deepResearch .card h2{font-size:15px;margin:0 0 8px;letter-spacing:-.012em}
+#tokenDetail #deepResearch .card .description{margin:0 0 12px;min-height:0;
+ color:#94b1bf;font-size:11px;line-height:1.55}
+#tokenDetail #deepResearch .metric{align-items:baseline;padding:11px 0;gap:10px}
+#tokenDetail #deepResearch .metric .result{min-width:0;max-width:65%;text-align:right}
+#tokenDetail #deepResearch .metric .result b{font-size:13px;
+ font-variant-numeric:tabular-nums;color:#dceef7;line-height:1.4}
+#tokenDetail #deepResearch .statusLine{font-size:10px;padding:12px 0 2px;
+ color:#8cc0cb;border-bottom:0}
+#tokenDetail #deepResearch .missingGroup>summary{color:#c6b28d;font-size:11px}
+#tokenDetail #deepResearch .proof-panel{margin-top:12px;padding-top:0}
+#tokenDetail #deepResearch .proof-panel>summary{padding:12px 0;color:#84c7d9}
+#tokenDetail #deepResearch .unverifiedModules{grid-column:1/-1;margin:2px 0 0;
+ border-radius:13px;border:1px solid rgba(111,176,202,.18);background:#091b29;padding:0 17px}
+#tokenDetail #deepResearch .unverifiedModules>summary{cursor:pointer;padding:17px 0;
+ color:#9ac2d0;font-size:12px;list-style:none}
+#tokenDetail #deepResearch .unverifiedModules>summary::after{content:' +';float:right}
+#tokenDetail #deepResearch .unverifiedModules[open]>summary::after{content:' −'}
+#tokenDetail #deepResearch .unverifiedModules>.grid{padding:5px 0 17px;
+ grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+#tokenDetail #deepResearch .card.card-empty{border-top-color:#456879;
+ background:#081a27;min-height:0;padding:16px}
+#tokenDetail #deepResearch .card-empty .description{display:none}
+#tokenDetail #deepResearch .card-empty .noSource{color:#a5c0ce;font-size:11px;margin:3px 0}
+#tokenDetail #deepResearch .card-empty .statusLine{margin-top:8px}
+#tokenDetail #deepResearch .card-empty .missingGroup{margin-top:8px}
+@media(max-width:700px){
+ #tokenDetail #deepResearch #cards{grid-template-columns:1fr;gap:10px}
+ #tokenDetail #deepResearch .unverifiedModules>.grid{grid-template-columns:1fr}
+ #tokenDetail #deepResearch .card{padding:17px 16px}
+ #tokenDetail #deepResearch .card .metric .result{max-width:63%}
+}
