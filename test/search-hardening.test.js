@@ -102,3 +102,25 @@ test('Small USD prices are readable and evidence keeps unrounded precision',()=>
  assert.equal(format.display(151600000,'valuation','MARKET_CAP'),'Market Cap \u0024151.6M');
  assert.equal(format.display(0,'priceUsd'),'\u00240');
 });
+
+test('Search health describes all three deployed networks without claiming upstream availability',async()=>{
+ const route=require('../api/search/index');
+ const res=()=>({statusCode:200,headers:{},
+  setHeader(key,value){this.headers[key]=value;return this},
+  status(code){this.statusCode=code;return this},
+  json(payload){this.body=payload;return this}});
+ const ok=res();
+ await route({method:'GET',query:{action:'health'}},ok);
+ assert.equal(ok.statusCode,200);
+ assert.equal(ok.body.ok,true);
+ assert.equal(ok.body.readOnly,true);
+ assert.deepEqual(ok.body.networks,['arc','ethereum','robinhood']);
+ assert.deepEqual(ok.body.chainIds,[5042,1,4663]);
+ assert.equal(ok.body.expectedCards,5);
+ assert.equal(ok.body.expectedMetrics,20);
+ assert.ok(ok.body.capabilities.includes('chart'));
+ assert.match(ok.body.note,/Liveness only/);
+ const rejected=res();
+ await route({method:'POST',query:{action:'health'}},rejected);
+ assert.equal(rejected.statusCode,405);
+});
