@@ -87,6 +87,23 @@
   if(out.whole.length>=4)return sign+'1K';
   return sign+out.whole+(out.fraction?'.'+out.fraction:'');
  }
+ // For sub-cent token prices, ordinary decimals are easier to read than
+ // exponent notation (for example $0.0000274 rather than $2.735e-5).
+ // Preserve the original raw value in the evidence panel.
+ function readablePrice(value){
+  const n=parseNumeric(value);
+  if(!n)return null;
+  if(isZero(n))return '0';
+  const leading=n.fraction.length-n.fraction.replace(/^0+/,'').length;
+  const exponent=n.whole==='0'?-leading-1:n.whole.length-1;
+  // Keep the standard four-significant-digit number for normal prices.
+  if(exponent>=-4||exponent < -10)return compactNumeric(value);
+  // Three significant digits is enough for the main price label. Exact
+  // decimals remain available from full(value, 'priceUsd').
+  const decimals=2-exponent;
+  const out=fixed(n.whole,n.fraction,decimals);
+  return (n.negative?'-':'')+out.whole+(out.fraction?'.'+out.fraction:'');
+ }
  function display(value,key,kind){
   if(typeof value==='boolean')return value?'TRUE':'FALSE';
   const prefix=label(kind);
@@ -94,7 +111,7 @@
    const counts=/^(\d+) DEX · (\d+) pairs$/.exec(String(value));
    if(counts)return compactNumeric(counts[1])+' DEX · '+compactNumeric(counts[2])+' pairs';
   }
-  const shown=compactNumeric(value);
+  const shown=key==='priceUsd'?readablePrice(value):compactNumeric(value);
   if(shown===null)return prefix+String(value);
   return prefix+(isUsd(key)?(shown.startsWith('-')?'-$'+shown.slice(1):'$'+shown):shown)+(isPercent(key)?'%':'');
  }
