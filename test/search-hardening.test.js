@@ -86,3 +86,15 @@ test('Five research-card coverage statuses distinguish full 4/4 from partial and
  assert.equal(empty.status,'NOT_VERIFIED');
  assert.equal(Object.values(empty.fields).filter(x=>x.dataState==='DATA_FOUND').length,0);
 });
+
+
+test('Small USD prices are readable and evidence keeps unrounded precision',()=>{
+ const format=require('../search/format');
+ assert.equal(format.display(2.735e-5,'priceUsd'),'\u00240.0000274');
+ assert.equal(format.full(2.735e-5,'priceUsd'),'\u00240.00002735');
+ assert.equal(format.display(1.315e-5,'priceUsd'),'\u00240.0000132');
+ assert.equal(format.display(0.4935,'priceUsd'),'\u00240.4935');
+ assert.equal(format.display(151600000,'valuation'),'\u0024151.6M');
+ assert.equal(format.display(151600000,'valuation','MARKET_CAP'),'Market Cap \u0024151.6M');
+ assert.equal(format.display(0,'priceUsd'),'\u00240');
+});
