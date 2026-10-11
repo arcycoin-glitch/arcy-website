@@ -42,6 +42,8 @@ function install(){
    ["/api/chart?","/api/search-chart?"],["/api/token?","/api/search-token?"],
    ["/token/arc/","/search/token/arc/"],
    ["=>'/token/'+","=>'/search/token/'+"]]){
+    // The new frontend does not call /api/token directly; that endpoint remains available for source-backed tools.
+    if(old==='/api/token?'&&!search.includes(old))continue;
     must(search.includes(old),'Search source marker missing: '+old);
     search=search.split(old).join(changed);
   }
