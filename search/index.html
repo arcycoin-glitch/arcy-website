@@ -792,10 +792,6 @@ async function loadVerifiedChart(address,network,version){
  const root=$('chartPlot');
  $('chartNote').textContent='Checking exact-chain historical pool data…';
  $('marketLink').hidden=true;
- if(network==='robinhood'){
-  $('chartNote').textContent='No verified Robinhood Chain price history source is currently available.';
-  return;
- }
  try{
   const response=await fetch('/api/search?action=chart&'+new URLSearchParams({address,chain:network}),{
    cache:'no-store',signal:activeController?.signal});
@@ -806,7 +802,7 @@ async function loadVerifiedChart(address,network,version){
    throw Error('Historical pool proof unavailable');
   const source=new URL(payload.sourceUrl);
   if(source.protocol!=='https:'||source.hostname!=='www.geckoterminal.com'||
-   !/^\/(arc|eth)\/pools\/0x[0-9a-f]{40,64}$/i.test(source.pathname))throw Error('Historical source link invalid');
+   !/^\/(arc|eth|robinhood)\/pools\/0x[0-9a-f]{40,64}$/i.test(source.pathname))throw Error('Historical source link invalid');
   $('marketLink').href=source.href;$('marketLink').hidden=false;
   const last=new Date(payload.lastCandleTime*1000).toISOString().slice(0,10);
   $('chartNote').textContent='GeckoTerminal · Last 30 daily USD closes · One verified pool · Latest candle: '+last+' · Source data, not a market-wide aggregate.';
