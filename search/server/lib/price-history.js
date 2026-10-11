@@ -106,6 +106,18 @@ async function load(network,address,{fetcher=fetch,now=Date.now(),disableCache=f
   }
  }
  const job=(async()=>{
+   // Weekly is derived only from real recent 30D daily closes, even on first load.
+   // Join in-flight 30D work rather than racing another provider OHLCV request.
+   if(range==='1W'){
+    const daily=await load(network,normalized,{fetcher,now,disableCache,range:'30D'});
+    const weekly=weekFromDaily(daily,now);
+    if(!weekly)throw Error('Not enough recent exact-pool daily candles for selected interval');
+    if(!disableCache){
+     cache.set(key,{data:weekly,expires:now+CACHE_MS});
+     if(cache.size>120)cache.delete(cache.keys().next().value);
+    }
+    return structuredClone(weekly);
+   }
   const base='https://api.geckoterminal.com/api/v2/networks/'+id;
   const pool=await bestPool(base,id,normalized,fetcher,now);
   const url=base+'/pools/'+pool+'/ohlcv/'+config.timeframe+'?aggregate='+config.aggregate+
