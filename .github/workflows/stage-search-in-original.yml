@@ -4,6 +4,7 @@ on:
     branches: [feature/search-multichain-premium-20261011]
     paths:
       - '.github/workflows/stage-search-in-original.yml'
+      - 'scripts/integrate-search.cjs'
   workflow_dispatch:
 permissions:
   contents: write
