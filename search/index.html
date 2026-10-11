@@ -797,6 +797,8 @@ async function loadVerifiedChart(address,network,version){
    cache:'no-store',signal:activeController?.signal});
   const payload=await response.json();
   if(version!==searchVersion||network!==selected()||location.pathname!==tokenPath(network,address))return;
+  if(!response.ok&&['CHART_PROVIDER_TEMPORARILY_UNAVAILABLE','RATE_LIMITED'].includes(payload.error))
+   throw Error('CHART_SOURCE_RETRY');
   if(!response.ok||payload.ok!==true||payload.network!==network||
    payload.chainId!==NETWORKS[network].id||payload.address!==address||!drawVerifiedChart(payload))
    throw Error('Historical pool proof unavailable');
@@ -808,10 +810,12 @@ async function loadVerifiedChart(address,network,version){
   $('chartNote').textContent='GeckoTerminal · '+payload.points.length+
    ' daily USD closes (up to 30) · One contract-matched pool · Latest candle: '+last+
    ' · This is not a market-wide aggregate or an execution quote.';
- }catch{
+ }catch(error){
   if(version!==searchVersion||location.pathname!==tokenPath(network,address))return;
   clearPriceChart();$('marketLink').hidden=true;
-  $('chartNote').textContent='No reliable exact-contract historical chart available. We do not invent price movement.';
+  $('chartNote').textContent=error?.message==='CHART_SOURCE_RETRY'?
+   'Historical price source is temporarily unavailable. Try again shortly; this is not proof the token has no price history.':
+   'No reliable exact-contract historical chart available. We do not invent price movement.';
  }
 }
 function renderQuickFacts(report){
