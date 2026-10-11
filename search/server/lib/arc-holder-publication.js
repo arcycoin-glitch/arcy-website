@@ -85,6 +85,11 @@ async function load(address,{env=process.env,fetcher=fetch,now=Date.now()}={}){
   const body=await readJson(response,512*1024);
   const snapshot=verifyDocument(body,address,configuration.key,now);
   if(!snapshot)return empty('Signature, source chain or COMPLETE snapshot proof invalid.');
+  const timestamp=Date.parse(snapshot.snapshot.completedAt);
+  if(timestamp<now-48*60*60*1000)
+   return empty('Last signed COMPLETE holder snapshot is from '+
+    new Date(timestamp).toISOString()+
+    '; older than 48 hours. Historical balances cannot verify current holder and whale percentages.');
   return toCard(snapshot,address);
  }catch{return empty('Arc signed publication request failed or timed out.')}
 }
