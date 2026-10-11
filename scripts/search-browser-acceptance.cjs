@@ -121,6 +121,12 @@ async function main(){
     const unsourced=network==='robinhood'?4:2;
     assert.equal(await collapsed.locator('.card').count(),unsourced);
     assert.equal(await page.locator('#cards > .card').count(),5-unsourced);
+    if(width===1440&&network==='arc'){
+     const reportTops=await page.locator('#cards > .card').evaluateAll(xs=>
+      xs.map(x=>x.getBoundingClientRect().top));
+     assert.ok(reportTops.every(t=>Math.abs(t-reportTops[0])<3),
+      'Three supported desktop research cards should fill one premium row');
+    }
     assert.match(await collapsed.locator(':scope > summary').textContent(),new RegExp(String(unsourced)+' research'));
     await collapsed.locator(':scope > summary').click();
     assert.equal(await collapsed.locator('.missingGroup').count(),unsourced);
