@@ -51,10 +51,20 @@ async function main(){
       scannedAt:'2026-10-11T10:00:00.000Z',
       token:{name:'ARCY Demo',symbol:'ARCY',decimals:18},tokenIdentity:{status:'NOT_VERIFIED'},cards:fields};
     }else if(action==='chart'){
-     data={ok:true,network,chainId:id,address:token,sourceUrl:'https://www.geckoterminal.com/'+
-        (network==='ethereum'?'eth':network)+'/pools/'+token,lastCandleTime:1791720000,
-       points:Array.from({length:30},(_,i)=>({time:Date.UTC(2026,8,12+i)/1000,
-        close:.45+.04*Math.sin(i/3)+.0015*i}))};
+     const range=url.searchParams.get('range')||'30D';
+     const frames={ '30D':{length:30,interval:'1d',step:86400000,start:Date.UTC(2026,8,12)},
+      '1W':{length:7,interval:'1d',step:86400000,start:Date.UTC(2026,9,5)},
+      '1D':{length:24,interval:'1h',step:3600000,start:Date.UTC(2026,9,10,20)},
+      '4H':{length:16,interval:'15m',step:900000,start:Date.UTC(2026,9,11,15,45)}};
+     const cfg=frames[range];
+     if(!cfg)throw Error('Unsupported chart test range: '+range);
+     const points=Array.from({length:cfg.length},(_,i)=>({
+      time:(cfg.start+i*cfg.step)/1000,close:.45+.04*Math.sin(i/3)+.0015*i
+     }));
+     data={ok:true,network,chainId:id,address:token,range,interval:cfg.interval,
+      sourceUrl:'https://www.geckoterminal.com/'+
+      (network==='ethereum'?'eth':network)+'/pools/'+token,
+      lastCandleTime:points.at(-1).time,points};
     }else if(action==='token'){
      data={ok:true,network,chainId:id,address:token,block:'0x12345',
       fields:{totalSupply:{value:null,dataState:'NOT_VERIFIED'}}};
@@ -134,6 +144,30 @@ async function main(){
     assert.equal(await page.locator('#chartAxis span').count(),2);
     assert.match(await page.locator('#chartStats').innerText(),/daily close intervals/);
     assert.match(await page.locator('#marketLink').getAttribute('href'),new RegExp('/'+(network==='ethereum'?'eth':network)+'/pools/'));
+    assert.deepEqual(await page.locator('#chartRanges .chart-range').allInnerTexts(),['4H','1D','1W','30D']);
+    assert.equal(await page.locator('#chartRanges .chart-range[aria-pressed="true"]').innerText(),'30D');
+    for(const [range,count,caption,time] of [
+     ['4H',16,'15-minute','UTC'],['1D',24,'hourly','UTC'],
+     ['1W',7,'daily','UTC'],['30D',30,'daily','UTC']]){
+     await page.locator('#chartRanges [data-range="'+range+'"]').click();
+     await page.waitForFunction(r=>document.querySelector('#chartNote').textContent.includes(
+      r==='4H'?'16 15-minute':r==='1D'?'24 hourly':r==='1W'?'7 daily':'30 daily'),range);
+     assert.equal(await page.locator('#chartRanges [aria-pressed="true"]').count(),1);
+     assert.equal(await page.locator('#chartRanges [aria-pressed="true"]').innerText(),range);
+     assert.match(await page.locator('#chartNote').innerText(),new RegExp('GeckoTerminal · '+count));
+     assert.match(await page.locator('#chartStats').innerText(),new RegExp(caption+' intervals'));
+     assert.equal(await page.locator('#chartAxis span').count(),2);
+     if(range==='4H'||range==='1D')assert.match(await page.locator('#chartAxis').innerText(),/Oct 11|Oct 10/);
+    }
+    const callToAction=page.locator('#deepResearch > summary');
+    await callToAction.scrollIntoViewIfNeeded();
+    assert.equal(await callToAction.isVisible(),true);
+    assert.match(await callToAction.innerText(),/Explore full on-chain report/);
+    assert.match(await callToAction.innerText(),/20 checks/);
+    const visibleCTA=await callToAction.evaluate(el=>{
+     const r=el.getBoundingClientRect();return r.width>210&&r.right<=innerWidth+1&&r.left>=-1;
+    });
+    assert.equal(visibleCTA,true,'Report must remain fully readable and in viewport on mobile');
     await page.locator('#chartPlot').focus();
     await page.keyboard.press('ArrowLeft');
     assert.equal(await page.locator('#chartInspector').isVisible(),true);
