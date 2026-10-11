@@ -3,6 +3,7 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const path=require('node:path');
 const {spawn}=require('node:child_process');
+const {mkdirSync}=require('node:fs');
 const base='http://127.0.0.1:33119';
 const token='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
 const chainIds={arc:5042,ethereum:1,robinhood:4663};
@@ -189,6 +190,14 @@ async function main(){
     await page.keyboard.press('Home');
     assert.match(await page.locator('#chartInspector').innerText(),/Sep 12/);
     await page.locator('#chartPlot').blur();
+    // Reviewable deterministic browser snapshots. TEST FIXTURES, not live
+    // quoted token prices; no production data or credentials are captured.
+    if(network==='arc'&&(width===320||width===390||width===1440)){
+     const folder=path.resolve(__dirname,'../artifacts/search-preview');
+     mkdirSync(folder,{recursive:true});
+     await page.screenshot({path:path.join(folder,'arc-'+width+'-MOCK-DATA.png'),fullPage:true,
+      animations:'disabled'});
+    }
     await page.locator('#backSearch').click();
     await page.waitForURL('**/search/');
     assert.equal(await page.locator('#discovery').isVisible(),true);
