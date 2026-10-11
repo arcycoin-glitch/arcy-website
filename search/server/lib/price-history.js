@@ -18,15 +18,31 @@ function tokenMatch(item,network,address){
   .filter(x=>typeof x==='string').map(x=>x.toLowerCase());
  return ids.includes(network+'_'+address);
 }
-function choosePool(body,network,address){
+function choosePools(body,network,address){
  if(!body||!Array.isArray(body.data))throw Error('Invalid pool response');
+ const seen=new Set();
  const ranked=body.data.slice(0,40).filter(p=>{
-  const a=p?.attributes?.address;
-  return typeof a==='string'&&/^0x(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(a)&&
-   tokenMatch(p,network,address)&&Number.isFinite(Number(p.attributes.reserve_in_usd))&&
-   Number(p.attributes.reserve_in_usd)>0;
- }).sort((a,b)=>Number(b.attributes.reserve_in_usd)-Number(a.attributes.reserve_in_usd));
- return ranked[0]?.attributes.address.toLowerCase()||null;
+  const a=String(p?.attributes?.address||'').toLowerCase();
+  if(!/^0x(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(a)||
+   !tokenMatch(p,network,address)||!Number.isFinite(Number(p.attributes.reserve_in_usd))||
+   Number(p.attributes.reserve_in_usd)<=0||seen.has(a))return false;
+  seen.add(a);return true;
+ }).sort((a,b)=>{
+  // Highest reserves alone can select an inactive/new pool with no daily or
+  // 15-minute candles. Balance real source-reported reserves and 24h trades.
+  const score=p=>{
+   const reserve=Number(p.attributes.reserve_in_usd);
+   const raw=Number(p.attributes?.volume_usd?.h24);
+   const volume=Number.isFinite(raw)&&raw>0?raw:0;
+   return Math.sqrt(reserve)*Math.sqrt(1+volume);
+  };
+  return score(b)-score(a)||
+   Number(b.attributes.reserve_in_usd)-Number(a.attributes.reserve_in_usd);
+ });
+ return ranked.map(p=>p.attributes.address.toLowerCase());
+}
+function choosePool(body,network,address){
+ return choosePools(body,network,address)[0]||null;
 }
 function parseCandles(body,address,now=Date.now()){
  const b=body?.meta?.base?.address,q=body?.meta?.quote?.address;
@@ -56,21 +72,21 @@ async function request(url,fetcher){
  if(!response.ok)throw Error('GeckoTerminal HTTP '+response.status);
  return readJson(response,512*1024);
 }
-async function bestPool(base,id,address,fetcher,now){
- // Discover the exact-contract source pool once per 2-minute window for all
- // four intervals. Avoid flooding free GeckoTerminal on rapid button clicks.
+async function bestPools(base,id,address,fetcher,now){
+ // Exact-contract pools are discovered once per two-minute window across all
+ // timeframes. Never search or query another chain or token's contract.
  const from=()=>request(base+'/tokens/'+address+'/pools?page=1',fetcher)
-  .then(body=>choosePool(body,id,address))
-  .then(pool=>{if(!pool)throw Error('No exact-token source pool verified');return pool});
+  .then(body=>choosePools(body,id,address).slice(0,2))
+  .then(pools=>{if(!pools.length)throw Error('No exact-token source pool verified');return pools});
  if(fetcher!==fetch)return from();
  const key=id+':'+address;
  const hit=poolCache.get(key);
- if(hit&&hit.expires>now)return hit.pool;
+ if(hit&&hit.expires>now)return hit.pools;
  if(poolPending.has(key))return poolPending.get(key);
- const job=from().then(pool=>{
-  poolCache.set(key,{pool,expires:Date.now()+CACHE_MS});
+ const job=from().then(pools=>{
+  poolCache.set(key,{pools,expires:Date.now()+CACHE_MS});
   if(poolCache.size>100)poolCache.delete(poolCache.keys().next().value);
-  return pool;
+  return pools;
  });
  poolPending.set(key,job);
  try{return await job}finally{if(poolPending.get(key)===job)poolPending.delete(key)}
@@ -119,22 +135,33 @@ async function load(network,address,{fetcher=fetch,now=Date.now(),disableCache=f
     return structuredClone(weekly);
    }
   const base='https://api.geckoterminal.com/api/v2/networks/'+id;
-  const pool=await bestPool(base,id,normalized,fetcher,now);
-  const url=base+'/pools/'+pool+'/ohlcv/'+config.timeframe+'?aggregate='+config.aggregate+
-   '&limit='+config.limit+'&currency=usd&token='+normalized;
-  const candles=await request(url,fetcher);
-  const points=parseCandles(candles,normalized,now);
-  // Provider can return sparse older candles for thin pools. Keep only the
-  // requested recent time window; absence stays absence, never interpolate.
-  const duration={'30D':30*86400,'1W':7*86400,'1D':86400,'4H':4*3600}[range];
-  const recent=points.filter(p=>p.time*1000>=now-duration*1000-
-   (config.timeframe==='day'?86400000:config.timeframe==='hour'?3600000:900000));
-  if(recent.length<3)throw Error('Not enough recent exact-pool candles for selected interval');
+  const pools=await bestPools(base,id,normalized,fetcher,now);
+  // Try at most two source-ranked, exact-contract pools if the first has no
+  // usable candles. Fail closed on provider outage, malformed values or
+  // mismatched OHLCV identity; those are NOT grounds for guessing a chart.
+  let pool=null,recent=null;
+  for(const candidate of pools){
+   const url=base+'/pools/'+candidate+'/ohlcv/'+config.timeframe+'?aggregate='+config.aggregate+
+    '&limit='+config.limit+'&currency=usd&token='+normalized;
+   const candles=await request(url,fetcher);
+   let points;
+   try{points=parseCandles(candles,normalized,now)}
+   catch(error){
+    if(error.message==='OHLCV history unavailable')continue;
+    throw error;
+   }
+   const duration={'30D':30*86400,'1W':7*86400,'1D':86400,'4H':4*3600}[range];
+   const filtered=points.filter(p=>p.time*1000>=now-duration*1000-
+    (config.timeframe==='day'?86400000:config.timeframe==='hour'?3600000:900000));
+   if(filtered.length<3)continue;
+   pool=candidate;recent=filtered;break;
+  }
+  if(!pool||!recent)throw Error('Not enough recent exact-pool candles for selected interval');
   const data={ok:true,network,chainId:chain(network).chainId,address:normalized,
    source:'GeckoTerminal',poolAddress:pool,range,interval:config.interval,requestedWindow:config.label,currency:'USD',
    sourceUrl:'https://www.geckoterminal.com/'+id+'/pools/'+pool,
    lastCandleTime:recent[recent.length-1].time,
-   scope:'Source-reported USD close prices in one highest-reserve returned exact-token pool; not an aggregate token price.',
+   scope:'Source-reported USD closes from one ranked exact-contract pool; not market-wide or guaranteed executable prices.',
    points:recent};
   if(!disableCache){
    cache.set(key,{data,expires:now+CACHE_MS});
@@ -146,4 +173,4 @@ async function load(network,address,{fetcher=fetch,now=Date.now(),disableCache=f
  pending.set(key,job);
  try{return await job}finally{if(pending.get(key)===job)pending.delete(key)}
 }
-module.exports={load,tokenMatch,choosePool,parseCandles,RANGES,weekFromDaily};
+module.exports={load,tokenMatch,choosePool,choosePools,parseCandles,RANGES,weekFromDaily};
