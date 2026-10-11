@@ -60,24 +60,16 @@ async function supply(base){
 }
 async function holder({address}){
  const fields={
-  holderCount:NO('Blockscout source-reported holder count unavailable.'),
-  largestWalletPct:NO('No complete, pinned-block holder ranking and supply reconciliation.'),
-  top10Pct:NO('No complete, pinned-block holder ranking and supply reconciliation.'),
-  top20Pct:NO('No complete, pinned-block holder ranking and supply reconciliation.')
+  holderCount:NO('No contract-scoped Blockscout holder count available; optional PRO source not configured or unavailable.'),
+  largestWalletPct:NO('No complete pinned-block holder ranking with supply reconciliation.'),
+  top10Pct:NO('No complete pinned-block holder ranking with supply reconciliation.'),
+  top20Pct:NO('No complete pinned-block holder ranking with supply reconciliation.')
  };
- try{
-  const response=await fetch(cfg.blockscoutTokens+address+'/counters',{
-   headers:{accept:'application/json'},signal:AbortSignal.timeout(7500)
-  });
-  if(!response.ok)throw Error('Blockscout unavailable');
-  const data=await readJson(response,512*1024);
-  const raw=data?.token_holders_count??data?.holders_count;
-  const count=typeof raw==='number'?raw:typeof raw==='string'&&/^[1-9]\d*$/.test(raw)?Number(raw):null;
-  if(Number.isSafeInteger(count)&&count>0)fields.holderCount=evidence(count,'Robinhood Blockscout',{
-   contract:address,sourceUrl:cfg.blockscoutTokens+address+'/counters',
-   scope:'Explorer current reported holder count; does not prove pinned-block enumeration.'});
- }catch{}
- return {description:'Explorer-reported count only. Whale metrics are NOT VERIFIED without full balances.',fields};
+ const count=await require('./robinhood-holder-count').fetchCount(address);
+ if(count)fields.holderCount=count;
+ return {description:count?
+  'Contract-matched current explorer holder count; whale percentages need a complete reconciled snapshot.':
+  'No verifiable holder population; whale concentration is NOT VERIFIED.',fields};
 }
 async function activity({address},cardId){
  const fields=await inspectMarket(address);
