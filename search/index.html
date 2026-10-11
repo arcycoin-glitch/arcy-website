@@ -708,8 +708,12 @@ function clearPriceChart(){
  }
  const root=$('chartPlot');root.replaceChildren();root.hidden=true;
 }
-function chartDate(timestamp){
- return new Intl.DateTimeFormat('en-US',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(timestamp*1000));
+function chartDate(timestamp,range=activeChartRange){
+ const intraday=range==='4H'||range==='1D';
+ return new Intl.DateTimeFormat('en-US',{
+  day:'numeric',month:'short',timeZone:'UTC',
+  ...(intraday?{hour:'2-digit',minute:'2-digit',hour12:false}:{})
+ }).format(new Date(timestamp*1000));
 }
 function chartValue(value){return metricFormat.display(value,'priceUsd');}
 function drawVerifiedChart(data){
@@ -758,7 +762,7 @@ function drawVerifiedChart(data){
  const axis=$('chartAxis'),inspector=$('chartInspector'),stats=$('chartStats'),root=$('chartPlot');
  axis.replaceChildren();
  for(const p of [points[0],points[points.length-1]]){
-  const label=document.createElement('span');label.textContent=chartDate(p.time);axis.append(label);
+  const label=document.createElement('span');label.textContent=chartDate(p.time,data.range);axis.append(label);
  }
  axis.hidden=false;
  const change=(points[points.length-1].close/points[0].close-1)*100;
@@ -766,7 +770,7 @@ function drawVerifiedChart(data){
  if(Number.isFinite(change)){
   const headline=document.createElement('span');
   const label=document.createElement('span');label.className='chart-stat-caption';
-  label.textContent=(points.length-1)+' daily close intervals';
+  label.textContent=(points.length-1)+' '+CHART_RANGES[data.range]?.label+' intervals';
   const value=document.createElement('strong');
   value.className='chart-stat-value '+(change>=0?'positive':'negative');
   value.textContent=(change>0?'+':'')+metricFormat.display(change,'change24h');
@@ -787,7 +791,8 @@ function drawVerifiedChart(data){
   guide.setAttribute('x1',String(x));guide.setAttribute('x2',String(x));
   dotHalo.setAttribute('cx',String(x));dotHalo.setAttribute('cy',String(pY));
   dot.setAttribute('cx',String(x));dot.setAttribute('cy',String(pY));
-  dateText.textContent=chartDate(points[cursor].time)+' · Daily pool close';
+  dateText.textContent=chartDate(points[cursor].time,data.range)+
+   ' UTC · '+CHART_RANGES[data.range]?.label+' pool close';
   priceText.textContent=chartValue(points[cursor].close);
   inspector.hidden=false;
  };
@@ -810,39 +815,54 @@ function drawVerifiedChart(data){
    cursor+(event.key==='ArrowRight'?1:-1));
  };
  root.replaceChildren(svg);root.hidden=false;
- root.setAttribute('aria-label','Verified pool daily price closes from '+chartDate(points[0].time)+
-  ' to '+chartDate(points[points.length-1].time)+'. Use arrow keys to inspect.');
+ root.setAttribute('aria-label','Verified pool '+CHART_RANGES[data.range]?.label+
+  ' USD closes from '+chartDate(points[0].time,data.range)+' to '+
+  chartDate(points[points.length-1].time,data.range)+' UTC. Use arrow keys to inspect.');
  return true;
 }
 async function loadVerifiedChart(address,network,version){
+ const requestedRange=activeChartRange;
+ const requestId=++chartGeneration;
+ if(chartController)chartController.abort();
+ const controller=new AbortController();
+ chartController=controller;
+ const current=()=>version===searchVersion&&requestId===chartGeneration&&
+  !controller.signal.aborted&&network===selected()&&
+  location.pathname===tokenPath(network,address)&&activeChartRange===requestedRange;
  clearPriceChart();
- const root=$('chartPlot');
- $('chartNote').textContent='Checking exact-chain historical pool data…';
+ $('chartNote').textContent='Checking '+requestedRange+' exact-chain historical pool data…';
  $('marketLink').hidden=true;
  try{
-  const response=await fetch('/api/search?action=chart&'+new URLSearchParams({address,chain:network}),{
-   cache:'no-store',signal:activeController?.signal});
+  const response=await fetch('/api/search?action=chart&'+new URLSearchParams({
+   address,chain:network,range:requestedRange}),{cache:'no-store',signal:controller.signal});
   const payload=await response.json();
-  if(version!==searchVersion||network!==selected()||location.pathname!==tokenPath(network,address))return;
+  if(!current())return;
   if(!response.ok&&['CHART_PROVIDER_TEMPORARILY_UNAVAILABLE','RATE_LIMITED'].includes(payload.error))
    throw Error('CHART_SOURCE_RETRY');
   if(!response.ok||payload.ok!==true||payload.network!==network||
-   payload.chainId!==NETWORKS[network].id||payload.address!==address||!drawVerifiedChart(payload))
+   payload.chainId!==NETWORKS[network].id||payload.address!==address||
+   payload.range!==requestedRange||payload.interval!==CHART_RANGES[requestedRange].interval)
    throw Error('Historical pool proof unavailable');
   const source=new URL(payload.sourceUrl);
   if(source.protocol!=='https:'||source.hostname!=='www.geckoterminal.com'||
-   !/^\/(arc|eth|robinhood)\/pools\/0x[0-9a-f]{40,64}$/i.test(source.pathname))throw Error('Historical source link invalid');
+   !/^\/(arc|eth|robinhood)\/pools\/0x[0-9a-f]{40,64}$/i.test(source.pathname))
+   throw Error('Historical source link invalid');
+  if(!drawVerifiedChart(payload))throw Error('Invalid historical pool candles');
   $('marketLink').href=source.href;$('marketLink').hidden=false;
-  const last=new Date(payload.lastCandleTime*1000).toISOString().slice(0,10);
-  $('chartNote').textContent='GeckoTerminal · '+payload.points.length+
-   ' daily USD closes (up to 30) · One contract-matched pool · Latest candle: '+last+
-   ' · This is not a market-wide aggregate or an execution quote.';
+  const last=new Date(payload.lastCandleTime*1000).toISOString();
+  const config=CHART_RANGES[requestedRange];
+  $('chartNote').textContent='GeckoTerminal · '+payload.points.length+' '+
+   config.label+' USD closes · '+config.duration+
+   ' selected · One contract-matched pool · Latest candle: '+last.slice(0,16).replace('T',' ')+' UTC'+
+   ' · Not a market-wide aggregate or execution quote.';
  }catch(error){
-  if(version!==searchVersion||location.pathname!==tokenPath(network,address))return;
+  if(!current())return;
   clearPriceChart();$('marketLink').hidden=true;
   $('chartNote').textContent=error?.message==='CHART_SOURCE_RETRY'?
-   'Historical price source is temporarily unavailable. Try again shortly; this is not proof the token has no price history.':
-   'No reliable exact-contract historical chart available. We do not invent price movement.';
+   'Historical price source is temporarily unavailable. Try again shortly; this does not mean the token has no trading history.':
+   'Not enough verified '+requestedRange+' price history for this exact contract and pool. No estimated movement is shown.';
+ }finally{
+  if(chartController===controller)chartController=null;
  }
 }
 function renderQuickFacts(report){
