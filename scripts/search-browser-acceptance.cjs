@@ -71,6 +71,8 @@ async function main(){
      data={ok:true,network,chainId:id,address:token,block:'0x12345',
       fields:{totalSupply:{value:null,dataState:'NOT_VERIFIED'}}};
     }
+    if(action==='report'&&network==='arc')
+     await new Promise(resolve=>setTimeout(resolve,800));
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
    });
    await page.goto(base+'/',{waitUntil:'domcontentloaded'});
@@ -99,6 +101,11 @@ async function main(){
     await page.locator('#address').fill(token);
     await page.locator('#go').click();
     await page.waitForURL('**/search/token/'+network+'/'+token);
+    if(network==='arc'){
+     await page.waitForFunction(()=>document.querySelector('#chartPlot')?.hidden===false,{timeout:12000});
+     assert.match(await page.locator('#detailState').innerText(),/Reading/,
+      'Arc price chart must load while slower LP/holder/control checks continue');
+    }
     await page.waitForFunction(()=>document.querySelector('#detailState').textContent.includes('Snapshot complete'),{timeout:12000});
     assert.equal(await page.locator('#tokenDetail').isVisible(),true);
     assert.equal(await page.locator('#deepResearch').evaluate(x=>x.open),false,
