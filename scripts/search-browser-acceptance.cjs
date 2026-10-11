@@ -325,8 +325,17 @@ async function main(){
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
    assert.equal(overflow,false,'No sideways phone page overflow');
    assert.deepEqual(errors,[],'No new browser errors');
-   const unexpectedConsoleErrors=consoleErrors.filter(error=>!error.url.includes('/api/search?action=chart'));
-   assert.deepEqual(unexpectedConsoleErrors,[],'No unexpected browser console errors: '+JSON.stringify(badResponses));
+   // Exactly one deliberately injected HTTP 503 above is expected.
+   // A browser can attribute its resource-loading console warning to the
+   // page rather than the API endpoint. All other errors still fail CI.
+   const expectedChartOutage=badResponses.filter(x=>x.status===503&&
+    new URL(x.url).searchParams.get('action')==='chart');
+   assert.equal(expectedChartOutage.length,1,'Outage case must trigger exactly one chart HTTP 503');
+   assert.deepEqual(badResponses.filter(x=>!expectedChartOutage.includes(x)),[],'No unexpected HTTP responses');
+   const unexpectedConsoleErrors=consoleErrors.filter(error=>!(
+    /Failed to load resource/i.test(error.text)&&/503/.test(error.text)&&expectedChartOutage.length===1
+   ));
+   assert.deepEqual(unexpectedConsoleErrors,[],'No unexpected browser console errors');
    outcomes.push({width,status:'PASS',networks:3,reportCards:5,reportFields:20});
    await page.close();
   }
