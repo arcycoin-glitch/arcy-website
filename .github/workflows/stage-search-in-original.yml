@@ -35,8 +35,8 @@ jobs:
           for(const section of ['hero','search','burn','unlocks','pulse','buy'])assert.match(original,new RegExp('id="'+section+'"'));
           assert.match(original,/assets\/1000266146\.mp4/);
           assert.match(original,/search-upgrade\.js/);
-          assert.match(search,/\/api\/search-discover\?/);
-          assert.match(search,/\/api\/search-report\?/);
+          assert.match(search,/\/api\/search\?action=discover&/);
+          assert.match(search,/\/api\/search\?action=report&/);
           assert.match(search,/\/search\/token\//);
           assert.match(search,/Robinhood Chain/);
           assert.match(search,/Ethereum/);
