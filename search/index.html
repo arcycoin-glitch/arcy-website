@@ -817,22 +817,45 @@ async function loadVerifiedChart(address,network,version){
  }
 }
 function renderQuickFacts(report){
- const summary=[
-  ['PRICE',report.cards?.activity?.fields?.priceUsd,'priceUsd'],
-  ['TRACKED LIQUIDITY',report.cards?.liquidity?.fields?.liquidityUsd,'liquidityUsd'],
-  ['HOLDER COUNT',report.cards?.holders?.fields?.holderCount,'holderCount']
+ // Buyer-priority headline facts: use verified-by-source values, never blank
+ // fixed-price cards when a young chain has useful, pinned supply evidence.
+ const candidates=[
+  ['PRICE','activity','priceUsd','priceUsd'],
+  ['TRACKED LIQUIDITY','liquidity','liquidityUsd','liquidityUsd'],
+  ['HOLDER COUNT','holders','holderCount','holderCount'],
+  ['TOTAL SUPPLY','supply','totalSupply','totalSupply'],
+  ['DEAD-ADDRESS BALANCE','supply','burnAddressBalance','burnAddressBalance'],
+  ['DEAD-ADDRESS %','supply','burnAddressPct','burnAddressPct'],
+  ['24H VOLUME','activity','volume24h','volume24h'],
+  ['24H CHANGE','activity','change24h','change24h'],
+  ['VALUATION','activity','valuation','valuation'],
+  ['TRACKED PAIRS','liquidity','dexPairCount','dexPairCount']
  ];
+ const valid=c=>{const f=report.cards?.[c[1]]?.fields?.[c[2]];
+  return f?.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined&&
+   typeof f.source==='string'&&f.source.length>0;
+ };
+ const prioritized=candidates.filter(valid).slice(0,3);
  const root=$('quickFacts');root.replaceChildren();
- for(const [label,field,key] of summary){
-  const box=document.createElement('div');box.className='quick';
-  const a=document.createElement('span');a.className='quick-label';a.textContent=label;
-  const b=document.createElement('div');b.className='quick-value';
-  const verified=field?.dataState==='DATA_FOUND'&&field?.value!==null&&field?.value!==undefined;
-  b.textContent=verified?metricFormat.display(field.value,key,field.kind):'NOT VERIFIED';
-  if(!verified)b.style.fontSize='14px';
-  const note=document.createElement('small');
-  note.textContent=verified?(field.source||'Source reported'):'Source evidence unavailable';
-  box.append(a,b,note);root.append(box);
+ root.classList.toggle('quick-facts-empty',prioritized.length===0);
+ if(prioritized.length===0){
+  const empty=document.createElement('p');
+  empty.className='quick-facts-notice';
+  empty.textContent='No source-backed headline metrics are available for this contract yet. Open the full report for missing-source reasons.';
+  root.append(empty);
+ }else{
+  for(const [label,card,key,formatKey] of prioritized){
+   const field=report.cards[card].fields[key];
+   const box=document.createElement('div');box.className='quick';
+   const a=document.createElement('span');a.className='quick-label';
+   a.textContent=label;
+   const b=document.createElement('div');b.className='quick-value';
+   b.textContent=metricFormat.display(field.value,formatKey,field.kind);
+   const note=document.createElement('small');
+   note.textContent=(field.source||'Source reported')+
+    (card==='supply'&&key==='burnAddressPct'?' · current custody, not lifetime burns':'');
+   box.append(a,b,note);root.append(box);
+  }
  }
  const tax=report.cards?.mechanics?.fields?.tradingTaxes;
  const mint=report.cards?.mechanics?.fields?.mintCapability;
@@ -842,7 +865,6 @@ function renderQuickFacts(report){
   found.length+' of 3 contract safety checks have source evidence. Open the full report to review the exact control and fee findings.':
   'Taxes, mint capability and admin authority are not fully verified. Unknown is never considered safe.';
 }
-
 function cancelPending(){
  searchVersion++;
  if(activeController){activeController.abort();activeController=null}
