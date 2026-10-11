@@ -88,6 +88,28 @@ async function main(){
    await page.waitForURL('**/search/');
    assert.equal(await page.locator('#discovery').isVisible(),true);
    assert.equal(await page.locator('#tokenDetail').isVisible(),false);
+   assert.equal(await page.locator('header .brand-y').innerText(),'Y');
+   assert.equal(await page.locator('header .brand-search').innerText(),'SEARCH');
+   assert.equal(await page.locator('.hero-mascot img').getAttribute('src'),
+    '/search/assets/arcy-neon-owl.svg');
+   await page.locator('.hero-mascot img').evaluate(async img=>{
+    await img.decode();
+    if(img.naturalWidth===0||img.naturalHeight===0)throw Error('Cyber owl artwork failed to load');
+   });
+   assert.equal(await page.locator('#address').count(),1);
+   assert.equal(await page.locator('#go').innerText(),'SEARCH / SCAN');
+   const orange=await page.locator('.brand-y').evaluate(el=>getComputedStyle(el).color);
+   assert.equal(orange,'rgb(255, 154, 43)','Only ARCY Y is orange');
+   const searchReady=await page.locator('#discovery .search').evaluate(el=>{
+    const r=el.getBoundingClientRect();return r.width>250&&r.left>=0&&r.right<=innerWidth+1;
+   });
+   assert.equal(searchReady,true,'Functional search field must stay within viewport');
+   if(width===320||width===390||width===1440){
+    const folder=path.resolve(__dirname,'../artifacts/search-preview');
+    mkdirSync(folder,{recursive:true});
+    await page.screenshot({path:path.join(folder,'landing-'+width+'-REAL-UI.png'),
+     fullPage:true,animations:'disabled'});
+   }
    assert.equal(await page.locator('select').count(),0,'No native white Android picker');
    assert.equal(await page.locator('#chainMenu [role="option"]').count(),3);
    await page.locator('#chainTrigger').click();
