@@ -1,5 +1,6 @@
 'use strict';
 const handlers=Object.freeze({
+ health:require('../../search/server/api/health'),
  discover:require('../../search/server/api/discover'),
  report:require('../../search/server/api/report'),
  token:require('../../search/server/api/token'),
