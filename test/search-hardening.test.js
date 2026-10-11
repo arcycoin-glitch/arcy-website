@@ -96,7 +96,7 @@ test('Small USD prices are readable and evidence keeps unrounded precision',()=>
  assert.equal(format.display(0.4935,'priceUsd'),'\u00240.4935');
  assert.equal(format.display(0.00032632,'priceUsd'),'\u00240.0003263');
  assert.equal(format.display(0.00032144,'priceUsd'),'\u00240.0003214');
- assert.equal(format.display(0.00032632,'valuation'),'0.0003');
+ assert.equal(format.display(0.00032632,'valuation'),'\u00240.0003');
  assert.equal(format.full(0.00032632,'priceUsd'),'\u00240.00032632');
  assert.equal(format.display(151600000,'valuation'),'\u0024151.6M');
  assert.equal(format.display(151600000,'valuation','MARKET_CAP'),'Market Cap \u0024151.6M');
