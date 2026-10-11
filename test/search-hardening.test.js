@@ -43,3 +43,27 @@ test('Invalid credential and failed providers never leak details or invent holde
  assert.equal(failed,null);assert.equal(requests,1);
  assert.equal(await read.fetchCount('not a contract',{fetcher:()=>{throw Error('Should not call')}}),null);
 });
+
+
+test('Chart endpoint separates GeckoTerminal service outages from absent price data',async()=>{
+ const history=require('../search/server/lib/price-history');
+ const handler=require('../search/server/api/chart');
+ const original=history.load;
+ const response=()=>({statusCode:200,headers:{},body:null,
+  setHeader(k,v){this.headers[k]=v},status(v){this.statusCode=v;return this},
+  json(body){this.body=body;return this}});
+ const req={method:'GET',query:{chain:'robinhood',address:ADDRESS},headers:{},socket:{remoteAddress:'127.0.0.1'}};
+ try{
+  history.load=async()=>{throw Error('GeckoTerminal HTTP 429')};
+  const down=response();await handler(req,down);
+  assert.equal(down.statusCode,503);
+  assert.equal(down.headers['Retry-After'],'60');
+  assert.equal(down.headers['Cache-Control'],'no-store');
+  assert.equal(down.body.error,'CHART_PROVIDER_TEMPORARILY_UNAVAILABLE');
+  assert.equal(down.body.network,'robinhood');
+  history.load=async()=>{throw Error('No exact-token source pool verified')};
+  const noMarket=response();await handler(req,noMarket);
+  assert.equal(noMarket.statusCode,200);
+  assert.equal(noMarket.body.error,'CHART_SOURCE_NOT_VERIFIED');
+ }finally{history.load=original}
+});
