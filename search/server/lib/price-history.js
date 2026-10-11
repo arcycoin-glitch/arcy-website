@@ -75,6 +75,16 @@ async function bestPool(base,id,address,fetcher,now){
  poolPending.set(key,job);
  try{return await job}finally{if(poolPending.get(key)===job)poolPending.delete(key)}
 }
+function weekFromDaily(daily,now){
+ if(!daily||daily.ok!==true||daily.range!=='30D'||daily.interval!=='1d'||
+  !Array.isArray(daily.points)||daily.points.length<3)return null;
+ if(daily.lastCandleTime*1000<now-2*86400000)return null;
+ const recent=daily.points.filter(p=>Number.isSafeInteger(p.time)&&Number.isFinite(p.close)&&p.close>0&&
+  p.time*1000>=now-8*86400000&&p.time*1000<=now+180000).slice(-7);
+ if(recent.length<3)return null;
+ return {...structuredClone(daily),range:'1W',interval:'1d',requestedWindow:'7 days',
+  lastCandleTime:recent[recent.length-1].time,points:recent};
+}
 async function load(network,address,{fetcher=fetch,now=Date.now(),disableCache=false,range='30D'}={}){
  if(!Object.hasOwn(ids,network)||!ADDRESS.test(address))throw Error('Unsupported chart contract');
  if(!Object.hasOwn(RANGES,range))throw Error('Unsupported chart interval');
@@ -84,6 +94,16 @@ async function load(network,address,{fetcher=fetch,now=Date.now(),disableCache=f
   const hit=cache.get(key);
   if(hit&&hit.expires>now)return structuredClone(hit.data);
   if(pending.has(key))return pending.get(key);
+  // Weekly is already contained in a verified recent 30D daily series. Reuse
+  // the *real candles* rather than make another provider call that risks 429.
+  if(range==='1W'){
+   const prior=cache.get(network+':'+normalized+':30D');
+   const week=prior&&prior.expires>now?weekFromDaily(prior.data,now):null;
+   if(week){
+    cache.set(key,{data:week,expires:Math.min(prior.expires,now+CACHE_MS)});
+    return structuredClone(week);
+   }
+  }
  }
  const job=(async()=>{
   const base='https://api.geckoterminal.com/api/v2/networks/'+id;
@@ -114,4 +134,4 @@ async function load(network,address,{fetcher=fetch,now=Date.now(),disableCache=f
  pending.set(key,job);
  try{return await job}finally{if(pending.get(key)===job)pending.delete(key)}
 }
-module.exports={load,tokenMatch,choosePool,parseCandles,RANGES};
+module.exports={load,tokenMatch,choosePool,parseCandles,RANGES,weekFromDaily};
