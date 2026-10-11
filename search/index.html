@@ -387,10 +387,9 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
   <h2>Research, without the noise.</h2>
   <p>Only contract-matched metrics. Open source evidence when you need it.</p>
 </div>
-<div id="evidenceCount" class="sourceCount" aria-live="polite"></div>
-<p class="buyers">Contract confirmation is not an investment safety rating. Missing evidence is never treated as proof of safety.</p>
 <details id="deepResearch">
- <summary><span class="report-summary-label"><strong>Explore full on-chain report</strong><small>20 checks · Verified facts, risks and sources</small></span><span class="report-summary-arrow" aria-hidden="true">↗</span></summary>
+ <summary><span class="report-summary-label"><strong>Explore full on-chain report</strong><small id="evidenceCount" aria-live="polite">20 checks · Sources, risks and evidence</small></span><span class="report-summary-arrow" aria-hidden="true">↗</span></summary>
+ <p class="buyers">Contract confirmation is not an investment safety rating. Missing evidence is never treated as proof of safety.</p>
  <div id="cards" class="grid"></div>
 </details>
 
@@ -435,7 +434,7 @@ function render(report){
   const root=$('cards');
   root.replaceChildren();
   const withoutEvidence=[];
-  const count=$('evidenceCount');count.textContent='';
+  const count=$('evidenceCount');count.textContent='20 checks · Sources, risks and evidence';
   if(report&&report.cards){
    let valid=0,total=0;
    for(const card of Object.values(report.cards)){
@@ -444,7 +443,7 @@ function render(report){
      if(data?.dataState==='DATA_FOUND'&&data.value!==null&&data.value!==undefined)valid++;
     }
    }
-   count.textContent=valid+' of '+total+' metrics have source-backed values. Missing fields explain why below.';
+   count.textContent=valid+' / '+total+' source-backed · See evidence and missing reasons';
   }
   for(const spec of displayDefinitions){
     const card=report?.cards?.[spec.id];
