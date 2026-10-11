@@ -36,3 +36,11 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Test original live sections untouched and premium token research navigation
         run: node scripts/search-browser-acceptance.cjs
+      - name: Attach ARCY Search mock-data screenshots for owner/Codex inspection
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: arcy-search-visual-fixtures
+          path: artifacts/search-preview/*.png
+          if-no-files-found: ignore
+          retention-days: 7
