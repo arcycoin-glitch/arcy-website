@@ -43,3 +43,15 @@ Date: 2026-10-11
 - [ ] Owner approves promoting Search-only change; retain original site version as one-click rollback.
 
 **Release decision: remain DRAFT and not on the live domain until these gates pass.**
+
+
+## Chart timeframe upgrade — 2026-10-11
+- User-requested mobile timeframe controls: **4H, 1D, 1W, 30D** (four hour, one day, one week, thirty days). Default 30D.
+- No weekly OHLCV endpoint is fabricated: 1W uses 7 daily pool closes; 1D uses 24 hourly; 4H uses up to 16 real 15-minute closes; 30D uses up to 30 daily closes. Sample count and UTC candle timestamp are taken from returned source, not assumed.
+- GeckoTerminal timeframe and aggregate values correspond to its published `minute`, `hour`, `day` OHLCV endpoint. Chart requests explicitly bind network + full token contract + timeframe, and source addresses are cross-checked against OHLCV response metadata.
+- Each interval is cached independently, while exact-contract pool lookup is shared for two minutes to reduce GeckoTerminal public API calls on rapid interval switching.
+- Outdated sparse pool data for a four-hour selection is **not shown as current**. Without at least three recent source candles, the chart stays unavailable. Concurrent response ordering protected with AbortController and a generation counter.
+- The on-chain report CTA appears immediately below the research heading in a high-contrast accent card with live source-backed metric count and 20-check label; risk warning and full evidence live behind its expandable disclosure.
+- Regression test: **195/195 Node tests + 4/4 Chromium widths** at commit `f1f6da810dfe68bc368a419b78811c2b4dc24bdd`, https://github.com/arcycoin-glitch/arcy-website/actions/runs/38157508585 .
+- Live GeckoTerminal WETH multi-range probe on GitHub Actions was rate-limited (HTTP 429) for intraday windows, with daily data unavailable from the selected pool. This is a **provider availability limitation**, not a pass; do not claim four independently verified live timeframes. The interface clearly shows unavailability instead of inferred prices. https://github.com/arcycoin-glitch/arcy-website/actions/runs/38157279491 .
+- New preview build blocked by **Vercel Hobby daily deployment quota (HTTP 402, `api-deployments-free-per-day`)**; last checked no Vercel deployment existed for the newest commit. The user may wait for quota renewal or adjust their plan/billing themselves. Do not bypass the quota or link an earlier preview as the new version.
