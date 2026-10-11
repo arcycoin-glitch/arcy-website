@@ -12,6 +12,7 @@ on:
       - 'scripts/search-browser-acceptance.cjs'
       - 'test/search-hardening.test.js'
       - 'test/search-chart-ranges.test.js'
+      - 'test/search-arc-legacy-parity.test.js'
       - '.github/workflows/search-browser-acceptance.yml'
   workflow_dispatch:
 permissions:
