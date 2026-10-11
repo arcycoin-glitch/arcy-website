@@ -3,7 +3,14 @@
 // source adapters. No HTTP roundtrip, no worker actions, no transfer/signer API.
 // Existing production endpoints are not modified.
 const CHAIN=5042,NETWORK='arc',ADDRESS=/^0x[0-9a-f]{40}$/;
-const path=require('node:path');
+// Literal requires are essential for Vercel's serverless dependency tracing.
+// Never use a computed require(path.join(...)) for production legacy modules.
+const ORIGINAL=Object.freeze({
+ mechanics:()=>require('../../../api/mechanics'),
+ liquidity:()=>require('../../../api/liquidity'),
+ market:()=>require('../../../api/market'),
+ holders:()=>require('../../../api/holders')
+});
 const NO=(reason,reasonCode='SOURCE_NOT_VERIFIED')=>({value:null,status:'NOT_VERIFIED',
  dataState:'NOT_VERIFIED',source:null,evidence:[],network:NETWORK,chainId:CHAIN,
  reason,reasonCode});
@@ -36,7 +43,7 @@ function selectedBoolOrText(field,address,scope){
 async function callOriginal(name,address,options={},custom){
  if(!['mechanics','liquidity','market','holders'].includes(name)||!ADDRESS.test(address))
   throw Error('Invalid Arc legacy adapter request');
- const handler=custom||require(path.join(__dirname,'../../../api',name+'.js'));
+ const handler=custom||ORIGINAL[name]();
  if(typeof handler!=='function')throw Error('Original Arc route missing');
  const req={method:'GET',query:{address,...options},headers:{}};
  const res={statusCode:200,
