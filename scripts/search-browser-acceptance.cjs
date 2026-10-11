@@ -25,6 +25,10 @@ async function main(){
    page.on('pageerror',e=>errors.push(e.message));
    page.on('console',message=>{if(message.type()==='error')consoleErrors.push({text:message.text(),url:message.location().url})});
    page.on('response',response=>{if(response.status()>=400)badResponses.push({status:response.status(),url:response.url()})});
+   // The original homepage's optional CoinGecko logo lookup is unrelated to
+   // Search acceptance. Keep it deterministic and avoid browser CORS noise.
+   await page.route('https://api.coingecko.com/api/v3/coins/markets**',route=>
+    route.fulfill({status:200,contentType:'application/json',body:'[]'}));
    await page.route('**/api/search*',async route=>{
     const url=new URL(route.request().url()),action=url.searchParams.get('action'),
      network=url.searchParams.get('chain')||'arc',id=chainIds[network];
