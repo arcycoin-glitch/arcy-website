@@ -205,6 +205,22 @@ async function main(){
    await page.unroute('**/api/search?action=chart&**');
    assert.equal(await page.locator('#currentChainName').innerText(),'Arc');
    assert.equal(await page.locator('#tokenDetail').isVisible(),true);
+   // Sparse evidence still produces three honest, level, readable quick tiles.
+   await page.evaluate(()=>{
+    window.renderQuickFacts({cards:{
+     activity:{fields:{valuation:{value:302700,kind:'MARKET_CAP',
+      dataState:'DATA_FOUND',source:'DexScreener'}}}
+    }});
+   });
+   assert.equal(await page.locator('#quickFacts .quick').count(),3);
+   assert.deepEqual(await page.locator('#quickFacts .quick-label').allInnerTexts(),
+    ['MARKET CAP','PRICE','TRACKED LIQUIDITY']);
+   assert.equal(await page.locator('#quickFacts .quick-value').first().innerText(),'$302.7K');
+   assert.equal(await page.locator('#quickFacts .quick-unverified').count(),2);
+   assert.equal(await page.locator('#quickFacts .quick-value').nth(1).innerText(),'NOT VERIFIED');
+   const sparseTops=await page.locator('#quickFacts .quick').evaluateAll(xs=>
+    xs.map(x=>x.getBoundingClientRect().top));
+   assert.ok(sparseTops.every(t=>Math.abs(t-sparseTops[0])<2),'Sparse cards must share a row');
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
    assert.equal(overflow,false,'No sideways phone page overflow');
    assert.deepEqual(errors,[],'No new browser errors');
