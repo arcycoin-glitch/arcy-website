@@ -48,6 +48,20 @@ test('GeckoTerminal ranges map to exact documented aggregates and isolated cache
   assert.equal(requests,range==='1W'?0:2,'No duplicate provider calls for same chain+contract+range');
  }
 });
+test('1W as the first click derives seven actual closes from one 30D source scan',async()=>{
+ let calls=0;
+ const fetcher=async url=>{calls++;return validResponse('30D',url)};
+ const result=await chart.load('ethereum',address,{range:'1W',now,fetcher,disableCache:true});
+ assert.equal(result.range,'1W');
+ assert.equal(result.interval,'1d');
+ assert.equal(result.points.length,7);
+ assert.equal(result.source,'GeckoTerminal');
+ assert.equal(result.network,'ethereum');
+ assert.equal(result.address,address);
+ assert.equal(result.poolAddress,pool);
+ assert.equal(result.lastCandleTime,result.points.at(-1).time);
+ assert.equal(calls,2,'Only one pool lookup and one 30D OHLCV request; no separate weekly API call');
+});
 test('Unsupported chart ranges cannot trigger provider or grow cache',async()=>{
  let called=false;
  await assert.rejects(chart.load('ethereum',address,{range:'all',fetcher:()=>{called=true}}),/Unsupported chart interval/);
