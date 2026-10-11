@@ -45,7 +45,7 @@ async function callOriginal(name,address,options={},custom){
   throw Error('Invalid Arc legacy adapter request');
  const handler=custom||ORIGINAL[name]();
  if(typeof handler!=='function')throw Error('Original Arc route missing');
- const req={method:'GET',query:{address,...options},headers:{}};
+ const req={method:'GET',query:{...options,address},headers:{}};
  const res={statusCode:200,
   setHeader(){return this},status(code){this.statusCode=code;return this},
   json(value){this.body=value;return value}};
