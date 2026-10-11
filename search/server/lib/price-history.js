@@ -12,6 +12,7 @@ const RANGES=Object.freeze({
  '4H':Object.freeze({timeframe:'minute',aggregate:15,limit:16,interval:'15m',label:'4 hours'})
 });
 const cache=new Map(),pending=new Map();
+const poolCache=new Map(),poolPending=new Map();
 function tokenMatch(item,network,address){
  const ids=[item?.relationships?.base_token?.data?.id,item?.relationships?.quote_token?.data?.id]
   .filter(x=>typeof x==='string').map(x=>x.toLowerCase());
@@ -55,6 +56,25 @@ async function request(url,fetcher){
  if(!response.ok)throw Error('GeckoTerminal HTTP '+response.status);
  return readJson(response,512*1024);
 }
+async function bestPool(base,id,address,fetcher,now){
+ // Discover the exact-contract source pool once per 2-minute window for all
+ // four intervals. Avoid flooding free GeckoTerminal on rapid button clicks.
+ const from=()=>request(base+'/tokens/'+address+'/pools?page=1',fetcher)
+  .then(body=>choosePool(body,id,address))
+  .then(pool=>{if(!pool)throw Error('No exact-token source pool verified');return pool});
+ if(fetcher!==fetch)return from();
+ const key=id+':'+address;
+ const hit=poolCache.get(key);
+ if(hit&&hit.expires>now)return hit.pool;
+ if(poolPending.has(key))return poolPending.get(key);
+ const job=from().then(pool=>{
+  poolCache.set(key,{pool,expires:Date.now()+CACHE_MS});
+  if(poolCache.size>100)poolCache.delete(poolCache.keys().next().value);
+  return pool;
+ });
+ poolPending.set(key,job);
+ try{return await job}finally{if(poolPending.get(key)===job)poolPending.delete(key)}
+}
 async function load(network,address,{fetcher=fetch,now=Date.now(),disableCache=false,range='30D'}={}){
  if(!Object.hasOwn(ids,network)||!ADDRESS.test(address))throw Error('Unsupported chart contract');
  if(!Object.hasOwn(RANGES,range))throw Error('Unsupported chart interval');
@@ -67,9 +87,7 @@ async function load(network,address,{fetcher=fetch,now=Date.now(),disableCache=f
  }
  const job=(async()=>{
   const base='https://api.geckoterminal.com/api/v2/networks/'+id;
-  const pools=await request(base+'/tokens/'+normalized+'/pools?page=1',fetcher);
-  const pool=choosePool(pools,id,normalized);
-  if(!pool)throw Error('No exact-token source pool verified');
+  const pool=await bestPool(base,id,normalized,fetcher,now);
   const url=base+'/pools/'+pool+'/ohlcv/'+config.timeframe+'?aggregate='+config.aggregate+
    '&limit='+config.limit+'&currency=usd&token='+normalized;
   const candles=await request(url,fetcher);
