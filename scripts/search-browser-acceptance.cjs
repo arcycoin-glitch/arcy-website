@@ -160,6 +160,9 @@ async function main(){
     }
     await page.waitForFunction(()=>document.querySelector('#detailState').textContent.includes('Snapshot complete'),{timeout:12000});
     assert.equal(await page.locator('#tokenDetail').isVisible(),true);
+    assert.equal(await page.locator('#tokenDetail #backSearch').count(),1);
+    assert.equal(await page.locator('header .return-arcy').count(),0,
+     'The token report offers only one Back to Search control');
     const brandMark=page.locator('.brand-owl-mark');
     await brandMark.evaluate(async image=>{await image.decode();if(!image.naturalWidth)throw Error('Vector Search mark unavailable')});
     const markSize=await brandMark.evaluate(image=>({width:image.getBoundingClientRect().width,height:image.getBoundingClientRect().height}));
