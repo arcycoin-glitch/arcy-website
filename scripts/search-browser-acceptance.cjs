@@ -32,11 +32,19 @@ async function main(){
      const fields=Object.fromEntries(schema.map(x=>[x.id,{description:'Test source only',fields:
       Object.fromEntries(x.fields.map(([key])=>[key,{value:null,dataState:'NOT_VERIFIED',status:'NOT_VERIFIED',
        reason:'Fixture has no evidence',reasonCode:'NO_SOURCE'}]))}]));
+     fields.activity.fields.priceUsd={value:.4935,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
+     fields.liquidity.fields.liquidityUsd={value:2659000,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
+     fields.holders.fields.holderCount={value:215700,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'Blockscout'};
      data={ok:true,network,chainId:id,address:token,block:'0x12345',schemaVersion:1,cardCount:5,
       scannedAt:'2026-10-11T10:00:00.000Z',
       token:{name:'ARCY Demo',symbol:'ARCY',decimals:18},tokenIdentity:{status:'NOT_VERIFIED'},cards:fields};
     }else if(action==='chart'){
-     data={ok:false,error:'CHART_SOURCE_NOT_VERIFIED',network,address:token};
+     data=network==='robinhood'?
+      {ok:false,error:'CHART_SOURCE_NOT_VERIFIED',network,address:token}:
+      {ok:true,network,chainId:id,address:token,sourceUrl:'https://www.geckoterminal.com/'+
+        (network==='arc'?'arc':'eth')+'/pools/'+token,lastCandleTime:1791720000,
+       points:Array.from({length:30},(_,i)=>({time:Date.UTC(2026,8,12+i)/1000,
+        close:.45+.04*Math.sin(i/3)+.0015*i}))};
     }else if(action==='token'){
      data={ok:true,network,chainId:id,address:token,block:'0x12345',
       fields:{totalSupply:{value:null,dataState:'NOT_VERIFIED'}}};
@@ -73,7 +81,25 @@ async function main(){
     assert.equal(await page.locator('#tokenDetail').isVisible(),true);
     assert.equal(await page.locator('#cards .card').count(),5);
     assert.equal(await page.locator('#cards .metric').count(),20);
-    assert.match(await page.locator('#chartNote').innerText(),/No reliable|No verified/);
+    assert.equal(await page.locator('#quickFacts .quick').count(),3);
+    const tops=await page.locator('#quickFacts .quick').evaluateAll(xs=>xs.map(x=>x.getBoundingClientRect().top));
+    assert.ok(tops.every(t=>Math.abs(t-tops[0])<2),'Three key metrics must share one premium row');
+    if(network==='robinhood'){
+     assert.match(await page.locator('#chartNote').innerText(),/No reliable|No verified/);
+     assert.equal(await page.locator('#chartPlot').isVisible(),false);
+    }else{
+     await page.waitForFunction(()=>document.querySelector('#chartPlot')?.hidden===false);
+     assert.equal(await page.locator('#chartPlot svg path').count(),2);
+     assert.equal(await page.locator('#chartAxis span').count(),2);
+     assert.match(await page.locator('#chartStats').innerText(),/daily close intervals/);
+     await page.locator('#chartPlot').focus();
+     await page.keyboard.press('ArrowLeft');
+     assert.equal(await page.locator('#chartInspector').isVisible(),true);
+     assert.match(await page.locator('#chartInspector strong').innerText(),/^\\$/);
+     await page.keyboard.press('Home');
+     assert.match(await page.locator('#chartInspector').innerText(),/Sep 12/);
+     await page.locator('#chartPlot').blur();
+    }
     await page.locator('#backSearch').click();
     await page.waitForURL('**/search/');
     assert.equal(await page.locator('#discovery').isVisible(),true);
