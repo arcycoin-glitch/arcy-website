@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" role="img" aria-labelledby="owlTitle owlDesc">
+<title id="owlTitle">ARCY neon cyber owl</title><desc id="owlDesc">Angular navy owl with electric cyan eyes, blue horn-shaped brows and purple armored feathers, framed by a luminous circular halo.</desc>
+<defs>
+<radialGradient id="bg"><stop stop-color="#0b2145"/><stop offset=".68" stop-color="#031126"/><stop offset="1" stop-color="#020917"/></radialGradient>
+<linearGradient id="face" x2=".8" y2="1"><stop stop-color="#102d56"/><stop offset=".58" stop-color="#06182d"/><stop offset="1" stop-color="#020b20"/></linearGradient>
+<linearGradient id="edge" x1=".15" y1="0" x2=".85" y2="1"><stop stop-color="#00eeff"/><stop offset=".58" stop-color="#008bee"/><stop offset="1" stop-color="#7226e9"/></linearGradient>
+<linearGradient id="wing" x2="1" y2=".7"><stop stop-color="#0b3155"/><stop offset=".8" stop-color="#061a38"/><stop offset="1" stop-color="#270862"/></linearGradient>
+<radialGradient id="eyes"><stop stop-color="#21fbf8"/><stop offset=".85" stop-color="#02ddea"/><stop offset="1" stop-color="#0087d4"/></radialGradient>
+<filter id="glow" x="-50%" width="200%" y="-50%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="soft"><feGaussianBlur stdDeviation="10"/></filter>
+</defs>
+<rect width="760" height="480" fill="url(#bg)"/>
+<circle cx="380" cy="235" r="228" fill="none" stroke="#006cc8" stroke-width="1.1" opacity=".55"/>
+<path d="M153 202A227 227 0 0 1 600 185M108 210A279 279 0 0 1 152 92M613 75A281 281 0 0 1 652 212" fill="none" stroke="url(#edge)" stroke-width="4" opacity=".85" filter="url(#glow)"/>
+<path d="M0 342 37 301l29 18 32-43 54 63 21-16 58 110H0ZM760 335 712 292l-43 34-38-45-59 71-26-17-41 98h255Z" fill="#061730" opacity=".96"/>
+<path d="M0 387 100 372 150 402 220 391M760 395 690 368 615 397 560 386" fill="none" stroke="#1178b9" stroke-width="2" opacity=".6"/>
+<path d="M0 438h760M0 454h760M0 471h760M75 480l275-45m-170 45 175-45m325 45-275-45m170 45-175-45" stroke="#1267ab" stroke-width="1" opacity=".22"/>
+<ellipse cx="380" cy="428" rx="230" ry="11" fill="#00bbf1" opacity=".36" filter="url(#soft)"/>
+<!-- armored wings -->
+<path d="M250 218Q190 227 173 287L151 347 175 425Q218 404 267 344L300 275Z" fill="url(#wing)" stroke="url(#edge)" stroke-width="5"/>
+<path d="M510 218Q570 227 587 287L609 347 585 425Q542 404 493 344L460 275Z" fill="url(#wing)" stroke="url(#edge)" stroke-width="5"/>
+<path d="M244 237 205 307 188 382l48-58M516 237l39 70 17 75-48-58" stroke="#176bc1" stroke-width="3" fill="none"/>
+<path d="M195 411 265 316M565 411 495 316" stroke="#6932db" stroke-width="3" opacity=".9"/>
+<!-- owl body -->
+<path d="M291 239 380 274 469 239 485 340 454 403 380 462 306 403 275 340Z" fill="url(#face)" stroke="#144f95" stroke-width="4"/>
+<path d="M305 323 380 376 455 323 433 386 380 425 327 386Z" fill="#0c2245" stroke="#038bda" stroke-width="3"/>
+<path d="M310 353 380 405 450 353" fill="none" stroke="#0cf0f5" stroke-width="5" filter="url(#glow)"/>
+<path d="M323 405 380 446 437 405 380 465Z" fill="#080c31" stroke="#5e26ce" stroke-width="4"/>
+<!-- horns / head -->
+<path d="M221 90Q269 136 336 146L380 151 424 146Q491 136 539 90L535 175Q519 222 468 279L380 331 292 279Q241 222 225 175Z" fill="url(#face)" stroke="#0d69b4" stroke-width="4"/>
+<path d="M380 78 300 56 244 72 254 93Q308 117 380 142Q452 117 506 93l10-21-56-16Z" fill="#0a2449" stroke="#138adb" stroke-width="3"/>
+<path d="M226 140Q199 101 211 30 258 108 350 139l30 16 30-16Q502 108 549 30q12 71-15 110Q474 177 412 181l-32 22-32-22Q286 177 226 140Z" fill="#0e315b" stroke="url(#edge)" stroke-width="6" stroke-linejoin="round"/>
+<path d="M217 68Q278 129 363 160M543 68Q482 129 397 160" fill="none" stroke="#1379ca" stroke-width="2"/>
+<path d="M237 147Q287 162 343 205l37 18 37-18q56-43 106-58" fill="none" stroke="#0c65bc" stroke-width="6"/>
+<!-- eyes -->
+<path d="M258 173Q303 173 355 210L365 235Q340 272 299 270Q260 262 250 227Z" fill="#020b1c" stroke="#13518c" stroke-width="5"/>
+<path d="M502 173Q457 173 405 210L395 235Q420 272 461 270Q500 262 510 227Z" fill="#020b1c" stroke="#13518c" stroke-width="5"/>
+<path d="M273 192Q304 191 346 218Q345 244 317 251Q282 251 273 223Z" fill="url(#eyes)" filter="url(#glow)"/>
+<path d="M487 192Q456 191 414 218Q415 244 443 251Q478 251 487 223Z" fill="url(#eyes)" filter="url(#glow)"/>
+<!-- angular beak -->
+<path d="m380 215-24 23 24 38 24-38Z" fill="#0667b3" stroke="#1cb9ed" stroke-width="4"/>
+<path d="m380 229-10 11 10 21 10-21Z" fill="#0d2858"/>
+<path d="M281 277q40 33 99 50 59-17 99-50M298 303l82 49 82-49" fill="none" stroke="#0b5090" stroke-width="3"/>
+<path d="M330 429 380 463 430 429" stroke="#6425c3" stroke-width="4" fill="none"/>
+<path d="M128 220v24m505-40v22m-487 16v10m477-14v10" stroke="#02a9ec" stroke-width="4" stroke-linecap="round" filter="url(#glow)"/>
+</svg>
