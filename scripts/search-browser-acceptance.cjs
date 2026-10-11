@@ -20,7 +20,8 @@ async function main(){
   browser=await chromium.launch({headless:true});
   for(const width of [320,390,768,1440]){
    const page=await browser.newPage({viewport:{width,height:840}});
-   const errors=[];page.on('pageerror',e=>errors.push(e.message));
+   const errors=[];let weeklyBackendRequests=0;
+   page.on('pageerror',e=>errors.push(e.message));
    await page.route('**/api/search*',async route=>{
     const url=new URL(route.request().url()),action=url.searchParams.get('action'),
      network=url.searchParams.get('chain')||'arc',id=chainIds[network];
@@ -37,7 +38,7 @@ async function main(){
       fields.supply.fields.burnAddressBalance={value:'120000000',dataState:'DATA_FOUND',status:'ON_CHAIN',source:'Robinhood RPC'};
       fields.supply.fields.burnAddressPct={value:0.5116,dataState:'DATA_FOUND',status:'ON_CHAIN',source:'Robinhood RPC'};
      }else{
-      fields.activity.fields.priceUsd={value:.4935,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
+      fields.activity.fields.priceUsd={value:.00032632,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
       fields.liquidity.fields.liquidityUsd={value:2659000,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
       fields.holders.fields.holderCount={value:215700,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'Blockscout'};
       fields.activity.fields.valuation={value:302700,kind:'MARKET_CAP',dataState:'DATA_FOUND',
@@ -52,6 +53,7 @@ async function main(){
       token:{name:'ARCY Demo',symbol:'ARCY',decimals:18},tokenIdentity:{status:'NOT_VERIFIED'},cards:fields};
     }else if(action==='chart'){
      const range=url.searchParams.get('range')||'30D';
+     if(range==='1W')weeklyBackendRequests++;
      const frames={ '30D':{length:30,interval:'1d',step:86400000,start:Date.UTC(2026,8,12)},
       '1W':{length:7,interval:'1d',step:86400000,start:Date.UTC(2026,9,5)},
       '1D':{length:24,interval:'1h',step:3600000,start:Date.UTC(2026,9,10,20)},
@@ -130,6 +132,9 @@ async function main(){
      assert.equal((await valuation.innerText()).includes('Market Cap Market Cap'),false);
     }
     assert.equal(await page.locator('#quickFacts .quick').count(),3);
+    if(network!=='robinhood'){
+     assert.match(await page.locator('#quickFacts .quick-value').first().innerText(),/\$0\.0003263/);
+    }
     const headings=await page.locator('#quickFacts .quick-label').allInnerTexts();
     if(network==='robinhood'){
      assert.deepEqual(headings,['TOTAL SUPPLY','DEAD-ADDRESS BALANCE','DEAD-ADDRESS %']);
@@ -157,6 +162,8 @@ async function main(){
      assert.match(await page.locator('#chartNote').innerText(),new RegExp('GeckoTerminal · '+count));
      assert.match(await page.locator('#chartStats').innerText(),new RegExp(caption+' intervals'));
      assert.equal(await page.locator('#chartAxis span').count(),2);
+     if(range==='1W')assert.equal(weeklyBackendRequests,0,
+      '1W should reuse contract-verified 30D candles, not spend another API call');
      if(range==='4H'||range==='1D')assert.match(await page.locator('#chartAxis').innerText(),/Oct 11|Oct 10/);
     }
     const callToAction=page.locator('#deepResearch > summary');
