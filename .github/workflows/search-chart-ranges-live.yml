@@ -4,6 +4,7 @@ on:
     branches: [feature/search-multichain-premium-20261011]
     paths:
       - 'scripts/search-chart-ranges-live.cjs'
+      - 'search/server/lib/price-history.js'
       - '.github/workflows/search-chart-ranges-live.yml'
   workflow_dispatch:
 permissions:
