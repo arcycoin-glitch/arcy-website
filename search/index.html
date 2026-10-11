@@ -369,7 +369,12 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
   <div class="chart-shell" aria-label="Pool-specific price history">
     <div class="chart-heading">
       <div><span class="chart-kicker">SOURCE-MATCHED PRICE DATA</span><h2>Price history</h2></div>
-      <span class="chart-period">30D · DAILY</span>
+      <div class="chart-ranges" id="chartRanges" role="group" aria-label="Price history timeframe">
+       <button type="button" class="chart-range" data-range="4H" aria-pressed="false" title="Last 4 hours; 15-minute candles">4H</button>
+       <button type="button" class="chart-range" data-range="1D" aria-pressed="false" title="Last 24 hours; hourly candles">1D</button>
+       <button type="button" class="chart-range" data-range="1W" aria-pressed="false" title="Last 7 days; daily candles">1W</button>
+       <button type="button" class="chart-range" data-range="30D" aria-pressed="true" title="Last 30 days; daily candles">30D</button>
+      </div>
     </div>
     <div id="chartStats" class="chart-stats" hidden></div>
     <div id="chartPlot" hidden role="img" tabindex="0" aria-label="Verified daily USD price history; use left and right arrows to inspect" class="price-canvas"></div>
@@ -385,7 +390,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 <div id="evidenceCount" class="sourceCount" aria-live="polite"></div>
 <p class="buyers">Contract confirmation is not an investment safety rating. Missing evidence is never treated as proof of safety.</p>
 <details id="deepResearch">
- <summary>Explore the full on-chain report · 20 checks</summary>
+ <summary><span class="report-summary-label"><strong>Explore full on-chain report</strong><small>20 checks · Verified facts, risks and sources</small></span><span class="report-summary-arrow" aria-hidden="true">↗</span></summary>
  <div id="cards" class="grid"></div>
 </details>
 
@@ -579,7 +584,20 @@ render(null);
 
 const EVM_ADDRESS=/^0x[0-9a-fA-F]{40}$/;
 const NETWORKS={arc:{id:5042,label:'Arc',explorer:'https://explorer.arc.io'},ethereum:{id:1,label:'Ethereum',explorer:'https://eth.blockscout.com'},robinhood:{id:4663,label:'Robinhood Chain',explorer:'https://robinhoodchain.blockscout.com'}};
-let searchVersion=0,activeController=null;
+let searchVersion=0,activeController=null,chartController=null,chartGeneration=0,activeChartRange='30D';
+const CHART_RANGES=Object.freeze({
+ '4H':{label:'15-minute',interval:'15m',duration:'4 hours'},
+ '1D':{label:'hourly',interval:'1h',duration:'24 hours'},
+ '1W':{label:'daily',interval:'1d',duration:'7 days'},
+ '30D':{label:'daily',interval:'1d',duration:'30 days'}
+});
+function setChartRange(range){
+ if(!Object.hasOwn(CHART_RANGES,range))return;
+ activeChartRange=range;
+ for(const button of document.querySelectorAll('#chartRanges .chart-range')){
+  button.setAttribute('aria-pressed',button.dataset.range===range?'true':'false');
+ }
+}
 const selected=()=>$('chain').value;
 const NETWORK_ICON_MARKUP={
  arc:"<svg viewBox=\"0 0 40 40\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M5 28c1.2-10.7 7.5-17.5 15-17.5S33.8 17.3 35 28\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.6\" stroke-linecap=\"round\"/><path d=\"M11 30c2.4-6.8 5.4-9.4 9-9.4s6.6 2.6 9 9.4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.4\" stroke-linecap=\"round\"/></svg>",
@@ -668,6 +686,7 @@ function activateDetail(address,network,{push=true,identity=null,logoUrl=null}={
  setNetwork(network,{notify:false});
  $('discovery').hidden=true;$('tokenDetail').hidden=false;
  $('deepResearch').open=false;
+ setChartRange('30D');
  $('asset').replaceChildren();clearIdentity();render(null);
  $('quickFacts').replaceChildren();
  $('detailState').textContent='Reading '+NETWORKS[network].label+' contract evidence…';
@@ -870,8 +889,9 @@ function renderQuickFacts(report){
 
 }
 function cancelPending(){
- searchVersion++;
+ searchVersion++;chartGeneration++;
  if(activeController){activeController.abort();activeController=null}
+ if(chartController){chartController.abort();chartController=null}
  $('go').disabled=false;
 }
 function clearMatches(){
@@ -1117,6 +1137,15 @@ async function searchOrScan(){
    $('state').textContent='Token search unavailable: '+String(error.message).slice(0,140);
  }finally{if(version===searchVersion&&network===selected()){$('go').disabled=false;if(activeController===controller)activeController=null}}
 }
+$('chartRanges').addEventListener('click',event=>{
+ const target=event.target.closest('button[data-range]');
+ if(!target||!Object.hasOwn(CHART_RANGES,target.dataset.range))return;
+ if(target.dataset.range===activeChartRange)return;
+ setChartRange(target.dataset.range);
+ const route=tokenRoute(location.pathname);
+ if(route&&$('tokenDetail').hidden===false)
+  void loadVerifiedChart(route.address,route.network,searchVersion);
+});
 $('chain').addEventListener('change',chainChanged);
 $('go').addEventListener('click',searchOrScan);
 $('address').addEventListener('keydown',event=>{if(event.key==='Enter')void searchOrScan()});
