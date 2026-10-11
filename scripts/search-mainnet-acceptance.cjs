@@ -11,12 +11,32 @@ async function check({network,address,ticker}){
   const result=await Promise.race([service.report({network,address}),new Promise((_,reject)=>{
    controller.signal.addEventListener('abort',()=>reject(Error('90s source deadline')),{once:true});
   })]);
+  const ids={arc:5042,ethereum:1,robinhood:4663};
   if(result.ok!==true||result.address!==address.toLowerCase()||result.network!==network||
-   result.cardCount!==5||!result.token?.symbol)throw Error('Contract identity/report mismatch');
-  const counts=Object.fromEntries(Object.entries(result.cards).map(([card,obj])=>{
-   const list=Object.values(obj.fields);
-   if(list.length!==4)throw Error('Incorrect field count in '+card);
-   return [card,{known:list.filter(x=>x.dataState==='DATA_FOUND').length,total:list.length}]
+   result.chainId!==ids[network]||result.cardCount!==5||!result.token?.symbol)
+   throw Error('Contract identity/report mismatch');
+  const schema=require('../search/schema');
+  if(Object.keys(result.cards||{}).length!==schema.length)
+   throw Error('Missing or unexpected report category');
+  const counts=Object.fromEntries(schema.map(spec=>{
+   const obj=result.cards[spec.id];
+   if(!obj||!obj.fields||Object.keys(obj.fields).length!==4)
+    throw Error('Missing or oversized card '+spec.id);
+   const list=spec.fields.map(([key])=>{
+    const field=obj.fields[key];
+    if(!field||!['DATA_FOUND','NOT_VERIFIED','SOURCE_API_FAILED'].includes(field.dataState))
+     throw Error('Invalid/missing field '+spec.id+'.'+key);
+    if(field.dataState==='DATA_FOUND'&&
+     (field.network!==network||field.chainId!==ids[network]||
+      field.value===null||field.value===undefined||
+      typeof field.source!=='string'||!field.source.trim()||
+      !Array.isArray(field.evidence)||field.evidence.length===0))
+     throw Error('Unsupported or cross-chain field '+spec.id+'.'+key);
+    if(field.dataState!=='DATA_FOUND'&&field.value!==null)
+     throw Error('Unsupported metric contains a number '+spec.id+'.'+key);
+    return field;
+   });
+   return [spec.id,{known:list.filter(x=>x.dataState==='DATA_FOUND').length,total:list.length}];
   }));
   const total=Object.values(counts).reduce((n,x)=>n+x.known,0);
   return {ticker,network,ok:true,sourceBacked:total,fields:20,cards:counts,elapsedMs:Date.now()-start};
