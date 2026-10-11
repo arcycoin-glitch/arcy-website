@@ -17,7 +17,19 @@ module.exports=async function handler(req,res){
    reason:'Historical pool data has not been verified for this chain.'});
  if(!enforce(req,res))return;
  try{return res.status(200).json(await history.load(q.chain,q.address))}
- catch{return res.status(200).json({ok:false,network:q.chain,address:q.address.toLowerCase(),
-  error:'CHART_SOURCE_NOT_VERIFIED',
-  reason:'No exact-network, exact-token historical pool series could be established. Never infer historical prices.'})}
+ catch(error){
+  const msg=String(error?.message||'');
+  const temporary=/GeckoTerminal HTTP (?:408|429|5\d\d)|fetch failed|timeout|abort|deadline/i.test(msg)||
+   error?.name==='TimeoutError'||error?.name==='AbortError';
+  if(temporary){
+   res.setHeader('Cache-Control','no-store');
+   res.setHeader('Retry-After','60');
+   return res.status(503).json({ok:false,network:q.chain,address:q.address.toLowerCase(),
+    error:'CHART_PROVIDER_TEMPORARILY_UNAVAILABLE',
+    reason:'Historical-price source is temporarily unavailable. Retry later; this does not invalidate contract identity.'});
+  }
+  return res.status(200).json({ok:false,network:q.chain,address:q.address.toLowerCase(),
+   error:'CHART_SOURCE_NOT_VERIFIED',
+   reason:'No exact-network, exact-token historical pool series could be established. Never infer historical prices.'});
+ }
 };
