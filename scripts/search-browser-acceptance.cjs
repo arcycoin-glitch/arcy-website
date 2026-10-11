@@ -32,7 +32,11 @@ async function main(){
     if(action==='discover'){
      const q=(url.searchParams.get('q')||'').toLowerCase();
      const candidates=[{name:'ARCY Demo',symbol:'ARCY',address:token,network,chainId:id,
-      identityVerified:network==='arc'&&q==='arcy',source:'Browser deterministic test'}];
+      identityVerified:network==='arc'&&q==='arcy',source:'Browser deterministic test',
+      identity:network==='arc'&&q==='arcy'?{status:'OFFICIAL_CONTRACT_MATCHED',issuer:'ARCY',
+       proofUrl:'https://github.com/arcycoin-glitch/arcy-website'}:
+       q==='catalog'?{status:'INDEXED_ON_COINGECKO',proofUrl:'https://www.coingecko.com'}:
+       {status:'NOT_VERIFIED'}}];
      if(q==='duplicate')candidates.push({...candidates[0],name:'<img src=x onerror=alert(1)>',address:'0x1234567890123456789012345678901234567890',logoUrl:'javascript:alert(1)'});
      data={ok:true,network:q==='wrongnetwork'?'ethereum':network,chainId:id,matches:q==='none'?[]:candidates};
     }else if(action==='report'){
@@ -129,6 +133,17 @@ async function main(){
     'Token metadata is rendered as text, never markup');
    assert.equal(await page.locator('.home-result-status').first().innerText(),'NOT VERIFIED',
     'Logo/symbol match does not prove the issuer');
+   await page.locator('#homeSearchQuery').fill('arcy');
+   await page.locator('.home-search-submit').click();
+   await page.locator('.home-search-result').first().waitFor();
+   assert.equal(await page.locator('.home-result-status').first().innerText(),'OFFICIAL CONTRACT');
+   assert.match(await page.locator('.home-result-proof').first().innerText(),/Issuer: ARCY/);
+   await page.locator('#homeSearchQuery').fill('catalog');
+   await page.locator('.home-search-submit').click();
+   await page.locator('.home-search-result').first().waitFor();
+   assert.equal(await page.locator('.home-result-status').first().innerText(),'COINGECKO LISTED',
+    'Catalog listing is not proof of the issuing project');
+
    await page.locator('#homeSearchQuery').fill('none');
    await page.locator('.home-search-submit').click();
    await page.waitForFunction(()=>document.querySelector('#homeSearchState').textContent.includes('No Arc'));
