@@ -1042,6 +1042,10 @@ async function scanAddress(address,network=selected(),version=searchVersion,chos
  }catch(error){
   if(version!==searchVersion||network!==selected()||controller.signal.aborted)return;
   $('detailState').textContent='Scan unavailable: '+String(error.message).slice(0,150);
+  // Contract identity failed; invalidate any independently loaded chart too.
+  chartGeneration++;if(chartController){chartController.abort();chartController=null}
+  clearPriceChart();$('marketLink').hidden=true;
+  $('chartNote').textContent='On-chain contract evidence could not be established. Chart withheld.';
   $('asset').replaceChildren();clearIdentity();render(null);$('quickFacts').replaceChildren();
  }finally{if(version===searchVersion&&network===selected()){button.disabled=false;if(activeController===controller)activeController=null}}
 }
