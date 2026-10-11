@@ -805,7 +805,9 @@ async function loadVerifiedChart(address,network,version){
    !/^\/(arc|eth|robinhood)\/pools\/0x[0-9a-f]{40,64}$/i.test(source.pathname))throw Error('Historical source link invalid');
   $('marketLink').href=source.href;$('marketLink').hidden=false;
   const last=new Date(payload.lastCandleTime*1000).toISOString().slice(0,10);
-  $('chartNote').textContent='GeckoTerminal · Last 30 daily USD closes · One verified pool · Latest candle: '+last+' · Source data, not a market-wide aggregate.';
+  $('chartNote').textContent='GeckoTerminal · '+payload.points.length+
+   ' daily USD closes (up to 30) · One contract-matched pool · Latest candle: '+last+
+   ' · This is not a market-wide aggregate or an execution quote.';
  }catch{
   if(version!==searchVersion||location.pathname!==tokenPath(network,address))return;
   clearPriceChart();$('marketLink').hidden=true;
