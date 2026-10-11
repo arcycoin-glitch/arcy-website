@@ -38,8 +38,8 @@ function install(){
    ['/schema.js','/search/schema.js'],['/format.js','/search/format.js'],
    ['/hero-greeting.js','/search/hero-greeting.js'],
    ['/assets/arcy-greeting.mp4','/assets/1000266146.mp4'],
-   ["/api/discover?","/api/search-discover?"],["/api/report?","/api/search-report?"],
-   ["/api/chart?","/api/search-chart?"],["/api/token?","/api/search-token?"],
+   ["/api/discover?","/api/search?action=discover&"],["/api/report?","/api/search?action=report&"],
+   ["/api/chart?","/api/search?action=chart&"],["/api/token?","/api/search?action=token&"],
    ["/token/arc/","/search/token/arc/"],
    ["=>'/token/'+","=>'/search/token/'+"]]){
     // The new frontend does not call /api/token directly; that endpoint remains available for source-backed tools.
@@ -58,8 +58,23 @@ function install(){
    must(!search.includes('id="'+id+'"'),'Search must not clone original home section '+id);
   must(search.includes('id="tokenDetail"'),'Dedicated research view missing');
   write('search/index.html',search);
-  for(const op of ['discover','report','chart','token'])
-   write('api/search-'+op+'.js',"'use strict';\nmodule.exports=require('../search/server/api/"+op+".js');\n");
+  write('api/search/index.js', [
+   "'use strict';",
+   "const handlers=Object.freeze({",
+   " discover:require('../../search/server/api/discover'),",
+   " report:require('../../search/server/api/report'),",
+   " token:require('../../search/server/api/token'),",
+   " chart:require('../../search/server/api/chart')",
+   "});",
+   "module.exports=async function(req,res){",
+   " const params=req.query;",
+   " if(!params||typeof params!=='object'||Array.isArray(params))return res.status(400).json({ok:false,error:'INVALID_QUERY'});",
+   " const {action,...rest}=params;",
+   " if(typeof action!=='string'||!Object.hasOwn(handlers,action))return res.status(404).json({ok:false,error:'UNKNOWN_SEARCH_ACTION'});",
+   " const child=Object.create(req);Object.defineProperty(child,'query',{value:rest});",
+   " return handlers[action](child,res);",
+   "};",""
+  ].join('\n'));
   let homepage=read('index.html');
   homepage=exactly(homepage,'<link rel="stylesheet" href="/search-contract.css">',
     '<link rel="stylesheet" href="/search-contract.css">\n<link rel="stylesheet" href="/search-upgrade.css">');
@@ -69,8 +84,8 @@ function install(){
     'Original home sections not retained');
   write('index.html',homepage);
   const dev=read('dev.cjs');
-  let modified=exactly(dev,"if(/^\\/api\\/[a-z]+$/.test(u.pathname))",
-    "if(/^\\/api\\/(?:[a-z]+|search-(?:discover|report|chart|token))$/.test(u.pathname))");
+  let modified=exactly(dev,"(name==='activity'?'market':name)+'.js'",
+    "(name==='search'?'search/index':name==='activity'?'market':name)+'.js'");
   modified=exactly(modified,"u.pathname==='/'?'index.html':'.'+decodeURIComponent(u.pathname)",
     "u.pathname==='/'?'index.html':u.pathname==='/search/'||u.pathname==='/search'||"+
     "/^\\/search\\/token\\/(?:arc|ethereum|robinhood)\\/0x[0-9a-f]{40}\\/?$/i.test(u.pathname)"+
@@ -84,6 +99,7 @@ function install(){
   vercel.rewrites=oldRules;
   write('vercel.json',JSON.stringify(vercel,null,2)+'\n');
   must(!search.includes("fetch('/api/discover?"),'Old endpoint still referenced');
+  must(search.includes('/api/search?action=discover&'),'Combined API endpoint not referenced');
   console.log('Staged isolated three-chain ARCY SEARCH in original repo branch. Source home sections preserved.');
  }finally{fs.rmSync(tmp,{recursive:true,force:true})}
 }
