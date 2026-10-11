@@ -8,15 +8,16 @@ module.exports=async function handler(req,res){
  res.setHeader('X-Content-Type-Options','nosniff');
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'GET_REQUIRED'});
  const q=req.query;
- if(!q||typeof q!=='object'||Array.isArray(q)||Object.keys(q).length>2||
-  !Object.keys(q).every(k=>['chain','address'].includes(k))||
+ if(!q||typeof q!=='object'||Array.isArray(q)||Object.keys(q).length>3||
+  !Object.keys(q).every(k=>['chain','address','range'].includes(k))||
+  (q.range!==undefined&&(typeof q.range!=='string'||!Object.hasOwn(history.RANGES,q.range)))||
   typeof q.chain!=='string'||typeof q.address!=='string'||!ADDRESS.test(q.address))
   return res.status(400).json({ok:false,error:'INVALID_CHART_QUERY'});
  if(!['arc','ethereum','robinhood'].includes(q.chain))
   return res.status(404).json({ok:false,error:'CHART_NETWORK_NOT_SUPPORTED',
    reason:'Historical pool data has not been verified for this chain.'});
  if(!enforce(req,res))return;
- try{return res.status(200).json(await history.load(q.chain,q.address))}
+ try{return res.status(200).json(await history.load(q.chain,q.address,{range:q.range||'30D'}))}
  catch(error){
   const msg=String(error?.message||'');
   const temporary=/GeckoTerminal HTTP (?:408|429|5\d\d)|fetch failed|timeout|abort|deadline/i.test(msg)||
