@@ -11,6 +11,7 @@ on:
       - 'vercel.json'
       - 'scripts/search-browser-acceptance.cjs'
       - 'test/search-hardening.test.js'
+      - 'test/search-chart-ranges.test.js'
       - '.github/workflows/search-browser-acceptance.yml'
   workflow_dispatch:
 permissions:
