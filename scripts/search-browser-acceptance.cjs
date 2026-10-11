@@ -40,7 +40,7 @@ async function main(){
       fields.activity.fields.priceUsd={value:.4935,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
       fields.liquidity.fields.liquidityUsd={value:2659000,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
       fields.holders.fields.holderCount={value:215700,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'Blockscout'};
-      fields.activity.fields.valuation={value:302700,kind:'marketCap',dataState:'DATA_FOUND',
+      fields.activity.fields.valuation={value:302700,kind:'MARKET_CAP',dataState:'DATA_FOUND',
        status:'SOURCE_REPORTED',source:'DexScreener'};
       fields.activity.fields.change24h={value:-3.47,dataState:'DATA_FOUND',
        status:'SOURCE_REPORTED',source:'DexScreener'};
@@ -114,6 +114,10 @@ async function main(){
      assert.match(await market.locator('.statusLine').innerText(),/ALL 4 FIELDS SOURCE-BACKED/);
      assert.match(await market.locator('.statusLine').innerText(),/4 \/ 4 sourced/);
      assert.equal(await market.locator('.missingGroup').count(),0);
+     const valuation=market.locator('.metric').filter({has:page.locator('span:text-is("Market Cap")')});
+     assert.equal(await valuation.count(),1);
+     assert.equal(await valuation.locator('b').innerText(),'\u0024302.7K');
+     assert.equal((await valuation.innerText()).includes('Market Cap Market Cap'),false);
     }
     assert.equal(await page.locator('#quickFacts .quick').count(),3);
     const headings=await page.locator('#quickFacts .quick-label').allInnerTexts();
