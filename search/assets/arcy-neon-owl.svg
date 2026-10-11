@@ -9,7 +9,7 @@
 <filter id="glow" x="-50%" width="200%" y="-50%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 <filter id="soft"><feGaussianBlur stdDeviation="10"/></filter>
 </defs>
-<rect width="760" height="480" fill="url(#bg)"/>
+
 <circle cx="380" cy="235" r="228" fill="none" stroke="#006cc8" stroke-width="1.1" opacity=".55"/>
 <path d="M153 202A227 227 0 0 1 600 185M108 210A279 279 0 0 1 152 92M613 75A281 281 0 0 1 652 212" fill="none" stroke="url(#edge)" stroke-width="4" opacity=".85" filter="url(#glow)"/>
 <path d="M0 342 37 301l29 18 32-43 54 63 21-16 58 110H0ZM760 335 712 292l-43 34-38-45-59 71-26-17-41 98h255Z" fill="#061730" opacity=".96"/>
