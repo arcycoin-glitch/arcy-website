@@ -24,8 +24,9 @@ header .return-arcy:hover{background:rgba(12,43,70,.94);border-color:#4fbddd}
 #discovery .network-picker{width:100%;min-width:0}
 #discovery .network-trigger{min-height:61px;padding:10px 16px;border-radius:13px;background:rgba(8,23,45,.96);border:1px solid #476c98;color:white;font-size:17px}
 #discovery .network-trigger-name{font-size:17px}
-#discovery .chain-mark{border-radius:50%;width:37px;height:37px}
+#discovery .chain-mark{border-radius:7px;width:37px;height:37px}
 #discovery .chain-mark svg{height:29px;width:29px}
+.chain-wordmark{display:grid;place-items:center;width:100%;height:100%;font-size:8px;font-weight:850;letter-spacing:.02em}
 #discovery #networkNote{display:block;margin:11px 0 -5px;font-size:10px;text-align:left;color:#799db6}
 #discovery .search{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;column-gap:12px;row-gap:13px;margin:0 auto;max-width:810px;padding:0;background:none;border:none;box-shadow:none}
 #discovery .search:focus-within{border-color:transparent}

@@ -1,28 +1,63 @@
-/* Only the original ARCY SEARCH section is upgraded. Hero, Burn, Unlocks, Pulse,
-   Swap, research, footer and their selectors/behaviors remain untouched. */
-html.search-upgraded #search .search,
+/* Compact, native-to-home ARCY Search module. The original mascot and page
+   sections keep their existing markup and styles. */
+html.search-upgraded #search{min-height:0;padding:38px 0 62px;background:linear-gradient(175deg,#061523,#04101c)}
+html.search-upgraded #search .app{max-width:980px;padding:24px 20px}
+html.search-upgraded #search .header{margin-bottom:19px}
+html.search-upgraded #search .header .title p{letter-spacing:.13em}
+html.search-upgraded #search>.wrap>.app>.search,
 html.search-upgraded #search .helper,
-html.search-upgraded #search .token,
+html.search-upgraded #search #token,
 html.search-upgraded #search .grid{display:none!important}
-html.search-upgraded #search{min-height:0;padding:45px 0 70px;background:linear-gradient(175deg,#061523,#04101c)}
-html.search-upgraded #search .app{padding:24px 0;max-width:930px}
-html.search-upgraded #search .header{margin-bottom:28px}
-#search .search-launch{max-width:800px;margin:4px auto 0;padding:30px clamp(18px,4vw,38px);
- background:linear-gradient(125deg,rgba(14,39,55,.94),rgba(7,24,38,.95));
- border:1px solid rgba(92,174,206,.23);border-radius:22px;text-align:left}
-#search .search-launch .launch-kicker{color:#74cce1;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}
-#search .search-launch h2{margin:13px 0 11px;line-height:1.2;font-size:clamp(23px,4vw,37px);letter-spacing:-.04em;color:#eaf9ff}
-#search .search-launch p{font-size:13px;line-height:1.8;max-width:580px;color:#9ab4c3}
-#search .launch-networks{display:flex;flex-wrap:wrap;gap:9px;margin:19px 0 24px}
-#search .launch-networks span{background:#0e293b;border:1px solid rgba(138,194,211,.19);
- color:#abd1df;border-radius:9px;padding:8px 12px;font-size:11px;font-weight:700}
-#search .search-launch .launch-button{display:inline-flex;min-height:49px;align-items:center;justify-content:center;
- padding:13px 25px;text-decoration:none;background:linear-gradient(110deg,#58cdea,#43d7cd);
- border-radius:12px;color:#052330;font-size:13px;font-weight:800;letter-spacing:.02em}
-#search .search-launch .launch-button:hover,#search .search-launch .launch-button:focus-visible{
- background:#a1ebf6;outline-offset:4px}
+#search .home-search{max-width:820px;margin:0 auto;padding:23px clamp(16px,3.6vw,30px) 18px;border:1px solid rgba(80,179,207,.25);border-radius:18px;background:linear-gradient(130deg,rgba(10,34,51,.96),rgba(5,20,33,.97));box-shadow:0 15px 48px rgba(0,0,0,.18)}
+#search .home-search-kicker{margin:0 0 9px;color:#6fd3e8;font-size:9px;font-weight:800;letter-spacing:.16em}
+#search .home-search h2{margin:0;color:#e9f8ff;font-size:clamp(21px,3vw,29px);letter-spacing:-.035em;line-height:1.2}
+#search .home-search-intro{max-width:620px;margin:7px 0 17px;color:#a2bac8;font-size:12px;line-height:1.6}
+#search .home-network-picker{position:relative;margin:0 0 11px}
+#search .home-field-label{display:block;margin:0 0 6px;color:#93adbd;font-size:9px;font-weight:750;letter-spacing:.1em}
+#search .home-network-trigger{display:flex;width:100%;min-height:45px;align-items:center;gap:10px;padding:6px 11px;border:1px solid #31586b;border-radius:11px;background:#081b2b;color:#e8f6ff;text-align:left;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+#search .home-network-trigger:focus-visible,#search .home-network-option:focus-visible{outline:2px solid #66d5ed;outline-offset:2px}
+#search .home-network-mark{display:inline-grid;width:28px;height:26px;flex:none;place-items:center;border:1px solid #34627b;border-radius:7px;background:#0e2b3e;color:#a7deed;font-size:8px;font-weight:850;letter-spacing:.02em}
+#search .home-network-name{flex:1}
+#search .home-network-chevron{color:#83adc0;font-size:19px;line-height:1}
+#search .home-network-menu[hidden]{display:none}
+#search .home-network-menu{position:absolute;z-index:20;top:100%;left:0;right:0;display:grid;gap:4px;margin-top:5px;padding:6px;border:1px solid #31586b;border-radius:12px;background:#071827;box-shadow:0 14px 32px #0009}
+#search .home-network-option{display:flex;align-items:center;gap:10px;min-height:40px;padding:5px 8px;border:0;border-radius:8px;background:transparent;color:#dff4fc;text-align:left;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+#search .home-network-option:hover,#search .home-network-option[aria-selected=true]{background:#102c3e}
+#search .home-search-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin:0}
+#search .home-search-input-wrap{display:flex;align-items:center;gap:9px;min-width:0;min-height:47px;padding:0 12px;border:1px solid #365a70;border-radius:11px;background:#071827;color:#dff7ff}
+#search .home-search-input-wrap:focus-within{border-color:#4ccce5;box-shadow:0 0 0 3px #28bdd21b}
+#search .home-search-glass{color:#80bacb;font-size:25px;line-height:1}
+#search .home-search-form input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#f0fbff;font-family:inherit;font-size:12px;font-weight:500}
+#search .home-search-form input::placeholder{color:#7691a2}
+#search .home-search-submit{min-width:145px;min-height:47px;padding:0 16px;border:1px solid #52dcf0;border-radius:11px;background:linear-gradient(110deg,#4ac8e1,#38c9c6);color:#03202a;font-size:11px;font-weight:850;letter-spacing:.04em;cursor:pointer}
+#search .home-search-submit:hover,#search .home-search-submit:focus-visible{filter:brightness(1.08);outline-offset:3px}
+#search .home-search-submit:disabled{opacity:.58;cursor:wait}
+#search .home-search-state{min-height:17px;margin:8px 0 0;color:#91adbd;font-size:10px;line-height:1.5}
+#search .home-search-results{display:grid;gap:6px;margin:10px 0 0}
+#search .home-search-results[hidden]{display:none}
+#search .home-search-result{display:grid;grid-template-columns:34px minmax(0,1fr) minmax(110px,auto) auto;align-items:center;gap:10px;min-width:0;padding:8px 10px;border:1px solid #1c4358;border-radius:10px;background:#081b2a;color:#e9f8ff;text-decoration:none}
+#search .home-search-result:hover,#search .home-search-result:focus-visible{border-color:#48c9e3;background:#0d2839;outline-offset:2px}
+#search .home-token-logo{width:32px;height:32px;object-fit:cover;border:1px solid #345367;border-radius:50%;background:#0c2232}
+#search .home-token-placeholder{display:grid;place-items:center;color:#a8dce9;font-size:10px;font-weight:800}
+#search .home-result-copy{display:grid;gap:3px;min-width:0}
+#search .home-result-copy strong{overflow:hidden;color:#eaf8fc;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+#search .home-result-copy>span{color:#94afbd;font-size:9px}
+#search .home-search-result code{overflow:hidden;color:#8eaebe;font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+#search .home-result-status{color:#a9c2cb;font-size:8px;font-weight:750;letter-spacing:.04em;white-space:nowrap}
+#search .home-network-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+#search .home-network-chips span{padding:5px 8px;border:1px solid #234457;border-radius:7px;color:#9dc5d3;font-size:9px;font-weight:700}
+#search .home-search-attribution{display:inline-block;margin-top:9px;color:#91bbc9;font-size:10px;text-decoration:underline;text-underline-offset:2px}
+#search .home-search-disclaimer{margin:7px 0 0;color:#8198a6;font-size:9px;line-height:1.45}
 @media(max-width:560px){
- html.search-upgraded #search{padding:17px 0 39px}
- #search .search-launch{padding:22px 17px}
- #search .search-launch .launch-button{width:100%}
+ html.search-upgraded #search{padding:23px 0 39px}
+ html.search-upgraded #search .app{padding:17px 8px}
+ html.search-upgraded #search .header{margin-bottom:14px}
+ #search .home-search{padding:18px 10px 14px;border-radius:15px}
+ #search .home-search-intro{margin-bottom:14px;font-size:11px}
+ #search .home-search-form{grid-template-columns:minmax(0,1fr)}
+ #search .home-search-submit{width:100%;min-height:45px}
+ #search .home-search-result{grid-template-columns:31px minmax(0,1fr) auto;gap:8px;padding:8px}
+ #search .home-search-result code{grid-column:2;grid-row:2;max-width:100%;font-size:8px}
+ #search .home-result-status{grid-column:3;grid-row:1/3;white-space:normal;text-align:right;max-width:72px;line-height:1.3}
 }
+@media(prefers-reduced-motion:reduce){#search .home-search-result{scroll-behavior:auto}}

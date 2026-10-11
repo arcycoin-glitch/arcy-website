@@ -21,15 +21,20 @@ async function main(){
   browser=await chromium.launch({headless:true});
   for(const width of [320,390,768,1440]){
    const page=await browser.newPage({viewport:{width,height:840}});
-   const errors=[];let weeklyBackendRequests=0;
+   const errors=[];const consoleErrors=[];const badResponses=[];let weeklyBackendRequests=0;
    page.on('pageerror',e=>errors.push(e.message));
+   page.on('console',message=>{if(message.type()==='error')consoleErrors.push({text:message.text(),url:message.location().url})});
+   page.on('response',response=>{if(response.status()>=400)badResponses.push({status:response.status(),url:response.url()})});
    await page.route('**/api/search*',async route=>{
     const url=new URL(route.request().url()),action=url.searchParams.get('action'),
      network=url.searchParams.get('chain')||'arc',id=chainIds[network];
     let data={ok:false,error:'UNKNOWN'};
     if(action==='discover'){
-     data={ok:true,network,chainId:id,matches:[{name:'ARCY Demo',symbol:'ARCY',address:token,
-      network,chainId:id,identity:{status:'NOT_VERIFIED'},source:'Browser deterministic test'}]};
+     const q=(url.searchParams.get('q')||'').toLowerCase();
+     const candidates=[{name:'ARCY Demo',symbol:'ARCY',address:token,network,chainId:id,
+      identityVerified:network==='arc'&&q==='arcy',source:'Browser deterministic test'}];
+     if(q==='duplicate')candidates.push({...candidates[0],name:'<img src=x onerror=alert(1)>',address:'0x1234567890123456789012345678901234567890',logoUrl:'javascript:alert(1)'});
+     data={ok:true,network:q==='wrongnetwork'?'ethereum':network,chainId:id,matches:q==='none'?[]:candidates};
     }else if(action==='report'){
      const fields=Object.fromEntries(schema.map(x=>[x.id,{description:'Test source only',fields:
       Object.fromEntries(x.fields.map(([key])=>[key,{value:null,dataState:'NOT_VERIFIED',status:'NOT_VERIFIED',
@@ -76,53 +81,77 @@ async function main(){
      await new Promise(resolve=>setTimeout(resolve,800));
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
    });
+   await page.goto(base+'/search/',{waitUntil:'domcontentloaded'});
+   await page.waitForURL('**/#search');
+   assert.equal(new URL(page.url()).pathname,'/','Legacy /search/ links return to the homepage search anchor');
    await page.goto(base+'/',{waitUntil:'domcontentloaded'});
-   await page.locator('.search-launch .launch-button').waitFor();
-   assert.equal(await page.locator('.search-launch .launch-button').getAttribute('href'),'/search/');
+   await page.locator('#homeSearchQuery').waitFor();
    for(const id of ['hero','burn','unlocks','pulse','buy']){
     assert.equal(await page.locator('#'+id).count(),1,'Existing section '+id+' must remain');
    }
-   assert.equal(await page.locator('#search .grid').isVisible(),false);
-   assert.equal(await page.locator('a[href="#search"]').count(),0,'Existing Search CTAs target new product');
-   await page.locator('.search-launch .launch-button').click();
-   await page.waitForURL('**/search/');
-   assert.equal(await page.locator('#discovery').isVisible(),true);
-   assert.equal(await page.locator('#tokenDetail').isVisible(),false);
-   assert.equal(await page.locator('header .brand-y').innerText(),'Y');
-   assert.equal(await page.locator('header .brand-search').innerText(),'SEARCH');
-   assert.equal(await page.locator('.hero-mascot img').getAttribute('src'),
-    '/search/assets/arcy-owl-reference.webp');
-   await page.locator('.hero-mascot img').evaluate(async img=>{
-    await img.decode();
-    if(img.naturalWidth===0||img.naturalHeight===0)throw Error('Reference owl artwork failed to load');
+   assert.equal(await page.locator('#search .home-search').isVisible(),true);
+   assert.equal(await page.getByRole('link',{name:'Powered by CoinGecko'}).count(),1,
+    'CoinGecko source attribution is visible on the home search');
+   assert.equal(await page.locator('#search .search').isVisible(),false,'Retired Arc-only form must not be visible');
+   assert.equal(await page.locator('a[href="#search"]').count()>0,true,'Home Search shortcuts stay on the integrated section');
+   assert.equal(await page.locator('#hero .hero-flight img').getAttribute('src'),'/assets/hero-arcy.png',
+    'Original cute ARCY homepage mascot remains unchanged');
+   const mascot=await page.locator('#hero .hero-flight img').evaluate(async img=>{await img.decode();return img.naturalWidth>0&&img.naturalHeight>0});
+   assert.equal(mascot,true);
+   const searchBounds=await page.locator('#search .home-search-form').evaluate(el=>{
+    const r=el.getBoundingClientRect();return {width:r.width,left:r.left,right:r.right,viewport:innerWidth};
    });
-   assert.equal(await page.locator('#address').count(),1);
-   assert.equal(await page.locator('#go').innerText(),'SEARCH / SCAN');
-   const orange=await page.locator('.brand-y').evaluate(el=>getComputedStyle(el).color);
-   assert.equal(orange,'rgb(255, 154, 43)','Only ARCY Y is orange');
-   const searchReady=await page.locator('#discovery .search').evaluate(el=>{
-    const r=el.getBoundingClientRect();return r.width>250&&r.left>=0&&r.right<=innerWidth+1;
-   });
-   assert.equal(searchReady,true,'Functional search field must stay within viewport');
+   assert.ok(searchBounds.width>250&&searchBounds.left>=0&&searchBounds.right<=width+1,
+    'Functional search field must stay within viewport: '+JSON.stringify(searchBounds));
    if(width===320||width===390||width===1440){
     const folder=path.resolve(__dirname,'../artifacts/search-preview');
     mkdirSync(folder,{recursive:true});
-    await page.screenshot({path:path.join(folder,'landing-'+width+'-REAL-UI.png'),
+    await page.screenshot({path:path.join(folder,'home-search-'+width+'-REAL-UI.png'),
      fullPage:true,animations:'disabled'});
+    await page.locator('#search').screenshot({path:path.join(folder,'search-module-'+width+'.png'),
+     animations:'disabled'});
    }
    assert.equal(await page.locator('select').count(),0,'No native white Android picker');
-   assert.equal(await page.locator('#chainMenu [role="option"]').count(),3);
-   await page.locator('#chainTrigger').click();
-   const labels=await page.locator('#chainMenu [role="option"]').allInnerTexts();
-   assert.deepEqual(labels,['Arc','Ethereum','Robinhood Chain']);
-   const color=await page.locator('#chainMenu').evaluate(x=>getComputedStyle(x).backgroundColor);
+   assert.equal(await page.locator('#homeNetworkMenu [role="option"]').count(),3);
+   await page.locator('#homeNetworkPicker .home-network-trigger').click();
+   const labels=await page.locator('#homeNetworkMenu [role="option"]').allInnerTexts();
+   assert.deepEqual(labels,['ARC\nArc','ETH\nEthereum','RH\nRobinhood Chain']);
+   const color=await page.locator('#homeNetworkMenu').evaluate(x=>getComputedStyle(x).backgroundColor);
    assert.notEqual(color,'rgb(255, 255, 255)');
+   await page.keyboard.press('Escape');
+   assert.equal(await page.locator('#homeNetworkMenu').isVisible(),false,'Escape closes the dark network menu');
+   await page.locator('#homeSearchQuery').fill('duplicate');
+   await page.locator('.home-search-submit').click();
+   await page.locator('.home-search-result').first().waitFor();
+   assert.equal(await page.locator('.home-search-result').count(),2,'Duplicate ticker candidates are not silently collapsed');
+   assert.equal(await page.locator('.home-search-result img').count(),0,'Untrusted logo URLs are not loaded');
+   assert.equal(await page.locator('.home-search-result strong').nth(1).innerText(),'<img src=x onerror=alert(1)>',
+    'Token metadata is rendered as text, never markup');
+   assert.equal(await page.locator('.home-result-status').first().innerText(),'NOT VERIFIED',
+    'Logo/symbol match does not prove the issuer');
+   await page.locator('#homeSearchQuery').fill('none');
+   await page.locator('.home-search-submit').click();
+   await page.waitForFunction(()=>document.querySelector('#homeSearchState').textContent.includes('No Arc'));
+   assert.equal(await page.locator('.home-search-result').count(),0);
+   await page.locator('#homeSearchQuery').fill('wrongnetwork');
+   await page.locator('.home-search-submit').click();
+   await page.waitForFunction(()=>document.querySelector('#homeSearchState').textContent.includes('Search unavailable'));
+   assert.equal(await page.locator('.home-search-result').count(),0,'Mismatched chain responses fail closed');
    for(const [network,label] of [['ethereum','Ethereum'],['robinhood','Robinhood Chain'],['arc','Arc']]){
-    if(!(await page.locator('#chainMenu').isVisible()))await page.locator('#chainTrigger').click();
-    await page.locator('#chainMenu [data-chain="'+network+'"]').click();
-    assert.equal(await page.locator('#currentChainName').innerText(),label);
-    await page.locator('#address').fill(token);
-    await page.locator('#go').click();
+    if(network!=='arc'){
+     await page.locator('#homeNetworkPicker .home-network-trigger').click();
+     await page.locator('#homeNetworkMenu [data-network="'+network+'"]').click();
+    }
+    assert.equal(await page.locator('#homeNetworkPicker .home-network-name').innerText(),label);
+    await page.locator('#homeSearchQuery').fill('ARCY');
+    await page.locator('.home-search-submit').click();
+    await page.locator('.home-search-result').first().waitFor();
+    assert.equal(await page.locator('.home-search-result').first().getAttribute('href'),
+     '/search/token/'+network+'/'+token);
+    assert.equal(await page.locator('.home-result-status').first().innerText(),
+     network==='arc'?'SOURCE VERIFIED':'NOT VERIFIED',
+     'Only a chain and exact-address source match may verify the ARCY candidate');
+    await page.locator('.home-search-result').first().click();
     await page.waitForURL('**/search/token/'+network+'/'+token);
     if(network==='arc'){
      await page.waitForFunction(()=>document.querySelector('#chartPlot')?.hidden===false,{timeout:12000});
@@ -131,12 +160,14 @@ async function main(){
     }
     await page.waitForFunction(()=>document.querySelector('#detailState').textContent.includes('Snapshot complete'),{timeout:12000});
     assert.equal(await page.locator('#tokenDetail').isVisible(),true);
-    // Keep full-size owl on dedicated Search landing, not token report or home.
-    assert.equal(await page.locator('#discovery').isVisible(),false);
-    assert.equal(await page.locator('#tokenDetail .search-detail-brand').count(),1);
-    assert.equal(await page.locator('#tokenDetail .search-detail-brand img').getAttribute('src'),
-     '/search/assets/arcy-owl-reference.webp');
-    assert.equal(await page.locator('#tokenDetail .detail-brand-y').innerText(),'Y');
+    const brandMark=page.locator('.brand-owl-mark');
+    await brandMark.evaluate(async image=>{await image.decode();if(!image.naturalWidth)throw Error('Vector Search mark unavailable')});
+    const markSize=await brandMark.evaluate(image=>({width:image.getBoundingClientRect().width,height:image.getBoundingClientRect().height}));
+    assert.deepEqual(markSize,{width:38,height:26},'Crisp vector owl stays a compact token-page brand mark');
+    assert.equal(await page.locator('#tokenDetail .search-detail-brand').count(),0,
+     'The compact header is the sole report-page brand mark');
+    assert.equal(await page.getByRole('link',{name:'Powered by CoinGecko'}).count(),1,
+     'CoinGecko source attribution remains visible in report footer');
     assert.equal(await page.locator('#deepResearch').evaluate(x=>x.open),false,
       'Newly selected token must not inherit an expanded previous report');
     await page.locator('#deepResearch > summary').click();
@@ -233,8 +264,17 @@ async function main(){
       animations:'disabled'});
     }
     await page.locator('#backSearch').click();
-    await page.waitForURL('**/search/');
-    assert.equal(await page.locator('#discovery').isVisible(),true);
+    await page.waitForURL('**/#search');
+    await page.locator('#homeSearchQuery').waitFor();
+    assert.equal(await page.locator('#search .home-search').isVisible(),true);
+    if(width===320&&network==='arc'){
+     await page.goBack();
+     await page.waitForURL('**/search/token/arc/'+token);
+     assert.equal(await page.locator('#tokenDetail').isVisible(),true,'Browser Back restores the token URL');
+     await page.goForward();
+     await page.waitForURL('**/#search');
+     assert.equal(await page.locator('#homeSearchQuery').isVisible(),true,'Browser Forward restores home search');
+    }
    }
    // A temporary upstream outage must not be misreported as a nonexistent chart.
    await page.route('**/api/search?action=chart&**',route=>route.fulfill({
@@ -267,6 +307,8 @@ async function main(){
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
    assert.equal(overflow,false,'No sideways phone page overflow');
    assert.deepEqual(errors,[],'No new browser errors');
+   const unexpectedConsoleErrors=consoleErrors.filter(error=>!error.url.includes('/api/search?action=chart'));
+   assert.deepEqual(unexpectedConsoleErrors,[],'No unexpected browser console errors: '+JSON.stringify(badResponses));
    outcomes.push({width,status:'PASS',networks:3,reportCards:5,reportFields:20});
    await page.close();
   }

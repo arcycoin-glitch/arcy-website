@@ -6,6 +6,7 @@
 <meta name="description" content="ARCY SEARCH — Arc, Ethereum and Robinhood Chain token intelligence research lab.">
 <link rel="icon" href="/assets/hero-arcy.png" type="image/png">
 <link rel="stylesheet" href="/search/detail-premium.css">
+<script>if(/^\/search\/?$/.test(location.pathname)||location.pathname==='/search/index.html'){location.replace('/#search'+location.search)}</script>
 
 <title>ARCY SEARCH — Multichain Lab</title>
 <style>
@@ -14,7 +15,8 @@
 body{margin:0;background:radial-gradient(ellipse at top,#0a2d43 0,transparent 52%),#040b15}
 main{max-width:1120px;margin:auto;padding:42px 20px 80px}
 header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:30px}
-h1{font-size:clamp(25px,4vw,40px);margin:0;letter-spacing:.05em}
+h1{display:flex;align-items:center;gap:8px;font-size:clamp(25px,4vw,40px);margin:0;letter-spacing:.05em}
+.brand-owl-mark{display:block;width:38px;height:26px;object-fit:contain;flex:none}
 h1 span{color:#22d4ff}
 .sub{color:#97b1c4;font-size:13px;margin-top:8px}
 .chip{border:1px solid #27546c;color:#b5ebf7;background:#0d2534;padding:8px 12px;border-radius:40px;font-size:12px}
@@ -316,10 +318,10 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 <main>
 <header>
 <div>
-<h1><span class="brand-arcy">ARC<span class="brand-y">Y</span></span><span class="brand-search">SEARCH</span></h1>
+<h1><img class="brand-owl-mark" src="/search/assets/arcy-neon-owl.svg" width="38" height="26" alt=""><span class="brand-arcy">ARC<span class="brand-y">Y</span></span><span class="brand-search">SEARCH</span></h1>
 <div class="sub">ARC + ETHEREUM + ROBINHOOD CHAIN · TOKEN INTELLIGENCE · READ ONLY</div>
 </div>
-<a class="return-arcy" href="https://arcyusdc.xyz/" aria-label="Return to the existing ARCY home page">← ARCY home</a>
+<a class="return-arcy" href="/#search" aria-label="Return to the ARCY home page search">← Back to Search</a>
 </header>
 <section id="discovery">
 <div class="hero">
@@ -332,14 +334,14 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 <div class="network-picker" id="networkPicker">
   <input type="hidden" id="chain" value="arc">
   <button type="button" id="chainTrigger" class="network-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="chainMenu" aria-label="Select token network">
-    <span id="currentChainLogo" class="chain-mark chain-arc"><svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><path d="M5 28c1.2-10.7 7.5-17.5 15-17.5S33.8 17.3 35 28" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/><path d="M11 30c2.4-6.8 5.4-9.4 9-9.4s6.6 2.6 9 9.4" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></span>
+    <span id="currentChainLogo" class="chain-mark chain-arc"><span class="chain-wordmark">ARC</span></span>
     <span id="currentChainName" class="network-trigger-name">Arc</span>
     <svg class="chain-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
   <div class="network-menu" id="chainMenu" role="listbox" aria-label="Token network" hidden>
-    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="true" id="chainOptionArc"><span class="chain-mark chain-arc"><svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><path d="M5 28c1.2-10.7 7.5-17.5 15-17.5S33.8 17.3 35 28" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/><path d="M11 30c2.4-6.8 5.4-9.4 9-9.4s6.6 2.6 9 9.4" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
-    <button type="button" class="chain-option" role="option" data-chain="ethereum" aria-selected="false" id="chainOptionEthereum"><span class="chain-mark chain-ethereum"><svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><path d="M20 3 8 21l12 6 12-6Z" fill="#b5b3d4"/><path d="M20 3v24l12-6Z" fill="#8589bc"/><path d="M8 25l12 12 12-12-12 6Z" fill="#939bcb"/><path d="M20 31v6l12-12Z" fill="#c8c9e2"/><path d="M20 3 8 21l12 6Z" fill="#d0d1ec"/></svg></span><span>Ethereum</span><span class="chain-check" aria-hidden="true"></span></button>
-    <button type="button" class="chain-option" role="option" data-chain="robinhood" aria-selected="false" id="chainOptionRobinhood"><span class="chain-mark chain-robinhood"><svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><path d="M30 5C19 4 10 10 9 23c5-3 11-6 17-8-7 7-14 13-19 21 8-7 13-9 19-15 4-4 6-10 4-16Z" fill="#28d78a"/><path d="m9 23 12-1 5-7M18 15l3 7" stroke="#071d22" stroke-width="1.7" fill="none" stroke-linejoin="round"/></svg></span><span>Robinhood Chain</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="true" id="chainOptionArc"><span class="chain-mark chain-arc"><span class="chain-wordmark">ARC</span></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="ethereum" aria-selected="false" id="chainOptionEthereum"><span class="chain-mark chain-ethereum"><span class="chain-wordmark">ETH</span></span><span>Ethereum</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="robinhood" aria-selected="false" id="chainOptionRobinhood"><span class="chain-mark chain-robinhood"><span class="chain-wordmark">RH</span></span><span>Robinhood Chain</span><span class="chain-check" aria-hidden="true"></span></button>
   </div>
 </div><span id="networkNote">Results never mix token data from different networks.</span></div>
 <div class="search">
@@ -365,10 +367,6 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
     </div>
   </div>
   <div class="detail-hero">
-    <div class="search-detail-brand" aria-label="ARCY SEARCH">
-      <img src="/search/assets/arcy-owl-reference.webp" width="44" height="30" alt="" aria-hidden="true" decoding="async">
-      <span>ARC<span class="detail-brand-y">Y</span> <span class="detail-brand-search">SEARCH</span></span>
-    </div>
     <div class="detail-kicker">INDEPENDENT TOKEN RESEARCH · READ ONLY</div>
     <div id="asset"></div>
     <div id="identity" aria-live="polite"></div>
@@ -403,7 +401,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 </details>
 
 </section>
-<footer>Evidence is token and network specific. NOT VERIFIED does not mean false or zero. This tool does not execute transactions or provide investment advice.<div class="source-link"><a href="https://github.com/arcycoin-glitch/arcy-website/tree/feature/search-multichain-premium-20261011/search" target="_blank" rel="noopener noreferrer" aria-label="Inspect ARCY SEARCH source code on GitHub">GitHub · View source ↗</a></div></footer>
+<footer>Evidence is token and network specific. NOT VERIFIED does not mean false or zero. This tool does not execute transactions or provide investment advice. ARCY SEARCH is independent and is not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.<div class="source-link"><a href="https://www.coingecko.com/en/api" target="_blank" rel="noopener noreferrer">Powered by CoinGecko</a></div><div class="source-link"><a href="https://github.com/arcycoin-glitch/arcy-website/tree/feature/search-multichain-premium-20261011/search" target="_blank" rel="noopener noreferrer" aria-label="Inspect ARCY SEARCH source code on GitHub">GitHub · View source ↗</a></div></footer>
 </main>
 <script src="/search/schema.js"></script>
 <script src="/search/format.js"></script>
@@ -607,11 +605,7 @@ function setChartRange(range){
  }
 }
 const selected=()=>$('chain').value;
-const NETWORK_ICON_MARKUP={
- arc:"<svg viewBox=\"0 0 40 40\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M5 28c1.2-10.7 7.5-17.5 15-17.5S33.8 17.3 35 28\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.6\" stroke-linecap=\"round\"/><path d=\"M11 30c2.4-6.8 5.4-9.4 9-9.4s6.6 2.6 9 9.4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.4\" stroke-linecap=\"round\"/></svg>",
- ethereum:"<svg viewBox=\"0 0 40 40\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M20 3 8 21l12 6 12-6Z\" fill=\"#b5b3d4\"/><path d=\"M20 3v24l12-6Z\" fill=\"#8589bc\"/><path d=\"M8 25l12 12 12-12-12 6Z\" fill=\"#939bcb\"/><path d=\"M20 31v6l12-12Z\" fill=\"#c8c9e2\"/><path d=\"M20 3 8 21l12 6Z\" fill=\"#d0d1ec\"/></svg>",
- robinhood:"<svg viewBox=\"0 0 40 40\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M30 5C19 4 10 10 9 23c5-3 11-6 17-8-7 7-14 13-19 21 8-7 13-9 19-15 4-4 6-10 4-16Z\" fill=\"#28d78a\"/><path d=\"m9 23 12-1 5-7M18 15l3 7\" stroke=\"#071d22\" stroke-width=\"1.7\" fill=\"none\" stroke-linejoin=\"round\"/></svg>"
-};
+const NETWORK_ICON_MARKUP={arc:'<span class="chain-wordmark">ARC</span>',ethereum:'<span class="chain-wordmark">ETH</span>',robinhood:'<span class="chain-wordmark">RH</span>'};
 function syncNetworkPicker(){
  const network=selected();
  if(!Object.hasOwn(NETWORKS,network))return;
@@ -676,6 +670,7 @@ const tokenRoute=pathname=>{
  return match?{network:match[1],address:match[2].toLowerCase()}:null;
 };
 function activateHome({push=false}={}){
+ if(location.pathname.startsWith('/search/')){location.assign('/#search');return}
  cancelPending();
  $('tokenDetail').hidden=true;$('discovery').hidden=false;
  $('deepResearch').open=false;
@@ -683,7 +678,7 @@ function activateHome({push=false}={}){
  $('quickFacts').replaceChildren();$('detailState').textContent='';
  $('address').value='';clearMatches();
  $('state').textContent='Search a token by name, symbol or full address. Names and logos never prove identity.';
- if(push&&location.pathname!=='/search/')history.pushState({},'','/search/');
+ if(push){location.assign('/#search');return}
  document.title='ARCY SEARCH — Research before you buy';
 }
 function activateDetail(address,network,{push=true,identity=null,logoUrl=null}={}){
@@ -1224,7 +1219,7 @@ $('chain').addEventListener('change',chainChanged);
 $('go').addEventListener('click',searchOrScan);
 $('address').addEventListener('keydown',event=>{if(event.key==='Enter')void searchOrScan()});
 $('address').addEventListener('input',()=>{cancelPending();clearMatches();$('asset').replaceChildren();clearIdentity();render(null)});
-$('backSearch').addEventListener('click',()=>activateHome({push:true}));
+ $('backSearch').addEventListener('click',()=>location.assign('/#search'));
 $('copyLink').addEventListener('click',async()=>{
  try{
   await navigator.clipboard.writeText(location.href);
