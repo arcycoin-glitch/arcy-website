@@ -941,7 +941,7 @@ async function scanAddress(address,network=selected(),version=searchVersion,chos
   const block=document.createElement('span');
   block.textContent=' · Block '+BigInt(data.block).toString();
   container.append(title,explorer,block);
-  const verifiedLogo=displayLogo(chosenLogo,network,data.address);
+  const verifiedLogo=displayLogo(chosenLogo||asset.logoUrl,network,data.address);
   if(verifiedLogo){
    const art=document.createElement('img');
    art.className='token-title-logo';art.src=verifiedLogo;
