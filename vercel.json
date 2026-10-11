@@ -6,6 +6,9 @@
     },
     "api/holderrefresh.js": {
       "maxDuration": 60
+    },
+    "api/search/index.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
