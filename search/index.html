@@ -652,6 +652,7 @@ const tokenRoute=pathname=>{
 function activateHome({push=false}={}){
  cancelPending();
  $('tokenDetail').hidden=true;$('discovery').hidden=false;
+ $('deepResearch').open=false;
  $('asset').replaceChildren();clearIdentity();render(null);
  $('quickFacts').replaceChildren();$('detailState').textContent='';
  $('address').value='';clearMatches();
@@ -666,6 +667,7 @@ function activateDetail(address,network,{push=true,identity=null,logoUrl=null}={
  if(push&&location.pathname!==canonical)history.pushState({},'',canonical);
  setNetwork(network,{notify:false});
  $('discovery').hidden=true;$('tokenDetail').hidden=false;
+ $('deepResearch').open=false;
  $('asset').replaceChildren();clearIdentity();render(null);
  $('quickFacts').replaceChildren();
  $('detailState').textContent='Reading '+NETWORKS[network].label+' contract evidence…';
