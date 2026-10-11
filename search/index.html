@@ -583,7 +583,7 @@ render(null);
 
 const EVM_ADDRESS=/^0x[0-9a-fA-F]{40}$/;
 const NETWORKS={arc:{id:5042,label:'Arc',explorer:'https://explorer.arc.io'},ethereum:{id:1,label:'Ethereum',explorer:'https://eth.blockscout.com'},robinhood:{id:4663,label:'Robinhood Chain',explorer:'https://robinhoodchain.blockscout.com'}};
-let searchVersion=0,activeController=null,chartController=null,chartGeneration=0,activeChartRange='30D';
+let searchVersion=0,activeController=null,chartController=null,chartGeneration=0,activeChartRange='30D',verifiedDaily30=null;
 const CHART_RANGES=Object.freeze({
  '4H':{label:'15-minute',interval:'15m',duration:'4 hours'},
  '1D':{label:'hourly',interval:'1h',duration:'24 hours'},
@@ -706,6 +706,23 @@ function clearPriceChart(){
   $(id).replaceChildren();$(id).hidden=true;
  }
  const root=$('chartPlot');root.replaceChildren();root.hidden=true;
+}
+function weeklyVerifiedDaily(network,address){
+ // A 1W chart is seven recent *actual* daily closes from the already
+ // source-verified 30D response. This avoids an additional GeckoTerminal
+ // request while still failing closed on old or wrong-contract data.
+ const base=verifiedDaily30;
+ if(!base||base.ok!==true||base.range!=='30D'||base.interval!=='1d'||
+  base.network!==network||base.address!==address||
+  base.chainId!==NETWORKS[network].id||!Array.isArray(base.points)||
+  Date.now()-base.lastCandleTime*1000>2*86400000)return null;
+ const now=Date.now();
+ const subset=base.points.filter(point=>
+  Number.isSafeInteger(point.time)&&Number.isFinite(point.close)&&point.close>0&&
+  point.time*1000>=now-8*86400000&&point.time*1000<=now+180000).slice(-7);
+ if(subset.length<3)return null;
+ return {...base,range:'1W',interval:'1d',requestedWindow:'7 days',
+  lastCandleTime:subset[subset.length-1].time,points:subset};
 }
 function chartDate(timestamp,range=activeChartRange){
  const intraday=range==='4H'||range==='1D';
@@ -832,13 +849,18 @@ async function loadVerifiedChart(address,network,version){
  $('chartNote').textContent='Checking '+requestedRange+' exact-chain historical pool data…';
  $('marketLink').hidden=true;
  try{
-  const response=await fetch('/api/search?action=chart&'+new URLSearchParams({
-   address,chain:network,range:requestedRange}),{cache:'no-store',signal:controller.signal});
-  const payload=await response.json();
+  let payload= requestedRange==='1W'?weeklyVerifiedDaily(network,address):null;
+  let responseOk=true;
+  if(!payload){
+   const response=await fetch('/api/search?action=chart&'+new URLSearchParams({
+    address,chain:network,range:requestedRange}),{cache:'no-store',signal:controller.signal});
+   responseOk=response.ok;
+   payload=await response.json();
+  }
   if(!current())return;
-  if(!response.ok&&['CHART_PROVIDER_TEMPORARILY_UNAVAILABLE','RATE_LIMITED'].includes(payload.error))
+  if(!responseOk&&['CHART_PROVIDER_TEMPORARILY_UNAVAILABLE','RATE_LIMITED'].includes(payload.error))
    throw Error('CHART_SOURCE_RETRY');
-  if(!response.ok||payload.ok!==true||payload.network!==network||
+  if(!responseOk||payload.ok!==true||payload.network!==network||
    payload.chainId!==NETWORKS[network].id||payload.address!==address||
    payload.range!==requestedRange||payload.interval!==CHART_RANGES[requestedRange].interval)
    throw Error('Historical pool proof unavailable');
@@ -847,6 +869,7 @@ async function loadVerifiedChart(address,network,version){
    !/^\/(arc|eth|robinhood)\/pools\/0x[0-9a-f]{40,64}$/i.test(source.pathname))
    throw Error('Historical source link invalid');
   if(!drawVerifiedChart(payload))throw Error('Invalid historical pool candles');
+  if(requestedRange==='30D')verifiedDaily30=structuredClone(payload);
   $('marketLink').href=source.href;$('marketLink').hidden=false;
   const last=new Date(payload.lastCandleTime*1000).toISOString();
   const config=CHART_RANGES[requestedRange];
@@ -908,7 +931,7 @@ function renderQuickFacts(report){
 
 }
 function cancelPending(){
- searchVersion++;chartGeneration++;
+ searchVersion++;chartGeneration++;verifiedDaily30=null;
  if(activeController){activeController.abort();activeController=null}
  if(chartController){chartController.abort();chartController=null}
  $('go').disabled=false;
