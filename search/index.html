@@ -443,7 +443,7 @@ function render(report){
      if(data?.dataState==='DATA_FOUND'&&data.value!==null&&data.value!==undefined)valid++;
     }
    }
-   count.textContent=valid+' / '+total+' source-backed · See evidence and missing reasons';
+   count.textContent=total+' checks · '+valid+' source-backed · Evidence and gaps';
   }
   for(const spec of displayDefinitions){
     const card=report?.cards?.[spec.id];
