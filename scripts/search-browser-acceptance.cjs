@@ -45,10 +45,8 @@ async function main(){
       scannedAt:'2026-10-11T10:00:00.000Z',
       token:{name:'ARCY Demo',symbol:'ARCY',decimals:18},tokenIdentity:{status:'NOT_VERIFIED'},cards:fields};
     }else if(action==='chart'){
-     data=network==='robinhood'?
-      {ok:false,error:'CHART_SOURCE_NOT_VERIFIED',network,address:token}:
-      {ok:true,network,chainId:id,address:token,sourceUrl:'https://www.geckoterminal.com/'+
-        (network==='arc'?'arc':'eth')+'/pools/'+token,lastCandleTime:1791720000,
+     data={ok:true,network,chainId:id,address:token,sourceUrl:'https://www.geckoterminal.com/'+
+        (network==='ethereum'?'eth':network)+'/pools/'+token,lastCandleTime:1791720000,
        points:Array.from({length:30},(_,i)=>({time:Date.UTC(2026,8,12+i)/1000,
         close:.45+.04*Math.sin(i/3)+.0015*i}))};
     }else if(action==='token'){
@@ -97,22 +95,18 @@ async function main(){
     }
     const tops=await page.locator('#quickFacts .quick').evaluateAll(xs=>xs.map(x=>x.getBoundingClientRect().top));
     assert.ok(tops.every(t=>Math.abs(t-tops[0])<2),'Three key metrics must share one premium row');
-    if(network==='robinhood'){
-     assert.match(await page.locator('#chartNote').innerText(),/No reliable|No verified/);
-     assert.equal(await page.locator('#chartPlot').isVisible(),false);
-    }else{
-     await page.waitForFunction(()=>document.querySelector('#chartPlot')?.hidden===false);
-     assert.equal(await page.locator('#chartPlot svg path').count(),2);
-     assert.equal(await page.locator('#chartAxis span').count(),2);
-     assert.match(await page.locator('#chartStats').innerText(),/daily close intervals/);
-     await page.locator('#chartPlot').focus();
-     await page.keyboard.press('ArrowLeft');
-     assert.equal(await page.locator('#chartInspector').isVisible(),true);
-     assert.match(await page.locator('#chartInspector strong').innerText(),/^\$/);
-     await page.keyboard.press('Home');
-     assert.match(await page.locator('#chartInspector').innerText(),/Sep 12/);
-     await page.locator('#chartPlot').blur();
-    }
+    await page.waitForFunction(()=>document.querySelector('#chartPlot')?.hidden===false);
+    assert.equal(await page.locator('#chartPlot svg path').count(),2);
+    assert.equal(await page.locator('#chartAxis span').count(),2);
+    assert.match(await page.locator('#chartStats').innerText(),/daily close intervals/);
+    assert.match(await page.locator('#marketLink').getAttribute('href'),new RegExp('/'+(network==='ethereum'?'eth':network)+'/pools/'));
+    await page.locator('#chartPlot').focus();
+    await page.keyboard.press('ArrowLeft');
+    assert.equal(await page.locator('#chartInspector').isVisible(),true);
+    assert.match(await page.locator('#chartInspector strong').innerText(),/^\$/);
+    await page.keyboard.press('Home');
+    assert.match(await page.locator('#chartInspector').innerText(),/Sep 12/);
+    await page.locator('#chartPlot').blur();
     await page.locator('#backSearch').click();
     await page.waitForURL('**/search/');
     assert.equal(await page.locator('#discovery').isVisible(),true);
