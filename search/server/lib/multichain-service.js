@@ -28,10 +28,19 @@ function parseChain(raw){
  return chains.chain(value).id;
 }
 async function report({network='ethereum',address}){
- const result=await engine.report({network,address});
- // Chain-scoped issuer proof is independent of price, safety and risk status.
+ const cfg=chains.chain(network),normalized=typeof address==='string'?address.toLowerCase():'';
+ // Source-backed art can run alongside mainnet inspection and must never
+ // dictate contract identity, supply, ownership, price or security findings.
+ const [result,logo]=await Promise.all([
+  engine.report({network,address}),
+  logos.contractLogo(cfg.id,normalized).catch(()=>null)
+ ]);
  const official=identities.verified(network,result.address);
  if(official)result.tokenIdentity=official;
+ if(logo&&result.token&&typeof result.token==='object'){
+  result.token={...result.token,logoUrl:logo,
+   logoSource:'DexScreener exact-chain base-contract pool; artwork is not issuer proof'};
+ }
  return result;
 }
 async function token({network='ethereum',address}){
