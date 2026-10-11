@@ -131,6 +131,12 @@ async function main(){
     }
     await page.waitForFunction(()=>document.querySelector('#detailState').textContent.includes('Snapshot complete'),{timeout:12000});
     assert.equal(await page.locator('#tokenDetail').isVisible(),true);
+    // Keep full-size owl on dedicated Search landing, not token report or home.
+    assert.equal(await page.locator('#discovery').isVisible(),false);
+    assert.equal(await page.locator('#tokenDetail .search-detail-brand').count(),1);
+    assert.equal(await page.locator('#tokenDetail .search-detail-brand img').getAttribute('src'),
+     '/search/assets/arcy-owl-reference.webp');
+    assert.equal(await page.locator('#tokenDetail .detail-brand-y').innerText(),'Y');
     assert.equal(await page.locator('#deepResearch').evaluate(x=>x.open),false,
       'Newly selected token must not inherit an expanded previous report');
     await page.locator('#deepResearch > summary').click();
