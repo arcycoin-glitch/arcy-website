@@ -4,6 +4,8 @@ on:
     branches: [feature/search-multichain-premium-20261011]
     paths:
       - 'scripts/search-four-contracts-live.cjs'
+      - 'search/server/lib/arc-legacy-evidence.js'
+      - 'search/server/lib/arc-holder-publication.js'
       - '.github/workflows/search-four-contracts-live.yml'
   workflow_dispatch:
 permissions:
