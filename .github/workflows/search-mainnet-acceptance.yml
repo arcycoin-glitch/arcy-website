@@ -4,6 +4,8 @@ on:
     branches: [feature/search-multichain-premium-20261011]
     paths:
       - 'scripts/search-mainnet-acceptance.cjs'
+      - 'search/server/lib/arc-adapter.js'
+      - 'search/server/lib/arc-legacy-evidence.js'
       - '.github/workflows/search-mainnet-acceptance.yml'
   workflow_dispatch:
 permissions:
