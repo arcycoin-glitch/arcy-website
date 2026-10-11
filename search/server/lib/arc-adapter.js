@@ -7,6 +7,7 @@ const {readJson}=require('./http');
 const {safeLogoUrl}=require('./token-image');
 const rpcClient=require('./arc-rpc');
 const market=require('./arc-market');
+const original=require('./arc-legacy-evidence');
 const cfg=chain('arc');
 const NO=(reason,reasonCode='INSUFFICIENT_EVIDENCE')=>({
  value:null,status:'NOT_VERIFIED',dataState:'NOT_VERIFIED',
@@ -26,16 +27,20 @@ function marketFor(address){
  return work;
 }
 async function inspectToken({address}){return rpcClient.inspectToken({address})}
-function supply(base){
+async function supply(base){
  const details={address:base.address,block:base.block,method:'pinned ERC-20 calls'};
  const total=BigInt(base.totalSupplyRaw);
  const burned=base.burnAddressRaw===null?null:BigInt(base.burnAddressRaw);
  const valid=burned!==null&&total>0n&&burned>=0n&&burned<=total;
  const precision=10n**80n;
  const pct=valid?Number((burned*100n*precision+total/2n)/total)/1e80:null;
- return {description:'Pinned Arc RPC: token supply and current zero/dead address holdings, not lifetime burns.',fields:{
+ const legacy=await original.callOriginal('market',base.address).then(data=>
+  original.circulation(data,base.address)).catch(()=>null);
+ const circ=legacy?.dataState==='DATA_FOUND'?legacy:
+  NO('No positive contract-matched verified circulating supply for this Arc token.','CIRCULATION_NOT_VERIFIED');
+ return {description:'Pinned Arc RPC + original Arc validated circulating-supply readers; burn address custody is not lifetime burns.',fields:{
   totalSupply:proof(base.totalSupply,'Arc RPC',{...details,method:'totalSupply()'},'ON_CHAIN'),
-  circulatingSupply:NO('No positive contract-matched verified circulating supply for this Arc token.','CIRCULATION_NOT_VERIFIED'),
+  circulatingSupply:circ,
   burnAddressBalance:burned===null?NO('Pinned zero/dead address reads failed.','BURN_BALANCE_READ_FAILED'):
    proof(base.burnAddressBalance,'Arc RPC',{...details,method:'balanceOf(0x0,0xdead)'},'ON_CHAIN'),
   burnAddressPct:pct===null?NO('Cannot reconcile current burn-address custody to supply.','BURN_SHARE_UNAVAILABLE'):
@@ -43,11 +48,15 @@ function supply(base){
  }};
 }
 async function holders({address}={}){
- // Cryptographically signed COMPLETE snapshots always take precedence.
- // When none is available, a current explorer count may be shown, but
- // whale percentages remain NOT VERIFIED (never derived from a partial list).
  const signed=await require('./arc-holder-publication').load(address);
  if(signed.fields?.holderCount?.dataState==='DATA_FOUND')return signed;
+ // Preserve the original site's durable COMPLETE Arc holder worker/read path.
+ const prior=await original.callOriginal('holders',address,{action:'published'}).then(data=>
+  original.holders(data,address)).catch(()=>null);
+ if(prior&&Object.values(prior).some(v=>v.dataState==='DATA_FOUND'))
+  return {description:'Original Arc signed COMPLETE holder publication, historical at recorded block.',
+   fields:prior};
+ // Explorer-reported count is separately sourced, never presented as full whale proof.
  const reported=await require('./arc-holder-count').fetchCount(address);
  if(!reported)return signed;
  return {...signed,
@@ -58,8 +67,16 @@ async function activity({address},cardId){
  const response=await marketFor(address);
  const keys=cardId==='liquidity'?['liquidityUsd','volume24h','dexPairCount','lpStatus']:
   ['priceUsd','valuation','change24h','volume24h'];
- return {description:'Exact Arc-chain token and returned DEX pairs only. Values are source-reported.',
-  fields:Object.fromEntries(keys.map(k=>[k,response[k]||NO('Matching market evidence unavailable.')]))};
+ const fields=Object.fromEntries(keys.map(k=>[k,response[k]||
+  NO('Matching market evidence unavailable.')]));
+ if(cardId==='liquidity'&&fields.lpStatus.dataState!=='DATA_FOUND'){
+  const legacy=await original.callOriginal('liquidity',address,{details:'1'}).then(data=>
+   original.liquidity(data,address)).catch(()=>null);
+  if(legacy?.dataState==='DATA_FOUND')fields.lpStatus=legacy;
+ }
+ return {description:cardId==='liquidity'?
+  'Exact Arc pools plus original Arc source-matched LP custody checks; liquidity alone is not a lock.':
+  'Exact Arc-chain token and returned DEX pairs only. Values are source-reported.',fields};
 }
 const IMPLEMENTATION='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
 function addressWord(raw){
@@ -69,20 +86,27 @@ function addressWord(raw){
 async function mechanics({address,base}){
  const results=await Promise.allSettled([
   rpcClient.rpc('eth_call',[{to:address,data:'0x8da5cb5b'},base.block]),
-  rpcClient.rpc('eth_getStorageAt',[address,IMPLEMENTATION,base.block])
+  rpcClient.rpc('eth_getStorageAt',[address,IMPLEMENTATION,base.block]),
+  original.callOriginal('mechanics',address).then(data=>original.contract(data,address))
  ]);
  const owner=results[0].status==='fulfilled'?addressWord(results[0].value):null;
  const implementation=results[1].status==='fulfilled'?addressWord(results[1].value):null;
+ const source=results[2].status==='fulfilled'?results[2].value:{};
  const context={address,block:base.block};
- return {description:'Read-only pinned-block observations; not a complete contract authority audit.',fields:{
-  tradingTaxes:NO('Tax percentages need reviewed contract or exact-chain security evidence.','TAX_NOT_VERIFIED'),
-  mintCapability:NO('Mint capability cannot be established from a generic getter.','MINT_NOT_VERIFIED'),
-  ownerAdmin:owner?proof('owner() getter: '+owner,'Arc RPC',{...context,method:'owner()',scope:'Getter-reported; other roles may exist.'},'GETTER_REPORTED'):
+ const preliminary={
+  tradingTaxes:NO('Taxes need source-reviewed contract getter or exact-chain security evidence.','TAX_NOT_VERIFIED'),
+  mintCapability:NO('A generic getter cannot establish mint privileges.','MINT_NOT_VERIFIED'),
+  ownerAdmin:owner?proof('owner() getter: '+owner,'Arc RPC',
+   {...context,method:'owner()',scope:'Getter-reported; other roles may exist.'},'GETTER_REPORTED'):
    NO('No reliable owner or admin getter established.','OWNER_ADMIN_NOT_VERIFIED'),
   contractArchitecture:implementation?proof('EIP-1967 implementation: '+implementation,'Arc RPC',
-   {...context,method:'EIP-1967 implementation slot',scope:'Upgrade authority remains independently unverified.'},'ON_CHAIN'):
+   {...context,method:'EIP-1967 implementation slot',
+    scope:'Observed implementation only; upgrade authority separately unverified.'},'ON_CHAIN'):
    NO('EIP-1967 slot alone does not establish immutable or non-proxy architecture.','PROXY_NOT_VERIFIED')
- }};
+ };
+ const fields=Object.fromEntries(Object.entries(preliminary).map(([key,value])=>
+  [key,source[key]?.dataState==='DATA_FOUND'?source[key]:value]));
+ return {description:'Original verified Arc contract runtime, tax, mint, admin and proxy proofs; unknown permissions remain NOT VERIFIED.',fields};
 }
 async function inspectCard({base,address,cardId}){
  switch(cardId){
