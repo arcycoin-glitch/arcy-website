@@ -1,0 +1,71 @@
+/* ARCY SEARCH landing redesign: independent of existing live homepage and research renderer. */
+:root{--search-night:#020917;--search-cyan:#08d7f3;--search-orange:#ff9a2b}
+body{background:radial-gradient(ellipse 65% 550px at 50% 290px,rgba(6,50,87,.38),transparent 88%),#020917}
+main{max-width:1180px;padding-top:23px}
+header{align-items:flex-start;padding:0 0 22px;margin-bottom:8px;border-color:rgba(60,112,161,.23)}
+header h1{display:flex;align-items:baseline;gap:.32em;margin:0;font-size:clamp(23px,3.2vw,35px);line-height:1.2;letter-spacing:-.035em;font-weight:820;white-space:nowrap}
+header h1 .brand-search{color:var(--search-cyan);text-shadow:0 0 20px rgba(3,219,255,.24)}
+header h1 .brand-y{color:var(--search-orange);text-shadow:0 0 16px rgba(255,127,41,.22)}
+header .sub{font-size:10px;letter-spacing:.16em;line-height:1.8;color:#a3b5cb;margin-top:15px;max-width:900px}
+header .return-arcy{margin-top:0;padding:12px 17px;min-height:47px;font-size:13px;border:1px solid #42658c;background:rgba(11,25,47,.87);border-radius:17px;color:#e2edfb;box-shadow:inset 0 1px 0 rgba(136,194,242,.06)}
+header .return-arcy:hover{background:rgba(12,43,70,.94);border-color:#4fbddd}
+#discovery{max-width:850px;min-height:0}
+#discovery .hero{padding:5px 0 21px;text-align:center}
+#discovery .hero-mascot{position:relative;isolation:isolate;display:block;max-width:760px;width:100%;margin:0 auto 0;aspect-ratio:760/480;overflow:visible}
+#discovery .hero-mascot:before{content:"";position:absolute;inset:12% 11% 6%;background:radial-gradient(ellipse,rgba(7,181,251,.13),transparent 72%);filter:blur(28px);pointer-events:none}
+#discovery .hero-mascot img{position:relative;display:block;max-width:none;width:100%;height:100%;aspect-ratio:760/480;object-fit:contain;filter:drop-shadow(0 5px 18px rgba(11,134,234,.14));margin:0}
+#discovery .hero-mascot video{display:none!important}
+#discovery .hero .eyebrow{margin-top:1px;font-size:11px;font-weight:660;letter-spacing:.25em;color:#35d8f4}
+#discovery .hero h2{font-weight:850;letter-spacing:-.052em;font-size:clamp(31px,5.6vw,57px);line-height:1.12;margin:17px auto 12px;color:#f4faff;max-width:850px}
+#discovery .hero h2 .accent-dot{color:var(--search-cyan)}
+#discovery .hero p{max-width:680px;font-size:clamp(14px,1.85vw,19px);line-height:1.68;color:#aebfd6;margin:0 auto}
+#discovery .network{display:block;position:relative;max-width:810px;margin:9px auto 13px;padding:13px 17px 16px;border:1px solid rgba(80,133,182,.24);border-radius:19px;background:rgba(3,15,32,.55)}
+#discovery .network-label{display:block;color:#a6b9cd;margin:0 0 11px;font-size:12px;font-weight:710;letter-spacing:.13em}
+#discovery .network-picker{width:100%;min-width:0}
+#discovery .network-trigger{min-height:61px;padding:10px 16px;border-radius:13px;background:rgba(8,23,45,.96);border:1px solid #476c98;color:white;font-size:17px}
+#discovery .network-trigger-name{font-size:17px}
+#discovery .chain-mark{border-radius:50%;width:37px;height:37px}
+#discovery .chain-mark svg{height:29px;width:29px}
+#discovery #networkNote{display:block;margin:11px 0 -5px;font-size:10px;text-align:left;color:#799db6}
+#discovery .search{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;column-gap:12px;row-gap:13px;margin:0 auto;max-width:810px;padding:0;background:none;border:none;box-shadow:none}
+#discovery .search:focus-within{border-color:transparent}
+#discovery .search-input-wrap{display:flex;align-items:center;gap:15px;grid-column:1/-1;min-width:0;padding:0 17px;border-radius:17px;background:rgba(8,20,40,.92);border:1px solid #6381b2;min-height:63px}
+#discovery .search-input-wrap:focus-within{border-color:#54d5f4;box-shadow:0 0 0 3px rgba(37,193,233,.13)}
+#discovery .search-glass{display:grid;place-items:center;flex:none;color:#9bb9dc}
+#discovery .search-glass svg{width:25px;height:25px}
+#discovery .search input{padding:12px 0;width:100%;min-width:0;font-size:clamp(12px,1.7vw,16px);color:#eaf7ff;border:0;outline:none;background:transparent}
+#discovery .search button{grid-column:1/-1;min-height:69px;width:100%;border-radius:18px;background:linear-gradient(110deg,#03e4ef,#13b2f4);border:1px solid #46e7ff;box-shadow:0 8px 36px rgba(0,185,229,.26),inset 0 1px rgba(255,255,255,.28);color:#001521;font-size:clamp(16px,2.5vw,22px);letter-spacing:.045em;font-weight:830;cursor:pointer}
+#discovery .search button:hover,#discovery .search button:focus-visible{filter:brightness(1.07);box-shadow:0 8px 42px rgba(0,201,235,.36);outline-offset:3px}
+#discovery .search button:disabled{opacity:.57;cursor:wait}
+#discovery .trust-line{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px 18px;margin:19px auto 8px;color:#a5b9ce;font-size:12px;letter-spacing:.025em}
+#discovery .trust-line span{white-space:nowrap}
+#discovery .trust-line span:not(:last-child):after{content:"·";margin-left:18px;color:#5286a3}
+#discovery #state{font-size:11px;margin:16px auto 8px;line-height:1.5;max-width:690px}
+#discovery .home-entry-links{margin:8px auto 0}
+@media(max-width:700px){
+ main{padding:18px 15px 50px}
+ header{align-items:flex-start;gap:8px;margin-bottom:1px;padding-bottom:13px}
+ header h1{font-size:clamp(21px,5.6vw,31px);gap:.24em}
+ header .sub{font-size:9px;line-height:1.7;letter-spacing:.095em;max-width:280px;margin-top:11px}
+ header .return-arcy{font-size:11px;padding:9px 10px;min-height:37px;border-radius:12px;white-space:nowrap}
+ #discovery .hero{padding:0 0 17px}
+ #discovery .hero-mascot{width:calc(100% + 30px);max-width:unset;margin-left:-15px;aspect-ratio:760/485}
+ #discovery .hero .eyebrow{font-size:9px;letter-spacing:.21em}
+ #discovery .hero h2{font-size:clamp(28px,7.1vw,43px);margin:13px auto 11px}
+ #discovery .hero p{font-size:14px;line-height:1.56;max-width:470px}
+ #discovery .network{margin-top:3px;padding:11px 12px 13px;border-radius:16px}
+ #discovery .network-trigger{min-height:52px;font-size:15px}
+ #discovery .search-input-wrap{min-height:59px}
+ #discovery .search button{min-height:61px}
+ #discovery .trust-line{gap:7px 10px;font-size:10px;margin-top:13px}
+ #discovery .trust-line span:not(:last-child):after{margin-left:10px}
+}
+@media(max-width:390px){
+ header h1{font-size:22px}
+ header .return-arcy{font-size:10px;padding:8px;min-height:35px}
+ #discovery .hero h2{font-size:29px}
+ #discovery .hero p{font-size:12.5px}
+ #discovery .trust-line{font-size:9px;gap:6px}
+ #discovery .trust-line span:not(:last-child):after{margin-left:6px}
+}
+@media(prefers-reduced-motion:reduce){#discovery .hero-mascot img{transition:none}}
