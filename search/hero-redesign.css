@@ -72,3 +72,33 @@ header .return-arcy:hover{background:rgba(12,43,70,.94);border-color:#4fbddd}
 
 #discovery .search button{display:flex;align-items:center;justify-content:center;gap:15px}
 #discovery .search button .button-glass{width:23px;height:23px;flex:none}
+
+/* Final visual reference: preserve functional Search form, change owl art only. */
+#discovery .hero-mascot{
+ width:min(100%,730px);max-width:730px;aspect-ratio:648/440;
+ margin:0 auto 3px;overflow:hidden;
+ border-radius:8px;
+}
+#discovery .hero-mascot:before{display:none}
+#discovery .hero-mascot img{
+ width:100%;height:100%;aspect-ratio:648/440;
+ object-fit:cover;object-position:center;
+ max-width:none;display:block;
+ -webkit-mask-image:radial-gradient(ellipse 79% 83% at center,#000 73%,transparent 100%);
+ mask-image:radial-gradient(ellipse 79% 83% at center,#000 73%,transparent 100%);
+ filter:drop-shadow(0 3px 18px rgba(0,208,250,.12));
+}
+#discovery .hero{padding-top:8px}
+#discovery .hero h2{max-width:790px}
+@media(max-width:700px){
+ #discovery .hero-mascot{
+  width:calc(100% + 30px);max-width:none;margin-left:-15px;
+  aspect-ratio:648/440;border-radius:0;
+ }
+ #discovery .hero .eyebrow{margin-top:0}
+ #discovery .hero{padding-top:0;padding-bottom:17px}
+}
+@media(max-width:390px){
+ #discovery .hero h2{font-size:clamp(21px,6.05vw,24px);letter-spacing:-.055em}
+ #discovery .hero p{font-size:12.5px;line-height:1.55}
+}
