@@ -5,6 +5,12 @@ const {ADDRESS}=require('./eth');
 const {chain}=require('./chains');
 const ids={arc:'arc',ethereum:'eth',robinhood:'robinhood'};
 const CACHE_MS=120000;
+const RANGES=Object.freeze({
+ '30D':Object.freeze({timeframe:'day',aggregate:1,limit:30,interval:'1d',label:'30 days'}),
+ '1W':Object.freeze({timeframe:'day',aggregate:1,limit:7,interval:'1d',label:'7 days'}),
+ '1D':Object.freeze({timeframe:'hour',aggregate:1,limit:24,interval:'1h',label:'24 hours'}),
+ '4H':Object.freeze({timeframe:'minute',aggregate:15,limit:16,interval:'15m',label:'4 hours'})
+});
 const cache=new Map(),pending=new Map();
 function tokenMatch(item,network,address){
  const ids=[item?.relationships?.base_token?.data?.id,item?.relationships?.quote_token?.data?.id]
@@ -49,9 +55,11 @@ async function request(url,fetcher){
  if(!response.ok)throw Error('GeckoTerminal HTTP '+response.status);
  return readJson(response,512*1024);
 }
-async function load(network,address,{fetcher=fetch,now=Date.now(),disableCache=false}={}){
+async function load(network,address,{fetcher=fetch,now=Date.now(),disableCache=false,range='30D'}={}){
  if(!Object.hasOwn(ids,network)||!ADDRESS.test(address))throw Error('Unsupported chart contract');
- const normalized=address.toLowerCase(),id=ids[network],key=network+':'+normalized;
+ if(!Object.hasOwn(RANGES,range))throw Error('Unsupported chart interval');
+ const normalized=address.toLowerCase(),id=ids[network],key=network+':'+normalized+':'+range;
+ const config=RANGES[range];
  if(!disableCache){
   const hit=cache.get(key);
   if(hit&&hit.expires>now)return structuredClone(hit.data);
@@ -62,15 +70,22 @@ async function load(network,address,{fetcher=fetch,now=Date.now(),disableCache=f
   const pools=await request(base+'/tokens/'+normalized+'/pools?page=1',fetcher);
   const pool=choosePool(pools,id,normalized);
   if(!pool)throw Error('No exact-token source pool verified');
-  const url=base+'/pools/'+pool+'/ohlcv/day?aggregate=1&limit=30&currency=usd&token='+normalized;
+  const url=base+'/pools/'+pool+'/ohlcv/'+config.timeframe+'?aggregate='+config.aggregate+
+   '&limit='+config.limit+'&currency=usd&token='+normalized;
   const candles=await request(url,fetcher);
   const points=parseCandles(candles,normalized,now);
+  // Provider can return sparse older candles for thin pools. Keep only the
+  // requested recent time window; absence stays absence, never interpolate.
+  const duration={'30D':30*86400,'1W':7*86400,'1D':86400,'4H':4*3600}[range];
+  const recent=points.filter(p=>p.time*1000>=now-duration*1000-
+   (config.timeframe==='day'?86400000:config.timeframe==='hour'?3600000:900000));
+  if(recent.length<3)throw Error('Not enough recent exact-pool candles for selected interval');
   const data={ok:true,network,chainId:chain(network).chainId,address:normalized,
-   source:'GeckoTerminal',poolAddress:pool,range:'30D',currency:'USD',
+   source:'GeckoTerminal',poolAddress:pool,range,interval:config.interval,requestedWindow:config.label,currency:'USD',
    sourceUrl:'https://www.geckoterminal.com/'+id+'/pools/'+pool,
-   lastCandleTime:points[points.length-1].time,
+   lastCandleTime:recent[recent.length-1].time,
    scope:'Source-reported USD close prices in one highest-reserve returned exact-token pool; not an aggregate token price.',
-   points};
+   points:recent};
   if(!disableCache){
    cache.set(key,{data,expires:now+CACHE_MS});
    if(cache.size>120)cache.delete(cache.keys().next().value);
@@ -81,4 +96,4 @@ async function load(network,address,{fetcher=fetch,now=Date.now(),disableCache=f
  pending.set(key,job);
  try{return await job}finally{if(pending.get(key)===job)pending.delete(key)}
 }
-module.exports={load,tokenMatch,choosePool,parseCandles};
+module.exports={load,tokenMatch,choosePool,parseCandles,RANGES};
