@@ -51,11 +51,13 @@ async function holders({address}={}){
  const signed=await require('./arc-holder-publication').load(address);
  if(signed.fields?.holderCount?.dataState==='DATA_FOUND')return signed;
  // Preserve the original site's durable COMPLETE Arc holder worker/read path.
- const prior=await original.callOriginal('holders',address,{action:'published'}).then(data=>
-  original.holders(data,address)).catch(()=>null);
- if(prior&&Object.values(prior).some(v=>v.dataState==='DATA_FOUND'))
-  return {description:'Original Arc signed COMPLETE holder publication, historical at recorded block.',
-   fields:prior};
+ const prior=await original.callOriginal('holders',address,{action:'published'}).then(data=>({
+  fields:original.holders(data,address),completedAt:data.snapshot?.completedAt||null
+ })).catch(()=>null);
+ if(prior&&Object.values(prior.fields).some(v=>v.dataState==='DATA_FOUND'))
+  return {description:'Original Arc reconciled COMPLETE holder snapshot as of '+
+   prior.completedAt+'. Historical evidence, not current wallet-balance proof. Publication signature is not asserted.',
+   fields:prior.fields};
  // Explorer-reported count is separately sourced, never presented as full whale proof.
  const reported=await require('./arc-holder-count').fetchCount(address);
  if(!reported)return signed;
