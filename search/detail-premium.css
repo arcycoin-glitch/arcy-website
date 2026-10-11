@@ -62,7 +62,16 @@
 #tokenDetail .detail-quick.quick-facts-empty{display:block}
 #tokenDetail .quick-facts-notice{margin:0;padding:19px 21px;border:1px solid rgba(127,194,215,.19);
  border-radius:15px;background:#0b2231;color:#aac6d5;font-size:12px;line-height:1.7}
-#tokenDetail .quick .quick-value{word-break:normal}
+#tokenDetail .quick .quick-value{word-break:normal;max-width:100%;white-space:normal;
+ overflow-wrap:anywhere}
+#tokenDetail .quick.quick-unverified{border-color:rgba(140,166,180,.16)}
+#tokenDetail .quick.quick-unverified .quick-value{font-size:clamp(10px,1.6vw,15px);
+ letter-spacing:0;color:#9ab0c0;line-height:1.45}
+@media(max-width:700px){
+ #tokenDetail .quick .quick-value{font-size:clamp(12px,3.15vw,19px);
+  white-space:normal;overflow-wrap:anywhere}
+ #tokenDetail .quick.quick-unverified .quick-value{font-size:11px}
+}
 
 
 /* Research cards: sourced evidence first; unsupported modules are accessible
