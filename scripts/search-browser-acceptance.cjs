@@ -97,10 +97,10 @@ async function main(){
     const unsourced=network==='robinhood'?4:2;
     assert.equal(await collapsed.locator('.card').count(),unsourced);
     assert.equal(await page.locator('#cards > .card').count(),5-unsourced);
-    assert.match(await collapsed.locator('summary').first().innerText(),new RegExp(String(unsourced)+' research'));
-    await collapsed.locator('summary').first().click();
+    assert.match(await collapsed.locator(':scope > summary').textContent(),new RegExp(String(unsourced)+' research'));
+    await collapsed.locator(':scope > summary').click();
     assert.equal(await collapsed.locator('.missingGroup').count(),unsourced);
-    await collapsed.locator('summary').first().click();
+    await collapsed.locator(':scope > summary').click();
     assert.equal(await page.locator('#cards .exactValue').count(),0,
      'Full values remain in evidence, not repetitive buttons');
     if(network==='robinhood'){
