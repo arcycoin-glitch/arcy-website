@@ -6,9 +6,12 @@
 
  const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
  const app=document.createElement('section');app.className='home-search';app.setAttribute('aria-label','ARCY Search token discovery');
- const kicker=document.createElement('p');kicker.className='home-search-kicker';kicker.textContent='ARCY SEARCH · MULTICHAIN TOKEN RESEARCH';
- const title=document.createElement('h2');title.textContent='Search before you decide.';
- const intro=document.createElement('p');intro.className='home-search-intro';intro.textContent='Search a token by name, symbol or exact contract. Choose a network to keep every result chain-specific.';
+ const brand=document.createElement('div');brand.className='home-search-brand';brand.setAttribute('aria-label','ARCY Search');
+ const owl=document.createElement('img');owl.className='home-search-owl';owl.src='/search/assets/arcy-owl-reference.webp';owl.width=320;owl.height=217;owl.alt='';owl.decoding='async';
+ const wordmark=document.createElement('div');wordmark.className='home-search-wordmark';
+ const arcy=document.createElement('span');arcy.className='home-search-arcy';arcy.append(document.createTextNode('ARC'));const y=document.createElement('span');y.className='home-search-y';y.textContent='Y';arcy.append(y);
+ const searchBrand=document.createElement('span');searchBrand.className='home-search-search';searchBrand.textContent='SEARCH';wordmark.append(arcy,searchBrand);brand.append(owl,wordmark);
+ const intro=document.createElement('p');intro.className='home-search-intro';intro.textContent='Multichain token research. Search a name, ticker, or exact contract.';
  const picker=document.createElement('div');picker.className='home-network-picker';picker.id='homeNetworkPicker';
  const pickerLabel=document.createElement('span');pickerLabel.className='home-field-label';pickerLabel.textContent='NETWORK';
  const trigger=document.createElement('button');trigger.type='button';trigger.className='home-network-trigger';trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-controls','homeNetworkMenu');
@@ -43,7 +46,7 @@
  const chips=document.createElement('div');chips.className='home-network-chips';for(const [,label] of networks){const chip=document.createElement('span');chip.textContent=label;chips.append(chip)}
  const attribution=document.createElement('a');attribution.className='home-search-attribution';attribution.href='https://www.coingecko.com/en/api';attribution.target='_blank';attribution.rel='noopener noreferrer';attribution.textContent='Powered by CoinGecko';
  const robinhoodNotice=document.createElement('p');robinhoodNotice.className='home-search-disclaimer';robinhoodNotice.textContent='Independent research tool. Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.';
- app.append(kicker,title,intro,picker,form,state,results,chips,attribution,robinhoodNotice);header.after(app);
+ app.append(brand,intro,picker,form,state,results,chips,attribution,robinhoodNotice);header.after(app);
  document.documentElement.classList.add('search-upgraded');
  document.querySelectorAll('a[href="#search"]').forEach(link=>link.setAttribute('href','#search'));
 

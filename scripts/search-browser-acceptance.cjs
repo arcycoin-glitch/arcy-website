@@ -47,6 +47,8 @@ async function main(){
       fields.supply.fields.totalSupply={value:'23456000000',dataState:'DATA_FOUND',status:'ON_CHAIN',source:'Robinhood RPC'};
       fields.supply.fields.burnAddressBalance={value:'120000000',dataState:'DATA_FOUND',status:'ON_CHAIN',source:'Robinhood RPC'};
       fields.supply.fields.burnAddressPct={value:0.5116,dataState:'DATA_FOUND',status:'ON_CHAIN',source:'Robinhood RPC'};
+      fields.activity.fields.valuation={value:302700,kind:'MARKET_CAP',dataState:'DATA_FOUND',
+       status:'SOURCE_REPORTED',source:'DexScreener'};
      }else{
       fields.activity.fields.priceUsd={value:.00032632,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
       fields.liquidity.fields.liquidityUsd={value:2659000,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
@@ -94,6 +96,18 @@ async function main(){
     assert.equal(await page.locator('#'+id).count(),1,'Existing section '+id+' must remain');
    }
    assert.equal(await page.locator('#search .home-search').isVisible(),true);
+   assert.equal(await page.locator('#search .home-search-brand').getAttribute('aria-label'),'ARCY Search');
+   assert.equal(await page.locator('#search .home-search-arcy').innerText(),'ARCY');
+   assert.equal(await page.locator('#search .home-search-y').evaluate(el=>getComputedStyle(el).color),'rgb(255, 138, 61)',
+    'Only the Y is orange in the product wordmark');
+   assert.equal(await page.locator('#search .home-search-search').evaluate(el=>getComputedStyle(el).color),'rgb(56, 217, 244)',
+    'SEARCH uses the cyan product color');
+   const owlReady=await page.locator('#search .home-search-owl').evaluate(async img=>{
+    await img.decode();const r=img.getBoundingClientRect();
+    return {loaded:img.naturalWidth===320&&img.naturalHeight===217,width:r.width,height:r.height};
+   });
+   assert.equal(owlReady.loaded,true,'Selected neon owl asset loads at its native source dimensions');
+   assert.ok(owlReady.width<=80&&owlReady.height<=55,'Product owl stays compact and is never enlarged');
    assert.equal(await page.getByRole('link',{name:'Powered by CoinGecko'}).count(),1,
     'CoinGecko source attribution is visible on the home search');
    assert.equal(await page.locator('#search .search').isVisible(),false,'Retired Arc-only form must not be visible');
@@ -195,7 +209,7 @@ async function main(){
     assert.equal(await page.locator('#moreResearch').count(),0,'Unfinished marketing-only tools must not appear');
     const collapsed=page.locator('#cards .unverifiedModules');
     assert.equal(await collapsed.count(),1,'Unsourced categories should share one quiet disclosure');
-    const unsourced=network==='robinhood'?4:2;
+    const unsourced=network==='robinhood'?3:2;
     assert.equal(await collapsed.locator('.card').count(),unsourced);
     assert.equal(await page.locator('#cards > .card').count(),5-unsourced);
     if(width===1440&&network==='arc'){
@@ -212,6 +226,11 @@ async function main(){
      'Full values remain in evidence, not repetitive buttons');
     if(network==='robinhood'){
      assert.match(await page.locator('#cards > .card .statusLine').first().innerText(),/PARTIALLY SOURCE-BACKED/);
+     assert.equal((await page.locator('#quickFacts .quick-label').allInnerTexts()).some(x=>/MARKET CAP/i.test(x)),false,
+      'Market Cap is not repeated in the headline summary');
+     const market=page.locator('#cards > .card').filter({has:page.locator('h2:text("Market Activity")')});
+     assert.equal(await market.locator('.metric').filter({has:page.locator('span:text-is("Market Cap")')}).count(),1,
+      'Market Cap appears once in the detailed Market Activity card');
     }else{
      const market=page.locator('#cards > .card').filter({has:page.locator('h2:text("Market Activity")')});
      assert.match(await market.locator('.statusLine').innerText(),/ALL 4 FIELDS SOURCE-BACKED/);
@@ -306,19 +325,16 @@ async function main(){
    await page.unroute('**/api/search?action=chart&**');
    assert.equal(await page.locator('#currentChainName').innerText(),'Arc');
    assert.equal(await page.locator('#tokenDetail').isVisible(),true);
-   // Sparse evidence still produces three honest, level, readable quick tiles.
+   // A lone valuation stays in its detailed card instead of being duplicated
+   // in headline tiles; do not manufacture a quick-fact row for it.
    await page.evaluate(()=>{
     window.renderQuickFacts({cards:{
      activity:{fields:{valuation:{value:302700,kind:'MARKET_CAP',
       dataState:'DATA_FOUND',source:'DexScreener'}}}
     }});
    });
-   assert.equal(await page.locator('#quickFacts .quick').count(),3);
-   assert.deepEqual(await page.locator('#quickFacts .quick-label').allInnerTexts(),
-    ['MARKET CAP','PRICE','TRACKED LIQUIDITY']);
-   assert.equal(await page.locator('#quickFacts .quick-value').first().innerText(),'$302.7K');
-   assert.equal(await page.locator('#quickFacts .quick-unverified').count(),2);
-   assert.equal(await page.locator('#quickFacts .quick-value').nth(1).innerText(),'NOT VERIFIED');
+   assert.equal(await page.locator('#quickFacts .quick').count(),0);
+   assert.match(await page.locator('#quickFacts').innerText(),/No source-backed headline metrics/);
    const sparseTops=await page.locator('#quickFacts .quick').evaluateAll(xs=>
     xs.map(x=>x.getBoundingClientRect().top));
    assert.ok(sparseTops.every(t=>Math.abs(t-sparseTops[0])<2),'Sparse cards must share a row');

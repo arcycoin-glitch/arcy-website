@@ -9,9 +9,13 @@ html.search-upgraded #search .helper,
 html.search-upgraded #search #token,
 html.search-upgraded #search .grid{display:none!important}
 #search .home-search{max-width:820px;margin:0 auto;padding:23px clamp(16px,3.6vw,30px) 18px;border:1px solid rgba(80,179,207,.25);border-radius:18px;background:linear-gradient(130deg,rgba(10,34,51,.96),rgba(5,20,33,.97));box-shadow:0 15px 48px rgba(0,0,0,.18)}
-#search .home-search-kicker{margin:0 0 9px;color:#6fd3e8;font-size:9px;font-weight:800;letter-spacing:.16em}
-#search .home-search h2{margin:0;color:#e9f8ff;font-size:clamp(21px,3vw,29px);letter-spacing:-.035em;line-height:1.2}
-#search .home-search-intro{max-width:620px;margin:7px 0 17px;color:#a2bac8;font-size:12px;line-height:1.6}
+#search .home-search-brand{display:flex;align-items:center;gap:13px;margin:0 0 7px}
+#search .home-search-owl{display:block;width:78px;height:auto;aspect-ratio:320/217;flex:none;object-fit:contain}
+#search .home-search-wordmark{display:flex;align-items:baseline;gap:7px;font-size:clamp(23px,3vw,31px);font-weight:850;letter-spacing:-.045em;line-height:1.1;white-space:nowrap}
+#search .home-search-arcy{color:#f4f7ff}
+#search .home-search-y{color:#ff8a3d}
+#search .home-search-search{color:#38d9f4;letter-spacing:.015em}
+#search .home-search-intro{max-width:620px;margin:0 0 17px;color:#a2bac8;font-size:12px;line-height:1.6}
 #search .home-network-picker{position:relative;margin:0 0 11px}
 #search .home-field-label{display:block;margin:0 0 6px;color:#93adbd;font-size:9px;font-weight:750;letter-spacing:.1em}
 #search .home-network-trigger{display:flex;width:100%;min-height:45px;align-items:center;gap:10px;padding:6px 11px;border:1px solid #31586b;border-radius:11px;background:#081b2b;color:#e8f6ff;text-align:left;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
@@ -53,6 +57,9 @@ html.search-upgraded #search .grid{display:none!important}
  html.search-upgraded #search .app{padding:17px 8px}
  html.search-upgraded #search .header{margin-bottom:14px}
  #search .home-search{padding:18px 10px 14px;border-radius:15px}
+ #search .home-search-brand{gap:10px}
+ #search .home-search-owl{width:65px}
+ #search .home-search-wordmark{gap:5px;font-size:clamp(20px,6vw,26px)}
  #search .home-search-intro{margin-bottom:14px;font-size:11px}
  #search .home-search-form{grid-template-columns:minmax(0,1fr)}
  #search .home-search-submit{width:100%;min-height:45px}
