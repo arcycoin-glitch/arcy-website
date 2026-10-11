@@ -32,9 +32,15 @@ async function main(){
      const fields=Object.fromEntries(schema.map(x=>[x.id,{description:'Test source only',fields:
       Object.fromEntries(x.fields.map(([key])=>[key,{value:null,dataState:'NOT_VERIFIED',status:'NOT_VERIFIED',
        reason:'Fixture has no evidence',reasonCode:'NO_SOURCE'}]))}]));
-     fields.activity.fields.priceUsd={value:.4935,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
-     fields.liquidity.fields.liquidityUsd={value:2659000,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
-     fields.holders.fields.holderCount={value:215700,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'Blockscout'};
+     if(network==='robinhood'){
+      fields.supply.fields.totalSupply={value:'23456000000',dataState:'DATA_FOUND',status:'ON_CHAIN',source:'Robinhood RPC'};
+      fields.supply.fields.burnAddressBalance={value:'120000000',dataState:'DATA_FOUND',status:'ON_CHAIN',source:'Robinhood RPC'};
+      fields.supply.fields.burnAddressPct={value:0.5116,dataState:'DATA_FOUND',status:'ON_CHAIN',source:'Robinhood RPC'};
+     }else{
+      fields.activity.fields.priceUsd={value:.4935,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
+      fields.liquidity.fields.liquidityUsd={value:2659000,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
+      fields.holders.fields.holderCount={value:215700,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'Blockscout'};
+     }
      data={ok:true,network,chainId:id,address:token,block:'0x12345',schemaVersion:1,cardCount:5,
       scannedAt:'2026-10-11T10:00:00.000Z',
       token:{name:'ARCY Demo',symbol:'ARCY',decimals:18},tokenIdentity:{status:'NOT_VERIFIED'},cards:fields};
@@ -82,6 +88,13 @@ async function main(){
     assert.equal(await page.locator('#cards .card').count(),5);
     assert.equal(await page.locator('#cards .metric').count(),20);
     assert.equal(await page.locator('#quickFacts .quick').count(),3);
+    const headings=await page.locator('#quickFacts .quick-label').allInnerTexts();
+    if(network==='robinhood'){
+     assert.deepEqual(headings,['TOTAL SUPPLY','DEAD-ADDRESS BALANCE','DEAD-ADDRESS %']);
+     assert.equal(await page.locator('#quickFacts').innerText().then(x=>x.includes('NOT VERIFIED')),false);
+    }else{
+     assert.deepEqual(headings,['PRICE','TRACKED LIQUIDITY','HOLDER COUNT']);
+    }
     const tops=await page.locator('#quickFacts .quick').evaluateAll(xs=>xs.map(x=>x.getBoundingClientRect().top));
     assert.ok(tops.every(t=>Math.abs(t-tops[0])<2),'Three key metrics must share one premium row');
     if(network==='robinhood'){
