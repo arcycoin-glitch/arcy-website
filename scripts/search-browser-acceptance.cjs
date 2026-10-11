@@ -164,7 +164,7 @@ async function main(){
     assert.equal(await page.locator('.home-search-result').first().getAttribute('href'),
      '/search/token/'+network+'/'+token);
     assert.equal(await page.locator('.home-result-status').first().innerText(),
-     network==='arc'?'SOURCE VERIFIED':'NOT VERIFIED',
+     network==='arc'?'OFFICIAL CONTRACT':'NOT VERIFIED',
      'Only a chain and exact-address source match may verify the ARCY candidate');
     await page.locator('.home-search-result').first().click();
     await page.waitForURL('**/search/token/'+network+'/'+token);
