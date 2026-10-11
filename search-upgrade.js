@@ -52,11 +52,44 @@
  function addCandidate(candidate,network){
   const button=document.createElement('a');button.className='home-search-result';button.href=detailPath(network,candidate.address);
   const logoHost=(()=>{if(typeof candidate.logoUrl!=='string'||candidate.logoUrl.length>500)return null;try{const u=new URL(candidate.logoUrl);return u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&!u.hash&&['coin-images.coingecko.com','assets.coingecko.com','cdn.dexscreener.com','dd.dexscreener.com'].includes(u.hostname)&&!(/\.(?:svg|html?|xml|pdf)(?:$|\/)/i.test(u.pathname))?u.href:null}catch{return null}})();
-  if(logoHost){const image=document.createElement('img');image.className='home-token-logo';image.src=logoHost;image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.addEventListener('error',()=>image.remove(),{once:true});button.append(image)}else{const fallback=document.createElement('span');fallback.className='home-token-logo home-token-placeholder';fallback.textContent=String(candidate.symbol||'?').slice(0,2).toUpperCase();fallback.setAttribute('aria-hidden','true');button.append(fallback)}
-  const copy=document.createElement('span');copy.className='home-result-copy';const name=document.createElement('strong');name.textContent=String(candidate.name||'Unknown token').slice(0,90);const meta=document.createElement('span');meta.textContent=(candidate.symbol?String(candidate.symbol).slice(0,30)+' · ':'')+networks.find(x=>x[0]===network)[1];copy.append(name,meta);
-  const address=document.createElement('code');address.textContent=candidate.address;const status=document.createElement('span');status.className='home-result-status';status.textContent=candidate.identityVerified===true?'SOURCE VERIFIED':'NOT VERIFIED';
-  button.append(copy,address,status);return button;
+  // ALWAYS keep a readable token-symbol fallback under remote artwork.
+  // Failed or blocked provider images must not leave a blank logo box.
+  const placeholder=document.createElement('span');placeholder.className='home-token-logo home-token-placeholder';
+  placeholder.textContent=String(candidate.symbol||'?').slice(0,2).toUpperCase();
+  placeholder.setAttribute('aria-hidden','true');
+  if(logoHost){
+   const image=document.createElement('img');image.src=logoHost;image.alt='';
+   image.loading='lazy';image.referrerPolicy='no-referrer';image.decoding='async';
+   image.addEventListener('error',()=>image.remove(),{once:true});placeholder.append(image);
+  }
+  const copy=document.createElement('span');copy.className='home-result-copy';
+  const name=document.createElement('strong');name.textContent=String(candidate.name||'Unknown token').slice(0,90);
+  const meta=document.createElement('span');meta.textContent=(candidate.symbol?String(candidate.symbol).slice(0,30)+' · ':'')+networks.find(x=>x[0]===network)[1];
+  copy.append(name,meta);
+  const id=candidate.identity&&typeof candidate.identity==='object'?candidate.identity:null;
+  const status=document.createElement('span');status.className='home-result-status';
+  // An aggregator catalog listing is NOT proof of the issuing project.
+  // Registry matches are separately scoped from issuer-confirmed contracts.
+  switch(id?.status){
+   case 'OFFICIAL_CONTRACT_MATCHED':
+    status.textContent='OFFICIAL CONTRACT';status.classList.add('official');break;
+   case 'REGISTRY_MATCHED':
+    status.textContent='REGISTRY MATCH';status.classList.add('registry');break;
+   case 'INDEXED_ON_COINGECKO':
+    status.textContent='COINGECKO LISTED';status.classList.add('indexed');break;
+   default:status.textContent='NOT VERIFIED';status.classList.add('unverified');
+  }
+  if(id?.status==='OFFICIAL_CONTRACT_MATCHED'&&id.issuer){
+   const proof=document.createElement('small');proof.className='home-result-proof';
+   proof.textContent='Issuer: '+String(id.issuer).slice(0,55)+' · exact network + contract';
+   if(typeof id.proofUrl==='string'&&id.proofUrl.startsWith('https://'))proof.title='First-party contract source: '+id.proofUrl;
+   copy.append(proof);
+  }
+  const address=document.createElement('code');address.textContent=candidate.address;
+  button.append(placeholder,copy,address,status);
+  return button;
  }
+
  form.addEventListener('submit',async event=>{
   event.preventDefault();results.replaceChildren();results.hidden=true;const query=input.value.trim();
   if(!query){state.textContent='Enter a token name, symbol or full contract address.';input.focus();return}
