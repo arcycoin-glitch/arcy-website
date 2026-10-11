@@ -91,10 +91,10 @@ async function main(){
    assert.equal(await page.locator('header .brand-y').innerText(),'Y');
    assert.equal(await page.locator('header .brand-search').innerText(),'SEARCH');
    assert.equal(await page.locator('.hero-mascot img').getAttribute('src'),
-    '/search/assets/arcy-neon-owl.svg');
+    '/search/assets/arcy-owl-reference.webp');
    await page.locator('.hero-mascot img').evaluate(async img=>{
     await img.decode();
-    if(img.naturalWidth===0||img.naturalHeight===0)throw Error('Cyber owl artwork failed to load');
+    if(img.naturalWidth===0||img.naturalHeight===0)throw Error('Reference owl artwork failed to load');
    });
    assert.equal(await page.locator('#address').count(),1);
    assert.equal(await page.locator('#go').innerText(),'SEARCH / SCAN');
