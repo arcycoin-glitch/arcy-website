@@ -95,7 +95,7 @@ async function main(){
      await page.locator('#chartPlot').focus();
      await page.keyboard.press('ArrowLeft');
      assert.equal(await page.locator('#chartInspector').isVisible(),true);
-     assert.match(await page.locator('#chartInspector strong').innerText(),/^\\$/);
+     assert.match(await page.locator('#chartInspector strong').innerText(),/^\$/);
      await page.keyboard.press('Home');
      assert.match(await page.locator('#chartInspector').innerText(),/Sep 12/);
      await page.locator('#chartPlot').blur();
