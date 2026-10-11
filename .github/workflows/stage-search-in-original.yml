@@ -42,7 +42,7 @@ jobs:
           assert.match(search,/Ethereum/);
           assert.match(search,/id="tokenDetail"/);
           assert.doesNotMatch(search,/id="arcyBurn"/);
-          for(const api of ['discover','report','chart','token'])assert.equal(typeof require('./api/search-'+api+'.js'),'function');
+          assert.equal(typeof require('./api/search/index.js'),'function');
           console.log('Original homepage preserved; same-domain three-chain Search modules load.');
           NODE
           for f in search/server/api/*.js search/server/lib/*.js; do node --check "$f"; done
@@ -53,7 +53,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html dev.cjs vercel.json search search-upgrade.js search-upgrade.css api/search-discover.js api/search-report.js api/search-chart.js api/search-token.js
+          git add index.html dev.cjs vercel.json search search-upgrade.js search-upgrade.css api/search/index.js
           if git diff --cached --quiet; then
             echo 'Already staged'
           else
