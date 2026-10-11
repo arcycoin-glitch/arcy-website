@@ -57,3 +57,9 @@
  #tokenDetail .chart-shell{padding:18px 12px}
 }
 @media(prefers-reduced-motion:reduce){#tokenDetail .quick{transition:none!important}}
+
+
+#tokenDetail .detail-quick.quick-facts-empty{display:block}
+#tokenDetail .quick-facts-notice{margin:0;padding:19px 21px;border:1px solid rgba(127,194,215,.19);
+ border-radius:15px;background:#0b2231;color:#aac6d5;font-size:12px;line-height:1.7}
+#tokenDetail .quick .quick-value{word-break:normal}
