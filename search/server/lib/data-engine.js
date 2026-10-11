@@ -34,7 +34,9 @@ function formatCard(cardId,raw,cfg){
  const source=raw&&typeof raw==='object'&&raw.fields&&typeof raw.fields==='object'?raw.fields:{};
  const fields=Object.fromEntries(keys.map(key=>[key,validateField(source[key],cfg)]));
  const statuses=Object.values(fields).map(x=>x.dataState);
- return {fields,status:statuses.includes('DATA_FOUND')?'PARTIAL_EVIDENCE':
+ const count=statuses.filter(s=>s==='DATA_FOUND').length;
+ return {fields,status:count===keys.length?'SOURCE_BACKED':
+  count>0?'PARTIAL_EVIDENCE':
   statuses.includes('SOURCE_API_FAILED')?'SOURCE_API_FAILED':'NOT_VERIFIED',
   description:typeof raw?.description==='string'?raw.description.slice(0,250):'Only chain-matched evidence is displayed.'};
 }
