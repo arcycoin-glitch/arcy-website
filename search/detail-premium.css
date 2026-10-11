@@ -77,6 +77,11 @@
 /* Research cards: sourced evidence first; unsupported modules are accessible
    in one compact disclosure instead of a wall of incomplete "features". */
 #tokenDetail #deepResearch #cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(min-width:1050px){
+ /* On large screens the three supported analysis categories occupy a
+    complete premium row instead of an unfinished 2+1 layout. */
+ #tokenDetail #deepResearch #cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
 #tokenDetail #deepResearch .card{border:1px solid rgba(111,176,202,.17);
  border-top:3px solid var(--accent);border-left:1px solid rgba(111,176,202,.17);
  background:linear-gradient(150deg,#0c2131,#091927);padding:20px;min-height:0}
