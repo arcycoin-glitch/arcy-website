@@ -62,6 +62,59 @@ test('1W as the first click derives seven actual closes from one 30D source scan
  assert.equal(result.lastCandleTime,result.points.at(-1).time);
  assert.equal(calls,2,'Only one pool lookup and one 30D OHLCV request; no separate weekly API call');
 });
+test('Active liquid exact-contract pools outrank dormant largest-reserve pools',()=>{
+ const listed=[
+  {attributes:{address:pool,reserve_in_usd:'500000000',volume_usd:{h24:'0'}},
+   relationships:{base_token:{data:{id:'eth_'+address}}}},
+  {attributes:{address:'0x'+'d'.repeat(40),reserve_in_usd:'50000000',volume_usd:{h24:'25000000'}},
+   relationships:{quote_token:{data:{id:'eth_'+address}}}},
+  {attributes:{address:'0x'+'e'.repeat(40),reserve_in_usd:'90000000000',volume_usd:{h24:'25000000'}},
+   relationships:{base_token:{data:{id:'arc_'+address}}}}
+ ];
+ assert.deepEqual(chart.choosePools({data:listed},'eth',address),
+  ['0x'+'d'.repeat(40),pool]);
+});
+test('A sparse primary pool falls back to a second verified exact-token pool, never guessed candles',async()=>{
+ const secondary='0x'+'d'.repeat(40),calls=[];
+ const fetcher=async endpoint=>{
+  calls.push(endpoint);
+  if(endpoint.endsWith('/pools?page=1')){
+   return new Response(JSON.stringify({data:[pool,secondary].map((p,i)=>({
+    attributes:{address:p,reserve_in_usd:String(1500000-i*100000)},
+    relationships:{base_token:{data:{id:'eth_'+address}}}
+   }))}));
+  }
+  const p=new URL(endpoint).pathname.split('/pools/')[1].split('/')[0];
+  const candles=p===pool?[]:Array.from({length:30},(_,i)=>{
+   const close=1+i/100;
+   return [Math.floor(now/1000)-(29-i)*86400,close,close+.1,close-.1,close,100];
+  });
+  return new Response(JSON.stringify({meta:{base:{address}},data:{attributes:{ohlcv_list:candles}}}));
+ };
+ const result=await chart.load('ethereum',address,{range:'30D',now,fetcher,disableCache:true});
+ assert.equal(calls.length,3,'One source pool discovery plus at most two OHLCV requests');
+ assert.equal(result.poolAddress,secondary);
+ assert.equal(result.points.length,30);
+ assert.equal(result.network,'ethereum');
+ assert.equal(result.address,address);
+ assert.equal(result.sourceUrl,'https://www.geckoterminal.com/eth/pools/'+secondary);
+});
+test('A provider identity mismatch aborts instead of falling back to potentially unrelated history',async()=>{
+ const secondary='0x'+'d'.repeat(40);let calls=0;
+ const fetcher=async endpoint=>{
+  calls++;
+  if(endpoint.endsWith('/pools?page=1'))
+   return new Response(JSON.stringify({data:[pool,secondary].map((p,i)=>({
+    attributes:{address:p,reserve_in_usd:String(1500000-i*100000)},
+    relationships:{base_token:{data:{id:'eth_'+address}}}
+   }))}));
+  return new Response(JSON.stringify({meta:{base:{address:'0x'+'f'.repeat(40)}},
+   data:{attributes:{ohlcv_list:[[Math.floor(now/1000),1,1.1,.9,1,100],[Math.floor(now/1000)-86400,1,1.1,.9,1,100],[Math.floor(now/1000)-2*86400,1,1.1,.9,1,100]]}}}));
+ };
+ await assert.rejects(chart.load('ethereum',address,{range:'30D',now,fetcher,disableCache:true}),
+  /OHLCV token identity/);
+ assert.equal(calls,2,'No second OHLCV request after an identity violation');
+});
 test('Unsupported chart ranges cannot trigger provider or grow cache',async()=>{
  let called=false;
  await assert.rejects(chart.load('ethereum',address,{range:'all',fetcher:()=>{called=true}}),/Unsupported chart interval/);
