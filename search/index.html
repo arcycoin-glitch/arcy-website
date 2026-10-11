@@ -388,14 +388,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
  <summary>Explore the full on-chain report · 20 checks</summary>
  <div id="cards" class="grid"></div>
 </details>
-<details id="moreResearch"><summary>More research tools · Show when needed</summary>
-<div class="research-tools" aria-label="Further research">
- <div class="research-tool"><h3>Before You Buy</h3><p id="beforeBuyNote">Review owner authority, mint permissions, trading taxes and liquidity permissions with exact-contract evidence.</p><div class="state">ONLY VERIFIED SIGNALS</div></div>
- <div class="research-tool"><h3>Exit Reality</h3><p>Execution quotes and price impact require a verified routing and simulation engine. No guaranteed exit amounts are shown.</p><div class="state">SIMULATION NOT YET AVAILABLE</div></div>
- <div class="research-tool"><h3>What Changed?</h3><p>Historical comparisons will use pinned, timestamped snapshots. We do not infer whale activity from incomplete wallet records.</p><div class="state">HISTORICAL COMPARISON PENDING</div></div>
- <div class="research-tool"><h3>Claim vs Reality</h3><p>We compare first-party project claims with on-chain proof. Unsupported marketing claims will not become facts.</p><div class="state">SOURCE MATCHING IN PROGRESS</div></div>
-</div>
-</details>
+
 </section>
 <footer>Evidence is token and network specific. NOT VERIFIED does not mean false or zero. This tool does not execute transactions or provide investment advice.<div class="source-link"><a href="https://github.com/arcycoin-glitch/arcy-website/tree/feature/search-multichain-premium-20261011/search" target="_blank" rel="noopener noreferrer" aria-label="Inspect ARCY SEARCH source code on GitHub">GitHub · View source ↗</a></div></footer>
 </main>
@@ -452,6 +445,11 @@ function render(report){
     const section=document.createElement('section');
     section.className='card';
     section.style.setProperty('--accent',spec.accent);
+    const present=spec.fields.filter(([key])=>{
+     const d=card?.fields?.[key];
+     return d?.dataState==='DATA_FOUND'&&d.value!==null&&d.value!==undefined;
+    }).length;
+    if(card&&present===0)section.classList.add('card-empty');
     const title=document.createElement('h2');
     title.textContent=spec.title;
     section.append(title);
@@ -477,16 +475,8 @@ function render(report){
       value.title=data?.reason||data?.source||'';
       result.append(value);
       if(report&&!missing){
-       const exact=metricFormat.full(data.value,key,kind);
-       if(exact!==displayed){
-        // The rounded display is only a presentation. Original evidence is preserved.
-        const disclosure=document.createElement('details');disclosure.className='exactValue';
-        const show=document.createElement('summary');show.textContent='Full value';
-        const raw=document.createElement('div');raw.className='exactNumber';raw.textContent=exact;
-        disclosure.append(show,raw);
-        result.append(disclosure);
-        value.title='Full value: '+exact;
-       }
+       // Precise figures are also shown in 'View sources & evidence'.
+       value.title='Full value: '+metricFormat.full(data.value,key,kind);
       }
       if(report&&missing){
        const why=document.createElement('div');why.className='reason';
@@ -499,7 +489,7 @@ function render(report){
     }
     if(report&&knownCount===0){
       const notice=document.createElement('p');notice.className='noSource';
-      notice.textContent='No source-backed values available for this token.';
+      notice.textContent='No independently supported figures for this category yet.';
       section.append(notice);
     }
     if(report&&missingRows.length){
@@ -511,12 +501,15 @@ function render(report){
     }
     const status=document.createElement('div');
     status.className='meta statusLine';
-    const state=document.createElement('span');state.textContent=card?.status||'NOT SCANNED';
+    const state=document.createElement('span');
+    const proven=card?Object.values(card.fields||{}).filter(f=>f?.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined).length:0;
+    state.textContent=!card?'NOT SCANNED':proven===spec.fields.length?'ALL 4 FIELDS SOURCE-BACKED':
+     proven>0?'PARTIALLY SOURCE-BACKED':'NO SOURCE-BACKED FIELDS';
     status.append(state);
     if(card){
      const sources=document.createElement('span');
      const ok=Object.values(card.fields||{}).filter(x=>x?.dataState==='DATA_FOUND'&&x.value!==null).length;
-     sources.textContent=ok+' / 4 fields';
+     sources.textContent=ok+' / '+spec.fields.length+' sourced';
      status.append(sources);
     }
     section.append(status);
@@ -859,13 +852,7 @@ function renderQuickFacts(report){
    box.append(a,b,note);root.append(box);
   }
  }
- const tax=report.cards?.mechanics?.fields?.tradingTaxes;
- const mint=report.cards?.mechanics?.fields?.mintCapability;
- const control=report.cards?.mechanics?.fields?.ownerAdmin;
- const found=[tax,mint,control].filter(f=>f?.dataState==='DATA_FOUND'&&f.value!==null);
- $('beforeBuyNote').textContent=found.length?
-  found.length+' of 3 contract safety checks have source evidence. Open the full report to review the exact control and fee findings.':
-  'Taxes, mint capability and admin authority are not fully verified. Unknown is never considered safe.';
+
 }
 function cancelPending(){
  searchVersion++;
