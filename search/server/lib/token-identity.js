@@ -12,6 +12,20 @@ const OFFICIAL=Object.freeze([
   name:'ARCY',symbol:'ARCY',issuer:'ARCY',
   proofUrl:'https://github.com/arcycoin-glitch/arcy-website/blob/main/test/live.cjs'
  }),
+ // Circle's first-party Arc documentation identifies this same fixed native
+ // USDC predeploy on Arc mainnet (chainId 5042).
+ Object.freeze({
+  network:'arc',chainId:5042,address:'0x3600000000000000000000000000000000000000',
+  name:'USD Coin',symbol:'USDC',issuer:'Circle',
+  proofUrl:'https://developers.circle.com/stablecoins/usdc-contract-addresses'
+ }),
+ // floki.com itself specifies its Ethereum contract. BNB token has a different
+ // address and is deliberately NOT a match on the Ethereum Search network.
+ Object.freeze({
+  network:'ethereum',chainId:1,address:'0xcf0c122c6b73ff809c693db761e7baebe62b6a2e',
+  name:'Floki',symbol:'FLOKI',issuer:'Floki',
+  proofUrl:'https://floki.com/'
+ }),
  Object.freeze({
   network:'ethereum',chainId:1,address:'0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
   name:'USD Coin',symbol:'USDC',issuer:'Circle',
