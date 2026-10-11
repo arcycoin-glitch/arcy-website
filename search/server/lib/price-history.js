@@ -3,7 +3,7 @@
 const {readJson}=require('./http');
 const {ADDRESS}=require('./eth');
 const {chain}=require('./chains');
-const ids={arc:'arc',ethereum:'eth'};
+const ids={arc:'arc',ethereum:'eth',robinhood:'robinhood'};
 const CACHE_MS=120000;
 const cache=new Map(),pending=new Map();
 function tokenMatch(item,network,address){
