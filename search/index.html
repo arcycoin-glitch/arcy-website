@@ -471,7 +471,7 @@ function render(report){
       const missing=!data||data.value===null||data.value===undefined;
       value.className=missing?'no':'';
       const kind=key==='valuation'?data?.kind:null;
-      const displayed=!report?'—':missing?'NOT VERIFIED':metricFormat.display(data.value,key,kind);
+      const displayed=!report?'—':missing?'NOT VERIFIED':metricFormat.display(data.value,key,key==='valuation'?null:kind);
       value.textContent=displayed;
       value.title=data?.reason||data?.source||'';
       result.append(value);
