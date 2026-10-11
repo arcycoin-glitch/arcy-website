@@ -693,6 +693,10 @@ function activateDetail(address,network,{push=true,identity=null,logoUrl=null}={
  $('marketLink').hidden=true;clearPriceChart();
  document.title='Token research · '+NETWORKS[network].label+' · ARCY SEARCH';
  window.scrollTo({top:0,behavior:'instant'});
+ // Independently source the exact-pool chart as soon as the contract is chosen.
+ // Full LP/holder/mechanics verification may take longer; never block a valid
+ // chart on an unrelated GoPlus/Sourcify explorer response.
+ void loadVerifiedChart(address.toLowerCase(),network,searchVersion);
  void scanAddress(address.toLowerCase(),network,searchVersion,identity,logoUrl);
 }
 function restoreRoute(){
@@ -1033,7 +1037,6 @@ async function scanAddress(address,network=selected(),version=searchVersion,chos
    localIndex||data.tokenIdentity;
   renderIdentity(identity,network);
   render(data);renderQuickFacts(data);
-  void loadVerifiedChart(address.toLowerCase(),network,version);
   document.title=(asset.name||asset.symbol||'Token')+' ('+(asset.symbol||'?')+') · ARCY SEARCH';
   $('detailState').textContent='Chain '+info.id+' · Snapshot complete · '+data.scannedAt+' · Unsupported metrics remain NOT VERIFIED.';
  }catch(error){
