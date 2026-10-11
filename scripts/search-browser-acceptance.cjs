@@ -1,0 +1,97 @@
+'use strict';
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+const path=require('node:path');
+const {spawn}=require('node:child_process');
+const base='http://127.0.0.1:33119';
+const token='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
+const chainIds={arc:5042,ethereum:1,robinhood:4663};
+const schema=require('../search/schema');
+async function main(){
+ const server=spawn(process.execPath,['dev.cjs'],{
+  cwd:path.resolve(__dirname,'..'),env:{...process.env,PORT:'33119'},stdio:'ignore'
+ });
+ let browser;const outcomes=[];
+ try{
+  for(let j=0;j<90;j++){
+   try{const r=await fetch(base);if(r.ok)break;}catch{}
+   await new Promise(r=>setTimeout(r,120));
+  }
+  browser=await chromium.launch({headless:true});
+  for(const width of [320,390,768,1440]){
+   const page=await browser.newPage({viewport:{width,height:840}});
+   const errors=[];page.on('pageerror',e=>errors.push(e.message));
+   await page.route('**/api/search*',async route=>{
+    const url=new URL(route.request().url()),action=url.searchParams.get('action'),
+     network=url.searchParams.get('chain')||'arc',id=chainIds[network];
+    let data={ok:false,error:'UNKNOWN'};
+    if(action==='discover'){
+     data={ok:true,network,chainId:id,matches:[{name:'ARCY Demo',symbol:'ARCY',address:token,
+      network,chainId:id,identity:{status:'NOT_VERIFIED'},source:'Browser deterministic test'}]};
+    }else if(action==='report'){
+     const fields=Object.fromEntries(schema.map(x=>[x.id,{description:'Test source only',fields:
+      Object.fromEntries(x.fields.map(([key])=>[key,{value:null,dataState:'NOT_VERIFIED',status:'NOT_VERIFIED',
+       reason:'Fixture has no evidence',reasonCode:'NO_SOURCE'}]))}]));
+     data={ok:true,network,chainId:id,address:token,block:'0x12345',schemaVersion:1,cardCount:5,
+      scannedAt:'2026-10-11T10:00:00.000Z',
+      token:{name:'ARCY Demo',symbol:'ARCY',decimals:18},tokenIdentity:{status:'NOT_VERIFIED'},cards:fields};
+    }else if(action==='chart'){
+     data={ok:false,error:'CHART_SOURCE_NOT_VERIFIED',network,address:token};
+    }else if(action==='token'){
+     data={ok:true,network,chainId:id,address:token,block:'0x12345',
+      fields:{totalSupply:{value:null,dataState:'NOT_VERIFIED'}}};
+    }
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
+   });
+   await page.goto(base+'/',{waitUntil:'domcontentloaded'});
+   await page.locator('.search-launch .launch-button').waitFor();
+   assert.equal(await page.locator('.search-launch .launch-button').getAttribute('href'),'/search/');
+   for(const id of ['hero','burn','unlocks','pulse','buy']){
+    assert.equal(await page.locator('#'+id).count(),1,'Existing section '+id+' must remain');
+   }
+   assert.equal(await page.locator('#search .grid').isVisible(),false);
+   assert.equal(await page.locator('a[href="#search"]').count(),0,'Existing Search CTAs target new product');
+   await page.locator('.search-launch .launch-button').click();
+   await page.waitForURL('**/search/');
+   assert.equal(await page.locator('#discovery').isVisible(),true);
+   assert.equal(await page.locator('#tokenDetail').isVisible(),false);
+   assert.equal(await page.locator('select').count(),0,'No native white Android picker');
+   assert.equal(await page.locator('#chainMenu [role="option"]').count(),3);
+   await page.locator('#chainTrigger').click();
+   const labels=await page.locator('#chainMenu [role="option"]').allInnerTexts();
+   assert.deepEqual(labels,['Arc','Ethereum','Robinhood Chain']);
+   const color=await page.locator('#chainMenu').evaluate(x=>getComputedStyle(x).backgroundColor);
+   assert.notEqual(color,'rgb(255, 255, 255)');
+   for(const [network,label] of [['ethereum','Ethereum'],['robinhood','Robinhood Chain'],['arc','Arc']]){
+    if(!(await page.locator('#chainMenu').isVisible()))await page.locator('#chainTrigger').click();
+    await page.locator('#chainMenu [data-chain="'+network+'"]').click();
+    assert.equal(await page.locator('#currentChainName').innerText(),label);
+    await page.locator('#address').fill(token);
+    await page.locator('#go').click();
+    await page.waitForURL('**/search/token/'+network+'/'+token);
+    await page.waitForFunction(()=>document.querySelector('#detailState').textContent.includes('Snapshot complete'),{timeout:12000});
+    assert.equal(await page.locator('#tokenDetail').isVisible(),true);
+    assert.equal(await page.locator('#cards .card').count(),5);
+    assert.equal(await page.locator('#cards .metric').count(),20);
+    assert.match(await page.locator('#chartNote').innerText(),/No reliable|No verified/);
+    await page.locator('#backSearch').click();
+    await page.waitForURL('**/search/');
+    assert.equal(await page.locator('#discovery').isVisible(),true);
+   }
+   await page.goto(base+'/search/token/arc/'+token,{waitUntil:'domcontentloaded'});
+   await page.waitForFunction(()=>document.querySelector('#detailState').textContent.includes('Snapshot complete'));
+   assert.equal(await page.locator('#currentChainName').innerText(),'Arc');
+   assert.equal(await page.locator('#tokenDetail').isVisible(),true);
+   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
+   assert.equal(overflow,false,'No sideways phone page overflow');
+   assert.deepEqual(errors,[],'No new browser errors');
+   outcomes.push({width,status:'PASS',networks:3,reportCards:5,reportFields:20});
+   await page.close();
+  }
+  outcomes.forEach(x=>console.log(JSON.stringify(x)));
+  console.log('Same-domain original-site to premium multichain Search: '+outcomes.length+'/4 browsers PASS');
+ }finally{
+  await browser?.close();server.kill('SIGTERM');
+ }
+}
+main().catch(e=>{console.error('BROWSER_GATE_FAILED '+e.stack);process.exitCode=1});
