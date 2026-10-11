@@ -40,6 +40,12 @@ async function main(){
       fields.activity.fields.priceUsd={value:.4935,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
       fields.liquidity.fields.liquidityUsd={value:2659000,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
       fields.holders.fields.holderCount={value:215700,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'Blockscout'};
+      fields.activity.fields.valuation={value:302700,kind:'marketCap',dataState:'DATA_FOUND',
+       status:'SOURCE_REPORTED',source:'DexScreener'};
+      fields.activity.fields.change24h={value:-3.47,dataState:'DATA_FOUND',
+       status:'SOURCE_REPORTED',source:'DexScreener'};
+      fields.activity.fields.volume24h={value:6169,dataState:'DATA_FOUND',
+       status:'SOURCE_REPORTED',source:'DexScreener'};
      }
      data={ok:true,network,chainId:id,address:token,block:'0x12345',schemaVersion:1,cardCount:5,
       scannedAt:'2026-10-11T10:00:00.000Z',
@@ -85,6 +91,26 @@ async function main(){
     assert.equal(await page.locator('#tokenDetail').isVisible(),true);
     assert.equal(await page.locator('#cards .card').count(),5);
     assert.equal(await page.locator('#cards .metric').count(),20);
+    assert.equal(await page.locator('#moreResearch').count(),0,'Unfinished marketing-only tools must not appear');
+    const collapsed=page.locator('#cards .unverifiedModules');
+    assert.equal(await collapsed.count(),1,'Unsourced categories should share one quiet disclosure');
+    const unsourced=network==='robinhood'?4:2;
+    assert.equal(await collapsed.locator('.card').count(),unsourced);
+    assert.equal(await page.locator('#cards > .card').count(),5-unsourced);
+    assert.match(await collapsed.locator('summary').first().innerText(),new RegExp(String(unsourced)+' research'));
+    await collapsed.locator('summary').first().click();
+    assert.equal(await collapsed.locator('.missingGroup').count(),unsourced);
+    await collapsed.locator('summary').first().click();
+    assert.equal(await page.locator('#cards .exactValue').count(),0,
+     'Full values remain in evidence, not repetitive buttons');
+    if(network==='robinhood'){
+     assert.match(await page.locator('#cards > .card .statusLine').first().innerText(),/PARTIALLY SOURCE-BACKED/);
+    }else{
+     const market=page.locator('#cards > .card').filter({has:page.locator('h2:text("Market Activity")')});
+     assert.match(await market.locator('.statusLine').innerText(),/ALL 4 FIELDS SOURCE-BACKED/);
+     assert.match(await market.locator('.statusLine').innerText(),/4 \/ 4 sourced/);
+     assert.equal(await market.locator('.missingGroup').count(),0);
+    }
     assert.equal(await page.locator('#quickFacts .quick').count(),3);
     const headings=await page.locator('#quickFacts .quick-label').allInnerTexts();
     if(network==='robinhood'){
