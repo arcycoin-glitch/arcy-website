@@ -142,7 +142,7 @@ async function main(){
     await page.waitForFunction(()=>document.querySelector('#chartPlot')?.hidden===false);
     assert.equal(await page.locator('#chartPlot svg path').count(),2);
     assert.equal(await page.locator('#chartAxis span').count(),2);
-    assert.match(await page.locator('#chartStats').innerText(),/daily close intervals/);
+    assert.match(await page.locator('#chartStats').innerText(),/daily intervals/);
     assert.match(await page.locator('#marketLink').getAttribute('href'),new RegExp('/'+(network==='ethereum'?'eth':network)+'/pools/'));
     assert.deepEqual(await page.locator('#chartRanges .chart-range').allInnerTexts(),['4H','1D','1W','30D']);
     assert.equal(await page.locator('#chartRanges .chart-range[aria-pressed="true"]').innerText(),'30D');
