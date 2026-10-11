@@ -8,7 +8,10 @@ async function main(){
  const results=[];
  for(const range of ['30D','1W','1D','4H']){
   try{
-   const output=await load('ethereum',ADDRESS,{range,disableCache:true});
+   // Exercise the same two-minute per-contract/pool cache that the actual
+   // Search API uses. Disabling it multiplied upstream pool lookups and made
+   // false-negative HTTP 429 runs likely on shared CI egress.
+   const output=await load('ethereum',ADDRESS,{range});
    if(output.network!=='ethereum'||output.chainId!==1||output.range!==range||
     output.interval!==RANGES[range].interval||output.address!==ADDRESS||
     output.source!=='GeckoTerminal'||output.points.length<3||
