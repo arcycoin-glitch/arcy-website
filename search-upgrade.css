@@ -103,3 +103,30 @@ html.search-upgraded #search .home-search{padding-top:19px;padding-bottom:16px}
 @media(max-width:560px){
  #search .home-result-status{max-width:105px;min-width:76px;padding:4px 5px;font-size:8px;overflow-wrap:anywhere}
 }
+
+/* Post-release visual refinement: the ARCY hero must lead directly into Search.
+   Scope to the upgraded UI; Burn, Unlocks, Pulse and Swap keep their styles. */
+html.search-upgraded #hero{
+ min-height:0!important;
+ padding:54px 0 34px!important;
+ gap:32px;
+ align-items:center;
+}
+html.search-upgraded #hero .hero-energy{min-height:360px}
+html.search-upgraded #hero .hero-flight{width:100%;max-width:500px;margin-inline:auto}
+html.search-upgraded #hero .actions{margin-top:21px}
+html.search-upgraded #search{padding-top:23px;padding-bottom:48px}
+html.search-upgraded #search .home-search{max-width:850px;margin-inline:auto}
+@media(max-width:850px){
+ html.search-upgraded #hero{min-height:0!important;padding:32px 0 24px!important;gap:17px}
+ html.search-upgraded #hero .hero-energy{min-height:260px}
+ html.search-upgraded #hero .hero-flight{max-width:390px}
+ html.search-upgraded #search{padding-top:12px}
+}
+@media(max-width:560px){
+ html.search-upgraded #hero{padding:24px 0 16px!important;gap:8px}
+ html.search-upgraded #hero .hero-energy{min-height:215px}
+ html.search-upgraded #hero .hero-flight{max-width:320px}
+ html.search-upgraded #hero .actions{margin-top:16px}
+ html.search-upgraded #search{padding-top:10px;padding-bottom:34px}
+}
