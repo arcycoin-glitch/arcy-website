@@ -1,0 +1,1235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="ARCY SEARCH — Arc, Ethereum and Robinhood Chain token intelligence research lab.">
+<link rel="icon" href="/assets/hero-arcy.png" type="image/png">
+<link rel="stylesheet" href="/search/detail-premium.css">
+<script>if(/^\/search\/?$/.test(location.pathname)||location.pathname==='/search/index.html'){location.replace('/#search'+location.search)}</script>
+
+<title>ARCY SEARCH — Multichain Lab</title>
+<style>
+:root{font-family:Inter,system-ui,Arial;color:#eaf6ff;background:#040b15}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#0a2d43 0,transparent 52%),#040b15}
+main{max-width:1120px;margin:auto;padding:42px 20px 80px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:30px}
+h1{display:flex;align-items:center;gap:8px;font-size:clamp(25px,4vw,40px);margin:0;letter-spacing:.05em}
+.brand-owl-mark{display:block;width:38px;height:26px;object-fit:contain;flex:none}
+h1 span{color:#22d4ff}
+.sub{color:#97b1c4;font-size:13px;margin-top:8px}
+.chip{border:1px solid #27546c;color:#b5ebf7;background:#0d2534;padding:8px 12px;border-radius:40px;font-size:12px}
+.search{display:flex;gap:10px;background:#0b1928;border:1px solid #1b4961;padding:12px;border-radius:18px;margin-bottom:12px}
+.search input{flex:1;min-width:0;border:0;outline:0;color:white;background:transparent;padding:12px;font-size:15px}
+.search button{border:0;border-radius:10px;background:linear-gradient(130deg,#20dfff,#488cff);padding:12px 23px;color:#001420;font-weight:800;cursor:pointer}
+.search button:disabled{opacity:.5}
+#state{color:#9eb5c7;font-size:13px;min-height:24px}
+#asset{margin:14px 0 23px;color:#d5e8f6;overflow-wrap:anywhere}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.card{border:1px solid #1b3d53;border-left:4px solid var(--accent);background:linear-gradient(130deg,#0b2031,#0a1523);border-radius:16px;padding:19px;min-height:225px}
+.card h2{font-size:16px;margin:0 0 6px}
+.description{font-size:11px;color:#7f9eae;min-height:28px}
+.metric{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #183044;font-size:12px}
+.metric span{color:#9aafc0}
+.metric b{text-align:right;overflow-wrap:anywhere;max-width:56%;font-size:12px}
+.metric b.no{color:#9babb8;font-weight:500}
+.meta{color:#7d99aa;font-size:11px;margin-top:12px}
+details{margin-top:12px;color:#a6c7d4;font-size:11px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:250px;overflow:auto;color:#a8bac7}
+footer{font-size:12px;color:#7f99a8;margin-top:32px}
+@media(max-width:860px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:550px){main{padding:22px 13px}header{align-items:start}.grid{grid-template-columns:1fr}.search{flex-direction:column}.search button{width:100%}}
+.results{display:grid;gap:8px;margin:0 0 16px}.results[hidden]{display:none}
+.candidate{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:13px 15px;border:1px solid #28576b;background:#0c2434;color:#eaf6ff;border-radius:12px;text-align:left;cursor:pointer}
+.candidate:hover,.candidate:focus-visible{border-color:#32d5fb;background:#12354b;outline:none}
+.candidate-title{font-weight:700;font-size:13px;overflow-wrap:anywhere}.candidate-meta{display:block;margin-top:4px;color:#9eb6c4;font-size:11px;overflow-wrap:anywhere}
+.candidate-detail{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+.candidate-copy{min-width:0;flex:1}
+.candidate-logo{position:relative;flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:#173649;border:1px solid #305a70;color:#9bc7dc;font-size:14px;font-weight:800;overflow:hidden}
+.candidate-logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#132c40}
+.candidate .scan-label{white-space:nowrap;flex-shrink:0;font-size:12px;color:#a5daeb}
+.candidate-list{display:grid;gap:9px}
+.candidate-footnote{font-size:11px;color:#c3a974;padding:0 3px}
+@media(max-width:550px){.candidate-detail{width:100%}.candidate .scan-label{padding-left:56px}}
+
+.candidate-warning{font-size:11px;color:#e6c77a;margin:0 0 10px}
+.candidate-primary{border-color:#347e8e;background:#0d2d3d}
+.candidate-primary.official{border-color:#3bae9c;background:#103b38}
+.candidate-extra{border:1px solid #254559;border-radius:12px;padding:0 10px;background:#091726}
+.candidate-extra>summary{display:list-item;cursor:pointer;padding:13px 8px;color:#a9cbe0;font-size:12px;font-weight:600}
+.candidate-extra-list{display:grid;gap:8px;padding:0 0 10px}
+@media(max-width:550px){.candidate{align-items:flex-start;flex-direction:column}}
+#identity{position:sticky;top:6px;z-index:20}
+.identity{box-shadow:0 8px 22px rgba(0,0,0,.3);backdrop-filter:blur(10px);border:1px solid #28586d;border-left:3px solid #7899b0;background:#102535;border-radius:12px;margin:10px 0;padding:12px 14px;font-size:12px;color:#d6eaf7}
+.identity.verified{border-left-color:#55dab4;background:#0b2a32}
+.identity strong{display:block;font-size:13px;margin-bottom:4px}
+.identity.unknown{border-left-color:#eca965;background:#30271c}
+.identity.indexed{border-left-color:#6ba8e8;background:#10293e}
+#identity:empty{display:none}
+.sourceCount{font-weight:700;font-size:12px;color:#75d9ef;margin-top:8px}
+.reason{font-weight:400;font-size:11px;color:#adc1d0;margin-top:4px;line-height:1.35}
+.metric .result{max-width:60%;text-align:right;min-width:0}
+.metric .result b{display:block;max-width:none}
+.missingGroup{margin:10px 0 0;padding:8px 11px;border:1px solid #284352;border-radius:8px;background:#0a1927}
+.missingGroup summary{cursor:pointer;font-size:12px;color:#d4b58a}
+.missingGroup .metric{font-size:12px}
+.card .noSource{font-size:12px;color:#b1c8d8;padding:10px 0}
+.exactValue{margin-top:5px;color:#83b4cb;font-size:11px}
+.exactValue summary{cursor:pointer;list-style:none;user-select:none}
+.exactValue summary:before{content:'▸ ';font-size:10px}
+.exactValue[open] summary:before{content:'▾ '}
+.exactNumber{margin-top:5px;color:#deeff8;overflow-wrap:anywhere;user-select:text;font-weight:400;line-height:1.5}
+.card .statusLine{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.proofTag{display:block;font-size:12px;font-weight:700;color:#7af3c2;margin-top:8px}
+.candidate .candidate-badge{display:inline-block;border-radius:6px;border:1px solid #408e7a;background:#163b32;color:#8ef6c9;padding:4px 8px;font-size:11px;font-weight:800;margin-top:6px}
+.candidate .candidate-badge.unknown{border-color:#665845;background:#31271d;color:#e1bc82}
+.identity a{color:#65e3ff;overflow-wrap:anywhere}
+.identity small{color:#a6c3d2;display:block;margin-top:4px}
+.buyers{color:#b9cfde;font-size:12px;margin:14px 0 18px}
+.candidate.official{border-color:#398e81;background:#10332f}
+.candidate.official .candidate-title{color:#8ff5d3}
+.network{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;color:#9ec1d2;font-size:12px}
+.network label{letter-spacing:.08em;font-weight:700}
+.network select{background:#0c2535;border:1px solid #26708a;border-radius:10px;color:#e8f8ff;padding:12px 14px;min-width:235px;cursor:pointer}
+.network select:focus-visible{outline:2px solid #45dfff}
+#networkNote{color:#86aabc}
+@media(max-width:550px){.network{align-items:stretch;flex-direction:column}.network select{width:100%}}
+footer .source-link{margin-top:14px}footer .source-link a{color:#67dcf3;text-underline-offset:3px}footer .source-link a:focus-visible{outline:2px solid #45dfff;outline-offset:4px}
+
+/* ARCY SEARCH DESIGN SYSTEM — intentionally quiet, airy, and premium. */
+:root{color-scheme:dark;--midnight:#06111d;--panel:#0a1b2a;--stroke:rgba(160,202,228,.13);--quiet:#9bb1c2;--cyan:#6ad7ed}
+body{background:radial-gradient(ellipse 80% 550px at 50% -220px,#10384b 0,transparent 85%),#06111d;color:#e7f4fb}
+main{max-width:1170px;padding-top:34px}
+header{border-bottom:1px solid var(--stroke);padding-bottom:22px;margin-bottom:52px}
+header .sub{letter-spacing:.12em;text-transform:uppercase;font-size:10px}
+h1{font-size:clamp(23px,3.2vw,34px);font-weight:780;letter-spacing:.01em}
+h1 span{color:var(--cyan)}
+.chip{font-size:10px;letter-spacing:.08em;border-color:var(--stroke);background:#0c1b2b;color:#91afc2}
+#discovery{max-width:810px;margin:0 auto;min-height:57vh}
+.hero{text-align:center;padding:clamp(35px,7vh,80px) 0 30px}
+.hero .eyebrow{color:#69d8e8;letter-spacing:.22em;font-size:10px;font-weight:800;text-transform:uppercase}
+.hero h2{font-size:clamp(32px,5vw,58px);letter-spacing:-.045em;font-weight:740;line-height:1.12;margin:19px auto 15px;max-width:720px}
+.hero p{font-size:14px;line-height:1.8;color:var(--quiet);max-width:540px;margin:0 auto}
+.network{justify-content:center;margin-bottom:17px}
+.network select{min-width:230px;background:#0e2434;border-color:#27485b;font-weight:600}
+#networkNote{font-size:11px}
+.search{border:1px solid #31556a;background:rgba(14,34,50,.82);padding:8px;box-shadow:0 12px 46px rgba(0,0,0,.15)}
+.search:focus-within{border-color:#69bfd6}
+.search button{border-radius:11px;background:#62cbe5;color:#031523;letter-spacing:.04em;box-shadow:none}
+.search input{font-size:15px}
+#state{color:#91aabc;text-align:center;margin:18px 0}
+#tokenDetail{max-width:1060px;margin:0 auto}
+#tokenDetail[hidden],#discovery[hidden]{display:none!important}
+.detail-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 28px}
+.text-control{background:none;border:0;color:#a8d5e3;cursor:pointer;font-size:12px;letter-spacing:.02em;padding:8px 0}
+.text-control:hover,.text-control:focus-visible{color:#fff;text-decoration:underline;outline-offset:3px}
+.detail-hero{border-bottom:1px solid var(--stroke);padding:0 0 27px;margin-bottom:25px}
+.detail-kicker{letter-spacing:.2em;color:#6fbfd3;text-transform:uppercase;font-weight:700;font-size:10px;margin:0 0 12px}
+#asset{margin:8px 0 13px;line-height:1.75}
+#asset span:first-child{font-weight:760;font-size:clamp(20px,3vw,33px);letter-spacing:-.035em;display:block}
+#asset a{font-size:12px;color:#83b6ca!important;text-underline-offset:4px}
+#asset span:last-child{display:block;color:#7792a5;font-size:11px}
+#identity{position:static;max-width:810px}
+.identity{backdrop-filter:none;box-shadow:none;background:#0c2130!important;border-color:var(--stroke);border-left-width:2px}
+#evidenceCount{font-size:12px;color:#82bfcf}
+#detailState{font-size:12px;color:#9fbbc9;min-height:17px;margin:14px 0}
+.detail-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 20px}
+.quick{padding:18px 19px;background:#0a1b29;border:1px solid var(--stroke);border-radius:14px}
+.quick-label{display:block;letter-spacing:.06em;color:#93b4c4;font-size:11px;margin-bottom:7px}
+.quick-value{font-size:clamp(19px,2.5vw,26px);letter-spacing:-.03em;font-weight:730}
+.quick small{display:block;margin-top:8px;color:#7895a5;font-size:10px}
+.chart-shell{background:#091b2a;border:1px solid var(--stroke);border-radius:18px;padding:23px;margin-bottom:28px;min-height:155px}
+.chart-shell h2{font-size:16px;letter-spacing:-.01em;margin:0 0 10px}
+.chart-shell .chart-note{color:#90a9b9;font-size:12px;line-height:1.7}
+.chart-shell a{color:#7ad5eb;text-underline-offset:3px;font-size:12px}
+.research-intro{margin:40px 0 14px}
+.research-intro h2{font-size:22px;letter-spacing:-.03em;margin:0 0 7px}
+.research-intro p{color:#8eaabb;font-size:12px;line-height:1.6;margin:0}
+.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{border:1px solid var(--stroke);border-top:2px solid var(--accent);border-left:1px solid var(--stroke);background:#0b1d2c;padding:21px;min-height:unset;border-radius:15px}
+.card h2{font-size:15px}
+.card .description{font-size:11px;line-height:1.6;color:#83a3b6}
+.card .metric{border-bottom-color:var(--stroke)}
+.card .meta{font-size:10px;color:#7898aa}
+#deepResearch{border:1px solid var(--stroke);border-radius:16px;padding:0 20px;background:#081927;margin-top:20px}
+#deepResearch>summary{cursor:pointer;list-style:none;font-size:13px;padding:19px 4px;color:#aaddf0;font-weight:700}
+#deepResearch>summary::after{content:' +';float:right}
+#deepResearch[open]>summary::after{content:' −'}
+#deepResearch .grid{padding:0 0 20px}
+.buyers{color:#8ba7b8;font-size:12px;margin:12px 0 18px;line-height:1.7}
+.research-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:25px 0}
+.research-tool{border:1px solid var(--stroke);border-radius:15px;padding:18px 19px;background:#0b1e2c}
+.research-tool h3{font-size:14px;margin:0 0 7px;font-weight:670}
+.research-tool p{font-size:12px;line-height:1.6;color:#91acbb;margin:0}
+.research-tool .state{font-size:10px;color:#aab5bd;letter-spacing:.05em;margin-top:12px}
+#shareStatus{color:#b0d9e5;font-size:11px;min-height:18px}
+footer{border-top:1px solid var(--stroke);padding-top:24px;line-height:1.9;margin-top:65px}
+@media(max-width:700px){main{padding:20px 15px 64px}header{margin-bottom:30px;padding-bottom:18px}.hero{padding:47px 0 25px}.detail-quick{grid-template-columns:repeat(2,minmax(0,1fr))}.grid,.research-tools{grid-template-columns:1fr}.chart-shell{padding:19px}.detail-toolbar{flex-wrap:wrap}.chip{display:none}}
+@media(max-width:400px){.detail-quick{grid-template-columns:1fr 1fr}.quick{padding:13px}.quick-value{font-size:19px}.hero h2{font-size:36px}}
+
+#moreResearch{border:1px solid var(--stroke);border-radius:15px;padding:0 20px;background:#081927;margin-top:18px}
+#moreResearch>summary{cursor:pointer;padding:18px 2px;list-style:none;color:#99c4d4;font-size:12px;font-weight:700}
+#moreResearch>summary::after{content:' +';float:right}
+#moreResearch[open]>summary::after{content:' −'}
+#moreResearch .research-tools{margin:0 0 20px}
+.price-canvas{width:100%;height:216px;margin:8px 0 13px;overflow:hidden}
+.price-canvas svg{width:100%;height:100%;display:block}
+.price-canvas path{vector-effect:non-scaling-stroke}
+.chart-shell .chart-note{margin:8px 0 12px}
+.chart-shell[aria-busy="true"]{opacity:.95}
+@media(max-width:550px){.price-canvas{height:166px}}
+
+/* Branded network dropdown. Never invokes a native bright mobile select sheet. */
+.network-picker{position:relative;min-width:250px;z-index:45}
+.network .network-label{letter-spacing:.13em;font-weight:750;color:#94c1d0;font-size:10px}
+.network-trigger{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;
+ padding:7px 13px;background:#0a2434;color:#e8f7fd;border:1px solid #2b6075;border-radius:12px;
+ font:inherit;font-size:13px;font-weight:650;text-align:left;cursor:pointer;transition:border-color .18s,background .18s}
+.network-trigger:hover,.network-trigger[aria-expanded="true"]{background:#103145;border-color:#5ac6df}
+.network-trigger:focus-visible,.chain-option:focus-visible{outline:2px solid #7de0f4;outline-offset:2px}
+.network-trigger-name{flex:1}
+.chain-chevron{width:17px;height:17px;color:#9dbfcc;transition:transform .18s}
+.network-trigger[aria-expanded="true"] .chain-chevron{transform:rotate(180deg)}
+.chain-mark{display:inline-grid;place-items:center;flex:none;width:30px;height:30px;border-radius:9px;
+ background:#102d40;color:#bfeeff;border:1px solid rgba(94,180,212,.2)}
+.chain-mark svg{width:22px;height:22px;display:block}
+.chain-mark.chain-robinhood{color:#cce3eb}
+.chain-mark{overflow:hidden;border:1px solid #31546a;background:#091e2e}
+.chain-mark img,.chain-mark svg{display:block;width:36px;height:36px;max-width:100%;max-height:100%;object-fit:contain}
+.chain-mark.chain-arc img{width:50px;height:50px}
+.chain-mark.chain-robinhood{background:#101b24;border-color:#3a525a}
+#discovery .chain-mark,.network-trigger .chain-mark,.chain-option .chain-mark{width:54px;height:54px;flex-shrink:0}
+.network-menu{position:absolute;top:calc(100% + 7px);left:0;right:0;padding:6px;
+ border:1px solid #326f86;border-radius:15px;background:#0a2536;color:#ecf8ff;
+ box-shadow:0 16px 44px rgba(0,3,10,.52);max-height:min(300px,58vh);overflow-y:auto;overscroll-behavior:contain}
+.network-menu[hidden]{display:none!important}
+.chain-option{display:flex;gap:13px;align-items:center;width:100%;min-height:54px;padding:8px 10px;
+ border:0;border-radius:9px;color:#e6f6ff;background:transparent;font:inherit;font-size:13px;font-weight:650;text-align:left;cursor:pointer}
+.chain-option>span:nth-child(2){flex:1}
+.chain-option:hover,.chain-option:focus-visible{background:#103a50}
+.chain-option[aria-selected="true"]{background:#104052;color:#fff}
+.chain-check{width:16px;height:16px;flex:none;border-radius:50%;border:1.5px solid #7298aa}
+.chain-option[aria-selected="true"] .chain-check{border:4px solid #63d8ee;background:#082a3a;box-shadow:0 0 0 1px #63d8ee}
+@media(max-width:550px){.network-picker{width:100%;min-width:0}.network-menu{z-index:55}.network-trigger{min-height:54px}}
+
+
+/* Original ARCY mascot — quiet, premium hero; no decorative clones. */
+.hero{padding:clamp(16px,4vh,44px) 0 30px}
+.hero-mascot{display:grid;place-items:center;width:100%;margin:0 auto 17px}
+.hero-mascot img{display:block;width:clamp(118px,13vw,176px);height:auto;aspect-ratio:1;
+ object-fit:contain;filter:drop-shadow(0 9px 21px rgba(30,151,203,.16))}
+@media(max-width:550px){
+ .hero{padding:20px 0 22px}
+ .hero-mascot{margin-bottom:16px}
+ .hero-mascot img{width:130px}
+}
+
+/* Original ARCY waving mascot video, with still-image fallback.
+   Motion and data-saving accessibility must take precedence over autoplay. */
+.hero-mascot{position:relative;isolation:isolate;max-width:176px}
+.hero-greeting-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;
+ pointer-events:none;transition:opacity .35s ease}
+.hero-mascot.greeting-playing .hero-greeting-video{opacity:1}
+.hero-mascot.greeting-playing>img{opacity:0}
+.hero-mascot>img{transition:opacity .35s ease}
+@media(max-width:550px){.hero-mascot{max-width:130px}}
+@media(prefers-reduced-motion:reduce){.hero-greeting-video{display:none!important}
+ .hero-mascot>img{opacity:1!important}}
+
+
+/* Minimal token discovery results: one clean list, no ticker wall. */
+#matches{margin:16px auto 34px;max-width:810px}
+.candidate{min-height:68px;border:1px solid rgba(129,204,230,.18);border-radius:14px;
+ background:rgba(8,29,44,.96);padding:12px 15px;transition:border-color .16s,background .16s,transform .16s}
+.candidate:hover,.candidate:focus-visible{background:#102d3e;border-color:#58bbcf;transform:translateY(-1px)}
+.candidate-logo{width:46px;height:46px;border:1px solid rgba(126,191,214,.22);
+ border-radius:50%;background:#173447;color:#a6d2e0}
+.candidate-logo img{object-fit:contain;background:#102738;border-radius:50%;padding:1px}
+.candidate-title{font-size:14px;line-height:1.4;letter-spacing:-.01em}
+.candidate-meta{color:#7f9eaf;font-size:11px;margin-top:5px}
+.candidate-badge{display:inline-block;font-size:10px;letter-spacing:.01em;margin-top:7px}
+.candidate .scan-label{padding:0;color:#85c8dd;font-size:19px;font-weight:400}
+.candidate-warning,.candidate-footnote{color:#90a9ba;line-height:1.6;font-size:11px}
+.candidate-list{gap:8px}
+.candidate-extra{border:1px solid rgba(129,204,230,.16);background:#0b1d2b;margin-top:7px}
+.candidate-extra>summary{color:#95c9da}
+.candidate-primary{border-color:rgba(88,195,214,.4)}
+.candidate.official{background:#0c2b35;border-color:rgba(78,184,166,.31)}
+@media(max-width:550px){.candidate{flex-direction:row;align-items:center;padding:11px 12px}
+ .candidate .scan-label{padding:0}.candidate-title{font-size:13px}
+ .candidate-detail{gap:11px;min-width:0}.candidate-logo{width:42px;height:42px}}
+
+/* Compact token identity: logo is visual context, never proof of issuer. */
+#asset{position:relative;min-height:52px}
+#asset .token-title-logo{float:left;width:46px;height:46px;object-fit:contain;border-radius:50%;
+ background:#112a3a;border:1px solid rgba(133,197,216,.17);margin:4px 13px 5px 0}
+#asset:after{content:'';display:table;clear:both}
+
+/* Source-backed single-section ARCY Burn, without turning the home into a dashboard. */
+.home-section{margin:clamp(72px,12vw,156px) auto 42px;padding:31px 0;border-top:1px solid rgba(135,198,221,.17);max-width:980px}
+.section-kicker{font-size:10px;letter-spacing:.21em;font-weight:730;color:#76c9de;text-transform:uppercase}
+.home-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:12px 0 10px}
+.home-heading h2{font-size:clamp(23px,3vw,32px);letter-spacing:-.045em;margin:0}
+.home-heading a{font-size:12px;color:#81cede;text-underline-offset:4px}
+.section-lead{color:#91aebc;font-size:12px;line-height:1.8;max-width:680px;margin:5px 0 25px}
+.burn-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.burn-facts>div{padding:20px 19px;background:#0b1e2c;border:1px solid rgba(128,191,209,.17);border-radius:15px}
+.burn-facts span{display:block;font-size:11px;color:#98b7c5;margin-bottom:12px}
+.burn-facts strong{font-size:clamp(18px,2.7vw,26px);letter-spacing:-.035em;overflow-wrap:anywhere;font-weight:730}
+.section-status{margin:16px 0;font-size:11px;color:#829faf;line-height:1.65}
+@media(max-width:650px){.burn-facts{grid-template-columns:1fr 1fr;gap:9px}
+ .burn-facts>div{padding:14px}.burn-facts strong{font-size:20px}
+ .burn-facts>div:last-child{grid-column:1/-1}}
+
+/* Human-readable provenance, source first; raw proofs remain an advanced disclosure. */
+.proof-panel{border-top:1px solid rgba(128,196,218,.15);margin-top:16px;padding-top:3px}
+.proof-panel>summary{font-size:12px;color:#9fd1de;font-weight:700;cursor:pointer;padding:12px 0}
+.proof-list{display:grid;gap:8px;margin-top:3px}
+.proof-entry{background:#091928;border:1px solid rgba(133,194,215,.14);border-radius:10px;padding:11px 12px;min-width:0}
+.proof-entry-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.proof-entry strong{font-size:11px;color:#d1edf5;line-height:1.4}
+.proof-state{color:#75d9bf;font-size:9px;white-space:nowrap;letter-spacing:.04em}
+.proof-state.unverified{color:#aeb3bd}
+.proof-entry p{font-size:10px;color:#8caabb;overflow-wrap:anywhere;line-height:1.6;margin:5px 0 0}
+.proof-entry .proof-value{color:#c8e4ee}
+.proof-entry a{display:inline-block;color:#80cfe2;font-size:10px;margin-top:8px;text-underline-offset:3px}
+.advanced-proof{margin-top:13px}
+.advanced-proof>summary{color:#8daeba;cursor:pointer;font-size:11px}
+.advanced-proof pre{font-size:10px;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* Quiet, unmistakable paths to evidence beneath the premium search box. */
+.home-entry-links{display:flex;justify-content:center;align-items:center;gap:clamp(15px,4vw,32px);
+ margin:14px 0 0;padding:0 12px;flex-wrap:wrap}
+.home-entry-links a{font-size:12px;color:#9bc8d9;text-underline-offset:4px;text-decoration:none}
+.home-entry-links a:hover,.home-entry-links a:focus-visible{color:#e2f8ff;text-decoration:underline}
+#arcyBurn{scroll-margin-top:24px}
+@media(max-width:420px){.home-entry-links{gap:16px}.home-entry-links a{font-size:11px}}
+
+/* ARCY SEARCH is a dedicated research product, not a duplicate of the existing website. */
+header .return-arcy{font-size:12px;font-weight:680;color:#a1d6e6;text-decoration:none;
+ border:1px solid rgba(116,206,229,.23);padding:11px 14px;border-radius:11px;
+ transition:border-color .2s,background .2s;white-space:nowrap}
+header .return-arcy:hover,header .return-arcy:focus-visible{
+ color:#effcff;border-color:#75daeb;background:#112e41;outline-offset:3px}
+#discovery{min-height:65vh}
+.home-entry-links{padding-top:4px}
+@media(max-width:550px){header .return-arcy{font-size:11px;padding:9px 10px}
+ header .sub{font-size:9px;max-width:220px}}
+</style>
+<link rel="stylesheet" href="/search/hero-redesign.css">
+</head>
+<body>
+<main>
+<header>
+<div>
+<h1><img class="brand-owl-mark" src="/search/assets/arcy-neon-owl.svg" width="38" height="26" alt=""><span class="brand-arcy">ARC<span class="brand-y">Y</span></span><span class="brand-search">SEARCH</span></h1>
+<div class="sub">ARC + ETHEREUM + ROBINHOOD CHAIN · TOKEN INTELLIGENCE · READ ONLY</div>
+</div>
+</header>
+<section id="discovery">
+<div class="hero">
+  <div class="hero-mascot"><img src="/search/assets/arcy-owl-reference.webp" width="320" height="217" alt="ARCY reference owl with luminous cyan eyes and a dark futuristic blue design" decoding="async" fetchpriority="high"></div>
+  <div class="eyebrow">ARCY · TOKEN INTELLIGENCE</div>
+  <h2>Know what you're buying<span class="accent-dot">.</span></h2>
+  <p>Three chains. One clear picture. Search any token, verify its contract, and research the evidence before you decide.</p>
+</div>
+<div class="network"><span class="network-label">NETWORK</span>
+<div class="network-picker" id="networkPicker">
+  <input type="hidden" id="chain" value="arc">
+  <button type="button" id="chainTrigger" class="network-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="chainMenu" aria-label="Select token network">
+    <span id="currentChainLogo" class="chain-mark chain-arc"><img src="https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif" alt="" loading="eager" referrerpolicy="no-referrer"/></span>
+    <span id="currentChainName" class="network-trigger-name">Arc</span>
+    <svg class="chain-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div class="network-menu" id="chainMenu" role="listbox" aria-label="Token network" hidden>
+    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="true" id="chainOptionArc"><span class="chain-mark chain-arc"><img src="https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif" alt="" loading="eager" referrerpolicy="no-referrer"/></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="ethereum" aria-selected="false" id="chainOptionEthereum"><span class="chain-mark chain-ethereum"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#7b83ad" d="M16 2 6 16l10 6 10-6z"/><path fill="#cdd2e4" d="M16 2v20l10-6z"/><path fill="#626a95" d="M6 18l10 12v-6z"/><path fill="#a7afd3" d="M26 18 16 30v-6z"/></svg></span><span>Ethereum</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="robinhood" aria-selected="false" id="chainOptionRobinhood"><span class="chain-mark chain-robinhood"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="9" cy="16" r="4" fill="none" stroke="#cce3eb" stroke-width="2.4"/><circle cx="23" cy="9" r="4" fill="none" stroke="#cce3eb" stroke-width="2.4"/><circle cx="23" cy="23" r="4" fill="none" stroke="#cce3eb" stroke-width="2.4"/><path d="M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3" fill="none" stroke="#cce3eb" stroke-width="2.4" stroke-linecap="round"/></svg></span><span>Robinhood Chain</span><span class="chain-check" aria-hidden="true"></span></button>
+  </div>
+</div><span id="networkNote">Results never mix token data from different networks.</span></div>
+<div class="search">
+  <div class="search-input-wrap">
+    <span class="search-glass" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none"><circle cx="12.5" cy="12.5" r="8" stroke="currentColor" stroke-width="2.4"/><path d="m18.5 18.5 6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span>
+    <input id="address" aria-label="Token name, ticker or contract address" spellcheck="false" value="" placeholder="Token name, ticker or 0x contract address">
+  </div>
+  <button id="go" type="button"><svg class="button-glass" viewBox="0 0 28 28" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="2.5"/><path d="m17.8 17.8 6.2 6.2" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg><span>SEARCH / SCAN</span></button>
+</div>
+<div class="trust-line" aria-label="Research standards"><span>◈ Exact contracts</span><span>▤ Verified sources</span><span>▥ 20 research checks</span></div>
+<div id="matches" class="results" hidden aria-live="polite"></div>
+<p id="state" role="status" aria-live="polite">Select a network, then search a token name, symbol, or contract. Name matches are not issuer verification.</p>
+<nav class="home-entry-links" aria-label="ARCY search shortcuts">
+ <a href="/search/token/arc/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">Research ARCY token ↗</a>
+</nav>
+</section>
+<section id="tokenDetail" hidden aria-label="Token research">
+  <div class="detail-toolbar">
+    <button id="backSearch" class="text-control" type="button">← Back to search</button>
+    <div>
+      <button id="copyLink" class="text-control" type="button">Copy research link ↗</button>
+      <span id="shareStatus" role="status" aria-live="polite"></span>
+    </div>
+  </div>
+  <div class="detail-hero">
+    <div class="detail-kicker">INDEPENDENT TOKEN RESEARCH · READ ONLY</div>
+    <div id="asset"></div>
+    <div id="identity" aria-live="polite"></div>
+    <div id="detailState" role="status" aria-live="polite">Select a token to scan source-backed data.</div>
+  </div>
+  <div id="quickFacts" class="detail-quick" aria-label="Key token metrics"></div>
+  <div class="chart-shell" aria-label="Pool-specific price history">
+    <div class="chart-heading">
+      <div><span class="chart-kicker">SOURCE-MATCHED PRICE DATA</span><h2>Price history</h2></div>
+      <div class="chart-ranges" id="chartRanges" role="group" aria-label="Price history timeframe">
+       <button type="button" class="chart-range" data-range="4H" aria-pressed="false" title="Last 4 hours; 15-minute candles">4H</button>
+       <button type="button" class="chart-range" data-range="1D" aria-pressed="false" title="Last 24 hours; hourly candles">1D</button>
+       <button type="button" class="chart-range" data-range="1W" aria-pressed="false" title="Last 7 days; daily candles">1W</button>
+       <button type="button" class="chart-range" data-range="30D" aria-pressed="true" title="Last 30 days; daily candles">30D</button>
+      </div>
+    </div>
+    <div id="chartStats" class="chart-stats" hidden></div>
+    <div id="chartPlot" hidden role="img" tabindex="0" aria-label="Verified daily USD price history; use left and right arrows to inspect" class="price-canvas"></div>
+    <div id="chartAxis" class="chart-axis" hidden aria-label="Chart start and end dates"></div>
+    <div id="chartInspector" class="chart-inspector" hidden role="status" aria-live="polite"></div>
+    <p id="chartNote" class="chart-note">No exact-chain, contract-bound candle series verified for this token yet. We will never draw invented price history.</p>
+    <a id="marketLink" hidden target="_blank" rel="noopener noreferrer">View source-matched market ↗</a>
+  </div>
+<div class="research-intro">
+  <h2>Research, without the noise.</h2>
+  <p>Only contract-matched metrics. Open source evidence when you need it.</p>
+</div>
+<details id="deepResearch">
+ <summary><span class="report-summary-label"><strong>Explore full on-chain report</strong><small id="evidenceCount" aria-live="polite">20 checks · Sources, risks and evidence</small></span><span class="report-summary-arrow" aria-hidden="true">↗</span></summary>
+ <p class="buyers">Contract confirmation is not an investment safety rating. Missing evidence is never treated as proof of safety.</p>
+ <div id="cards" class="grid"></div>
+</details>
+
+</section>
+<footer>Evidence is token and network specific. NOT VERIFIED does not mean false or zero. This tool does not execute transactions or provide investment advice. ARCY SEARCH is independent and is not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.<div class="source-link"><a href="https://www.geckoterminal.com/" target="_blank" rel="noopener noreferrer">On-chain market data provided by GeckoTerminal</a></div><div class="source-link"><a href="https://github.com/arcycoin-glitch/arcy-website/tree/feature/search-multichain-premium-20261011/search" target="_blank" rel="noopener noreferrer" aria-label="Inspect ARCY SEARCH source code on GitHub">GitHub · View source ↗</a></div></footer>
+</main>
+<script src="/search/schema.js"></script>
+<script src="/search/format.js"></script>
+<script src="/search/hero-greeting.js" defer></script>
+
+
+<script>
+'use strict';
+const definitions=window.ARCYEthLabSchema;
+// Buyer-first reading order; the five-card / twenty-field API schema stays intact.
+const buyerOrder=['liquidity','holders','mechanics','supply','activity'];
+const displayDefinitions=[...definitions].sort((a,b)=>buyerOrder.indexOf(a.id)-buyerOrder.indexOf(b.id));
+const $=id=>document.getElementById(id);
+const metricFormat=window.ARCYMetricFormat;
+if(!metricFormat||typeof metricFormat.display!=='function'||typeof metricFormat.full!=='function')
+ throw Error('Metric formatter unavailable');
+function shortReason(field){
+ if(!field)return 'This metric has not been scanned.';
+ const code=field.reasonCode||'';
+ const simple={
+  SUPPLY_RECONCILIATION_FAILED:'Reported circulation conflicts with on-chain supply.',
+  EXPLORER_RPC_BALANCE_MISMATCH:'Explorer holder ranking conflicts with on-chain balances.',
+  HOLDER_SUPPLY_RECONCILIATION_FAILED:'Holder balances do not reconcile with token supply.',
+  LP_STATUS_NOT_VERIFIED:'LP owner or lock cannot be established from pool liquidity.',
+  CIRCULATING_SUPPLY_UNAVAILABLE:'No reliable circulating supply from the matched source.',
+  SOURCE_API_FAILED:'Provider did not respond reliably.',
+  INSUFFICIENT_EVIDENCE:'No reliable source has confirmed this metric.',
+  MINT_NOT_VERIFIED:'Mint authority has not been reliably established.',
+  TAXES_NOT_VERIFIED:'Buy/sell taxes could not be independently confirmed.',
+  OWNER_ADMIN_NOT_VERIFIED:'Available getters do not prove the complete admin role.',
+  ARCHITECTURE_NOT_VERIFIED:'Upgrade and proxy permissions need more evidence.'
+ };
+ const raw=simple[code]||field.reason;
+ return typeof raw==='string'&&raw.trim()?raw.trim().slice(0,130):'No reliable chain-specific evidence available.';
+}
+function render(report){
+  const root=$('cards');
+  root.replaceChildren();
+  const withoutEvidence=[];
+  const count=$('evidenceCount');count.textContent='20 checks · Sources, risks and evidence';
+  if(report&&report.cards){
+   let valid=0,total=0;
+   for(const card of Object.values(report.cards)){
+    for(const data of Object.values(card.fields||{})){
+     total++;
+     if(data?.dataState==='DATA_FOUND'&&data.value!==null&&data.value!==undefined)valid++;
+    }
+   }
+   count.textContent=total+' checks · '+valid+' source-backed · Evidence and gaps';
+  }
+  for(const spec of displayDefinitions){
+    const card=report?.cards?.[spec.id];
+    const section=document.createElement('section');
+    section.className='card';
+    section.style.setProperty('--accent',spec.accent);
+    const present=spec.fields.filter(([key])=>{
+     const d=card?.fields?.[key];
+     return d?.dataState==='DATA_FOUND'&&d.value!==null&&d.value!==undefined;
+    }).length;
+    if(card&&present===0)section.classList.add('card-empty');
+    const title=document.createElement('h2');
+    title.textContent=spec.title;
+    section.append(title);
+    const description=document.createElement('div');
+    description.className='description';
+    description.textContent=card?.description||'Awaiting verified evidence';
+    section.append(description);
+    const missingRows=[];
+    let knownCount=0;
+    for(const [key,label] of spec.fields){
+      const data=card?.fields?.[key];
+      const row=document.createElement('div');
+      row.className='metric';
+      const name=document.createElement('span');
+      name.textContent=key==='valuation'?(data?.kind==='MARKET_CAP'?'Market Cap':data?.kind==='FDV'?'FDV':'Valuation'):label;
+      const result=document.createElement('div');result.className='result';
+      const value=document.createElement('b');
+      const missing=!data||data.value===null||data.value===undefined;
+      value.className=missing?'no':'';
+      const kind=key==='valuation'?data?.kind:null;
+      const displayed=!report?'—':missing?'NOT VERIFIED':metricFormat.display(data.value,key,key==='valuation'?null:kind);
+      value.textContent=displayed;
+      value.title=data?.reason||data?.source||'';
+      result.append(value);
+      if(report&&!missing){
+       // Precise figures are also shown in 'View sources & evidence'.
+       value.title='Full value: '+metricFormat.full(data.value,key,kind);
+      }
+      if(report&&missing){
+       const why=document.createElement('div');why.className='reason';
+       why.textContent=shortReason(data);
+       result.append(why);
+      }
+      row.append(name,result);
+      if(report&&missing)missingRows.push(row);
+      else{section.append(row);if(report)knownCount++}
+    }
+    if(report&&knownCount===0){
+      const notice=document.createElement('p');notice.className='noSource';
+      notice.textContent='No independently supported figures for this category yet.';
+      section.append(notice);
+    }
+    if(report&&missingRows.length){
+      const hidden=document.createElement('details');hidden.className='missingGroup';
+      const toggle=document.createElement('summary');
+      toggle.textContent='Show '+missingRows.length+' unverified checks and reasons';
+      hidden.append(toggle,...missingRows);
+      section.append(hidden);
+    }
+    const status=document.createElement('div');
+    status.className='meta statusLine';
+    const state=document.createElement('span');
+    const proven=card?Object.values(card.fields||{}).filter(f=>f?.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined).length:0;
+    state.textContent=!card?'NOT SCANNED':proven===spec.fields.length?'ALL 4 FIELDS SOURCE-BACKED':
+     proven>0?'PARTIALLY SOURCE-BACKED':'NO SOURCE-BACKED FIELDS';
+    status.append(state);
+    if(card){
+     const sources=document.createElement('span');
+     const ok=Object.values(card.fields||{}).filter(x=>x?.dataState==='DATA_FOUND'&&x.value!==null).length;
+     sources.textContent=ok+' / '+spec.fields.length+' sourced';
+     status.append(sources);
+    }
+    section.append(status);
+    if(card){
+      const details=document.createElement('details');details.className='proof-panel';
+      const summary=document.createElement('summary');summary.textContent='View sources & evidence';
+      const proofList=document.createElement('div');proofList.className='proof-list';
+      for(const [key,label] of spec.fields){
+        const field=card.fields[key];if(!field)continue;
+        const block=document.createElement('div');block.className='proof-entry';
+        const header=document.createElement('div');header.className='proof-entry-head';
+        const fieldTitle=document.createElement('strong');fieldTitle.textContent=label;
+        const stage=document.createElement('span');stage.className='proof-state';
+        stage.textContent=field.dataState==='DATA_FOUND'?'SOURCE BACKED':'NOT VERIFIED';
+        if(field.dataState!=='DATA_FOUND')stage.classList.add('unverified');
+        header.append(fieldTitle,stage);block.append(header);
+        const source=document.createElement('p');
+        const proof=Array.isArray(field.evidence)?field.evidence[0]:null;
+        const anchor=proof?.block||proof?.atBlock||null;
+        source.textContent=(field.source||'Source unavailable')+
+         (typeof anchor==='string'&&/^0x[0-9a-f]+$/i.test(anchor)?' · Block '+BigInt(anchor).toString():'');
+        block.append(source);
+        if(field.dataState==='DATA_FOUND'){
+         const raw=document.createElement('p');raw.className='proof-value';
+         raw.textContent='Full value: '+metricFormat.full(field.value,key,key==='valuation'?field.kind:null);
+         block.append(raw);
+        }else{
+         const why=document.createElement('p');why.textContent=shortReason(field);block.append(why);
+        }
+        const url=typeof proof?.sourceUrl==='string'?proof.sourceUrl:
+         typeof proof?.url==='string'?proof.url:null;
+        if(url){
+         try{
+          const link=new URL(url);
+          if(link.protocol==='https:'&&!link.username&&!link.password&&!link.port&&link.href.length<700){
+           const a=document.createElement('a');a.href=link.href;a.target='_blank';
+           a.rel='noopener noreferrer';a.textContent='Open primary source ↗';block.append(a);
+          }
+         }catch{}
+        }
+        proofList.append(block);
+      }
+      details.append(summary,proofList);
+      const advanced=document.createElement('details');advanced.className='advanced-proof';
+      const more=document.createElement('summary');more.textContent='Technical evidence JSON';
+      const pre=document.createElement('pre');pre.textContent=JSON.stringify(card,null,2);
+      advanced.append(more,pre);details.append(advanced);
+      section.append(details);
+    }
+    if(card&&present===0)withoutEvidence.push(section);
+    else root.append(section);
+  }
+  // Zero-data categories remain inspectable but do not dominate the page.
+  if(report&&withoutEvidence.length){
+   const groups=document.createElement('details');
+   groups.className='unverifiedModules';
+   const label=document.createElement('summary');
+   label.textContent=withoutEvidence.length+' research '+(withoutEvidence.length===1?'category':'categories')+
+    ' without source-backed metrics · Review reasons';
+   const nested=document.createElement('div');nested.className='grid';
+   nested.append(...withoutEvidence);
+   groups.append(label,nested);root.append(groups);
+  }
+}
+render(null);
+
+const EVM_ADDRESS=/^0x[0-9a-fA-F]{40}$/;
+const NETWORKS={arc:{id:5042,label:'Arc',explorer:'https://explorer.arc.io'},ethereum:{id:1,label:'Ethereum',explorer:'https://eth.blockscout.com'},robinhood:{id:4663,label:'Robinhood Chain',explorer:'https://robinhoodchain.blockscout.com'}};
+let searchVersion=0,activeController=null,chartController=null,chartGeneration=0,activeChartRange='30D',verifiedDaily30=null;
+const CHART_RANGES=Object.freeze({
+ '4H':{label:'15-minute',interval:'15m',duration:'4 hours'},
+ '1D':{label:'hourly',interval:'1h',duration:'24 hours'},
+ '1W':{label:'daily',interval:'1d',duration:'7 days'},
+ '30D':{label:'daily',interval:'1d',duration:'30 days'}
+});
+function setChartRange(range){
+ if(!Object.hasOwn(CHART_RANGES,range))return;
+ activeChartRange=range;
+ for(const button of document.querySelectorAll('#chartRanges .chart-range')){
+  button.setAttribute('aria-pressed',button.dataset.range===range?'true':'false');
+ }
+}
+const selected=()=>$('chain').value;
+const NETWORK_ICON_MARKUP=Object.freeze({"arc":"<img src=\"https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif\" alt=\"\" loading=\"eager\" referrerpolicy=\"no-referrer\"/>","ethereum":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path fill=\"#7b83ad\" d=\"M16 2 6 16l10 6 10-6z\"/><path fill=\"#cdd2e4\" d=\"M16 2v20l10-6z\"/><path fill=\"#626a95\" d=\"M6 18l10 12v-6z\"/><path fill=\"#a7afd3\" d=\"M26 18 16 30v-6z\"/></svg>","robinhood":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"16\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"9\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"23\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><path d=\"M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\" stroke-linecap=\"round\"/></svg>"});
+function syncNetworkPicker(){
+ const network=selected();
+ if(!Object.hasOwn(NETWORKS,network))return;
+ $('currentChainName').textContent=NETWORKS[network].label;
+ const logo=$('currentChainLogo');
+ // Static local SVG paths: never derive HTML from API responses.
+ logo.innerHTML=NETWORK_ICON_MARKUP[network];
+ logo.className='chain-mark chain-'+network;
+ for(const option of $('chainMenu').querySelectorAll('[data-chain]'))
+  option.setAttribute('aria-selected',String(option.dataset.chain===network));
+}
+function closeNetworkPicker({returnFocus=false}={}){
+ $('chainMenu').hidden=true;
+ $('chainTrigger').setAttribute('aria-expanded','false');
+ if(returnFocus)$('chainTrigger').focus();
+}
+function openNetworkPicker(){
+ $('chainMenu').hidden=false;
+ $('chainTrigger').setAttribute('aria-expanded','true');
+ const current=$('chainMenu').querySelector('[data-chain="'+selected()+'"]');
+ current?.focus();
+}
+function setNetwork(network,{notify=true}={}){
+ if(!Object.hasOwn(NETWORKS,network))return;
+ const changed=selected()!==network;
+ $('chain').value=network;
+ syncNetworkPicker();
+ closeNetworkPicker();
+ if(changed&&notify)$('chain').dispatchEvent(new Event('change',{bubbles:true}));
+}
+function initializeNetworkPicker(){
+ syncNetworkPicker();
+ $('chainTrigger').addEventListener('click',()=>{
+  if($('chainMenu').hidden)openNetworkPicker();
+  else closeNetworkPicker({returnFocus:true});
+ });
+ const options=[...$('chainMenu').querySelectorAll('.chain-option')];
+ for(const [idx,button] of options.entries()){
+  button.addEventListener('click',()=>{setNetwork(button.dataset.chain);$('chainTrigger').focus()});
+  button.addEventListener('keydown',event=>{
+   if(event.key==='Escape'){event.preventDefault();closeNetworkPicker({returnFocus:true});return}
+   const move=event.key==='ArrowDown'?1:event.key==='ArrowUp'?-1:0;
+   if(move){event.preventDefault();options[(idx+move+options.length)%options.length].focus()}
+   else if(event.key==='Home'){event.preventDefault();options[0].focus()}
+   else if(event.key==='End'){event.preventDefault();options[options.length-1].focus()}
+   else if(event.key==='Tab'){closeNetworkPicker()}
+  });
+ }
+ $('chainTrigger').addEventListener('keydown',event=>{
+  if(['ArrowDown','ArrowUp','Enter',' '].includes(event.key)){
+   event.preventDefault();openNetworkPicker();
+  }else if(event.key==='Escape')closeNetworkPicker({returnFocus:true});
+ });
+ document.addEventListener('pointerdown',event=>{
+  if(!$('networkPicker').contains(event.target))closeNetworkPicker();
+ });
+}
+
+const tokenPath=(network,address)=>'/search/token/'+network+'/'+address.toLowerCase();
+const tokenRoute=pathname=>{
+ const match=/^\/search\/token\/(arc|ethereum|robinhood)\/(0x[0-9a-fA-F]{40})\/?$/.exec(pathname);
+ return match?{network:match[1],address:match[2].toLowerCase()}:null;
+};
+function activateHome({push=false}={}){
+ if(location.pathname.startsWith('/search/')){location.assign('/#search');return}
+ cancelPending();
+ $('tokenDetail').hidden=true;$('discovery').hidden=false;
+ $('deepResearch').open=false;
+ $('asset').replaceChildren();clearIdentity();render(null);
+ $('quickFacts').replaceChildren();$('detailState').textContent='';
+ $('address').value='';clearMatches();
+ $('state').textContent='Search a token by name, symbol or full address. Names and logos never prove identity.';
+ if(push){location.assign('/#search');return}
+ document.title='ARCY SEARCH — Research before you buy';
+}
+function activateDetail(address,network,{push=true,identity=null,logoUrl=null}={}){
+ if(!EVM_ADDRESS.test(address)||!Object.hasOwn(NETWORKS,network))return;
+ cancelPending();
+ const canonical=tokenPath(network,address);
+ if(push&&location.pathname!==canonical)history.pushState({},'',canonical);
+ setNetwork(network,{notify:false});
+ $('discovery').hidden=true;$('tokenDetail').hidden=false;
+ $('deepResearch').open=false;
+ setChartRange('30D');
+ $('asset').replaceChildren();clearIdentity();render(null);
+ $('quickFacts').replaceChildren();
+ $('detailState').textContent='Reading '+NETWORKS[network].label+' contract evidence…';
+ $('chartNote').textContent='No exact-chain price history has been verified for this contract. Never rely on fabricated chart data.';
+ $('marketLink').hidden=true;clearPriceChart();
+ document.title='Token research · '+NETWORKS[network].label+' · ARCY SEARCH';
+ window.scrollTo({top:0,behavior:'instant'});
+ // Independently source the exact-pool chart as soon as the contract is chosen.
+ // Full LP/holder/mechanics verification may take longer; never block a valid
+ // chart on an unrelated GoPlus/Sourcify explorer response.
+ void loadVerifiedChart(address.toLowerCase(),network,searchVersion);
+ void scanAddress(address.toLowerCase(),network,searchVersion,identity,logoUrl);
+}
+function restoreRoute(){
+ const route=tokenRoute(location.pathname);
+ if(route)activateDetail(route.address,route.network,{push:false});
+ else activateHome();
+}
+const NS='http://www.w3.org/2000/svg';
+function clearPriceChart(){
+ for(const id of ['chartStats','chartAxis','chartInspector']){
+  $(id).replaceChildren();$(id).hidden=true;
+ }
+ const root=$('chartPlot');root.replaceChildren();root.hidden=true;
+ const backup=document.getElementById('officialChartFallback');if(backup)backup.remove();
+}
+function weeklyVerifiedDaily(network,address){
+ // A 1W chart is seven recent *actual* daily closes from the already
+ // source-verified 30D response. This avoids an additional GeckoTerminal
+ // request while still failing closed on old or wrong-contract data.
+ const base=verifiedDaily30;
+ if(!base||base.ok!==true||base.range!=='30D'||base.interval!=='1d'||
+  base.network!==network||base.address!==address||
+  base.chainId!==NETWORKS[network].id||!Array.isArray(base.points)||
+  Date.now()-base.lastCandleTime*1000>2*86400000)return null;
+ const now=Date.now();
+ const subset=base.points.filter(point=>
+  Number.isSafeInteger(point.time)&&Number.isFinite(point.close)&&point.close>0&&
+  point.time*1000>=now-8*86400000&&point.time*1000<=now+180000).slice(-7);
+ if(subset.length<3)return null;
+ return {...base,range:'1W',interval:'1d',requestedWindow:'7 days',
+  lastCandleTime:subset[subset.length-1].time,points:subset};
+}
+function chartDate(timestamp,range=activeChartRange){
+ const intraday=range==='4H'||range==='1D';
+ return new Intl.DateTimeFormat('en-US',{
+  day:'numeric',month:'short',timeZone:'UTC',
+  ...(intraday?{hour:'2-digit',minute:'2-digit',hour12:false}:{})
+ }).format(new Date(timestamp*1000));
+}
+function chartValue(value){return metricFormat.display(value,'priceUsd');}
+function drawVerifiedChart(data){
+ const points=data.points;
+ if(!Array.isArray(points)||points.length<3||points.length>60||
+  !points.every(p=>Number.isFinite(p.close)&&p.close>0&&Number.isSafeInteger(p.time))||
+  !points.every((p,i)=>i===0||p.time>points[i-1].time))return false;
+ const min=Math.min(...points.map(p=>p.close)),max=Math.max(...points.map(p=>p.close));
+ const delta=max-min||Math.max(max*.02,Number.MIN_VALUE);
+ const top=max+delta*.18,bottom=Math.max(0,min-delta*.15),span=top-bottom;
+ if(!Number.isFinite(span)||span<=0)return false;
+ const baseline=176;
+ const y=p=>baseline-(p.close-bottom)/span*149;
+ const step=776/(points.length-1);
+ const coords=points.map((p,i)=>[12+i*step,y(p)]);
+ if(!coords.every(p=>p.every(Number.isFinite)))return false;
+ const svg=document.createElementNS(NS,'svg');
+ svg.setAttribute('viewBox','0 0 800 190');svg.setAttribute('preserveAspectRatio','none');
+ svg.setAttribute('aria-hidden','true');
+ const svgEl=(tag,attributes={})=>{
+  const el=document.createElementNS(NS,tag);
+  for(const [name,value] of Object.entries(attributes))el.setAttribute(name,String(value));
+  return el;
+ };
+ const gradient=svgEl('linearGradient',{id:'arcyDailyCloseFill',x1:'0',y1:'0',x2:'0',y2:'1'});
+ for(const [offset,opacity] of [['0%','.26'],['65%','.065'],['100%','0']]){
+  gradient.append(svgEl('stop',{offset,'stop-color':'#55d4ea','stop-opacity':opacity}));
+ }
+ const defs=svgEl('defs');defs.append(gradient);svg.append(defs);
+ for(const level of [28,76,125,176]){
+  svg.append(svgEl('line',{x1:12,x2:788,y1:level,y2:level,class:'chart-grid-line'}));
+ }
+ const trace=coords.map(([x,y],i)=>(i?'L':'M')+x.toFixed(2)+' '+y.toFixed(2)).join(' ');
+ const area=svgEl('path',{d:trace+' L 788 176 L 12 176 Z',
+  fill:'url(#arcyDailyCloseFill)',stroke:'none'});
+ svg.append(area);
+ svg.append(svgEl('path',{d:trace,fill:'none',stroke:'#75d9ef','stroke-width':2.6,
+  'stroke-linejoin':'round','stroke-linecap':'round'}));
+ const guide=svgEl('line',{x1:788,x2:788,y1:17,y2:176,stroke:'#6dcadd',
+  'stroke-width':1,'stroke-dasharray':'4 6','stroke-opacity':'.7'});
+ const dotHalo=svgEl('circle',{cx:coords[coords.length-1][0],cy:coords[coords.length-1][1],r:7,
+  fill:'rgba(91,211,235,.17)'});
+ const dot=svgEl('circle',{cx:coords[coords.length-1][0],cy:coords[coords.length-1][1],r:3.6,
+  fill:'#c4f7ff',stroke:'#0f3143','stroke-width':1.6});
+ svg.append(guide,dotHalo,dot);
+ const axis=$('chartAxis'),inspector=$('chartInspector'),stats=$('chartStats'),root=$('chartPlot');
+ axis.replaceChildren();
+ for(const p of [points[0],points[points.length-1]]){
+  const label=document.createElement('span');label.textContent=chartDate(p.time,data.range);axis.append(label);
+ }
+ axis.hidden=false;
+ const change=(points[points.length-1].close/points[0].close-1)*100;
+ stats.replaceChildren();
+ if(Number.isFinite(change)){
+  const headline=document.createElement('span');
+  const label=document.createElement('span');label.className='chart-stat-caption';
+  label.textContent=(points.length-1)+' '+CHART_RANGES[data.range]?.label+' intervals';
+  const value=document.createElement('strong');
+  value.className='chart-stat-value '+(change>=0?'positive':'negative');
+  value.textContent=(change>0?'+':'')+metricFormat.display(change,'change24h');
+  headline.append(label,value);stats.append(headline);
+ }
+ const range=document.createElement('span');
+ const rangeLabel=document.createElement('span');
+ rangeLabel.className='chart-stat-caption';rangeLabel.textContent='Observed range';
+ const rangeValue=document.createElement('strong');
+ rangeValue.className='chart-stat-value';rangeValue.textContent=chartValue(min)+' – '+chartValue(max);
+ range.append(rangeLabel,rangeValue);stats.append(range);stats.hidden=false;
+ const dateText=document.createElement('span'),priceText=document.createElement('strong');
+ inspector.replaceChildren(dateText,priceText);
+ let cursor=points.length-1;
+ const show=index=>{
+  cursor=Math.max(0,Math.min(points.length-1,index));
+  const [x,pY]=coords[cursor];
+  guide.setAttribute('x1',String(x));guide.setAttribute('x2',String(x));
+  dotHalo.setAttribute('cx',String(x));dotHalo.setAttribute('cy',String(pY));
+  dot.setAttribute('cx',String(x));dot.setAttribute('cy',String(pY));
+  dateText.textContent=chartDate(points[cursor].time,data.range)+
+   ' UTC · '+CHART_RANGES[data.range]?.label+' pool close';
+  priceText.textContent=chartValue(points[cursor].close);
+  inspector.hidden=false;
+ };
+ root.onpointermove=event=>{
+  const rect=root.getBoundingClientRect();
+  if(rect.width<=0)return;
+  show(Math.round((event.clientX-rect.left)/rect.width*(points.length-1)));
+ };
+ root.onpointerdown=event=>{
+  const rect=root.getBoundingClientRect();
+  if(rect.width>0)show(Math.round((event.clientX-rect.left)/rect.width*(points.length-1)));
+ };
+ root.onpointerleave=()=>{inspector.hidden=true;};
+ root.onfocus=()=>show(cursor);
+ root.onblur=()=>{inspector.hidden=true;};
+ root.onkeydown=event=>{
+  if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  event.preventDefault();
+  show(event.key==='Home'?0:event.key==='End'?points.length-1:
+   cursor+(event.key==='ArrowRight'?1:-1));
+ };
+ root.replaceChildren(svg);root.hidden=false;
+ root.setAttribute('aria-label','Verified pool '+CHART_RANGES[data.range]?.label+
+  ' USD closes from '+chartDate(points[0].time,data.range)+' to '+
+  chartDate(points[points.length-1].time,data.range)+' UTC. Use arrow keys to inspect.');
+ return true;
+}
+async function loadVerifiedChart(address,network,version){
+ const requestedRange=activeChartRange;
+ const requestId=++chartGeneration;
+ if(chartController)chartController.abort();
+ const controller=new AbortController();
+ chartController=controller;
+ const current=()=>version===searchVersion&&requestId===chartGeneration&&
+  !controller.signal.aborted&&network===selected()&&
+  location.pathname===tokenPath(network,address)&&activeChartRange===requestedRange;
+ clearPriceChart();
+ $('chartNote').textContent='Checking '+requestedRange+' exact-chain historical pool data…';
+ $('marketLink').hidden=true;
+ try{
+  let payload= requestedRange==='1W'?weeklyVerifiedDaily(network,address):null;
+  let responseOk=true;
+  if(!payload){
+   const response=await fetch('/api/search?action=chart&'+new URLSearchParams({
+    address,chain:network,range:requestedRange}),{cache:'no-store',signal:controller.signal});
+   responseOk=response.ok;
+   payload=await response.json();
+  }
+  if(!current())return;
+  if(!responseOk&&['CHART_PROVIDER_TEMPORARILY_UNAVAILABLE','RATE_LIMITED'].includes(payload.error))
+   throw Error('CHART_SOURCE_RETRY');
+  if(!responseOk||payload.ok!==true||payload.network!==network||
+   payload.chainId!==NETWORKS[network].id||payload.address!==address||
+   payload.range!==requestedRange||payload.interval!==CHART_RANGES[requestedRange].interval)
+   throw Error('Historical pool proof unavailable');
+  const source=new URL(payload.sourceUrl);
+  if(source.protocol!=='https:'||source.hostname!=='www.geckoterminal.com'||
+   !/^\/(arc|eth|robinhood)\/pools\/0x[0-9a-f]{40,64}$/i.test(source.pathname))
+   throw Error('Historical source link invalid');
+  if(!drawVerifiedChart(payload))throw Error('Invalid historical pool candles');
+  if(requestedRange==='30D')verifiedDaily30=structuredClone(payload);
+  $('marketLink').href=source.href;$('marketLink').hidden=false;
+  const last=new Date(payload.lastCandleTime*1000).toISOString();
+  const config=CHART_RANGES[requestedRange];
+  $('chartNote').textContent='GeckoTerminal · '+payload.points.length+' '+
+   config.label+' USD closes · '+config.duration+
+   ' selected · One contract-matched pool · Latest candle: '+last.slice(0,16).replace('T',' ')+' UTC'+
+   ' · Not a market-wide aggregate or execution quote.';
+ }catch(error){
+  if(!current())return;
+  clearPriceChart();$('marketLink').hidden=true;
+  const sourceRetry=error?.message==='CHART_SOURCE_RETRY';
+  $('chartNote').textContent=sourceRetry?
+   'Historical price source is temporarily unavailable. The provider-hosted interactive chart below may offer an independent view; use its own controls to set the time window.':
+   'Not enough verified '+requestedRange+' price history for this exact contract and pool. No estimated movement is shown.';
+  if(sourceRetry && ['arc','ethereum','robinhood'].includes(network) && /^0x[0-9a-f]{40}$/i.test(address)){
+   // Official GeckoTerminal embeds load from their own website rather than
+   // proxying OHLCV through our rate-limited API. Not an exact-window substitute.
+   const providerNetwork={arc:'arc',ethereum:'eth',robinhood:'robinhood'}[network];
+   const resolution={'4H':'15m','1D':'1h','1W':'1d','30D':'1d'}[requestedRange];
+   const frame=document.createElement('iframe');frame.id='officialChartFallback';
+   frame.title='GeckoTerminal interactive chart — use provider controls to select exact time window';
+   frame.loading='lazy';frame.referrerPolicy='no-referrer';
+   frame.src='https://www.geckoterminal.com/'+providerNetwork+'/tokens/'+address.toLowerCase()+'?embed=1&info=0&swaps=0&light_chart=0&chart_type=price&resolution='+resolution+'&bg_color=050d18';
+   frame.style.cssText='display:block;width:100%;min-height:360px;height:440px;border:1px solid #1b3d53;border-radius:12px;background:#050d18;margin-top:12px';
+   $('chartNote').after(frame);
+  }
+ }finally{
+  if(chartController===controller)chartController=null;
+ }
+}
+function renderQuickFacts(report){
+ // Buyer-priority headline facts: use verified-by-source values, never blank
+ // fixed-price cards when a young chain has useful, pinned supply evidence.
+ const candidates=[
+  ['PRICE','activity','priceUsd','priceUsd'],
+  ['TRACKED LIQUIDITY','liquidity','liquidityUsd','liquidityUsd'],
+  ['HOLDER COUNT','holders','holderCount','holderCount'],
+  ['TOTAL SUPPLY','supply','totalSupply','totalSupply'],
+  ['DEAD-ADDRESS BALANCE','supply','burnAddressBalance','burnAddressBalance'],
+  ['DEAD-ADDRESS %','supply','burnAddressPct','burnAddressPct'],
+  ['24H VOLUME','activity','volume24h','volume24h'],
+  ['24H CHANGE','activity','change24h','change24h'],
+  ['TRACKED PAIRS','liquidity','dexPairCount','dexPairCount']
+ ];
+ const valid=c=>{const f=report.cards?.[c[1]]?.fields?.[c[2]];
+  return f?.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined&&
+   typeof f.source==='string'&&f.source.length>0;
+ };
+ const prioritized=candidates.filter(valid).slice(0,3);
+ const backedCount=prioritized.length;
+ // If just one or two metrics are sourced, retain a complete three-card row.
+ // Unverified numbers are never replaced by zero, guesses, or stale evidence.
+ if(backedCount>0){
+  for(const candidate of candidates){
+   if(prioritized.length>=3)break;
+   if(!prioritized.some(x=>x[1]===candidate[1]&&x[2]===candidate[2]))
+    prioritized.push(candidate);
+  }
+ }
+ const root=$('quickFacts');root.replaceChildren();
+ root.classList.toggle('quick-facts-empty',backedCount===0);
+ if(prioritized.length===0){
+  const empty=document.createElement('p');
+  empty.className='quick-facts-notice';
+  empty.textContent='No source-backed headline metrics are available for this contract yet. Open the full report for missing-source reasons.';
+  root.append(empty);
+ }else{
+  for(const [label,card,key,formatKey] of prioritized){
+   const field=report.cards?.[card]?.fields?.[key];
+   const box=document.createElement('div');box.className='quick';
+   const a=document.createElement('span');a.className='quick-label';
+   a.textContent=key==='valuation'?(field?.kind==='MARKET_CAP'?'MARKET CAP':field?.kind==='FDV'?'FDV':'VALUATION'):label;
+   const b=document.createElement('div');b.className='quick-value';
+   const backed=valid([label,card,key,formatKey]);
+   // MARKET CAP / FDV is the label, not part of the numeric value.
+   b.textContent=backed?metricFormat.display(field.value,formatKey):'NOT VERIFIED';
+   if(!backed)box.classList.add('quick-unverified');
+   const note=document.createElement('small');
+   note.textContent=backed?
+    ((field.source||'Source reported')+
+     (card==='supply'&&key==='burnAddressPct'?' · current custody, not lifetime burns':'')):
+    'Source unavailable · Inspect 20-check report';
+   if(!backed)b.title=field?.reason||'No verified exact-contract source';
+   box.append(a,b,note);root.append(box);
+  }
+ }
+
+}
+function cancelPending(){
+ searchVersion++;chartGeneration++;verifiedDaily30=null;
+ if(activeController){activeController.abort();activeController=null}
+ if(chartController){chartController.abort();chartController=null}
+ $('go').disabled=false;
+}
+function clearMatches(){
+ const matches=$('matches');matches.hidden=true;matches.replaceChildren();
+}
+function clearIdentity(){$('identity').replaceChildren()}
+function renderIdentity(identity,network){
+ const root=$('identity');root.replaceChildren();
+ const confirmed=identity?.status==='OFFICIAL_CONTRACT_MATCHED'||identity?.status==='REGISTRY_MATCHED';
+ const box=document.createElement('div');box.className='identity '+(confirmed?'verified':'unknown');
+ const name=document.createElement('strong');
+ name.textContent=identity?.status==='OFFICIAL_CONTRACT_MATCHED'?'✓ OFFICIAL CONTRACT · '+(identity.issuer||'ISSUER MATCHED'):
+  identity?.status==='REGISTRY_MATCHED'?'✓ OFFICIAL ROBINHOOD STOCK TOKEN':
+  '⚠ NO OFFICIAL CONTRACT MATCH';
+ const copy=document.createElement('div');
+ copy.textContent=confirmed?('Exact contract matched '+(network==='robinhood'?'Robinhood official registry':'issuer-published records')+' on '+NETWORKS[network].label+'.'):
+  'We cannot confirm that this contract is issued by the claimed project. Search results are not proof of authenticity.';
+ box.append(name,copy);
+ if(confirmed&&typeof identity.proofUrl==='string'&&/^https:\/\//.test(identity.proofUrl)){
+  const url=new URL(identity.proofUrl);
+  if(['developers.circle.com','developers.uniswap.org','docs.chain.link','tether.to','api.robinhood.com','github.com','www.wbtc.network','shib.io','docs.ondo.foundation','paxos.com'].includes(url.hostname)){
+   const link=document.createElement('a');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';
+   link.textContent='View official source ↗';box.append(link);
+  }
+ }
+ const disclaimer=document.createElement('small');
+ disclaimer.textContent='Contract identity does not verify price, liquidity, issuer solvency or investment safety.';
+ box.append(disclaimer);root.append(box);
+}
+function chainChanged(){
+ cancelPending();clearMatches();$('asset').replaceChildren();clearIdentity();render(null);
+ $('address').value='';
+ const label=NETWORKS[selected()].label;
+ $('address').placeholder='Search '+label+' token name, ticker or 0x contract';
+ $('state').textContent='Selected '+label+'. Contract identity and evidence must match this exact chain.';
+ $('networkNote').textContent=label+' · Mainnet · Read only';
+}
+function requestController(){
+ if(activeController)activeController.abort();
+ activeController=new AbortController();
+ return activeController;
+}
+function baseUrl(route,params){
+ return route+'?'+new URLSearchParams({...params,chain:selected()}).toString();
+}
+async function scanAddress(address,network=selected(),version=searchVersion,chosenIdentity=null,chosenLogo=null){
+ const info=NETWORKS[network],button=$('go');
+ if(!info)return;
+ button.disabled=true;clearMatches();$('asset').replaceChildren();clearIdentity();render(null);
+ $('quickFacts').replaceChildren();
+ $('detailState').textContent='Reading '+info.label+' on-chain and external evidence…';
+ const controller=requestController();
+ try{
+  const url='/api/search?action=report&'+new URLSearchParams({address,chain:network}).toString();
+  const response=await fetch(url,{signal:controller.signal,cache:'no-store'});
+  const data=await response.json();
+  if(version!==searchVersion||network!==selected())return;
+  if(!response.ok||data.ok!==true||data.cardCount!==5||data.chainId!==info.id||data.network!==network||data.address.toLowerCase()!==address.toLowerCase()||!data.cards)
+   throw Error(data.reason||data.error||'Invalid chain-scoped scan response');
+  for(const spec of definitions)
+   if(!data.cards[spec.id]||spec.fields.some(([key])=>!data.cards[spec.id].fields?.[key]))
+    throw Error('Missing required five-card metric');
+  const asset=data.token||{},container=$('asset');
+  container.replaceChildren();
+  const title=document.createElement('span');
+  title.textContent=(asset.name||'Unknown token')+' ('+(asset.symbol||'?')+') · '+info.label+' · ';
+  const explorer=document.createElement('a');
+  explorer.href=info.explorer+'/token/'+data.address;
+  explorer.target='_blank';explorer.rel='noopener noreferrer';
+  explorer.style.color='#5bdffe';
+  explorer.textContent=data.address;
+  const block=document.createElement('span');
+  block.textContent=' · Block '+BigInt(data.block).toString();
+  container.append(title,explorer,block);
+  const verifiedLogo=displayLogo(chosenLogo||asset.logoUrl,network,data.address);
+  if(verifiedLogo){
+   const art=document.createElement('img');
+   art.className='token-title-logo';art.src=verifiedLogo;
+   art.alt='Token artwork (not proof of issuer authenticity)';
+   art.decoding='async';art.referrerPolicy='no-referrer';
+   art.addEventListener('error',()=>art.remove(),{once:true});
+   container.prepend(art);
+  }
+  if(data.tokenIdentity?.status==='REGISTRY_MATCHED'&&network==='robinhood'){
+   const registry=document.createElement('div');
+   registry.className='sub';
+   registry.textContent='Robinhood official registry: Stock Token contract matched'+(data.tokenIdentity.multiplier?' · Shares-per-token multiplier: '+data.tokenIdentity.multiplier:'')+' · This token does not represent direct share ownership.';
+   container.append(registry);
+  }
+  const identity=data.tokenIdentity;
+  renderIdentity(identity,network);
+  render(data);renderQuickFacts(data);
+  document.title=(asset.name||asset.symbol||'Token')+' ('+(asset.symbol||'?')+') · ARCY SEARCH';
+  $('detailState').textContent='Chain '+info.id+' · Snapshot complete · '+data.scannedAt+' · Unsupported metrics remain NOT VERIFIED.';
+ }catch(error){
+  if(version!==searchVersion||network!==selected()||controller.signal.aborted)return;
+  $('detailState').textContent='Scan unavailable: '+String(error.message).slice(0,150);
+  // Contract identity failed; invalidate any independently loaded chart too.
+  chartGeneration++;if(chartController){chartController.abort();chartController=null}
+  clearPriceChart();$('marketLink').hidden=true;
+  $('chartNote').textContent='On-chain contract evidence could not be established. Chart withheld.';
+  $('asset').replaceChildren();clearIdentity();render(null);$('quickFacts').replaceChildren();
+ }finally{if(version===searchVersion&&network===selected()){button.disabled=false;if(activeController===controller)activeController=null}}
+}
+// Site-owned ARCY mascot is an on-site brand graphic, NOT issuer verification.
+const ARCY_OFFICIAL_PROJECT_CONTRACT='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
+function displayLogo(raw,network,address){
+ if(network==='arc'&&typeof address==='string'&&
+  address.toLowerCase()===ARCY_OFFICIAL_PROJECT_CONTRACT)return '/assets/hero-arcy.png';
+ return safeCandidateImage(raw);
+}
+function safeCandidateImage(){return null}
+function showCandidates(data,network,version){
+ const container=$('matches');container.replaceChildren();
+ const candidates=data.matches.filter(item=>
+  item.chainId===NETWORKS[network].id&&item.network===network&&EVM_ADDRESS.test(item.address));
+ const query=$('address').value.trim().toLocaleLowerCase('en-US');
+ const exact=item=>String(item.symbol||'').toLowerCase()===query||
+  String(item.name||'').toLowerCase()===query;
+ const official=item=>item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'||
+  item.identity?.status==='REGISTRY_MATCHED';
+ const main=candidates.find(item=>official(item)&&exact(item))||
+  candidates.find(item=>official(item))||
+  candidates.find(exact)||candidates[0];
+ if(!main){container.hidden=true;return}
+ const trustedMain=official(main);
+ const warning=document.createElement('p');warning.className='candidate-warning';
+ warning.textContent=trustedMain?
+  'Official contract shown first. Other name matches are available below. Logo is not proof of identity.':
+  'No issuer-confirmed contract for this search. Names and symbols do NOT verify authenticity.';
+ container.append(warning);
+ function candidateElement(item,primary=false){
+  const option=document.createElement('button');option.type='button';option.className='candidate';
+  if(primary)option.classList.add('candidate-primary');
+  const detail=document.createElement('span');detail.className='candidate-detail';
+  const art=document.createElement('span');art.className='candidate-logo';
+  const initials=String(item.symbol||item.name||'?').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'?';
+  art.textContent=initials;
+  const logo=displayLogo(item.logoUrl,network,item.address);
+  if(logo){
+   const img=document.createElement('img');
+   img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
+   img.alt='';img.src=logo;
+   img.addEventListener('error',()=>img.remove(),{once:true});
+   art.append(img);
+  }
+  const info=document.createElement('span');info.className='candidate-copy';
+  const title=document.createElement('span'),meta=document.createElement('span');
+  title.className='candidate-title';title.textContent=(item.name||'Unnamed token')+' ('+(item.symbol||'?')+')';
+  meta.className='candidate-meta';
+  const status=item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?' · OFFICIAL CONTRACT MATCHED':
+   item.identity?.status==='REGISTRY_MATCHED'?' · ROBINHOOD STOCK TOKEN REGISTRY MATCHED':
+   ' · Identity NOT VERIFIED';
+  meta.textContent=item.address.slice(0,8)+'…'+item.address.slice(-6)+' · '+(item.source||'Indexed candidate');
+  info.append(title,meta);
+  const badge=document.createElement('span');badge.className='candidate-badge';
+  badge.textContent=item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?'✓ Official':
+   item.identity?.status==='REGISTRY_MATCHED'?'✓ Registry':
+   'Unverified';
+  if(!item.identity||item.identity.status==='NOT_VERIFIED')badge.classList.add('unknown');
+  info.append(badge);detail.append(art,info);
+  const choose=document.createElement('span');choose.textContent='→';choose.className='scan-label';
+  option.setAttribute('aria-label',(item.name||item.symbol||'Token')+' · '+NETWORKS[network].label+' · contract '+item.address+' · '+badge.textContent);
+  if(official(item))option.classList.add('official');
+  option.append(detail,choose);
+  option.addEventListener('click',()=>{
+   if(version!==searchVersion||network!==selected())return;
+   activateDetail(item.address,network,{identity:item.identity,logoUrl:item.logoUrl});
+  });
+  return option;
+ }
+ if(trustedMain){
+  // Project-authenticated or exact issuer-registry address: one main card by default.
+  container.append(candidateElement(main,true));
+  const others=candidates.filter(item=>item.address.toLowerCase()!==main.address.toLowerCase());
+  if(others.length){
+   const expandable=document.createElement('details');expandable.className='candidate-extra';
+   const summary=document.createElement('summary');
+   summary.textContent='Show '+others.length+' other matching contracts / related tokens';
+   const content=document.createElement('div');content.className='candidate-extra-list';
+   for(const candidate of others)content.append(candidateElement(candidate));
+   expandable.append(summary,content);container.append(expandable);
+  }
+ }else{
+  // An unknown ticker may have many independent contracts. Never silently
+  // choose a first "official" token or hide the alternative addresses.
+  const list=document.createElement('div');list.className='candidate-list';
+  for(const candidate of candidates.slice(0,3))list.append(candidateElement(candidate));
+  container.append(list);
+  if(candidates.length>3){
+   const more=document.createElement('details');more.className='candidate-extra';
+   const heading=document.createElement('summary');
+   heading.textContent='Show '+(candidates.length-3)+' other matching contracts';
+   const others=document.createElement('div');others.className='candidate-extra-list';
+   for(const candidate of candidates.slice(3))others.append(candidateElement(candidate));
+   more.append(heading,others);container.append(more);
+  }
+  const footnote=document.createElement('p');footnote.className='candidate-footnote';
+  footnote.textContent='The same name and logo can belong to different contracts. Open a result to verify its complete address.';
+  container.append(footnote);
+ }
+ container.hidden=false;
+}
+async function searchOrScan(){
+ const q=$('address').value.trim(),network=selected();
+ cancelPending();
+ const version=searchVersion;clearMatches();
+ if(EVM_ADDRESS.test(q)){activateDetail(q,network);return}
+ if(q.length<2||q.length>48||/^0x/i.test(q)){
+  $('state').textContent='Enter a token name (2–48 characters) or a full contract address.';return;
+ }
+ $('go').disabled=true;$('state').textContent='Finding '+NETWORKS[network].label+' candidates…';
+ $('asset').replaceChildren();clearIdentity();render(null);
+ const controller=requestController();
+ try{
+  const response=await fetch('/api/search?action=discover&'+new URLSearchParams({q,chain:network}),{
+   signal:controller.signal,cache:'no-store'});
+  const data=await response.json();
+  if(version!==searchVersion||network!==selected())return;
+  if(!response.ok||data.ok!==true||data.chainId!==NETWORKS[network].id||
+   data.network!==network||!Array.isArray(data.matches))throw Error(data.error||'Discovery source unavailable');
+  if(!data.matches.length){$('state').textContent='No '+NETWORKS[network].label+' candidates found. Try the full contract address.';return}
+  showCandidates(data,network,version);
+  $('state').textContent=data.matches.length+' matching contract(s). Verified issuers show one primary result; unverified names show all candidates.';
+ }catch(error){
+  if(version===searchVersion&&network===selected()&&!controller.signal.aborted)
+   $('state').textContent='Token search unavailable: '+String(error.message).slice(0,140);
+ }finally{if(version===searchVersion&&network===selected()){$('go').disabled=false;if(activeController===controller)activeController=null}}
+}
+$('chartRanges').addEventListener('click',event=>{
+ const target=event.target.closest('button[data-range]');
+ if(!target||!Object.hasOwn(CHART_RANGES,target.dataset.range))return;
+ if(target.dataset.range===activeChartRange)return;
+ setChartRange(target.dataset.range);
+ const route=tokenRoute(location.pathname);
+ if(route&&$('tokenDetail').hidden===false)
+  void loadVerifiedChart(route.address,route.network,searchVersion);
+});
+$('chain').addEventListener('change',chainChanged);
+$('go').addEventListener('click',searchOrScan);
+$('address').addEventListener('keydown',event=>{if(event.key==='Enter')void searchOrScan()});
+$('address').addEventListener('input',()=>{cancelPending();clearMatches();$('asset').replaceChildren();clearIdentity();render(null)});
+ $('backSearch').addEventListener('click',()=>location.assign('/#search'));
+$('copyLink').addEventListener('click',async()=>{
+ try{
+  await navigator.clipboard.writeText(location.href);
+  $('shareStatus').textContent='Copied';
+ }catch{
+  $('shareStatus').textContent='Link: '+location.href;
+ }
+});
+window.addEventListener('popstate',restoreRoute);
+initializeNetworkPicker();
+restoreRoute();
+
+</script>
+</body>
+</html>
