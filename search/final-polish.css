@@ -75,7 +75,7 @@
 #tokenDetail .detail-network-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
 #tokenDetail .detail-network-shortcuts button{
  padding:8px 14px;min-height:37px;border:1px solid #25465d;border-radius:9px;
- background:#081a29;color:#a4c5d5;font:700 11px/1.2 inherit;cursor:pointer;
+ background:#081a29;color:#a4c5d5;font-family:inherit;font-weight:700;font-size:11px;line-height:1.2;cursor:pointer;
  transition:border-color .15s ease,background .15s ease;
 }
 #tokenDetail .detail-network-shortcuts button:hover,
