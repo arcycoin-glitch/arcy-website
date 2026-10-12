@@ -159,6 +159,7 @@ html.search-upgraded #search .home-search{max-width:850px;margin-inline:auto}
  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 #search .home-glyph{display:grid;place-items:center;width:100%;height:100%;font-size:18px;font-weight:850}
+#search .home-network-segments .home-network-mark svg{display:block;width:22px;height:22px}
 #search .home-glyph-arc{color:#60e4ef}
 #search .home-glyph-ethereum{color:#b7bfff;font-size:21px}
 #search .home-glyph-robinhood{color:#86e7bc}
