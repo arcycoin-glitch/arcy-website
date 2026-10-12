@@ -17,7 +17,21 @@ module.exports=async function handler(req,res){
   return res.status(404).json({ok:false,error:'CHART_NETWORK_NOT_SUPPORTED',
    reason:'Historical pool data has not been verified for this chain.'});
  if(!enforce(req,res))return;
- return res.status(503).json({ok:false,network:q.chain,address:q.address.toLowerCase(),
-  range:q.range||'30D',error:'CHART_SOURCE_PENDING',
-  reason:'Market-data source is disabled pending commercial-use verification. No estimated or synthetic candles are served.'});
+ const range=q.range||'30D',address=q.address.toLowerCase();
+ // Explicit operator-controlled licensing flag, NEVER sourced from request parameters.
+ // GeckoTerminal public API access does not itself prove redistribution rights.
+ if(process.env.ARCY_CHART_DATA_LICENSE_APPROVED!=='true')
+  return res.status(503).json({ok:false,network:q.chain,address,range,
+   error:'CHART_SOURCE_PENDING',
+   reason:'Source permission for republishing historical chart prices has not been verified. No estimated or synthetic candles are served.'});
+ try{
+  const data=await require('../lib/price-history').load(q.chain,address,{range});
+  if(data?.ok!==true||data.network!==q.chain||data.address!==address||data.range!==range)
+   throw Error('Source identity mismatch');
+  return res.status(200).json(data);
+ }catch(error){
+  return res.status(503).json({ok:false,network:q.chain,address,range,
+   error:'CHART_SOURCE_UNAVAILABLE',
+   reason:'Verified exact-pool historical prices are temporarily unavailable. No estimated or synthetic candles are served.'});
+ }
 };
