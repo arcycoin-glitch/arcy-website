@@ -17,6 +17,13 @@ function missing(reason,code='SECURITY_SOURCE_UNAVAILABLE'){
  return {value:null,dataState:'NOT_VERIFIED',status:'NOT_VERIFIED',reason,reasonCode:code,source:null,evidence:[]};
 }
 const bool=v=>v==='1'?true:v==='0'?false:null;
+function providerChainMatches(body,network){
+ const declared=body?.chainId??body?.chain_id;
+ return declared===undefined||(
+  (typeof declared==='string'||typeof declared==='number')&&
+  Number(declared)===NETWORKS[network]
+ );
+}
 function fraction(v){
  if((typeof v!=='string'&&typeof v!=='number')||v==='')return null;
  const n=Number(v);
@@ -39,7 +46,8 @@ function parse(body,network,rawAddress,{now=Date.now()}={}){
   ownerAdmin:missing('No attributable owner or admin address.'),
   contractArchitecture:missing('Proxy/architecture status was not established.')
  };
- if(!body||(body.code!==1&&body.code!=='1')||!body.result||
+ if(!body||!providerChainMatches(body,network)||
+    (body.code!==1&&body.code!=='1')||!body.result||
     typeof body.result!=='object'||Array.isArray(body.result))return fields;
  const record=Object.entries(body.result).find(([key])=>key.toLowerCase()===address)?.[1];
  if(!record||typeof record!=='object'||Array.isArray(record))return fields;
@@ -99,7 +107,8 @@ function parseHolders(body,network,rawAddress,{now=Date.now()}={}){
   top10Pct:missing('Ten distinct source-ranked wallet shares are unavailable.','TOP10_NOT_VERIFIED'),
   top20Pct:missing('GoPlus provides only a limited top-holder list; not a validated top 20.','TOP20_NOT_VERIFIED')
  };
- if(!body||(body.code!==1&&body.code!=='1')||!body.result||
+ if(!body||!providerChainMatches(body,network)||
+    (body.code!==1&&body.code!=='1')||!body.result||
     typeof body.result!=='object'||Array.isArray(body.result))return fields;
  const record=Object.entries(body.result).find(([key])=>key.toLowerCase()===address)?.[1];
  if(!record||typeof record!=='object'||Array.isArray(record))return fields;
