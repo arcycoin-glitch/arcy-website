@@ -2,6 +2,25 @@
 (()=>{
  const section=document.querySelector('main > #search');
  const header=section?.querySelector('.header');
+
+ // GitHub belongs with X and Telegram in the footer, not the mobile menu.
+ // Reuse the existing GitHub SVG and the existing source link: no duplicate link.
+ const navGitHub=document.querySelector('#siteLinks > a.nav-github');
+ const sourceGitHub=document.querySelector('footer .footer-source-link[href="https://github.com/arcycoin-glitch/arcy-website"]');
+ const footerTelegram=document.querySelector('footer .social-icons > a.social-icon[aria-label="Telegram"]');
+ if(navGitHub&&sourceGitHub&&footerTelegram){
+  const githubIcon=navGitHub.querySelector('svg')?.cloneNode(true);
+  if(githubIcon){
+   githubIcon.setAttribute('aria-hidden','true');
+   sourceGitHub.classList.remove('footer-source-link');
+   sourceGitHub.classList.add('social-icon');
+   sourceGitHub.setAttribute('aria-label','GitHub');
+   sourceGitHub.setAttribute('title','GitHub · View source');
+   sourceGitHub.replaceChildren(githubIcon);
+   footerTelegram.after(sourceGitHub);
+   navGitHub.remove();
+  }
+ }
  if(!section||!header||section.querySelector('.home-search'))return;
 
  const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
