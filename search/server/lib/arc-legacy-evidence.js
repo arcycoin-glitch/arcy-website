@@ -6,7 +6,11 @@ const CHAIN=5042,NETWORK='arc',ADDRESS=/^0x[0-9a-f]{40}$/;
 // Literal requires are essential for Vercel's serverless dependency tracing.
 // Never use a computed require(path.join(...)) for production legacy modules.
 const ORIGINAL=Object.freeze({
- holders:()=>require('../../../api/holders')
+ holders:()=>require('../../../api/holders'),
+ liquidity:()=>require('../../../api/liquidity'),
+ activity:()=>require('../../../lib/activity-route'),
+ mechanics:()=>require('../../../api/mechanics'),
+ market:()=>require('../../../api/market')
 });
 const NO=(reason,reasonCode='SOURCE_NOT_VERIFIED')=>({value:null,status:'NOT_VERIFIED',
  dataState:'NOT_VERIFIED',source:null,evidence:[],network:NETWORK,chainId:CHAIN,
@@ -38,7 +42,7 @@ function selectedBoolOrText(field,address,scope){
  return raw;
 }
 async function callOriginal(name,address,options={},custom){
- if(name!=='holders'||!ADDRESS.test(address))
+ if(!Object.hasOwn(ORIGINAL,name)||!ADDRESS.test(address))
   throw Error('Invalid Arc legacy adapter request');
  const handler=custom||ORIGINAL[name]();
  if(typeof handler!=='function')throw Error('Original Arc route missing');
