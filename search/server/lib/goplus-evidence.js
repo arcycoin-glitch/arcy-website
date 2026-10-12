@@ -104,7 +104,7 @@ function parseHolders(body,network,rawAddress,{now=Date.now()}={}){
  const record=Object.entries(body.result).find(([key])=>key.toLowerCase()===address)?.[1];
  if(!record||typeof record!=='object'||Array.isArray(record))return fields;
  const rawCount=record.holder_count;
- const count=(typeof rawCount==='string'&&/^[1-9]\\d*$/.test(rawCount))?Number(rawCount):
+ const count=(typeof rawCount==='string'&&/^[1-9][0-9]*$/.test(rawCount))?Number(rawCount):
   typeof rawCount==='number'?rawCount:null;
  const validCount=Number.isSafeInteger(count)&&count>0&&count<1e10;
  const scope='GoPlus-reported token holder population and limited ranked wallet snapshot, not independently pinned or fully enumerated. Exchange custody and multiple wallets per owner are not resolved; source publication timestamp may differ from retrieval time.';
@@ -115,7 +115,7 @@ function parseHolders(body,network,rawAddress,{now=Date.now()}={}){
   const wallet=typeof row?.address==='string'?row.address.toLowerCase():'';
   const raw=typeof row?.percent==='string'?row.percent:null;
   if(!ADDRESS.test(wallet)||seen.has(wallet)||raw===null||
-    !/^(?:0|1)(?:\\.\\d{1,30})?$/.test(raw))return fields;
+    !/^(?:0|1)(?:[.][0-9]{1,30})?$/.test(raw))return fields;
   const fractionNumber=Number(raw);
   if(!Number.isFinite(fractionNumber)||fractionNumber<=0||fractionNumber>1)return fields;
   seen.add(wallet);shares.push(fractionNumber);
