@@ -7,7 +7,7 @@
  const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
  const NETWORK_MARKUP=Object.freeze({
   arc:'<span class="home-glyph home-glyph-arc" aria-hidden="true">A</span>',
-  ethereum:'<span class="home-glyph home-glyph-ethereum" aria-hidden="true">Ξ</span>',
+  ethereum:'<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#a6add2" d="M16 2 6 16l10 6 10-6z"/><path fill="#dde4fc" d="M16 2v20l10-6z"/><path fill="#717aab" d="M6 18l10 12v-6z"/><path fill="#b7c0eb" d="M26 18 16 30v-6z"/></svg>',
   robinhood:'<span class="home-glyph home-glyph-robinhood" aria-hidden="true">R</span>'
  });
  const setMark=(el,id)=>{el.innerHTML=NETWORK_MARKUP[id]||'';el.dataset.network=id;};
@@ -69,7 +69,7 @@
  function detailPath(network,address){return '/search/token/'+network+'/'+address.toLowerCase()}
  function addCandidate(candidate,network){
   const button=document.createElement('a');button.className='home-search-result';button.href=detailPath(network,candidate.address);
-  const logoHost=null;
+  const logoHost=network==='arc'&&candidate.address?.toLowerCase()==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'?'/assets/hero-arcy.png':null;
   // ALWAYS keep a readable token-symbol fallback under remote artwork.
   // Failed or blocked provider images must not leave a blank logo box.
   const placeholder=document.createElement('span');placeholder.className='home-token-logo home-token-placeholder';
