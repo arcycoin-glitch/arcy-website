@@ -57,8 +57,10 @@ circulating supply is permitted.
   Never place that key in front-end HTML, error messages or evidence source URLs.
 - GeckoTerminal chart remains a **provider-owned official iframe**. Independent raw
   historical OHLCV extraction stays disabled until a separate license is established.
-- CoinGecko circulating-supply access remains disabled; the free API tier is not treated as
-  commercial permission. CoinGecko has no active Search adapter.
+- CoinGecko is disabled across Search, legacy market endpoints, and homepage token-logo
+  enrichment. The free API tier is not treated as commercial permission; contract and linked-ID
+  routes fail closed with `PROVIDER_DISABLED_LICENSE_UNVERIFIED`. Unlock rows retain a
+  source-provided HTTPS logo when present and otherwise show the initials fallback.
 
 ## Coverage measurement (illustrative and time-dependent)
 
