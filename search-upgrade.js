@@ -69,7 +69,10 @@
  function detailPath(network,address){return '/search/token/'+network+'/'+address.toLowerCase()}
  function addCandidate(candidate,network){
   const button=document.createElement('a');button.className='home-search-result';button.href=detailPath(network,candidate.address);
-  const logoHost=network==='arc'&&candidate.address?.toLowerCase()==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'?'/assets/hero-arcy.png':null;
+  const trustedLocal=typeof candidate.logoUrl==='string'&&
+   /^\/search\/assets\/token-icons\/(?:usdc|usdt|link|uni|dai|wbtc|paxg)\.svg$/.test(candidate.logoUrl);
+  const logoHost=network==='arc'&&candidate.address?.toLowerCase()==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'?
+   '/assets/hero-arcy.png':trustedLocal?candidate.logoUrl:null;
   // ALWAYS keep a readable token-symbol fallback under remote artwork.
   // Failed or blocked provider images must not leave a blank logo box.
   const placeholder=document.createElement('span');placeholder.className='home-token-logo home-token-placeholder';
