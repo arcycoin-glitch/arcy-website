@@ -50,11 +50,12 @@ test('Only original reconciled COMPLETE holder snapshots are admitted',()=>{
  assert.equal(unsafe.top20Pct.dataState,'NOT_VERIFIED');
  const archival=bridge.holders({...data,snapshot:{completedAt:'2026-10-02T10:44:08.667Z'}},
   ADDRESS,{now});
- assert.equal(archival.holderCount.dataState,'NOT_VERIFIED');
- assert.equal(archival.top20Pct.reasonCode,'ARC_HOLDER_SNAPSHOT_STALE');
+ assert.equal(archival.holderCount.dataState,'DATA_FOUND');
+ assert.equal(archival.holderCount.freshness.state,'LAST_VERIFIED');
+ assert.equal(archival.top20Pct.status,'HISTORICAL_ONCHAIN_VERIFIED');
  assert.match(archival.top20Pct.reason,/2026-10-02/);
 });
-test('Search legacy bridge permits only the signed holder endpoint; legacy market endpoints are unavailable',async()=>{
+test('Search legacy bridge allows only known Arc read-only evidence routes, never worker actions',async()=>{
  const request=async(req,res)=>{
   assert.equal(req.method,'GET');
   assert.equal(req.query.address,ADDRESS);
@@ -63,7 +64,9 @@ test('Search legacy bridge permits only the signed holder endpoint; legacy marke
  };
  const output=await bridge.callOriginal('holders',ADDRESS,{},request);
  assert.equal(output.fields.totalSupply.value,'1000000');
- await assert.rejects(()=>bridge.callOriginal('market',ADDRESS,{},request),/Invalid Arc/);
- await assert.rejects(()=>bridge.callOriginal('liquidity',ADDRESS,{},request),/Invalid Arc/);
+ const market=await bridge.callOriginal('market',ADDRESS,{},request);
+ assert.equal(market.chainId,5042);
+ const liquidity=await bridge.callOriginal('liquidity',ADDRESS,{},request);
+ assert.equal(liquidity.address,ADDRESS);
  await assert.rejects(()=>bridge.callOriginal('holderrefresh',ADDRESS,{},request),/Invalid Arc/);
 });
