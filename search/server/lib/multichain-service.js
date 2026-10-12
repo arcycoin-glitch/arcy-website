@@ -31,6 +31,9 @@ async function report({network='ethereum',address}){
  const result=await engine.report({network,address});
  const official=identities.verified(network,result.address);
  if(official)result.tokenIdentity=official;
+ // Artwork is locally-hosted, strictly chain+contract matched decoration.
+ const logoUrl=logos.localLogo(network,result.address);
+ if(logoUrl)result.token={...result.token,logoUrl};
  return result;
 }
 async function token({network='ethereum',address}){
