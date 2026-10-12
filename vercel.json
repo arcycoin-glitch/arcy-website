@@ -6,6 +6,9 @@
     },
     "api/holderrefresh.js": {
       "maxDuration": 60
+    },
+    "api/search/index.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -14,10 +17,18 @@
       "schedule": "0 6 * * 1"
     }
   ],
+  "redirects": [
+    {"source":"/search","destination":"/#search","permanent":false},
+    {"source":"/search/","destination":"/#search","permanent":false}
+  ],
   "rewrites": [
     {
       "source": "/api/activity",
       "destination": "/api/market?_arcyRoute=activity"
+    },
+    {
+      "source": "/search/token/:network/:address",
+      "destination": "/search/index.html"
     }
   ]
 }
