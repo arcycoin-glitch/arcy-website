@@ -68,10 +68,11 @@
 #tokenDetail .detail-discover-copy p{margin:7px 0 0;color:#91b1c3;font-size:11px;line-height:1.55}
 #tokenDetail .detail-network-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
 #tokenDetail .detail-network-shortcuts button{
- padding:8px 14px;min-height:37px;border:1px solid #25465d;border-radius:9px;
+ display:inline-flex;align-items:center;gap:8px;padding:8px 14px;min-height:37px;border:1px solid #25465d;border-radius:9px;
  background:#081a29;color:#a4c5d5;font-family:inherit;font-weight:700;font-size:11px;line-height:1.2;cursor:pointer;
  transition:border-color .15s ease,background .15s ease;
 }
+#tokenDetail .detail-network-shortcuts img{width:18px;height:18px;display:block;object-fit:contain}
 #tokenDetail .detail-network-shortcuts button:hover,
 #tokenDetail .detail-network-shortcuts button:focus-visible{border-color:#53bad6;color:#e9fcff;outline-offset:2px}
 #tokenDetail .detail-network-shortcuts button[aria-pressed="true"]{
@@ -98,3 +99,4 @@
  #tokenDetail .detail-discover-copy h2{font-size:18px}
  #tokenDetail .detail-network-shortcuts button{padding:7px 8px;font-size:9px}
 }
+

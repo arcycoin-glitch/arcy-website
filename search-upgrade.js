@@ -4,9 +4,8 @@
  const header=section?.querySelector('.header');
  if(!section||!header||section.querySelector('.home-search'))return;
 
- const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
- const NETWORK_MARKUP=Object.freeze({arc:'A',ethereum:'Ξ',robinhood:'RH'});
- const setMark=(el,id)=>{el.textContent=NETWORK_MARKUP[id]||'?';el.dataset.network=id;};
+ const networks=[['arc','Arc'],['ethereum','Ethereum'],['robinhood','Robinhood Chain']];
+ const setMark=(el,id)=>{const image=document.createElement('img');image.src='/search/assets/network-neutral.svg';image.width=23;image.height=23;image.alt='';image.decoding='async';el.replaceChildren(image);el.dataset.network=id;};
  const app=document.createElement('section');app.className='home-search';app.setAttribute('aria-label','ARCY Search token discovery');
  const brand=document.createElement('div');brand.className='home-search-brand notranslate';brand.setAttribute('aria-label','ARCY SEARCH');brand.setAttribute('translate','no');
  const wordmark=document.createElement('div');wordmark.className='home-search-wordmark';
@@ -22,10 +21,10 @@
  const menu=document.createElement('div');menu.id='homeNetworkMenu';menu.className='home-network-menu';menu.setAttribute('role','listbox');menu.setAttribute('aria-label','Token network');menu.hidden=true;
  let selected='arc';
  const options=new Map();
- function setNetwork(id,focus=false){selected=id;const [,label,monogram]=networks.find(x=>x[0]===id);networkName.textContent=label;setMark(mark,id);
+ function setNetwork(id,focus=false){selected=id;const [,label]=networks.find(x=>x[0]===id);networkName.textContent=label;setMark(mark,id);
   for(const [key,button] of options)button.setAttribute('aria-selected',String(key===id));
   menu.hidden=true;trigger.setAttribute('aria-expanded','false');if(focus)trigger.focus();}
- for(const [id,label,monogram] of networks){const option=document.createElement('button');option.type='button';option.className='home-network-option';option.setAttribute('role','option');option.dataset.network=id;option.setAttribute('aria-selected','false');const badge=document.createElement('span');badge.className='home-network-mark';setMark(badge,id);const text=document.createElement('span');text.textContent=label;option.append(badge,text);option.addEventListener('click',()=>setNetwork(id,true));option.addEventListener('keydown',event=>{
+ for(const [id,label] of networks){const option=document.createElement('button');option.type='button';option.className='home-network-option';option.setAttribute('role','option');option.dataset.network=id;option.setAttribute('aria-selected','false');const badge=document.createElement('span');badge.className='home-network-mark';setMark(badge,id);const text=document.createElement('span');text.textContent=label;option.append(badge,text);option.addEventListener('click',()=>setNetwork(id,true));option.addEventListener('keydown',event=>{
    const items=[...options.values()],index=items.indexOf(option);let next=null;
    if(event.key==='ArrowDown')next=items[(index+1)%items.length];if(event.key==='ArrowUp')next=items[(index+items.length-1)%items.length];
    if(event.key==='Home')next=items[0];if(event.key==='End')next=items.at(-1);
@@ -113,3 +112,4 @@
   finally{clearTimeout(timeout);submit.disabled=false;input.disabled=false}
  });
 })();
+

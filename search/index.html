@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 20564)
+Total output lines: 1277
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -194,10 +197,11 @@ footer{border-top:1px solid var(--stroke);padding-top:24px;line-height:1.9;margi
 .network-trigger-name{flex:1}
 .chain-chevron{width:17px;height:17px;color:#9dbfcc;transition:transform .18s}
 .network-trigger[aria-expanded="true"] .chain-chevron{transform:rotate(180deg)}
-.chain-mark{display:inline-grid;place-items:center;flex:none;width:30px;height:30px;border-radius:9px;
+.chain-mark{display:inline-grid;place-items:center;flex:none;width:42px;height:42px;border-radius:11px;
  background:#102d40;color:#bfeeff;border:1px solid rgba(94,180,212,.2)}
-.chain-mark{overflow:hidden;border:1px solid #31546a;background:#091e2e;color:#bfeeff;font-size:13px;font-weight:800;letter-spacing:-.03em}
-#discovery .chain-mark,.network-trigger .chain-mark,.chain-option .chain-mark{width:36px;height:36px;flex-shrink:0}
+.chain-mark{overflow:hidden;border:1px solid #31546a;background:#091e2e}
+.chain-mark img{display:block;width:23px;height:23px;object-fit:contain}
+#discovery .chain-mark,.network-trigger .chain-mark,.chain-option .chain-mark{width:44px;height:44px;flex-shrink:0}
 .network-menu{position:absolute;top:calc(100% + 7px);left:0;right:0;padding:6px;
  border:1px solid #326f86;border-radius:15px;background:#0a2536;color:#ecf8ff;
  box-shadow:0 16px 44px rgba(0,3,10,.52);max-height:min(300px,58vh);overflow-y:auto;overscroll-behavior:contain}
@@ -336,14 +340,14 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 <div class="network-picker" id="networkPicker">
   <input type="hidden" id="chain" value="arc">
   <button type="button" id="chainTrigger" class="network-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="chainMenu" aria-label="Select token network">
-    <span id="currentChainLogo" class="chain-mark chain-arc" aria-hidden="true">A</span>
+    <span id="currentChainLogo" class="chain-mark chain-arc" aria-hidden="true"><img src="/search/assets/network-neutral.svg" width="23" height="23" alt=""></span>
     <span id="currentChainName" class="network-trigger-name">Arc</span>
     <svg class="chain-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
   <div class="network-menu" id="chainMenu" role="listbox" aria-label="Token network" hidden>
-    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="true" id="chainOptionArc"><span class="chain-mark chain-arc" aria-hidden="true">A</span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
-    <button type="button" class="chain-option" role="option" data-chain="ethereum" aria-selected="false" id="chainOptionEthereum"><span class="chain-mark chain-ethereum" aria-hidden="true">Ξ</span><span>Ethereum</span><span class="chain-check" aria-hidden="true"></span></button>
-    <button type="button" class="chain-option" role="option" data-chain="robinhood" aria-selected="false" id="chainOptionRobinhood"><span class="chain-mark chain-robinhood" aria-hidden="true">RH</span><span>Robinhood Chain</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="true" id="chainOptionArc"><span class="chain-mark chain-arc" aria-hidden="true"><img src="/search/assets/network-neutral.svg" width="23" height="23" alt=""></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="ethereum" aria-selected="false" id="chainOptionEthereum"><span class="chain-mark chain-ethereum" aria-hidden="true"><img src="/search/assets/network-neutral.svg" width="23" height="23" alt=""></span><span>Ethereum</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="robinhood" aria-selected="false" id="chainOptionRobinhood"><span class="chain-mark chain-robinhood" aria-hidden="true"><img src="/search/assets/network-neutral.svg" width="23" height="23" alt=""></span><span>Robinhood Chain</span><span class="chain-check" aria-hidden="true"></span></button>
   </div>
 </div><span id="networkNote">Results never mix token data from different networks.</span></div>
 <div class="search">
@@ -378,9 +382,9 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
       </div>
     </div>
     <div id="detailNetworkShortcuts" class="detail-network-shortcuts" role="group" aria-label="Choose a token search network">
-      <button type="button" data-detail-chain="arc" aria-pressed="false">Arc</button>
-      <button type="button" data-detail-chain="ethereum" aria-pressed="false">Ethereum</button>
-      <button type="button" data-detail-chain="robinhood" aria-pressed="false">Robinhood Chain</button>
+      <button type="button" data-detail-chain="arc" aria-pressed="false"><img src="/search/assets/network-neutral.svg" width="18" height="18" alt="" aria-hidden="true">Arc</button>
+      <button type="button" data-detail-chain="ethereum" aria-pressed="false"><img src="/search/assets/network-neutral.svg" width="18" height="18" alt="" aria-hidden="true">Ethereum</button>
+      <button type="button" data-detail-chain="robinhood" aria-pressed="false"><img src="/search/assets/network-neutral.svg" width="18" height="18" alt="" aria-hidden="true">Robinhood Chain</button>
     </div>
   <form id="detailSearchForm" class="detail-search" role="search" aria-label="Search another token">
     <label class="detail-search-network" for="detailSearchChain"><span>NETWORK</span>
@@ -532,44 +536,7 @@ function render(report){
     if(report&&knownCount===0){
       const notice=document.createElement('p');notice.className='noSource';
       notice.textContent='No independently supported figures for this category yet.';
-      section.append(notice);
-    }
-    if(report&&missingRows.length){
-      const hidden=document.createElement('details');hidden.className='missingGroup';
-      const toggle=document.createElement('summary');
-      toggle.textContent='Show '+missingRows.length+' unverified checks and reasons';
-      hidden.append(toggle,...missingRows);
-      section.append(hidden);
-    }
-    const status=document.createElement('div');
-    status.className='meta statusLine';
-    const state=document.createElement('span');
-    const proven=card?Object.values(card.fields||{}).filter(f=>f?.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined).length:0;
-    state.textContent=!card?'NOT SCANNED':proven===spec.fields.length?'ALL 4 FIELDS SOURCE-BACKED':
-     proven>0?'PARTIALLY SOURCE-BACKED':'NO SOURCE-BACKED FIELDS';
-    status.append(state);
-    if(card){
-     const sources=document.createElement('span');
-     const ok=Object.values(card.fields||{}).filter(x=>x?.dataState==='DATA_FOUND'&&x.value!==null).length;
-     sources.textContent=ok+' / '+spec.fields.length+' sourced';
-     status.append(sources);
-    }
-    section.append(status);
-    if(card){
-      const details=document.createElement('details');details.className='proof-panel';
-      const summary=document.createElement('summary');summary.textContent='View sources & evidence';
-      const proofList=document.createElement('div');proofList.className='proof-list';
-      for(const [key,label] of spec.fields){
-        const field=card.fields[key];if(!field)continue;
-        const block=document.createElement('div');block.className='proof-entry';
-        const header=document.createElement('div');header.className='proof-entry-head';
-        const fieldTitle=document.createElement('strong');fieldTitle.textContent=label;
-        const stage=document.createElement('span');stage.className='proof-state';
-        stage.textContent=field.dataState==='DATA_FOUND'?'SOURCE BACKED':'NOT VERIFIED';
-        if(field.dataState!=='DATA_FOUND')stage.classList.add('unverified');
-        header.append(fieldTitle,stage);block.append(header);
-        const source=document.createElement('p');
-        const proof=Array.isArray(field.evidence)?field.evidence[0]:null;
+  …564 tokens truncated…[0]:null;
         const anchor=proof?.block||proof?.atBlock||null;
         source.textContent=(field.source||'Source unavailable')+
          (typeof anchor==='string'&&/^0x[0-9a-f]+$/i.test(anchor)?' · Block '+BigInt(anchor).toString():'');
@@ -635,14 +602,13 @@ function setChartRange(range){
  }
 }
 const selected=()=>$('chain').value;
-const NETWORK_ICON_MARKUP=Object.freeze({arc:'A',ethereum:'Ξ',robinhood:'RH'});
 function syncNetworkPicker(){
  const network=selected();
  if(!Object.hasOwn(NETWORKS,network))return;
  $('currentChainName').textContent=NETWORKS[network].label;
  const logo=$('currentChainLogo');
- // Static local SVG paths: never derive HTML from API responses.
- logo.textContent=NETWORK_ICON_MARKUP[network];
+ const icon=document.createElement('img');icon.src='/search/assets/network-neutral.svg';icon.width=23;icon.height=23;icon.alt='';icon.decoding='async';
+ logo.replaceChildren(icon);
  logo.className='chain-mark chain-'+network;
  for(const option of $('chainMenu').querySelectorAll('[data-chain]'))
   option.setAttribute('aria-selected',String(option.dataset.chain===network));
@@ -1274,3 +1240,4 @@ restoreRoute();
 </script>
 </body>
 </html>
+

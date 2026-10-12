@@ -1,7 +1,7 @@
 /* Compact, native-to-home ARCY Search module. The original mascot and page
    sections keep their existing markup and styles. */
 html.search-upgraded #search{min-height:0;padding:38px 0 62px;background:linear-gradient(175deg,#061523,#04101c)}
-html.search-upgraded #search .app{max-width:980px;padding:24px 20px}
+html.search-upgraded #search .app{max-width:1160px;padding:24px 20px}
 /* The upgraded discovery card carries the official ARCY SEARCH logo. Hide the legacy header so it does not display a second owl and duplicate title. */
 html.search-upgraded #search .header{display:none}
 html.search-upgraded #search .header .title p{letter-spacing:.13em}
@@ -9,19 +9,19 @@ html.search-upgraded #search>.wrap>.app>.search,
 html.search-upgraded #search .helper,
 html.search-upgraded #search #token,
 html.search-upgraded #search .grid{display:none!important}
-#search .home-search{max-width:820px;margin:0 auto;padding:23px clamp(16px,3.6vw,30px) 18px;border:1px solid rgba(80,179,207,.25);border-radius:18px;background:linear-gradient(130deg,rgba(10,34,51,.96),rgba(5,20,33,.97));box-shadow:0 15px 48px rgba(0,0,0,.18)}
+#search .home-search{max-width:1100px;margin:0 auto;padding:25px clamp(18px,3.6vw,34px) 20px;border:1px solid rgba(80,179,207,.25);border-radius:18px;background:linear-gradient(130deg,rgba(10,34,51,.96),rgba(5,20,33,.97));box-shadow:0 15px 48px rgba(0,0,0,.18)}
 #search .home-search-brand{display:flex;align-items:center;gap:13px;margin:0 0 7px}
 #search .home-search-wordmark{display:flex;align-items:baseline;gap:7px;font-size:clamp(23px,3vw,31px);font-weight:850;letter-spacing:-.045em;line-height:1.1;white-space:nowrap}
 #search .home-search-arcy{color:#f4f7ff}
 #search .home-search-y{color:#ff8a3d}
 #search .home-search-search{color:#38d9f4;letter-spacing:.015em}
-#search .home-search-intro{max-width:620px;margin:0 0 17px;color:#a2bac8;font-size:12px;line-height:1.6}
+#search .home-search-intro{max-width:820px;margin:0 0 18px;color:#a2bac8;font-size:clamp(13px,1.15vw,15px);line-height:1.65}
 #search .home-network-picker{position:relative;margin:0 0 11px}
 #search .home-field-label{display:block;margin:0 0 6px;color:#93adbd;font-size:9px;font-weight:750;letter-spacing:.1em}
-#search .home-network-trigger{display:flex;width:100%;min-height:45px;align-items:center;gap:10px;padding:6px 11px;border:1px solid #31586b;border-radius:11px;background:#081b2b;color:#e8f6ff;text-align:left;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+#search .home-network-trigger{display:flex;width:100%;min-height:54px;align-items:center;gap:12px;padding:6px 13px;border:1px solid #31586b;border-radius:11px;background:#081b2b;color:#e8f6ff;text-align:left;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
 #search .home-network-trigger:focus-visible,#search .home-network-option:focus-visible{outline:2px solid #66d5ed;outline-offset:2px}
-#search .home-network-mark{display:inline-grid;width:36px;height:36px;flex:none;place-items:center;border:1px solid #31546a;border-radius:10px;background:#091e2e;overflow:hidden}
-#search .home-network-mark{color:#bfeeff;font-size:13px;font-weight:800;letter-spacing:-.03em}
+#search .home-network-mark{display:inline-grid;width:42px;height:42px;flex:none;place-items:center;border:1px solid #31546a;border-radius:11px;background:#091e2e;overflow:hidden}
+#search .home-network-mark img{display:block;width:23px;height:23px;object-fit:contain}
 #search .home-network-name{flex:1}
 #search .home-network-chevron{color:#83adc0;font-size:19px;line-height:1}
 #search .home-network-menu[hidden]{display:none}
@@ -29,12 +29,12 @@ html.search-upgraded #search .grid{display:none!important}
 #search .home-network-option{display:flex;align-items:center;gap:10px;min-height:40px;padding:5px 8px;border:0;border-radius:8px;background:transparent;color:#dff4fc;text-align:left;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
 #search .home-network-option:hover,#search .home-network-option[aria-selected=true]{background:#102c3e}
 #search .home-search-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin:0}
-#search .home-search-input-wrap{display:flex;align-items:center;gap:9px;min-width:0;min-height:47px;padding:0 12px;border:1px solid #365a70;border-radius:11px;background:#071827;color:#dff7ff}
+#search .home-search-input-wrap{display:flex;align-items:center;gap:9px;min-width:0;min-height:52px;padding:0 14px;border:1px solid #365a70;border-radius:11px;background:#071827;color:#dff7ff}
 #search .home-search-input-wrap:focus-within{border-color:#4ccce5;box-shadow:0 0 0 3px #28bdd21b}
 #search .home-search-glass{color:#80bacb;font-size:25px;line-height:1}
-#search .home-search-form input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#f0fbff;font-family:inherit;font-size:12px;font-weight:500}
+#search .home-search-form input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#f0fbff;font-family:inherit;font-size:14px;font-weight:500}
 #search .home-search-form input::placeholder{color:#7691a2}
-#search .home-search-submit{min-width:145px;min-height:47px;padding:0 16px;border:1px solid #52dcf0;border-radius:11px;background:linear-gradient(110deg,#4ac8e1,#38c9c6);color:#03202a;font-size:11px;font-weight:850;letter-spacing:.04em;cursor:pointer}
+#search .home-search-submit{min-width:160px;min-height:52px;padding:0 18px;border:1px solid #52dcf0;border-radius:11px;background:linear-gradient(110deg,#4ac8e1,#38c9c6);color:#03202a;font-size:12px;font-weight:850;letter-spacing:.04em;cursor:pointer}
 #search .home-search-submit:hover,#search .home-search-submit:focus-visible{filter:brightness(1.08);outline-offset:3px}
 #search .home-search-submit:disabled{opacity:.58;cursor:wait}
 #search .home-search-state{min-height:17px;margin:8px 0 0;color:#91adbd;font-size:10px;line-height:1.5}
@@ -80,11 +80,11 @@ html.search-upgraded #search .home-search{padding-top:19px;padding-bottom:16px}
  #search .home-search{padding:15px 10px 13px}
  #search .home-search-brand{gap:8px;margin-bottom:5px}
  #search .home-search-wordmark{font-size:clamp(19px,5.5vw,23px)}
- #search .home-search-intro{margin-bottom:10px;font-size:10px}
+ #search .home-search-intro{margin-bottom:10px;font-size:11px}
  #search .home-network-picker{margin-bottom:8px}
- #search .home-network-trigger{min-height:42px}
- #search .home-search-input-wrap{min-height:43px}
- #search .home-network-mark{width:34px;height:34px}
+ #search .home-network-trigger{min-height:48px}
+ #search .home-search-input-wrap{min-height:46px}
+ #search .home-network-mark{width:40px;height:40px}
 }
 
 /* Clear visual proof tiers; do not confuse listing or art with issuer identity. */
@@ -112,7 +112,7 @@ html.search-upgraded #hero .hero-energy{min-height:360px}
 html.search-upgraded #hero .hero-flight{width:100%;max-width:500px;margin-inline:auto}
 html.search-upgraded #hero .actions{margin-top:21px}
 html.search-upgraded #search{padding-top:23px;padding-bottom:48px}
-html.search-upgraded #search .home-search{max-width:850px;margin-inline:auto}
+html.search-upgraded #search .home-search{max-width:1100px;margin-inline:auto}
 @media(max-width:850px){
  html.search-upgraded #hero{min-height:0!important;padding:32px 0 24px!important;gap:17px}
  html.search-upgraded #hero .hero-energy{min-height:260px}
@@ -126,3 +126,4 @@ html.search-upgraded #search .home-search{max-width:850px;margin-inline:auto}
  html.search-upgraded #hero .actions{margin-top:16px}
  html.search-upgraded #search{padding-top:10px;padding-bottom:34px}
 }
+
