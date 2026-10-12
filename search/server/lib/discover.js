@@ -21,7 +21,7 @@ async function searchExplorer(network,rawQuery,{fetchImpl=global.fetch}={}){
  const endpoint=new URL('/api/v2/search',base);
  endpoint.searchParams.set('q',query);
  const response=await fetchImpl(endpoint,{headers:{accept:'application/json'},signal:AbortSignal.timeout(9000)});
- if(!response?.ok)throw Error('Explorer search unavailable');
+ if(!response?.ok){const error=Error('Explorer search unavailable');error.code='EXPLORER_HTTP_'+String(response?.status||'UNKNOWN');throw error}
  const body=await readJson(response,1024*1024);
  if(!body||!Array.isArray(body.items))throw Error('Explorer search response invalid');
  const normalized=query.normalize('NFKC').toLocaleLowerCase('en-US');
