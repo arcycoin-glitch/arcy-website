@@ -109,10 +109,15 @@ function holders(result,address,{now=Date.now()}={}){
   const validated=sourceField(candidate,address,'Historical COMPLETE Arc holder snapshot, not live.');
   if(validated.dataState==='DATA_FOUND'&&result?.coverage?.complete!==true)
    output[name]=NO('Legacy holder read is not a complete reconciled snapshot.','ARC_HOLDER_COVERAGE_INCOMPLETE');
-  else if(validated.dataState==='DATA_FOUND'&&!fresh)
-   output[name]=NO('Only a historical Arc COMPLETE holder snapshot exists (last '+(
-    Number.isFinite(date)?new Date(date).toISOString():'unknown')+
-    '). It is older than 48 hours and cannot describe current wallet concentration.','ARC_HOLDER_SNAPSHOT_STALE');
+  else if(validated.dataState==='DATA_FOUND'&&!fresh){
+   // Show completed historical readings only with explicit age, never as current balances.
+   const age=Number.isFinite(date)?new Date(date).toISOString():null;
+   output[name]=age&&date>=now-30*86400000?{
+    ...validated,status:'HISTORICAL_ONCHAIN_VERIFIED',
+    freshness:{state:'LAST_VERIFIED',observedAt:age},
+    reason:'Historical complete snapshot from '+age+'. Not a current wallet balance or concentration reading.'
+   }:NO('Historical holder snapshot is too old to publish.','ARC_HOLDER_SNAPSHOT_STALE');
+  }
   else output[name]=validated;
  }
  return output;
