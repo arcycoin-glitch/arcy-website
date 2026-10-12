@@ -130,3 +130,47 @@ html.search-upgraded #search .home-search{max-width:850px;margin-inline:auto}
  html.search-upgraded #hero .actions{margin-top:16px}
  html.search-upgraded #search{padding-top:10px;padding-bottom:34px}
 }
+
+
+/* Mobile-first network switcher: no overlay, no remote brand images, search stays visible. */
+#search .home-network-picker{position:static;margin:0 0 12px}
+#search .home-network-segments{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
+ padding:5px;border:1px solid #29495c;border-radius:14px;background:#051724;
+}
+#search .home-network-segments .home-network-option{
+ display:flex;justify-content:center;align-items:center;gap:9px;
+ min-width:0;min-height:56px;padding:7px 8px;
+ border:1px solid transparent;border-radius:10px;
+ background:transparent;color:#a9c6d2;font-size:12px;font-weight:700;
+ letter-spacing:0;transition:background .16s ease,border-color .16s ease,color .16s ease;
+}
+#search .home-network-segments .home-network-option[aria-pressed=true]{
+ background:linear-gradient(120deg,#103b50,#102a3d);border-color:#38a8c4;
+ color:#f2fcff;box-shadow:inset 0 0 0 1px #26738e33;
+}
+#search .home-network-segments .home-network-option:hover{background:#13374a}
+#search .home-network-segments .home-network-option:focus-visible{outline:2px solid #6de4f2;outline-offset:2px}
+#search .home-network-segments .home-network-mark{
+ width:30px;height:30px;flex:none;border:1px solid #285771;
+ border-radius:9px;background:linear-gradient(145deg,#13364a,#0b2536);
+}
+#search .home-network-segments .home-network-option-name{
+ min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+#search .home-glyph{display:grid;place-items:center;width:100%;height:100%;font-size:18px;font-weight:850}
+#search .home-network-segments .home-network-mark svg{display:block;width:22px;height:22px}
+#search .home-glyph-arc{color:#60e4ef}
+#search .home-glyph-ethereum{color:#b7bfff;font-size:21px}
+#search .home-glyph-robinhood{color:#86e7bc}
+@media(max-width:560px){
+ #search .home-network-segments{gap:4px;padding:4px;border-radius:12px}
+ #search .home-network-segments .home-network-option{
+  flex-direction:column;gap:3px;min-height:58px;padding:5px 2px;font-size:10px;
+ }
+ #search .home-network-segments .home-network-mark{width:25px;height:25px;border-radius:7px}
+ #search .home-network-segments .home-glyph{font-size:16px}
+ #search .home-network-segments .home-glyph-ethereum{font-size:19px}
+ #search .home-network-picker{margin-bottom:9px}
+}
+@media(prefers-reduced-motion:reduce){#search .home-network-segments .home-network-option{transition:none}}
