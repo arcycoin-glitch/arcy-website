@@ -5,6 +5,8 @@
  if(!section||!header||section.querySelector('.home-search'))return;
 
  const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
+ const NETWORK_MARKUP=Object.freeze({"arc":"<img src=\"https://cdn.prod.website-files.com/685311a976e7c248b5dfde95/6a16350a8030caf548ad77b9_logo-1.avif\" alt=\"\" loading=\"eager\" referrerpolicy=\"no-referrer\"/>","ethereum":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path fill=\"#7b83ad\" d=\"M16 2 6 16l10 6 10-6z\"/><path fill=\"#cdd2e4\" d=\"M16 2v20l10-6z\"/><path fill=\"#626a95\" d=\"M6 18l10 12v-6z\"/><path fill=\"#a7afd3\" d=\"M26 18 16 30v-6z\"/></svg>","robinhood":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"16\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"9\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"23\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><path d=\"M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\" stroke-linecap=\"round\"/></svg>"});
+ const setMark=(el,id)=>{el.innerHTML=NETWORK_MARKUP[id]||'';el.dataset.network=id;};
  const app=document.createElement('section');app.className='home-search';app.setAttribute('aria-label','ARCY Search token discovery');
  const brand=document.createElement('div');brand.className='home-search-brand';brand.setAttribute('aria-label','ARCY Search');
  const owl=document.createElement('img');owl.className='home-search-owl';owl.src='/search/assets/arcy-owl-reference.webp';owl.width=320;owl.height=217;owl.alt='';owl.decoding='async';
@@ -21,10 +23,10 @@
  const menu=document.createElement('div');menu.id='homeNetworkMenu';menu.className='home-network-menu';menu.setAttribute('role','listbox');menu.setAttribute('aria-label','Token network');menu.hidden=true;
  let selected='arc';
  const options=new Map();
- function setNetwork(id,focus=false){selected=id;const [,label,monogram]=networks.find(x=>x[0]===id);networkName.textContent=label;mark.textContent=monogram;
+ function setNetwork(id,focus=false){selected=id;const [,label,monogram]=networks.find(x=>x[0]===id);networkName.textContent=label;setMark(mark,id);
   for(const [key,button] of options)button.setAttribute('aria-selected',String(key===id));
   menu.hidden=true;trigger.setAttribute('aria-expanded','false');if(focus)trigger.focus();}
- for(const [id,label,monogram] of networks){const option=document.createElement('button');option.type='button';option.className='home-network-option';option.setAttribute('role','option');option.dataset.network=id;option.setAttribute('aria-selected','false');const badge=document.createElement('span');badge.className='home-network-mark';badge.textContent=monogram;const text=document.createElement('span');text.textContent=label;option.append(badge,text);option.addEventListener('click',()=>setNetwork(id,true));option.addEventListener('keydown',event=>{
+ for(const [id,label,monogram] of networks){const option=document.createElement('button');option.type='button';option.className='home-network-option';option.setAttribute('role','option');option.dataset.network=id;option.setAttribute('aria-selected','false');const badge=document.createElement('span');badge.className='home-network-mark';setMark(badge,id);const text=document.createElement('span');text.textContent=label;option.append(badge,text);option.addEventListener('click',()=>setNetwork(id,true));option.addEventListener('keydown',event=>{
    const items=[...options.values()],index=items.indexOf(option);let next=null;
    if(event.key==='ArrowDown')next=items[(index+1)%items.length];if(event.key==='ArrowUp')next=items[(index+items.length-1)%items.length];
    if(event.key==='Home')next=items[0];if(event.key==='End')next=items.at(-1);
@@ -43,10 +45,10 @@
  const submit=document.createElement('button');submit.type='submit';submit.className='home-search-submit';submit.textContent='SEARCH / SCAN';form.append(inputWrap,submit);
  const state=document.createElement('p');state.className='home-search-state';state.id='homeSearchState';state.setAttribute('role','status');state.setAttribute('aria-live','polite');state.textContent='Exact contracts, source-backed candidates and 20 research checks.';
  const results=document.createElement('div');results.className='home-search-results';results.hidden=true;results.setAttribute('aria-label','Matching tokens');
- const chips=document.createElement('div');chips.className='home-network-chips';for(const [,label] of networks){const chip=document.createElement('span');chip.textContent=label;chips.append(chip)}
+
  const attribution=document.createElement('a');attribution.className='home-search-attribution';attribution.href='https://www.geckoterminal.com/';attribution.target='_blank';attribution.rel='noopener noreferrer';attribution.textContent='On-chain market data provided by GeckoTerminal';
  const robinhoodNotice=document.createElement('p');robinhoodNotice.className='home-search-disclaimer';robinhoodNotice.textContent='Independent research tool. Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.';
- app.append(brand,intro,picker,form,state,results,chips,attribution,robinhoodNotice);header.after(app);
+ app.append(brand,intro,picker,form,state,results,attribution,robinhoodNotice);header.after(app);
  document.documentElement.classList.add('search-upgraded');
  document.querySelectorAll('a[href="#search"]').forEach(link=>link.setAttribute('href','#search'));
 
