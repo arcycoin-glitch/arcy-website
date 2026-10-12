@@ -58,3 +58,33 @@ test('Correct GoPlus chain and contract used for Robinhood',async()=>{
  assert.equal(u,'https://api.gopluslabs.io/api/v1/token_security/4663?contract_addresses='+tsla);
  assert.equal(f.contractArchitecture.chainId,4663);
 });
+
+test('GoPlus holder proportions are fractions and top-10 is clearly source reported',()=>{
+ const rows=Array.from({length:10},(_,i)=>({
+  address:'0x'+(i+1).toString(16).padStart(40,'0'),
+  percent:(0.20/(i+1)).toFixed(12)
+ }));
+ const out=gp.parseHolders(response('robinhood',tsla,{holder_count:'1000',holders:rows}),'robinhood',tsla);
+ assert.equal(out.holderCount.value,1000);
+ assert.equal(out.largestWalletPct.value,20);
+ assert.equal(out.top10Pct.dataState,'DATA_FOUND');
+ assert.ok(out.top10Pct.value>25&&out.top10Pct.value<60);
+ assert.equal(out.top20Pct.dataState,'NOT_VERIFIED');
+ assert.equal(out.top10Pct.status,'SOURCE_REPORTED');
+ assert.equal(out.top10Pct.chainId,4663);
+ assert.match(out.top10Pct.evidence[0].scope,/not independently pinned/);
+});
+test('GoPlus bad ranking, duplicate wallet or incomplete source fails closed',()=>{
+ const rows=Array.from({length:10},(_,i)=>({
+  address:'0x'+(i+1).toString(16).padStart(40,'0'),
+  percent:(0.1/(i+1)).toFixed(12)
+ }));
+ const duplicate=rows.map((x,i)=>i===9?{...x,address:rows[0].address}:x);
+ const badlySorted=rows.map(x=>({...x}));badlySorted[1].percent='0.8';
+ for(const holders of [duplicate,badlySorted]){
+  const f=gp.parseHolders(response('robinhood',tsla,{holder_count:'100',holders}),'robinhood',tsla);
+  assert.equal(f.top10Pct.dataState,'NOT_VERIFIED');
+ }
+ const mismatched=gp.parseHolders(response('robinhood',eth,{holder_count:'1',holders:rows}),'robinhood',tsla);
+ assert.equal(mismatched.holderCount.dataState,'NOT_VERIFIED');
+});
