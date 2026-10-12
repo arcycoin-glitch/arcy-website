@@ -27,10 +27,12 @@ async function searchExplorer(network,rawQuery,{fetchImpl=global.fetch}={}){
  const normalized=query.normalize('NFKC').toLocaleLowerCase('en-US');
  const matches=[];
  for(const item of body.items){
-  if(!item||item.type!=='token'||typeof item.address!=='string'||!ADDRESS.test(item.address))continue;
+  if(!item||item.type!=='token')continue;
+  const rawAddress=typeof item.address_hash==='string'?item.address_hash:item.address;
+  if(typeof rawAddress!=='string'||!ADDRESS.test(rawAddress))continue;
   const tokenType=String(item.token_type||'').toUpperCase();
   if(network==='robinhood'?!['ERC-20','ERC-8056'].includes(tokenType):tokenType!=='ERC-20')continue;
-  const address=item.address.toLowerCase();
+  const address=rawAddress.toLowerCase();
   const name=typeof item.name==='string'?item.name.trim().slice(0,90):'';
   const symbol=typeof item.symbol==='string'?item.symbol.trim().slice(0,30):'';
   if(!name&&!symbol)continue;

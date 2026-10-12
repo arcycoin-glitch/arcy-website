@@ -9,7 +9,7 @@ function response(items,status=200){return new Response(JSON.stringify({items}),
 test('explorer discovery validates chain token records and discards all untrusted artwork and identity claims',async()=>{
  let requested;
  const items=[
-  {type:'token',address:addr,name:'ArcTools',symbol:'ARCT',token_type:'ERC-20',icon_url:'https://evil.test/logo.png',is_smart_contract_verified:true,exchange_rate:'1000',circulating_market_cap:'999999'},
+  {type:'token',address_hash:addr,name:'ArcTools',symbol:'ARCT',token_type:'ERC-20',icon_url:'https://evil.test/logo.png',is_smart_contract_verified:true,exchange_rate:'1000',circulating_market_cap:'999999'},
   {type:'token',address:'0x'+'b'.repeat(40),name:'ArcTools NFT',symbol:'ARCT',token_type:'ERC-721'},
   {type:'token',address:'0x'+'c'.repeat(40),name:'Unrelated',symbol:'OTHER',token_type:'ERC-20'},
   {type:'address',address:'0x'+'d'.repeat(40),name:'ArcTools',token_type:'ERC-20'}
