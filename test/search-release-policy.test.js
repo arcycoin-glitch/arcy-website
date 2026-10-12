@@ -38,9 +38,9 @@ test('Chart API keeps range validation and returns a sourced-data-pending status
  }finally{global.fetch=original}
 });
 
-test('Curated Arc and Ethereum name search stays available without market catalogs',async()=>{
+test('Official Arc and Ethereum search survives blocked network explorers without false verification',async()=>{
  const original=global.fetch;let requests=0;
- global.fetch=async()=>{requests++;throw Error('No market catalog calls allowed')};
+ global.fetch=async url=>{requests++;assert.match(String(url),/\/api\/v2\/search\?q=/);return {ok:false,status:403}};
  try{
   const service=require('../search/server/lib/multichain-service');
   const arc=await service.discover({network:'arc',query:'ARCY'});
@@ -48,6 +48,8 @@ test('Curated Arc and Ethereum name search stays available without market catalo
   assert.equal(arc.matches[0].address,'0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b');
   assert.equal(arc.matches[0].identity.status,'OFFICIAL_CONTRACT_MATCHED');
   assert.ok(eth.matches.some(x=>x.symbol==='USDC'&&x.identity.status==='OFFICIAL_CONTRACT_MATCHED'));
-  assert.equal(requests,0);
+  assert.equal(requests,2);
+  assert.equal(arc.providerError,true);
+  assert.equal(eth.providerError,true);
  }finally{global.fetch=original}
 });
