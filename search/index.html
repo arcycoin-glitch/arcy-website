@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 20564)
-Total output lines: 1277
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -536,7 +533,44 @@ function render(report){
     if(report&&knownCount===0){
       const notice=document.createElement('p');notice.className='noSource';
       notice.textContent='No independently supported figures for this category yet.';
-  …564 tokens truncated…[0]:null;
+      section.append(notice);
+    }
+    if(report&&missingRows.length){
+      const hidden=document.createElement('details');hidden.className='missingGroup';
+      const toggle=document.createElement('summary');
+      toggle.textContent='Show '+missingRows.length+' unverified checks and reasons';
+      hidden.append(toggle,...missingRows);
+      section.append(hidden);
+    }
+    const status=document.createElement('div');
+    status.className='meta statusLine';
+    const state=document.createElement('span');
+    const proven=card?Object.values(card.fields||{}).filter(f=>f?.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined).length:0;
+    state.textContent=!card?'NOT SCANNED':proven===spec.fields.length?'ALL 4 FIELDS SOURCE-BACKED':
+     proven>0?'PARTIALLY SOURCE-BACKED':'NO SOURCE-BACKED FIELDS';
+    status.append(state);
+    if(card){
+     const sources=document.createElement('span');
+     const ok=Object.values(card.fields||{}).filter(x=>x?.dataState==='DATA_FOUND'&&x.value!==null).length;
+     sources.textContent=ok+' / '+spec.fields.length+' sourced';
+     status.append(sources);
+    }
+    section.append(status);
+    if(card){
+      const details=document.createElement('details');details.className='proof-panel';
+      const summary=document.createElement('summary');summary.textContent='View sources & evidence';
+      const proofList=document.createElement('div');proofList.className='proof-list';
+      for(const [key,label] of spec.fields){
+        const field=card.fields[key];if(!field)continue;
+        const block=document.createElement('div');block.className='proof-entry';
+        const header=document.createElement('div');header.className='proof-entry-head';
+        const fieldTitle=document.createElement('strong');fieldTitle.textContent=label;
+        const stage=document.createElement('span');stage.className='proof-state';
+        stage.textContent=field.dataState==='DATA_FOUND'?'SOURCE BACKED':'NOT VERIFIED';
+        if(field.dataState!=='DATA_FOUND')stage.classList.add('unverified');
+        header.append(fieldTitle,stage);block.append(header);
+        const source=document.createElement('p');
+        const proof=Array.isArray(field.evidence)?field.evidence[0]:null;
         const anchor=proof?.block||proof?.atBlock||null;
         source.textContent=(field.source||'Source unavailable')+
          (typeof anchor==='string'&&/^0x[0-9a-f]+$/i.test(anchor)?' · Block '+BigInt(anchor).toString():'');
@@ -1240,4 +1274,3 @@ restoreRoute();
 </script>
 </body>
 </html>
-

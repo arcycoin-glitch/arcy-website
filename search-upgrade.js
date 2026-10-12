@@ -112,4 +112,3 @@
   finally{clearTimeout(timeout);submit.disabled=false;input.disabled=false}
  });
 })();
-
