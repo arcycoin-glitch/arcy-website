@@ -1,5 +1,4 @@
 'use strict';
-const gecko=require('./gecko-market');
 const SEARCH=/^[\p{L}\p{N}\s.$_+\-&]{2,48}$/u;
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
 function normalizeQuery(raw){
@@ -10,6 +9,6 @@ function normalizeQuery(raw){
 async function discover(rawQuery){
  const q=normalizeQuery(rawQuery);
  if(!q)throw Error('Invalid discovery query');
- return gecko.discover('ethereum',q);
+ return [];
 }
-module.exports={normalizeQuery,parse:gecko.parseSearch,discover};
+module.exports={normalizeQuery,parse:()=>[],discover};

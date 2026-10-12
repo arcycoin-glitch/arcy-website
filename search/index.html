@@ -6,6 +6,7 @@
 <meta name="description" content="ARCY SEARCH — Arc, Ethereum and Robinhood Chain token intelligence research lab.">
 <link rel="icon" href="/assets/hero-arcy.png" type="image/png">
 <link rel="stylesheet" href="/search/detail-premium.css">
+<link rel="stylesheet" href="/search/final-polish.css">
 <script>if(/^\/search\/?$/.test(location.pathname)||location.pathname==='/search/index.html'){location.replace('/#search'+location.search)}</script>
 
 <title>ARCY SEARCH — Multichain Lab</title>
@@ -323,9 +324,13 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 <main>
 <header>
 <div>
-<h1><img class="brand-owl-mark" src="/search/assets/arcy-neon-owl.svg" width="38" height="26" alt=""><span class="brand-arcy">ARC<span class="brand-y">Y</span></span><span class="brand-search">SEARCH</span></h1>
+<h1 class="notranslate" translate="no"><img class="brand-owl-mark" src="/search/assets/arcy-neon-owl.svg" width="38" height="26" alt=""><span class="brand-arcy">ARC<span class="brand-y">Y</span></span><span class="brand-search">SEARCH</span></h1>
 <div class="sub">ARC + ETHEREUM + ROBINHOOD CHAIN · TOKEN INTELLIGENCE · READ ONLY</div>
 </div>
+<a class="detail-github" href="https://github.com/arcycoin-glitch/arcy-website" target="_blank" rel="noopener noreferrer" aria-label="Open ARCY SEARCH source repository on GitHub">
+ <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.56.1.76-.24.76-.54v-2.08c-3.1.67-3.76-1.31-3.76-1.31-.5-1.28-1.24-1.62-1.24-1.62-1.02-.7.08-.69.08-.69 1.12.08 1.71 1.15 1.71 1.15 1 .1.57 2.03 3.04 1.55.1-.72.39-1.2.7-1.48-2.48-.28-5.08-1.24-5.08-5.52 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.14a10.6 10.6 0 0 1 5.55 0c2.1-1.43 3.04-1.14 3.04-1.14.61 1.54.23 2.68.12 2.96.71.78 1.14 1.78 1.14 3.01 0 4.3-2.6 5.23-5.09 5.5.4.35.75 1.03.75 2.08v3.1c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z"/></svg>
+ <span>GitHub</span>
+</a>
 </header>
 <section id="discovery">
 <div class="hero">
@@ -370,6 +375,19 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
       <span id="shareStatus" role="status" aria-live="polite"></span>
     </div>
   </div>
+  <form id="detailSearchForm" class="detail-search" role="search" aria-label="Search another token">
+    <label class="detail-search-network" for="detailSearchChain"><span>NETWORK</span>
+      <select id="detailSearchChain" name="chain" aria-label="Search network">
+        <option value="arc">Arc</option><option value="ethereum">Ethereum</option><option value="robinhood">Robinhood Chain</option>
+      </select>
+    </label>
+    <label class="detail-search-query" for="detailSearchQuery"><span>SEARCH ANOTHER TOKEN</span>
+      <input id="detailSearchQuery" name="q" type="search" maxlength="48" autocomplete="off" spellcheck="false" placeholder="Name, ticker or full contract address">
+    </label>
+    <button id="detailSearchSubmit" class="detail-search-submit" type="submit">SEARCH</button>
+  </form>
+  <p id="detailSearchStatus" class="detail-search-status" role="status" aria-live="polite">Search without leaving this analysis.</p>
+  <div id="detailMatches" class="detail-matches" hidden aria-label="Matching tokens"></div>
   <div class="detail-hero">
     <div class="detail-kicker">INDEPENDENT TOKEN RESEARCH · READ ONLY</div>
     <div id="asset"></div>
@@ -379,7 +397,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
   <div id="quickFacts" class="detail-quick" aria-label="Key token metrics"></div>
   <div class="chart-shell" aria-label="Pool-specific price history">
     <div class="chart-heading">
-      <div><span class="chart-kicker">SOURCE-MATCHED PRICE DATA</span><h2>Price history</h2></div>
+      <div><span class="chart-kicker">PRICE HISTORY · DATA SOURCE PENDING</span><h2>Price history</h2></div>
       <div class="chart-ranges" id="chartRanges" role="group" aria-label="Price history timeframe">
        <button type="button" class="chart-range" data-range="4H" aria-pressed="false" title="Last 4 hours; 15-minute candles">4H</button>
        <button type="button" class="chart-range" data-range="1D" aria-pressed="false" title="Last 24 hours; hourly candles">1D</button>
@@ -391,7 +409,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
     <div id="chartPlot" hidden role="img" tabindex="0" aria-label="Verified daily USD price history; use left and right arrows to inspect" class="price-canvas"></div>
     <div id="chartAxis" class="chart-axis" hidden aria-label="Chart start and end dates"></div>
     <div id="chartInspector" class="chart-inspector" hidden role="status" aria-live="polite"></div>
-    <p id="chartNote" class="chart-note">No exact-chain, contract-bound candle series verified for this token yet. We will never draw invented price history.</p>
+    <p id="chartNote" class="chart-note">Data source pending commercial-use verification. We will never draw invented price history.</p>
     <a id="marketLink" hidden target="_blank" rel="noopener noreferrer">View source-matched market ↗</a>
   </div>
 <div class="research-intro">
@@ -405,7 +423,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 </details>
 
 </section>
-<footer>Evidence is token and network specific. NOT VERIFIED does not mean false or zero. This tool does not execute transactions or provide investment advice. ARCY SEARCH is independent and is not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.<div class="source-link"><a href="https://www.geckoterminal.com/" target="_blank" rel="noopener noreferrer">On-chain market data provided by GeckoTerminal</a></div><div class="source-link"><a href="https://github.com/arcycoin-glitch/arcy-website/tree/feature/search-multichain-premium-20261011/search" target="_blank" rel="noopener noreferrer" aria-label="Inspect ARCY SEARCH source code on GitHub">GitHub · View source ↗</a></div></footer>
+<footer>Evidence is token and network specific. NOT VERIFIED does not mean false or zero. This tool does not execute transactions or provide investment advice. ARCY SEARCH is independent and is not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.<div class="source-link market-source-pending">Market-data provider pending commercial-use verification. Price and pool metrics remain unavailable until then.</div><div class="source-link"><a href="https://github.com/arcycoin-glitch/arcy-website" target="_blank" rel="noopener noreferrer" aria-label="Inspect ARCY SEARCH source code on GitHub">GitHub · View Source ↗</a></div></footer>
 </main>
 <script src="/search/schema.js"></script>
 <script src="/search/format.js"></script>
@@ -594,7 +612,7 @@ render(null);
 
 const EVM_ADDRESS=/^0x[0-9a-fA-F]{40}$/;
 const NETWORKS={arc:{id:5042,label:'Arc',explorer:'https://explorer.arc.io'},ethereum:{id:1,label:'Ethereum',explorer:'https://eth.blockscout.com'},robinhood:{id:4663,label:'Robinhood Chain',explorer:'https://robinhoodchain.blockscout.com'}};
-let searchVersion=0,activeController=null,chartController=null,chartGeneration=0,activeChartRange='30D',verifiedDaily30=null;
+let searchVersion=0,activeController=null,chartController=null,chartGeneration=0,activeChartRange='30D',verifiedDaily30=null,detailSearchGeneration=0;
 const CHART_RANGES=Object.freeze({
  '4H':{label:'15-minute',interval:'15m',duration:'4 hours'},
  '1D':{label:'hourly',interval:'1h',duration:'24 hours'},
@@ -691,6 +709,9 @@ function activateDetail(address,network,{push=true,identity=null,logoUrl=null}={
  const canonical=tokenPath(network,address);
  if(push&&location.pathname!==canonical)history.pushState({},'',canonical);
  setNetwork(network,{notify:false});
+ $('detailSearchChain').value=network;
+ $('detailSearchQuery').value='';$('detailMatches').replaceChildren();$('detailMatches').hidden=true;
+ $('detailSearchStatus').textContent='Search without leaving this analysis.';
  $('discovery').hidden=true;$('tokenDetail').hidden=false;
  $('deepResearch').open=false;
  setChartRange('30D');
@@ -850,68 +871,12 @@ function drawVerifiedChart(data){
  return true;
 }
 async function loadVerifiedChart(address,network,version){
- const requestedRange=activeChartRange;
- const requestId=++chartGeneration;
- if(chartController)chartController.abort();
- const controller=new AbortController();
- chartController=controller;
- const current=()=>version===searchVersion&&requestId===chartGeneration&&
-  !controller.signal.aborted&&network===selected()&&
-  location.pathname===tokenPath(network,address)&&activeChartRange===requestedRange;
- clearPriceChart();
- $('chartNote').textContent='Checking '+requestedRange+' exact-chain historical pool data…';
- $('marketLink').hidden=true;
- try{
-  let payload= requestedRange==='1W'?weeklyVerifiedDaily(network,address):null;
-  let responseOk=true;
-  if(!payload){
-   const response=await fetch('/api/search?action=chart&'+new URLSearchParams({
-    address,chain:network,range:requestedRange}),{cache:'no-store',signal:controller.signal});
-   responseOk=response.ok;
-   payload=await response.json();
-  }
-  if(!current())return;
-  if(!responseOk&&['CHART_PROVIDER_TEMPORARILY_UNAVAILABLE','RATE_LIMITED'].includes(payload.error))
-   throw Error('CHART_SOURCE_RETRY');
-  if(!responseOk||payload.ok!==true||payload.network!==network||
-   payload.chainId!==NETWORKS[network].id||payload.address!==address||
-   payload.range!==requestedRange||payload.interval!==CHART_RANGES[requestedRange].interval)
-   throw Error('Historical pool proof unavailable');
-  const source=new URL(payload.sourceUrl);
-  if(source.protocol!=='https:'||source.hostname!=='www.geckoterminal.com'||
-   !/^\/(arc|eth|robinhood)\/pools\/0x[0-9a-f]{40,64}$/i.test(source.pathname))
-   throw Error('Historical source link invalid');
-  if(!drawVerifiedChart(payload))throw Error('Invalid historical pool candles');
-  if(requestedRange==='30D')verifiedDaily30=structuredClone(payload);
-  $('marketLink').href=source.href;$('marketLink').hidden=false;
-  const last=new Date(payload.lastCandleTime*1000).toISOString();
-  const config=CHART_RANGES[requestedRange];
-  $('chartNote').textContent='GeckoTerminal · '+payload.points.length+' '+
-   config.label+' USD closes · '+config.duration+
-   ' selected · One contract-matched pool · Latest candle: '+last.slice(0,16).replace('T',' ')+' UTC'+
-   ' · Not a market-wide aggregate or execution quote.';
- }catch(error){
-  if(!current())return;
-  clearPriceChart();$('marketLink').hidden=true;
-  const sourceRetry=error?.message==='CHART_SOURCE_RETRY';
-  $('chartNote').textContent=sourceRetry?
-   'Historical price source is temporarily unavailable. The provider-hosted interactive chart below may offer an independent view; use its own controls to set the time window.':
-   'Not enough verified '+requestedRange+' price history for this exact contract and pool. No estimated movement is shown.';
-  if(sourceRetry && ['arc','ethereum','robinhood'].includes(network) && /^0x[0-9a-f]{40}$/i.test(address)){
-   // Official GeckoTerminal embeds load from their own website rather than
-   // proxying OHLCV through our rate-limited API. Not an exact-window substitute.
-   const providerNetwork={arc:'arc',ethereum:'eth',robinhood:'robinhood'}[network];
-   const resolution={'4H':'15m','1D':'1h','1W':'1d','30D':'1d'}[requestedRange];
-   const frame=document.createElement('iframe');frame.id='officialChartFallback';
-   frame.title='GeckoTerminal interactive chart — use provider controls to select exact time window';
-   frame.loading='lazy';frame.referrerPolicy='no-referrer';
-   frame.src='https://www.geckoterminal.com/'+providerNetwork+'/tokens/'+address.toLowerCase()+'?embed=1&info=0&swaps=0&light_chart=0&chart_type=price&resolution='+resolution+'&bg_color=050d18';
-   frame.style.cssText='display:block;width:100%;min-height:360px;height:440px;border:1px solid #1b3d53;border-radius:12px;background:#050d18;margin-top:12px';
-   $('chartNote').after(frame);
-  }
- }finally{
-  if(chartController===controller)chartController=null;
- }
+ if(version!==searchVersion||network!==selected()||location.pathname!==tokenPath(network,address))return;
+ ++chartGeneration;
+ if(chartController){chartController.abort();chartController=null}
+ clearPriceChart();$('marketLink').hidden=true;
+ $('chartNote').textContent='Data source pending commercial-use verification · '+activeChartRange+
+  ' selected. Chart controls are preserved; no candles or provider embeds load until an approved source is available.';
 }
 function renderQuickFacts(report){
  // Buyer-priority headline facts: use verified-by-source values, never blank
@@ -1178,6 +1143,54 @@ function showCandidates(data,network,version){
  }
  container.hidden=false;
 }
+function renderDetailMatches(matches,network,version){
+ const container=$('detailMatches');container.replaceChildren();
+ for(const item of matches.slice(0,8)){
+  if(item.network!==network||item.chainId!==NETWORKS[network].id||!EVM_ADDRESS.test(item.address||''))continue;
+  const option=document.createElement('button');option.type='button';option.className='detail-match';
+  const avatar=document.createElement('span');avatar.className='detail-match-avatar';
+  avatar.textContent=String(item.symbol||item.name||'?').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'?';
+  const logo=displayLogo(item.logoUrl,network,item.address);
+  if(logo){const image=document.createElement('img');image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.src=logo;image.addEventListener('error',()=>image.remove(),{once:true});avatar.append(image)}
+  const copy=document.createElement('span');copy.className='detail-match-copy';
+  const name=document.createElement('strong');name.textContent=(item.name||'Unnamed token')+' ('+(item.symbol||'?')+')';
+  const address=document.createElement('small');address.textContent=item.address;
+  copy.append(name,address);
+  const badge=document.createElement('span');badge.className='detail-match-badge';
+  if(item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'){badge.textContent='OFFICIAL CONTRACT';badge.classList.add('verified')}
+  else if(item.identity?.status==='REGISTRY_MATCHED'){badge.textContent='REGISTRY MATCH';badge.classList.add('verified')}
+  else badge.textContent='NOT VERIFIED';
+  option.append(avatar,copy,badge);
+  option.addEventListener('click',()=>{if(version!==searchVersion)return;activateDetail(item.address,network,{identity:item.identity,logoUrl:item.logoUrl})});
+  container.append(option);
+ }
+ container.hidden=container.childElementCount===0;
+ return container.childElementCount;
+}
+async function searchFromDetail(event){
+ event.preventDefault();
+ const network=$('detailSearchChain').value,query=$('detailSearchQuery').value.trim();
+ const container=$('detailMatches');container.replaceChildren();container.hidden=true;
+ const request=++detailSearchGeneration;
+ if(!Object.hasOwn(NETWORKS,network)){ $('detailSearchStatus').textContent='Select a supported network.';return }
+ if(!query){$('detailSearchStatus').textContent='Enter a name, ticker or full contract address.';$('detailSearchQuery').focus();return}
+ if(EVM_ADDRESS.test(query)){activateDetail(query.toLowerCase(),network);return}
+ if(query.length<2||query.length>48||/^0x/i.test(query)){$('detailSearchStatus').textContent='Enter 2–48 characters or a full contract address.';return}
+ const version=searchVersion,button=$('detailSearchSubmit');button.disabled=true;
+ $('detailSearchStatus').textContent='Searching '+NETWORKS[network].label+' first-party sources…';
+ try{
+  const response=await fetch('/api/search?action=discover&'+new URLSearchParams({q:query,chain:network}),{cache:'no-store',headers:{accept:'application/json'}});
+  const data=await response.json();
+  if(request!==detailSearchGeneration||version!==searchVersion)return;
+  if(!response.ok||data.ok!==true||data.network!==network||data.chainId!==NETWORKS[network].id||!Array.isArray(data.matches))
+   throw Error(data.reason||data.error||'First-party token source unavailable');
+  const count=renderDetailMatches(data.matches,network,version);
+  $('detailSearchStatus').textContent=count?count+' candidate(s) · Select one to replace this analysis.':'No first-party '+NETWORKS[network].label+' match. Try a full contract address.';
+ }catch(error){
+  if(request===detailSearchGeneration&&version===searchVersion)
+   $('detailSearchStatus').textContent='Search unavailable: '+String(error.message||'source error').slice(0,120);
+ }finally{if(request===detailSearchGeneration)button.disabled=false}
+}
 async function searchOrScan(){
  const q=$('address').value.trim(),network=selected();
  cancelPending();
@@ -1215,6 +1228,8 @@ $('chartRanges').addEventListener('click',event=>{
 });
 $('chain').addEventListener('change',chainChanged);
 $('go').addEventListener('click',searchOrScan);
+$('detailSearchForm').addEventListener('submit',searchFromDetail);
+$('detailSearchChain').addEventListener('change',()=>{$('detailMatches').replaceChildren();$('detailMatches').hidden=true;$('detailSearchStatus').textContent='Search on '+NETWORKS[$('detailSearchChain').value].label+' first-party sources.'});
 $('address').addEventListener('keydown',event=>{if(event.key==='Enter')void searchOrScan()});
 $('address').addEventListener('input',()=>{cancelPending();clearMatches();$('asset').replaceChildren();clearIdentity();render(null)});
  $('backSearch').addEventListener('click',()=>location.assign('/#search'));

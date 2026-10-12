@@ -73,6 +73,24 @@ html.search-upgraded #search .grid{display:none!important}
 }
 @media(prefers-reduced-motion:reduce){#search .home-search-result{scroll-behavior:auto}}
 
+/* Release polish: use a compact mark and give the actual search controls room. */
+html.search-upgraded #search{padding-top:30px;padding-bottom:44px}
+html.search-upgraded #search .home-search{padding-top:19px;padding-bottom:16px}
+#search .home-search-owl{width:62px}
+#search .home-search-intro{margin-bottom:13px}
+#search .home-search-attribution{display:block;margin:9px 0 0;color:#94adbb;font-size:10px;line-height:1.55;text-decoration:none}
+@media(max-width:560px){
+ html.search-upgraded #search{padding-top:18px;padding-bottom:32px}
+ #search .home-search{padding:15px 10px 13px}
+ #search .home-search-brand{gap:8px;margin-bottom:5px}
+ #search .home-search-owl{width:46px}
+ #search .home-search-wordmark{font-size:clamp(19px,5.5vw,23px)}
+ #search .home-search-intro{margin-bottom:10px;font-size:10px}
+ #search .home-network-picker{margin-bottom:8px}
+ #search .home-network-trigger{min-height:42px}
+ #search .home-search-input-wrap{min-height:43px}
+}
+
 /* Clear visual proof tiers; do not confuse listing or art with issuer identity. */
 #search .home-token-placeholder{position:relative;overflow:hidden}
 #search .home-token-placeholder img{position:absolute;inset:0;display:block;width:100%;height:100%;border:0;border-radius:50%;object-fit:contain;background:#0c2232}

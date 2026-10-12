@@ -66,9 +66,7 @@ async function activity({address},cardId){
   ['priceUsd','valuation','change24h','volume24h'];
  const fields=Object.fromEntries(keys.map(k=>[k,response[k]||
   NO('Matching market evidence unavailable.')]));
- return {description:cardId==='liquidity'?
-  'GeckoTerminal-returned exact Arc pools; liquidity alone is not an LP lock.':
-  'GeckoTerminal exact Arc-chain token pools. Values are source-reported.',fields};
+ return {description:require('./market-pending').REASON,fields};
 }
 const IMPLEMENTATION='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
 function addressWord(raw){
@@ -111,6 +109,6 @@ async function discover({query}){
  if(typeof query!=='string')throw Error('Invalid search query');
  const normalized=query.normalize('NFKC').trim().replace(/\s+/g,' ');
  if(!SEARCH.test(normalized)||ADDRESS.test(normalized))throw Error('Invalid search query');
- return require('./gecko-market').discover(cfg.id,normalized);
+ return [];
 }
 module.exports={inspectToken,inspectCard,supply,holders,activity,mechanics,discover,addressWord,marketFor};

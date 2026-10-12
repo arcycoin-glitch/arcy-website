@@ -13,9 +13,10 @@ module.exports=function health(req,res){
   ok:true,product:'ARCY SEARCH',readOnly:true,
   networks,chainIds:networks.map(name=>CHAIN_CONFIG[name].chainId),
   expectedCards:schema.length,expectedMetrics:schema.reduce((sum,c)=>sum+c.fields.length,0),
-  capabilities:['health','token','report','discover','chart'],
-  marketSources:['GeckoTerminal','read-only chain RPC','official issuer/asset registries'],
-  disabledProviders:['CoinGecko API','DEX Screener API'],
-  note:'Liveness only. External provider reliability and exact-contract data must be checked separately.'
+  capabilities:['health','token','report','discover','chart-ui'],
+  marketSources:['read-only chain RPC','official issuer/asset registries'],
+  disabledProviders:['CoinGecko API','DEX Screener API','GeckoTerminal API'],
+  marketDataState:'PENDING_COMMERCIAL_USE_VERIFICATION',
+  note:'Liveness only. Contract evidence is on-chain or first-party; market values and candles are withheld until provider rights are verified.'
  });
 };

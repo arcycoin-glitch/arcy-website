@@ -74,7 +74,7 @@ async function activity({address},cardId){
  const fields=await inspectMarket(address);
  const keys=cardId==='liquidity'?['liquidityUsd','volume24h','dexPairCount','lpStatus']:
   ['priceUsd','valuation','change24h','volume24h'];
- return {description:'Source-reported exact Robinhood DEX pairs only; unlisted pools are excluded.',
+ return {description:require('./market-pending').REASON,
   fields:Object.fromEntries(keys.map(k=>[k,fields[k]??NO('Market source missing field.')]))};
 }
 const PROXY='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
@@ -116,10 +116,6 @@ async function discover({query}){
  let responsive=false;
  const candidates=[];
  try{const registry=await officialAssets();responsive=true;candidates.push(...stocks.search(registry,q).map(x=>({...x,network:cfg.id,chainId:cfg.chainId})))}catch{}
- try{
-  candidates.push(...await require('./gecko-market').discover(cfg.id,q));
-  responsive=true;
- }catch{}
  if(!responsive)throw Error('Robinhood discovery providers unavailable');
  const seen=new Set();
  return candidates.filter(x=>{if(seen.has(x.address))return false;seen.add(x.address);return true}).slice(0,12);

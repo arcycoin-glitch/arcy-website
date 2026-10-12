@@ -8,7 +8,7 @@
  const NETWORK_MARKUP=Object.freeze({"arc":"<img src=\"https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif\" alt=\"\" loading=\"eager\" referrerpolicy=\"no-referrer\"/>","ethereum":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path fill=\"#7b83ad\" d=\"M16 2 6 16l10 6 10-6z\"/><path fill=\"#cdd2e4\" d=\"M16 2v20l10-6z\"/><path fill=\"#626a95\" d=\"M6 18l10 12v-6z\"/><path fill=\"#a7afd3\" d=\"M26 18 16 30v-6z\"/></svg>","robinhood":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"16\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"9\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"23\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><path d=\"M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\" stroke-linecap=\"round\"/></svg>"});
  const setMark=(el,id)=>{el.innerHTML=NETWORK_MARKUP[id]||'';el.dataset.network=id;};
  const app=document.createElement('section');app.className='home-search';app.setAttribute('aria-label','ARCY Search token discovery');
- const brand=document.createElement('div');brand.className='home-search-brand';brand.setAttribute('aria-label','ARCY Search');
+ const brand=document.createElement('div');brand.className='home-search-brand notranslate';brand.setAttribute('aria-label','ARCY SEARCH');brand.setAttribute('translate','no');
  const owl=document.createElement('img');owl.className='home-search-owl';owl.src='/search/assets/arcy-owl-reference.webp';owl.width=320;owl.height=217;owl.alt='';owl.decoding='async';
  const wordmark=document.createElement('div');wordmark.className='home-search-wordmark';
  const arcy=document.createElement('span');arcy.className='home-search-arcy';arcy.append(document.createTextNode('ARC'));const y=document.createElement('span');y.className='home-search-y';y.textContent='Y';arcy.append(y);
@@ -46,7 +46,7 @@
  const state=document.createElement('p');state.className='home-search-state';state.id='homeSearchState';state.setAttribute('role','status');state.setAttribute('aria-live','polite');state.textContent='Exact contracts, source-backed candidates and 20 research checks.';
  const results=document.createElement('div');results.className='home-search-results';results.hidden=true;results.setAttribute('aria-label','Matching tokens');
 
- const attribution=document.createElement('a');attribution.className='home-search-attribution';attribution.href='https://www.geckoterminal.com/';attribution.target='_blank';attribution.rel='noopener noreferrer';attribution.textContent='On-chain market data provided by GeckoTerminal';
+ const attribution=document.createElement('p');attribution.className='home-search-attribution home-market-pending';attribution.textContent='Market data pending commercial-use verification. Contract and source-backed on-chain checks remain available.';
  const robinhoodNotice=document.createElement('p');robinhoodNotice.className='home-search-disclaimer';robinhoodNotice.textContent='Independent research tool. Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.';
  app.append(brand,intro,picker,form,state,results,attribution,robinhoodNotice);header.after(app);
  document.documentElement.classList.add('search-upgraded');

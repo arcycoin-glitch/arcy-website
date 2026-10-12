@@ -9,7 +9,6 @@ const arc=require('./arc-adapter');
 const chains=require('./chains');
 const identities=require('./token-identity');
 const logos=require('./search-logo');
-const {createCache}=require('./discovery-cache');
 const ethereumAdapter={
  async inspectToken({address}){
   const report=await ethereumReport.build(address);
@@ -20,9 +19,6 @@ const ethereumAdapter={
  async discover({query}){return (await ethereumDiscover.discover(query)).map(x=>({...x,network:'ethereum',chainId:1}))}
 };
 const engine=createEngine({ethereum:ethereumAdapter,robinhood,arc});
-const ethCache=createCache(async q=>engine.discover({network:'ethereum',query:q}).then(x=>x.candidates));
-const rhCache=createCache(async q=>engine.discover({network:'robinhood',query:q}).then(x=>x.candidates));
-const arcCache=createCache(async q=>engine.discover({network:'arc',query:q}).then(x=>x.candidates));
 function parseChain(raw){
  const value=raw===undefined?'ethereum':raw;
  return chains.chain(value).id;
@@ -50,20 +46,13 @@ async function token({network='ethereum',address}){
    burnAddressPct:supply.fields.burnAddressPct}};
 }
 async function discover({network='ethereum',query}){
- const cache=network==='ethereum'?ethCache:network==='arc'?arcCache:rhCache;
- let response,providerError=false;
- try{response=await cache.find(query)}
- catch(error){
-  // An exact issuer-sourced contract may be offered even if market search is down.
-  if(!identities.knownMatches(network,query).length)throw error;
-  response={matches:[],fetchedAt:Date.now(),cacheAgeMs:0};
-  providerError=true;
- }
- const ranked=identities.rank(network,query,response.matches);
+ const candidates=network==='robinhood'?await robinhood.discover({query}):[];
+ // Issuer-curated Arc/Ethereum addresses and the first-party Robinhood asset
+ // registry remain searchable; no market-data catalog is queried.
+ const ranked=identities.rank(network,query,candidates);
  const matches=await logos.enhance(network,ranked);
  return {ok:true,query,chainId:chains.chain(network).chainId,network,
-  matches,sourceFetchedAt:new Date(response.fetchedAt).toISOString(),
-  cacheAgeMs:response.cacheAgeMs,providerError,
+  matches,source:'First-party issuer/asset registries',providerError:false,
   note:'Official contract matches require an exact chain+address match to first-party sources. Other search results remain NOT VERIFIED; contract identity does not establish investment safety.'};
 }
 module.exports={parseChain,report,token,discover,engine};
