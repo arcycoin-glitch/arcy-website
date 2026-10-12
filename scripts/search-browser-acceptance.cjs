@@ -18,17 +18,17 @@ async function main(){
    try{const r=await fetch(base);if(r.ok)break;}catch{}
    await new Promise(r=>setTimeout(r,120));
   }
-  browser=await chromium.launch({headless:true});
+  browser=await chromium.launch({headless:true,...(process.env.BROWSER_EXECUTABLE_PATH?
+   {executablePath:process.env.BROWSER_EXECUTABLE_PATH}:{})});
   for(const width of [320,390,768,1440]){
    const page=await browser.newPage({viewport:{width,height:840}});
-   const errors=[];const consoleErrors=[];const badResponses=[];let weeklyBackendRequests=0;
+   const errors=[];const consoleErrors=[];const badResponses=[];let weeklyBackendRequests=0,legacyProviderCalls=0;
    page.on('pageerror',e=>errors.push(e.message));
    page.on('console',message=>{if(message.type()==='error')consoleErrors.push({text:message.text(),url:message.location().url})});
    page.on('response',response=>{if(response.status()>=400)badResponses.push({status:response.status(),url:response.url()})});
-   // The original homepage's optional CoinGecko logo lookup is unrelated to
-   // Search acceptance. Keep it deterministic and avoid browser CORS noise.
-   await page.route('https://api.coingecko.com/api/v3/coins/markets**',route=>
-    route.fulfill({status:200,contentType:'application/json',body:'[]'}));
+   await page.route(/https:\/\/api\.(?:coingecko|dexscreener)\.com\//,route=>{
+    legacyProviderCalls++;return route.abort();
+   });
    await page.route('**/api/search*',async route=>{
     const url=new URL(route.request().url()),action=url.searchParams.get('action'),
      network=url.searchParams.get('chain')||'arc',id=chainIds[network];
@@ -39,7 +39,6 @@ async function main(){
       identityVerified:network==='arc'&&q==='arcy',source:'Browser deterministic test',
       identity:network==='arc'&&q==='arcy'?{status:'OFFICIAL_CONTRACT_MATCHED',issuer:'ARCY',
        proofUrl:'https://github.com/arcycoin-glitch/arcy-website'}:
-       q==='catalog'?{status:'INDEXED_ON_COINGECKO',proofUrl:'https://www.coingecko.com'}:
        {status:'NOT_VERIFIED'}}];
      if(q==='duplicate')candidates.push({...candidates[0],name:'<img src=x onerror=alert(1)>',address:'0x1234567890123456789012345678901234567890',logoUrl:'javascript:alert(1)'});
      data={ok:true,network:q==='wrongnetwork'?'ethereum':network,chainId:id,matches:q==='none'?[]:candidates};
@@ -52,17 +51,17 @@ async function main(){
       fields.supply.fields.burnAddressBalance={value:'120000000',dataState:'DATA_FOUND',status:'ON_CHAIN',source:'Robinhood RPC'};
       fields.supply.fields.burnAddressPct={value:0.5116,dataState:'DATA_FOUND',status:'ON_CHAIN',source:'Robinhood RPC'};
       fields.activity.fields.valuation={value:302700,kind:'MARKET_CAP',dataState:'DATA_FOUND',
-       status:'SOURCE_REPORTED',source:'DexScreener'};
+       status:'SOURCE_REPORTED',source:'GeckoTerminal'};
      }else{
-      fields.activity.fields.priceUsd={value:.00032632,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
-      fields.liquidity.fields.liquidityUsd={value:2659000,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'DexScreener'};
+      fields.activity.fields.priceUsd={value:.00032632,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'GeckoTerminal'};
+      fields.liquidity.fields.liquidityUsd={value:2659000,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'GeckoTerminal'};
       fields.holders.fields.holderCount={value:215700,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'Blockscout'};
       fields.activity.fields.valuation={value:302700,kind:'MARKET_CAP',dataState:'DATA_FOUND',
-       status:'SOURCE_REPORTED',source:'DexScreener'};
+       status:'SOURCE_REPORTED',source:'GeckoTerminal'};
       fields.activity.fields.change24h={value:-3.47,dataState:'DATA_FOUND',
-       status:'SOURCE_REPORTED',source:'DexScreener'};
+       status:'SOURCE_REPORTED',source:'GeckoTerminal'};
       fields.activity.fields.volume24h={value:6169,dataState:'DATA_FOUND',
-       status:'SOURCE_REPORTED',source:'DexScreener'};
+       status:'SOURCE_REPORTED',source:'GeckoTerminal'};
      }
      data={ok:true,network,chainId:id,address:token,block:'0x12345',schemaVersion:1,cardCount:5,
       scannedAt:'2026-10-11T10:00:00.000Z',
@@ -112,8 +111,8 @@ async function main(){
    });
    assert.equal(owlReady.loaded,true,'Selected neon owl asset loads at its native source dimensions');
    assert.ok(owlReady.width<=80&&owlReady.height<=55,'Product owl stays compact and is never enlarged');
-   assert.equal(await page.getByRole('link',{name:'Powered by CoinGecko'}).count(),1,
-    'CoinGecko source attribution is visible on the home search');
+   assert.equal(await page.getByRole('link',{name:'On-chain market data provided by GeckoTerminal'}).count(),1,
+    'GeckoTerminal attribution is visible on the home search');
    assert.equal(await page.locator('#search .search').isVisible(),false,'Retired Arc-only form must not be visible');
    assert.equal(await page.locator('a[href="#search"]').count()>0,true,'Home Search shortcuts stay on the integrated section');
    assert.equal(await page.locator('#hero .hero-flight img').getAttribute('src'),'/assets/hero-arcy.png',
@@ -159,8 +158,8 @@ async function main(){
    await page.locator('#homeSearchQuery').fill('catalog');
    await page.locator('.home-search-submit').click();
    await page.locator('.home-search-result').first().waitFor();
-   assert.equal(await page.locator('.home-result-status').first().innerText(),'COINGECKO LISTED',
-    'Catalog listing is not proof of the issuing project');
+   assert.equal(await page.locator('.home-result-status').first().innerText(),'NOT VERIFIED',
+    'Without licensed catalog metadata, discovery remains unverified unless first-party proof matches');
 
    await page.locator('#homeSearchQuery').fill('none');
    await page.locator('.home-search-submit').click();
@@ -202,8 +201,8 @@ async function main(){
     assert.deepEqual(markSize,{width:38,height:26},'Crisp vector owl stays a compact token-page brand mark');
     assert.equal(await page.locator('#tokenDetail .search-detail-brand').count(),0,
      'The compact header is the sole report-page brand mark');
-    assert.equal(await page.getByRole('link',{name:'Powered by CoinGecko'}).count(),1,
-     'CoinGecko source attribution remains visible in report footer');
+    assert.equal(await page.getByRole('link',{name:'On-chain market data provided by GeckoTerminal'}).count(),1,
+     'GeckoTerminal attribution remains visible in report footer');
     assert.equal(await page.locator('#deepResearch').evaluate(x=>x.open),false,
       'Newly selected token must not inherit an expanded previous report');
     await page.locator('#deepResearch > summary').click();
@@ -333,8 +332,8 @@ async function main(){
    // in headline tiles; do not manufacture a quick-fact row for it.
    await page.evaluate(()=>{
     window.renderQuickFacts({cards:{
-     activity:{fields:{valuation:{value:302700,kind:'MARKET_CAP',
-      dataState:'DATA_FOUND',source:'DexScreener'}}}
+      activity:{fields:{valuation:{value:302700,kind:'FDV',
+      dataState:'DATA_FOUND',source:'GeckoTerminal'}}}
     }});
    });
    assert.equal(await page.locator('#quickFacts .quick').count(),0);
@@ -356,6 +355,7 @@ async function main(){
     /Failed to load resource/i.test(error.text)&&/503/.test(error.text)&&expectedChartOutage.length===1
    ));
    assert.deepEqual(unexpectedConsoleErrors,[],'No unexpected browser console errors');
+   assert.equal(legacyProviderCalls,0,'No CoinGecko or DEX Screener API request may originate from the production page');
    outcomes.push({width,status:'PASS',networks:3,reportCards:5,reportFields:20});
    await page.close();
   }

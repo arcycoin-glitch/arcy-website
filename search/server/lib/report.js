@@ -46,7 +46,7 @@ async function build(address){
  const m=marketResult.status==='fulfilled'?marketResult.value:market.failure(marketResult.reason);
  const c=controlResult.status==='fulfilled'?controlResult.value:control.failure(controlResult.reason);
  const h=holderResult.status==='fulfilled'?holderResult.value:holdersSource.blank('Holder provider request failed.','SOURCE_API_FAILED');
- const circ=circulatingResult.status==='fulfilled'?circulatingResult.value:evidence.error(circulatingResult.reason,'CoinGecko');
+ const circ=circulatingResult.status==='fulfilled'?circulatingResult.value:evidence.error(circulatingResult.reason,'Licensed circulation source');
  const sec=securityResult.status==='fulfilled'?securityResult.value:{};
  const onChain=x=>x?.status==='ON_CHAIN'?evidence.found(x.value,'Ethereum RPC',[{method:x.method,block:t.block,address:t.address}],'ON_CHAIN'):evidence.unknown(x?.reason||'No on-chain verification available.');
  const supply=evidence.card({

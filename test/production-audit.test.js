@@ -6,10 +6,10 @@ test('Gecko pool normalization rejects wrong-chain, ticker-only and wrong pool i
  const invalid=structuredClone(row);invalid.relationships.base_token.data.id='ethereum_'+a;
  const mismatch={...row,id:'arc_'+b};const r=g.normalize({data:[row,row,invalid,mismatch]},a);assert.equal(r.length,1);assert.equal(r[0].volume.h24,0);assert.equal(r[0].liquidity.usd,12);assert.equal(r[0].dexId,'uniswap');assert.deepEqual(r[0].labels,['v4']);assert.throws(()=>g.normalize({data:null},a));
 });
-test('liquidity API isolates a failed DexScreener source and uses exact-contract Gecko pool evidence',async()=>{
+test('liquidity API keeps disabled DexScreener off the network and uses exact-contract Gecko pool evidence',async()=>{
  const m=require('../lib/market-activity'),g=require('../lib/gecko-pairs'),lp=require('../lib/lp-status'),go=require('../lib/goplus'),identity=require('../lib/token-identity'),old=[m.dexPairs,g.read,lp.inspect,go.read,identity.inspect];
  try{identity.inspect=async()=>({address:a,chainId:5042,block:'0x1'});m.dexPairs=async()=>{throw Object.assign(Error(),{httpStatus:503});};g.read=async()=>({pairs:[{chainId:'arc',pairAddress:pool,dexId:'uniswap',baseToken:{address:a},quoteToken:{address:b},liquidity:{usd:12},volume:{h24:0}}],evidence:[{source:'GeckoTerminal',address:a,chainId:5042}]});lp.inspect=async()=>c.unknown();go.read=async()=>({});
- const r=await require('../api/liquidity')({query:{address:a}},{setHeader(){},status(){return this},json(x){return x}});assert.equal(r.ok,true);assert.equal(r.volume24h,0);assert.equal(r.pairCount,1);assert.equal(r.fields.pairCount.source,'GeckoTerminal');assert.equal(r.fields.pairCount.evidence[0].address,a);assert.equal(r.marketAttempts[0].dataState,'SOURCE_API_FAILED');assert.equal(r.lpStatus.value,null);
+ const r=await require('../api/liquidity')({query:{address:a}},{setHeader(){},status(){return this},json(x){return x}});assert.equal(r.ok,true);assert.equal(r.volume24h,0);assert.equal(r.pairCount,1);assert.equal(r.fields.pairCount.source,'GeckoTerminal');assert.equal(r.fields.pairCount.evidence[0].address,a);assert.equal(r.marketAttempts[0].dataState,'PROVIDER_DISABLED');assert.equal(r.lpStatus.value,null);
  }finally{[m.dexPairs,g.read,lp.inspect,go.read,identity.inspect]=old;}
 });
 test('HTTP-200 JSON-RPC rate limits retry with backoff instead of becoming negative evidence',async()=>{

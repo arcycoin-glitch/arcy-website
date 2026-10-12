@@ -101,7 +101,7 @@ test('Unlock failure remains unavailable after search or tab rendering',async()=
 test('logo values are escaped and non-HTTPS URLs rejected',()=>{
   const b=browser(()=>{});
   assert.ok(!b.context.tokenIcon('<bad>','javascript:alert(1)').includes('<bad>'));
-  assert.match(b.context.tokenIcon('TIA','https://example.test/a"b'),/https:/);
+  assert.match(b.context.tokenIcon('TIA','https://example.test/a"b'),/token-icon-fallback/);
   assert.ok(!b.context.tokenIcon('TIA','https://example.test/a').includes('onerror='));
 });
 test('Pulse failure replaces permanent loading card',async()=>{
@@ -111,9 +111,9 @@ test('market fallback never displays another chain or quote token price',async()
   const b=browser(async url=>({ok:true,json:async()=>url.includes('dexscreener')?{pairs:[{chainId:'ethereum',baseToken:{address:'0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'},priceUsd:'99'}]}:{data:[]}}));
   await vm.runInContext(b.scripts[1],b.context);assert.equal(b.element('arcyLivePrice').textContent,'—');
 });
-test('market keeps token-level volume and fills missing liquidity independently',async()=>{
+test('market uses GeckoTerminal token and exact base-token pool fields without DexScreener',async()=>{
   const token='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
-  const b=browser(async url=>({ok:true,json:async()=>url.includes('/pools')?{data:[]} :url.includes('dexscreener')?{pairs:[{chainId:'arc',baseToken:{address:token},priceUsd:'5',volume:{h24:1},liquidity:{usd:100}}]}:{data:{attributes:{price_usd:'2',volume_usd:{h24:1000},fdv_usd:2000}}}}));
+  const b=browser(async url=>({ok:true,json:async()=>url.includes('/pools')?{data:[{type:'pool',attributes:{address:'0x'+'1'.repeat(40),base_token_price_usd:'2',volume_usd:{h24:1000},fdv_usd:2000,reserve_in_usd:100},relationships:{base_token:{data:{id:'arc_'+token}}}}]}:{data:{attributes:{price_usd:'2',volume_usd:{h24:1000},fdv_usd:2000}}}}));
   await vm.runInContext(b.scripts[1],b.context);assert.equal(b.element('arcyLivePrice').textContent,'$2');assert.equal(b.element('arcyLiveVolume').textContent,'$1K');assert.equal(b.element('arcyLiveLiquidity').textContent,'$100');
 });
 test('ambiguous symbol logos are not assigned to an unrelated token',async()=>{

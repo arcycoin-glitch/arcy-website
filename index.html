@@ -372,31 +372,9 @@ async function loadBurn(){
 loadBurn();
 
 
-const tokenCoinGeckoIds={
- YGG:"yield-guild-games", FORT:"forta", HYPE:"hyperliquid", TREE:"treehouse",
- DYM:"dymension", EDEN:"openeden", GRVT:"grvt", TIA:"celestia",
- BEAT:"audiera", ZAMA:"zama", CGPT:"chaingpt", KIP:"kip-protocol",
- SPK:"spark", SOLV:"solv-protocol", IR:"infrared-finance"
-};
-const tokenLogoCache={};
-async function loadTokenLogos(){
-  const ids=[...new Set(Object.values(tokenCoinGeckoIds))].join(",");
-  try{
-    const r=await dataFetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids="+encodeURIComponent(ids));
-    if(!r.ok) throw new Error("logo api");
-    const data=await r.json();
-    data.forEach(c=>tokenLogoCache[c.id]=c.image);
-    renderUnlocks(Number(document.querySelector(".tab.active")?.dataset.days||1));
-  }catch(e){ /* initials remain visible; table never breaks */ }
-}
-function tokenIcon(symbol, directLogo){
-  const id=tokenCoinGeckoIds[symbol];
-  const candidate=directLogo || (id&&tokenLogoCache[id]);
-  let url="";try{const parsed=new URL(candidate);if(parsed.protocol==="https:")url=parsed.href;}catch(_){}
+function tokenIcon(symbol){
   const fallback=escapeHtml(symbol.slice(0,3));
-  return url
-   ? `<img class="token-icon" src="${escapeHtml(url)}" alt="${escapeHtml(symbol)}" loading="lazy" referrerpolicy="no-referrer">`
-   : `<span class="token-icon-fallback">${fallback}</span>`;
+  return `<span class="token-icon-fallback" aria-label="${escapeHtml(symbol)}">${fallback}</span>`;
 }
 
 let unlockData = {1:[],7:[],30:[]};
@@ -495,22 +473,6 @@ loadUnlocks();
      }
    }
  }catch(e){}
- if(!ok || ["arcyLiveVolume","arcyLiveFdv","arcyLiveLiquidity"].some(id=>document.getElementById(id).textContent==="Loading…")){
-   try{
-     const r=await dataFetch("https://api.dexscreener.com/latest/dex/tokens/"+token);
-     if(r.ok){
-       const j=await r.json(), pairs=j?.pairs||[];
-       const a=pairs.find(x=>(x.chainId||"").toLowerCase()==="arc" && (x.baseToken?.address||"").toLowerCase()===token.toLowerCase());
-       if(a){
-         if(!ok && a.priceUsd)set("arcyLivePrice",price(a.priceUsd));
-         if(document.getElementById("arcyLiveVolume").textContent==="Loading…" && a.volume?.h24!=null)set("arcyLiveVolume",compact(a.volume.h24));
-         if(document.getElementById("arcyLiveFdv").textContent==="Loading…" && a.fdv!=null)set("arcyLiveFdv",compact(a.fdv));
-         if(a.liquidity?.usd!=null)set("arcyLiveLiquidity",compact(a.liquidity.usd));
-         ok=true;
-       }
-     }
-   }catch(e){}
- }
  ["arcyLivePrice","arcyLiveVolume","arcyLiveFdv","arcyLiveLiquidity"].forEach(id=>{
    const e=document.getElementById(id); if(e && e.textContent==="Loading…") e.textContent="—";
  });

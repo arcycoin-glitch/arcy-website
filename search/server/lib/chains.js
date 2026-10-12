@@ -7,7 +7,6 @@ const CHAIN_CONFIG=Object.freeze({
   publicRpc:'https://ethereum-rpc.publicnode.com',
   explorer:'https://eth.blockscout.com',
   blockscoutTokens:'https://eth.blockscout.com/api/v2/tokens/',
-  dexScreenerChainId:'ethereum',
   goPlusChainId:1,
   stockTokenRegistry:null
  }),
@@ -16,7 +15,6 @@ const CHAIN_CONFIG=Object.freeze({
   publicRpc:'https://rpc.mainnet.arc.io',
   explorer:'https://explorer.arc.io',
   blockscoutTokens:null,
-  dexScreenerChainId:'arc',
   goPlusChainId:null,
   stockTokenRegistry:null
  }),
@@ -25,8 +23,6 @@ const CHAIN_CONFIG=Object.freeze({
   publicRpc:'https://rpc.mainnet.chain.robinhood.com',
   explorer:'https://robinhoodchain.blockscout.com',
   blockscoutTokens:'https://robinhoodchain.blockscout.com/api/v2/tokens/',
-  // Require an exact DexScreener chain match before displaying source-reported data.
-  dexScreenerChainId:'robinhood',
   // Do NOT assume the security API supports this chain until verified by live fixtures.
   goPlusChainId:null,
   stockTokenRegistry:'https://api.robinhood.com/rhj/assets'

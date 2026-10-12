@@ -101,9 +101,6 @@ function createEngine(adapters){
      address,chainId:cfg.chainId,network:cfg.id,
      logoUrl:safeLogoUrl(item.logoUrl),
      source:typeof item.source==='string'?item.source.slice(0,100):'Unverified search catalog',
-     catalogCoinId:cfg.id==='ethereum'&&item.source==='CoinGecko'&&
-       typeof item.catalogCoinId==='string'&&/^[a-z0-9-]{2,100}$/.test(item.catalogCoinId)?
-       item.catalogCoinId:null,
      registryMatched:cfg.id==='robinhood'&&item.registryMatched===true&&
       item.source==='Robinhood official asset registry'});
     if(safe.length===12)break;

@@ -44,7 +44,7 @@
  const state=document.createElement('p');state.className='home-search-state';state.id='homeSearchState';state.setAttribute('role','status');state.setAttribute('aria-live','polite');state.textContent='Exact contracts, source-backed candidates and 20 research checks.';
  const results=document.createElement('div');results.className='home-search-results';results.hidden=true;results.setAttribute('aria-label','Matching tokens');
  const chips=document.createElement('div');chips.className='home-network-chips';for(const [,label] of networks){const chip=document.createElement('span');chip.textContent=label;chips.append(chip)}
- const attribution=document.createElement('a');attribution.className='home-search-attribution';attribution.href='https://www.coingecko.com/en/api';attribution.target='_blank';attribution.rel='noopener noreferrer';attribution.textContent='Powered by CoinGecko';
+ const attribution=document.createElement('a');attribution.className='home-search-attribution';attribution.href='https://www.geckoterminal.com/';attribution.target='_blank';attribution.rel='noopener noreferrer';attribution.textContent='On-chain market data provided by GeckoTerminal';
  const robinhoodNotice=document.createElement('p');robinhoodNotice.className='home-search-disclaimer';robinhoodNotice.textContent='Independent research tool. Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.';
  app.append(brand,intro,picker,form,state,results,chips,attribution,robinhoodNotice);header.after(app);
  document.documentElement.classList.add('search-upgraded');
@@ -54,7 +54,7 @@
  function detailPath(network,address){return '/search/token/'+network+'/'+address.toLowerCase()}
  function addCandidate(candidate,network){
   const button=document.createElement('a');button.className='home-search-result';button.href=detailPath(network,candidate.address);
-  const logoHost=(()=>{if(typeof candidate.logoUrl!=='string'||candidate.logoUrl.length>500)return null;try{const u=new URL(candidate.logoUrl);return u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&!u.hash&&['coin-images.coingecko.com','assets.coingecko.com','cdn.dexscreener.com','dd.dexscreener.com'].includes(u.hostname)&&!(/\.(?:svg|html?|xml|pdf)(?:$|\/)/i.test(u.pathname))?u.href:null}catch{return null}})();
+  const logoHost=null;
   // ALWAYS keep a readable token-symbol fallback under remote artwork.
   // Failed or blocked provider images must not leave a blank logo box.
   const placeholder=document.createElement('span');placeholder.className='home-token-logo home-token-placeholder';
@@ -78,8 +78,6 @@
     status.textContent='OFFICIAL CONTRACT';status.classList.add('official');break;
    case 'REGISTRY_MATCHED':
     status.textContent='REGISTRY MATCH';status.classList.add('registry');break;
-   case 'INDEXED_ON_COINGECKO':
-    status.textContent='COINGECKO LISTED';status.classList.add('indexed');break;
    default:status.textContent='NOT VERIFIED';status.classList.add('unverified');
   }
   if(id?.status==='OFFICIAL_CONTRACT_MATCHED'&&id.issuer){

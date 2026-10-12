@@ -1,6 +1,5 @@
 'use strict';
 const {readJson}=require('./http');
-const {safeLogoUrl}=require('./token-image');
 const {chain}=require('./chains');
 const {ADDRESS}=require('./eth');
 const {uint,units}=require('./eth');
@@ -118,28 +117,8 @@ async function discover({query}){
  const candidates=[];
  try{const registry=await officialAssets();responsive=true;candidates.push(...stocks.search(registry,q).map(x=>({...x,network:cfg.id,chainId:cfg.chainId})))}catch{}
  try{
-  const res=await fetch('https://api.dexscreener.com/latest/dex/search/?q='+encodeURIComponent(q),{
-   headers:{accept:'application/json'},signal:AbortSignal.timeout(8000)
-  });
-  if(res.ok){
-   const body=await readJson(res,2*1024*1024);
-   if(!body||typeof body!=='object'||(body.pairs!==null&&!Array.isArray(body.pairs)))throw Error('Invalid search source');
-   responsive=true;
-   const lower=q.toLocaleLowerCase('en-US');
-   for(const pair of Array.isArray(body?.pairs)?body.pairs.slice(0,400):[]){
-    if(pair?.chainId!==cfg.dexScreenerChainId)continue;
-    for(const token of [pair.baseToken,pair.quoteToken]){
-     const address=String(token?.address||'').toLowerCase();
-     const symbol=typeof token?.symbol==='string'?token.symbol.slice(0,30):'';
-     const name=typeof token?.name==='string'?token.name.slice(0,90):'';
-     if(!ADDRESS.test(address)||!(
-      symbol.toLocaleLowerCase('en-US').includes(lower)||name.toLocaleLowerCase('en-US').includes(lower)))continue;
-     candidates.push({chainId:cfg.chainId,network:cfg.id,address,symbol,name,
-      source:'DexScreener',registryMatched:false,
-      logoUrl:token===pair.baseToken?safeLogoUrl(pair.info?.imageUrl):null});
-    }
-   }
-  }
+  candidates.push(...await require('./gecko-market').discover(cfg.id,q));
+  responsive=true;
  }catch{}
  if(!responsive)throw Error('Robinhood discovery providers unavailable');
  const seen=new Set();

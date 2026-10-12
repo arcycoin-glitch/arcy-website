@@ -1,5 +1,17 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),m=require('../lib/market-activity'),b=require('../lib/balance-reader'),ui=require('../ui-model');const a='0x'+'a'.repeat(40),x='0x'+'b'.repeat(40),word=n=>BigInt(n).toString(16).padStart(64,'0');
-test('address-matched market fields distinguish FDV, reject wrong-chain and quote-token prices, preserve negative changes and zero volume',()=>{const row={chainId:'arc',pairAddress:x,baseToken:{address:a},quoteToken:{address:x},priceUsd:'0.0000123',fdv:1000,marketCap:null,volume:{h24:0},priceChange:{h24:-12.5}};const data=m.dex([row,{...row,chainId:'ethereum',marketCap:9000}],a);assert.equal(data.valuation.kind,'FDV');assert.equal(data.valuation.value,1000);assert.equal(data.change24h.value,-12.5);assert.equal(data.volume24h.value,0);const view=ui.summarize('activity',{ok:true,...data});assert.equal(view.fields[1].text,'FDV $1K');assert.equal(view.fields[2].text,'-12.5%');assert.notEqual(view.fields[0].text,'$0');assert.equal(ui.summarize('activity',{ok:true,...m.dex([{...row,baseToken:{address:x},quoteToken:{address:a}}],a)}).fields[0].dataState,'NOT_VERIFIED');});
+test('GeckoTerminal market fields preserve FDV, negative change and explicit zero volume only for the exact chain and token',()=>{
+ const pool='0x'+'c'.repeat(64),network='arc';
+ const row={type:'pool',id:network+'_'+pool,attributes:{address:pool,reserve_in_usd:'10',
+  volume_usd:{h24:'0'},base_token_price_usd:'0.0000123',fdv_usd:'1000',market_cap_usd:null,
+  price_change_percentage:{h24:'-12.5'}},relationships:{base_token:{data:{id:network+'_'+a}},
+  quote_token:{data:{id:network+'_'+x}},dex:{data:{id:'uniswap-v3-arc'}}}};
+ const result=require('../search/server/lib/gecko-market').parseMarket({data:[row]},'arc',a);
+ assert.equal(result.fields.valuation.kind,'FDV');assert.equal(result.fields.valuation.value,1000);
+ assert.equal(result.fields.change24h.value,-12.5);assert.equal(result.fields.volume24h.value,0);
+ assert.equal(result.fields.priceUsd.value,.0000123);assert.equal(result.fields.priceUsd.source,'GeckoTerminal');
+ const wrong=require('../search/server/lib/gecko-market').parseMarket({data:[row]},'ethereum',a);
+ assert.equal(wrong.fields.priceUsd.dataState,'NOT_VERIFIED');
+});
 test('multicall encoding preserves targets and strict decoder rejects truncated, wrong-block and duplicate return slots',()=>{const encoded=b.encode(a,[x,a]);assert.ok(encoded.startsWith('0x252dba42'));const valid='0x'+word(10)+word(64)+word(2)+word(64)+word(128)+word(32)+word(7)+word(32)+word(3);assert.deepEqual(b.decode(valid,2,'0xa'),['0x'+word(7),'0x'+word(3)]);assert.throws(()=>b.decode(valid,2,'0xb'));assert.throws(()=>b.decode(valid.slice(0,-64),2,'0xa'));const duplicate='0x'+word(10)+word(64)+word(2)+word(64)+word(64)+word(32)+word(7);assert.throws(()=>b.decode(duplicate,2,'0xa'));});
 
 test('local Ethereum keccak handles canonical selectors and empty input without provider web3_sha3',()=>{const k=require('../lib/keccak');assert.equal(k(Buffer.alloc(0)),'0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470');assert.equal(k(Buffer.from('transfer(address,uint256)')).slice(0,10),'0xa9059cbb');assert.equal(k(Buffer.from('ownerOf(uint256)')).slice(0,10),'0x6352211e');});

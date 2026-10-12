@@ -54,17 +54,16 @@ test('Only original reconciled COMPLETE holder snapshots are admitted',()=>{
  assert.equal(archival.top20Pct.reasonCode,'ARC_HOLDER_SNAPSHOT_STALE');
  assert.match(archival.top20Pct.reason,/2026-10-02/);
 });
-test('Legacy public Arc route call never accepts a wrong address or chain response',async()=>{
+test('Search legacy bridge permits only the signed holder endpoint; legacy market endpoints are unavailable',async()=>{
  const request=async(req,res)=>{
   assert.equal(req.method,'GET');
   assert.equal(req.query.address,ADDRESS);
   return res.status(200).json({ok:true,chainId:5042,address:ADDRESS,
    fields:{totalSupply:field('1000000')}});
  };
- const output=await bridge.callOriginal('market',ADDRESS,{},request);
+ const output=await bridge.callOriginal('holders',ADDRESS,{},request);
  assert.equal(output.fields.totalSupply.value,'1000000');
- await assert.rejects(()=>bridge.callOriginal('market',ADDRESS,{},async(req,res)=>
-  res.status(200).json({ok:true,chainId:1,address:ADDRESS})),/unverified contract identity/);
- await assert.rejects(()=>bridge.callOriginal('liquidity','bad',{},request),/Invalid Arc/);
+ await assert.rejects(()=>bridge.callOriginal('market',ADDRESS,{},request),/Invalid Arc/);
+ await assert.rejects(()=>bridge.callOriginal('liquidity',ADDRESS,{},request),/Invalid Arc/);
  await assert.rejects(()=>bridge.callOriginal('holderrefresh',ADDRESS,{},request),/Invalid Arc/);
 });

@@ -1,12 +1,9 @@
 'use strict';
 // Never forward arbitrary project-provided image URLs to visitors.
 // Source images are untrusted decoration and NEVER evidence of token authenticity.
-const DOMAINS=new Set([
- 'coin-images.coingecko.com',
- 'assets.coingecko.com',
- 'cdn.dexscreener.com',
- 'dd.dexscreener.com'
-]);
+// Third-party token artwork is currently disabled until its redistribution
+// rights are established. The UI renders its built-in initials fallback.
+const DOMAINS=new Set();
 function safeLogoUrl(raw){
  if(typeof raw!=='string'||raw.length>500||raw.length<16)return null;
  try{

@@ -112,17 +112,11 @@ function rank(network,query,candidates){
   }
   const official=verified(network,address);
   const stock=trustedStock(item);
-  const indexed=network==='ethereum'&&item.source==='CoinGecko'&&
-   typeof item.catalogCoinId==='string'&&/^[a-z0-9-]{2,100}$/.test(item.catalogCoinId);
   const identity=official||(stock?{
    status:'REGISTRY_MATCHED',type:'STOCK_TOKEN',chainId:4663,address,
    issuer:'Robinhood Chain official asset registry',
    source:'Robinhood official asset registry',
    proofUrl:'https://api.robinhood.com/rhj/assets'
-  }:indexed?{
-   status:'INDEXED_ON_COINGECKO',type:'LISTED_TOKEN',chainId:1,address,
-   issuer:null,source:'CoinGecko Ethereum contract catalog',
-   proofUrl:'https://www.coingecko.com/en/coins/'+item.catalogCoinId
   }:{status:'NOT_VERIFIED',type:null,source:null,proofUrl:null});
   const canonical=OFFICIAL.find(x=>x.network===network&&x.address===address);
   ordered.set(address,{address,network,chainId:item.chainId,
@@ -133,9 +127,8 @@ function rank(network,query,candidates){
  }
  const rows=[...ordered.values()];
  rows.sort((a,b)=>{
-  const importance=x=>x.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?0:
-   x.identity?.status==='REGISTRY_MATCHED'?1:
-   x.identity?.status==='INDEXED_ON_COINGECKO'?2:3;
+   const importance=x=>x.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?0:
+   x.identity?.status==='REGISTRY_MATCHED'?1:2;
   return importance(a)-importance(b);
  });
  return rows.slice(0,12);

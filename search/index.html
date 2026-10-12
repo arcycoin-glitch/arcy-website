@@ -400,7 +400,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 </details>
 
 </section>
-<footer>Evidence is token and network specific. NOT VERIFIED does not mean false or zero. This tool does not execute transactions or provide investment advice. ARCY SEARCH is independent and is not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.<div class="source-link"><a href="https://www.coingecko.com/en/api" target="_blank" rel="noopener noreferrer">Powered by CoinGecko</a></div><div class="source-link"><a href="https://github.com/arcycoin-glitch/arcy-website/tree/feature/search-multichain-premium-20261011/search" target="_blank" rel="noopener noreferrer" aria-label="Inspect ARCY SEARCH source code on GitHub">GitHub · View source ↗</a></div></footer>
+<footer>Evidence is token and network specific. NOT VERIFIED does not mean false or zero. This tool does not execute transactions or provide investment advice. ARCY SEARCH is independent and is not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.<div class="source-link"><a href="https://www.geckoterminal.com/" target="_blank" rel="noopener noreferrer">On-chain market data provided by GeckoTerminal</a></div><div class="source-link"><a href="https://github.com/arcycoin-glitch/arcy-website/tree/feature/search-multichain-premium-20261011/search" target="_blank" rel="noopener noreferrer" aria-label="Inspect ARCY SEARCH source code on GitHub">GitHub · View source ↗</a></div></footer>
 </main>
 <script src="/search/schema.js"></script>
 <script src="/search/format.js"></script>
@@ -965,23 +965,20 @@ function clearIdentity(){$('identity').replaceChildren()}
 function renderIdentity(identity,network){
  const root=$('identity');root.replaceChildren();
  const confirmed=identity?.status==='OFFICIAL_CONTRACT_MATCHED'||identity?.status==='REGISTRY_MATCHED';
- const indexed=identity?.status==='INDEXED_ON_COINGECKO';
- const box=document.createElement('div');box.className='identity '+(confirmed?'verified':indexed?'indexed':'unknown');
+ const box=document.createElement('div');box.className='identity '+(confirmed?'verified':'unknown');
  const name=document.createElement('strong');
  name.textContent=identity?.status==='OFFICIAL_CONTRACT_MATCHED'?'✓ OFFICIAL CONTRACT · '+(identity.issuer||'ISSUER MATCHED'):
   identity?.status==='REGISTRY_MATCHED'?'✓ OFFICIAL ROBINHOOD STOCK TOKEN':
-  indexed?'ℹ COINGECKO LISTED · ISSUER NOT VERIFIED':
   '⚠ NO OFFICIAL CONTRACT MATCH';
  const copy=document.createElement('div');
  copy.textContent=confirmed?('Exact contract matched '+(network==='robinhood'?'Robinhood official registry':'issuer-published records')+' on '+NETWORKS[network].label+'.'):
-  indexed?'This exact Ethereum address appears in CoinGecko’s catalog. This is NOT proof it was published by the issuer.':
   'We cannot confirm that this contract is issued by the claimed project. Search results are not proof of authenticity.';
  box.append(name,copy);
- if((confirmed||indexed)&&typeof identity.proofUrl==='string'&&/^https:\/\//.test(identity.proofUrl)){
+ if(confirmed&&typeof identity.proofUrl==='string'&&/^https:\/\//.test(identity.proofUrl)){
   const url=new URL(identity.proofUrl);
-  if(['developers.circle.com','developers.uniswap.org','docs.chain.link','tether.to','api.robinhood.com','github.com','www.wbtc.network','shib.io','www.coingecko.com','docs.ondo.foundation','paxos.com'].includes(url.hostname)){
+  if(['developers.circle.com','developers.uniswap.org','docs.chain.link','tether.to','api.robinhood.com','github.com','www.wbtc.network','shib.io','docs.ondo.foundation','paxos.com'].includes(url.hostname)){
    const link=document.createElement('a');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';
-   link.textContent=indexed?'View CoinGecko entry ↗':'View official source ↗';box.append(link);
+   link.textContent='View official source ↗';box.append(link);
   }
  }
  const disclaimer=document.createElement('small');
@@ -1048,11 +1045,7 @@ async function scanAddress(address,network=selected(),version=searchVersion,chos
    registry.textContent='Robinhood official registry: Stock Token contract matched'+(data.tokenIdentity.multiplier?' · Shares-per-token multiplier: '+data.tokenIdentity.multiplier:'')+' · This token does not represent direct share ownership.';
    container.append(registry);
   }
-  const localIndex=chosenIdentity?.status==='INDEXED_ON_COINGECKO'&&
-   chosenIdentity?.chainId===info.id&&chosenIdentity?.address?.toLowerCase()===data.address.toLowerCase()&&network==='ethereum'?
-   chosenIdentity:null;
-  const identity=data.tokenIdentity?.status!=='NOT_VERIFIED'?data.tokenIdentity:
-   localIndex||data.tokenIdentity;
+  const identity=data.tokenIdentity;
   renderIdentity(identity,network);
   render(data);renderQuickFacts(data);
   document.title=(asset.name||asset.symbol||'Token')+' ('+(asset.symbol||'?')+') · ARCY SEARCH';
@@ -1074,17 +1067,7 @@ function displayLogo(raw,network,address){
   address.toLowerCase()===ARCY_OFFICIAL_PROJECT_CONTRACT)return '/assets/hero-arcy.png';
  return safeCandidateImage(raw);
 }
-function safeCandidateImage(raw){
- if(typeof raw!=='string'||raw.length>500)return null;
- try{
-  const u=new URL(raw);
-  if(u.protocol!=='https:'||u.username||u.password||u.port||u.hash||
-    !['coin-images.coingecko.com','assets.coingecko.com',
-      'cdn.dexscreener.com','dd.dexscreener.com'].includes(u.hostname))return null;
-  if(/\.(?:svg|html?|xml|pdf)(?:$|\/)/i.test(u.pathname))return null;
-  return u.href;
- }catch{return null}
-}
+function safeCandidateImage(){return null}
 function showCandidates(data,network,version){
  const container=$('matches');container.replaceChildren();
  const candidates=data.matches.filter(item=>
@@ -1096,14 +1079,13 @@ function showCandidates(data,network,version){
   item.identity?.status==='REGISTRY_MATCHED';
  const main=candidates.find(item=>official(item)&&exact(item))||
   candidates.find(item=>official(item))||
-  candidates.find(item=>exact(item)&&item.identity?.status==='INDEXED_ON_COINGECKO')||
   candidates.find(exact)||candidates[0];
  if(!main){container.hidden=true;return}
  const trustedMain=official(main);
  const warning=document.createElement('p');warning.className='candidate-warning';
  warning.textContent=trustedMain?
   'Official contract shown first. Other name matches are available below. Logo is not proof of identity.':
-  'No issuer-confirmed contract for this search. Candidate logos come from market sources and do NOT verify authenticity.';
+  'No issuer-confirmed contract for this search. Names and symbols do NOT verify authenticity.';
  container.append(warning);
  function candidateElement(item,primary=false){
   const option=document.createElement('button');option.type='button';option.className='candidate';
@@ -1126,14 +1108,13 @@ function showCandidates(data,network,version){
   meta.className='candidate-meta';
   const status=item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?' · OFFICIAL CONTRACT MATCHED':
    item.identity?.status==='REGISTRY_MATCHED'?' · ROBINHOOD STOCK TOKEN REGISTRY MATCHED':
-   item.identity?.status==='INDEXED_ON_COINGECKO'?' · COINGECKO LISTED (issuer NOT VERIFIED)':
    ' · Identity NOT VERIFIED';
   meta.textContent=item.address.slice(0,8)+'…'+item.address.slice(-6)+' · '+(item.source||'Indexed candidate');
   info.append(title,meta);
   const badge=document.createElement('span');badge.className='candidate-badge';
   badge.textContent=item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?'✓ Official':
    item.identity?.status==='REGISTRY_MATCHED'?'✓ Registry':
-   item.identity?.status==='INDEXED_ON_COINGECKO'?'CoinGecko indexed':'Unverified';
+   'Unverified';
   if(!item.identity||item.identity.status==='NOT_VERIFIED')badge.classList.add('unknown');
   info.append(badge);detail.append(art,info);
   const choose=document.createElement('span');choose.textContent='→';choose.className='scan-label';

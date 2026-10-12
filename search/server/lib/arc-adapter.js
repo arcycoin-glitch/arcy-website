@@ -3,8 +3,6 @@
 // Do not confuse this lightweight lab adapter with the production durable holder worker.
 const {chain}=require('./chains');
 const {ADDRESS}=require('./eth');
-const {readJson}=require('./http');
-const {safeLogoUrl}=require('./token-image');
 const rpcClient=require('./arc-rpc');
 const market=require('./arc-market');
 const original=require('./arc-legacy-evidence');
@@ -34,11 +32,8 @@ async function supply(base){
  const valid=burned!==null&&total>0n&&burned>=0n&&burned<=total;
  const precision=10n**80n;
  const pct=valid?Number((burned*100n*precision+total/2n)/total)/1e80:null;
- const legacy=await original.callOriginal('market',base.address).then(data=>
-  original.circulation(data,base.address)).catch(()=>null);
- const circ=legacy?.dataState==='DATA_FOUND'?legacy:
-  NO('No positive contract-matched verified circulating supply for this Arc token.','CIRCULATION_NOT_VERIFIED');
- return {description:'Pinned Arc RPC + original Arc validated circulating-supply readers; burn address custody is not lifetime burns.',fields:{
+ const circ=NO('No permitted contract-matched circulating-supply source is configured; total supply is not circulating supply.','CIRCULATION_NOT_VERIFIED');
+ return {description:'Pinned Arc RPC; circulating supply remains unverified because total supply is not circulating supply.',fields:{
   totalSupply:proof(base.totalSupply,'Arc RPC',{...details,method:'totalSupply()'},'ON_CHAIN'),
   circulatingSupply:circ,
   burnAddressBalance:burned===null?NO('Pinned zero/dead address reads failed.','BURN_BALANCE_READ_FAILED'):
@@ -71,14 +66,9 @@ async function activity({address},cardId){
   ['priceUsd','valuation','change24h','volume24h'];
  const fields=Object.fromEntries(keys.map(k=>[k,response[k]||
   NO('Matching market evidence unavailable.')]));
- if(cardId==='liquidity'&&fields.lpStatus.dataState!=='DATA_FOUND'){
-  const legacy=await original.callOriginal('liquidity',address,{details:'1'}).then(data=>
-   original.liquidity(data,address)).catch(()=>null);
-  if(legacy?.dataState==='DATA_FOUND')fields.lpStatus=legacy;
- }
  return {description:cardId==='liquidity'?
-  'Exact Arc pools plus original Arc source-matched LP custody checks; liquidity alone is not a lock.':
-  'Exact Arc-chain token and returned DEX pairs only. Values are source-reported.',fields};
+  'GeckoTerminal-returned exact Arc pools; liquidity alone is not an LP lock.':
+  'GeckoTerminal exact Arc-chain token pools. Values are source-reported.',fields};
 }
 const IMPLEMENTATION='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
 function addressWord(raw){
@@ -88,12 +78,10 @@ function addressWord(raw){
 async function mechanics({address,base}){
  const results=await Promise.allSettled([
   rpcClient.rpc('eth_call',[{to:address,data:'0x8da5cb5b'},base.block]),
-  rpcClient.rpc('eth_getStorageAt',[address,IMPLEMENTATION,base.block]),
-  original.callOriginal('mechanics',address).then(data=>original.contract(data,address))
+  rpcClient.rpc('eth_getStorageAt',[address,IMPLEMENTATION,base.block])
  ]);
  const owner=results[0].status==='fulfilled'?addressWord(results[0].value):null;
  const implementation=results[1].status==='fulfilled'?addressWord(results[1].value):null;
- const source=results[2].status==='fulfilled'?results[2].value:{};
  const context={address,block:base.block};
  const preliminary={
   tradingTaxes:NO('Taxes need source-reviewed contract getter or exact-chain security evidence.','TAX_NOT_VERIFIED'),
@@ -106,9 +94,8 @@ async function mechanics({address,base}){
     scope:'Observed implementation only; upgrade authority separately unverified.'},'ON_CHAIN'):
    NO('EIP-1967 slot alone does not establish immutable or non-proxy architecture.','PROXY_NOT_VERIFIED')
  };
- const fields=Object.fromEntries(Object.entries(preliminary).map(([key,value])=>
-  [key,source[key]?.dataState==='DATA_FOUND'?source[key]:value]));
- return {description:'Original verified Arc contract runtime, tax, mint, admin and proxy proofs; unknown permissions remain NOT VERIFIED.',fields};
+ const fields=preliminary;
+ return {description:'Read-only Arc RPC getter and implementation-slot observations; unsupported tax and mint checks remain NOT VERIFIED.',fields};
 }
 async function inspectCard({base,address,cardId}){
  switch(cardId){
@@ -124,29 +111,6 @@ async function discover({query}){
  if(typeof query!=='string')throw Error('Invalid search query');
  const normalized=query.normalize('NFKC').trim().replace(/\s+/g,' ');
  if(!SEARCH.test(normalized)||ADDRESS.test(normalized))throw Error('Invalid search query');
- const response=await fetch('https://api.dexscreener.com/latest/dex/search/?q='+encodeURIComponent(normalized),{
-  headers:{accept:'application/json'},signal:AbortSignal.timeout(8000)
- });
- if(!response.ok)throw Error('Arc token discovery provider unavailable');
- const body=await readJson(response,2*1024*1024);
- if(!body||typeof body!=='object'||body.pairs!==null&&!Array.isArray(body.pairs))
-  throw Error('Unexpected search provider response');
- const q=normalized.toLocaleLowerCase('en-US'),seen=new Set(),matches=[];
- for(const pair of Array.isArray(body.pairs)?body.pairs.slice(0,400):[]){
-  if(pair?.chainId!==cfg.dexScreenerChainId)continue;
-  for(const token of [pair.baseToken,pair.quoteToken]){
-   const address=typeof token?.address==='string'?token.address.toLowerCase():'';
-   const symbol=typeof token?.symbol==='string'?token.symbol.slice(0,30):'';
-   const name=typeof token?.name==='string'?token.name.slice(0,90):'';
-   if(!ADDRESS.test(address)||seen.has(address)||
-    !(symbol.toLocaleLowerCase('en-US').includes(q)||name.toLocaleLowerCase('en-US').includes(q)))continue;
-   seen.add(address);
-   matches.push({network:cfg.id,chainId:cfg.chainId,address,name,symbol,
-    source:'DexScreener',registryMatched:false,
-    logoUrl:token===pair.baseToken?safeLogoUrl(pair.info?.imageUrl):null});
-   if(matches.length===12)return matches;
-  }
- }
- return matches;
+ return require('./gecko-market').discover(cfg.id,normalized);
 }
 module.exports={inspectToken,inspectCard,supply,holders,activity,mechanics,discover,addressWord,marketFor};
