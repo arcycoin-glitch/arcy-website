@@ -1,14 +1,14 @@
 # ARCY SEARCH — locked second-page design (12 October 2026)
 
-## Approved visual structure — do not replace without explicit owner approval
+## Updated owner decision — GeckoTerminal official embed (12 October 2026)
 - Preserve the three-chain discovery UI (Arc, Ethereum, Robinhood Chain).
 - Preserve `/search/token/:network/:address`, the second-page token identity, search-within-detail, five research cards and 20 evidence checks.
 - Preserve the three summary metrics (price, tracked liquidity, supply when source-backed).
-- **Price history MUST use the native ARCY cyan SVG line graph** built by `drawVerifiedChart()` in `search/index.html`: range % and observed range, hover/touch and keyboard inspection, pool close description, provenance link.
-- Retain 4H / 1D / 1W / 30D time range buttons. Never introduce a third-party TradingView/GeckoTerminal candlestick iframe into this card by default.
-- When a chart provider is unavailable or rights are unresolved, retain the premium card but show the explicit reason, not synthetic candles or another style.
+- **Price history now uses GeckoTerminal's officially supported live iframe embed**, with attribution and a source link. The owner explicitly selected the provider-controlled chart to eliminate reliance on our blocked historical price endpoint. Native ARCY SVG code remains available for a future licensed use case but is not rendered by default.
+- Retain 4H / 1D / 1W / 30D controls as **resolution presets**. GeckoTerminal controls the viewport and live data refresh; do not claim these presets lock the displayed date window.
+- Embed only on mapped Arc and Ethereum networks. Robinhood Chain displays an unsupported-chart note rather than a wrong network or token chart. Never synthesize candles. Official embed guide: https://about.geckoterminal.com/embed-charts .
 - Use one exactly matched chain+contract+pool for each historical series. Never label FDV as market capitalization.
-- Backend `search/server/api/chart.js` fails closed unless `ARCY_CHART_DATA_LICENSE_APPROVED=true` is set by an authorized operator **after checking contractual permission** to republish GeckoTerminal-derived OHLCV data. Public API access alone is not such permission. No deployment should set this flag by assumption.
+- The separate raw OHLCV endpoint `search/server/api/chart.js` still fails closed until raw price-data republication permission is confirmed. The official iframe does not call it or require this permission flag. Public API availability is not a redistribution license.
 
 ## Search token artwork
 - For known contract-matched assets, `search/server/lib/search-logo.js` maps the exact chain+contract to a site-owned ARCY mascot or locally served icons from `spothq/cryptocurrency-icons` (CC0-1.0). Inspect source: https://github.com/spothq/cryptocurrency-icons.
@@ -22,5 +22,5 @@ Do not remove or truncate Burn, Token Unlocks, ARCY Arc Pulse, Research, Swap, X
 - Test mobile viewport at 390px and desktop. Check no horizontal overflow.
 - Verify Arc ARCY / Ethereum USDC / Robinhood TSLA source-backed reports.
 - Verify logo loading on both search and detail page; malformed and unknown addresses must not get branded logos.
-- Verify 4H, 1D, 1W, 30D requests, exact contract/source checks, pending-provider state and no iframe.
+- Verify four iframe resolution presets, exact token contract path, correct network, attribution/source link, raw-data endpoint pending status, and unsupported-chain fallback.
 - Automated QA fixture charts are not live production price evidence.
