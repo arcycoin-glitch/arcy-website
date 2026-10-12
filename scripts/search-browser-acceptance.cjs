@@ -29,6 +29,14 @@ async function main(){
    await page.route(/https:\/\/api\.(?:coingecko|dexscreener)\.com\//,route=>{
     legacyProviderCalls++;return route.abort();
    });
+   // The local browser gate deliberately uses deterministic API fixtures. The
+   // outage case below verifies that the app exposes GeckoTerminal's hosted
+   // fallback URL; keep the provider's independently running chart UI outside
+   // this app-console test so its own transient SVG errors are not attributed
+   // to ARCY SEARCH.
+   await page.route('https://www.geckoterminal.com/**',route=>route.fulfill({
+    status:200,contentType:'text/html',body:'<!doctype html><title>GeckoTerminal hosted chart fixture</title>'
+   }));
    await page.route('**/api/search*',async route=>{
     const url=new URL(route.request().url()),action=url.searchParams.get('action'),
      network=url.searchParams.get('chain')||'arc',id=chainIds[network];
@@ -325,6 +333,10 @@ async function main(){
    await page.waitForFunction(()=>document.querySelector('#detailState').textContent.includes('Snapshot complete'));
    await page.waitForFunction(()=>document.querySelector('#chartNote').textContent.includes('temporarily unavailable'));
    assert.equal(await page.locator('#chartPlot').isVisible(),false);
+   const hostedFallback=page.locator('#officialChartFallback');
+   await hostedFallback.waitFor({state:'visible'});
+   assert.match(await hostedFallback.getAttribute('src'),
+    new RegExp('^https://www\\.geckoterminal\\.com/arc/tokens/'+token+'\\?embed=1'));
    await page.unroute('**/api/search?action=chart&**');
    assert.equal(await page.locator('#currentChainName').innerText(),'Arc');
    assert.equal(await page.locator('#tokenDetail').isVisible(),true);
