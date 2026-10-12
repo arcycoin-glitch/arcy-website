@@ -6,9 +6,9 @@
 
  const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
  const NETWORK_MARKUP=Object.freeze({
-  arc:'<span class="home-glyph home-glyph-arc" aria-hidden="true">A</span>',
+  arc:'',
   ethereum:'<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#a6add2" d="M16 2 6 16l10 6 10-6z"/><path fill="#dde4fc" d="M16 2v20l10-6z"/><path fill="#717aab" d="M6 18l10 12v-6z"/><path fill="#b7c0eb" d="M26 18 16 30v-6z"/></svg>',
-  robinhood:'<span class="home-glyph home-glyph-robinhood" aria-hidden="true">R</span>'
+  robinhood:''
  });
  const setMark=(el,id)=>{el.innerHTML=NETWORK_MARKUP[id]||'';el.dataset.network=id;};
  const app=document.createElement('section');app.className='home-search';app.setAttribute('aria-label','ARCY Search token discovery');
@@ -32,8 +32,8 @@
  for(const [id,label] of networks){
   const option=document.createElement('button');option.type='button';option.className='home-network-option';option.dataset.network=id;
   option.setAttribute('aria-pressed','false');option.setAttribute('aria-label',label);
-  const badge=document.createElement('span');badge.className='home-network-mark';badge.setAttribute('aria-hidden','true');setMark(badge,id);
-  const name=document.createElement('span');name.className='home-network-option-name';name.textContent=id==='robinhood'?'Robinhood':label;
+  const badge=document.createElement('span');badge.className='home-network-mark';badge.setAttribute('aria-hidden','true');setMark(badge,id);if(id!=='ethereum')badge.hidden=true;
+  const name=document.createElement('span');name.className='home-network-option-name';name.textContent=label;
   option.append(badge,name);
   option.addEventListener('click',()=>{
    if(selected===id)return;
