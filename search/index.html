@@ -196,9 +196,10 @@ footer{border-top:1px solid var(--stroke);padding-top:24px;line-height:1.9;margi
 .chain-mark svg{width:22px;height:22px;display:block}
 .chain-mark.chain-robinhood{color:#cce3eb}
 .chain-mark{overflow:hidden;border:1px solid #31546a;background:#091e2e}
-.chain-mark img,.chain-mark svg{display:block;width:28px;height:28px;max-width:100%;max-height:100%;object-fit:contain}
-.chain-mark.chain-arc img{width:31px;height:31px}
+.chain-mark img,.chain-mark svg{display:block;width:36px;height:36px;max-width:100%;max-height:100%;object-fit:contain}
+.chain-mark.chain-arc img{width:50px;height:50px}
 .chain-mark.chain-robinhood{background:#101b24;border-color:#3a525a}
+#discovery .chain-mark,.network-trigger .chain-mark,.chain-option .chain-mark{width:54px;height:54px;flex-shrink:0}
 .network-menu{position:absolute;top:calc(100% + 7px);left:0;right:0;padding:6px;
  border:1px solid #326f86;border-radius:15px;background:#0a2536;color:#ecf8ff;
  box-shadow:0 16px 44px rgba(0,3,10,.52);max-height:min(300px,58vh);overflow-y:auto;overscroll-behavior:contain}
@@ -337,12 +338,12 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 <div class="network-picker" id="networkPicker">
   <input type="hidden" id="chain" value="arc">
   <button type="button" id="chainTrigger" class="network-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="chainMenu" aria-label="Select token network">
-    <span id="currentChainLogo" class="chain-mark chain-arc"><img src="https://cdn.prod.website-files.com/685311a976e7c248b5dfde95/6a16350a8030caf548ad77b9_logo-1.avif" alt="" loading="eager" referrerpolicy="no-referrer"/></span>
+    <span id="currentChainLogo" class="chain-mark chain-arc"><img src="https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif" alt="" loading="eager" referrerpolicy="no-referrer"/></span>
     <span id="currentChainName" class="network-trigger-name">Arc</span>
     <svg class="chain-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
   <div class="network-menu" id="chainMenu" role="listbox" aria-label="Token network" hidden>
-    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="true" id="chainOptionArc"><span class="chain-mark chain-arc"><img src="https://cdn.prod.website-files.com/685311a976e7c248b5dfde95/6a16350a8030caf548ad77b9_logo-1.avif" alt="" loading="eager" referrerpolicy="no-referrer"/></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="true" id="chainOptionArc"><span class="chain-mark chain-arc"><img src="https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif" alt="" loading="eager" referrerpolicy="no-referrer"/></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
     <button type="button" class="chain-option" role="option" data-chain="ethereum" aria-selected="false" id="chainOptionEthereum"><span class="chain-mark chain-ethereum"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#7b83ad" d="M16 2 6 16l10 6 10-6z"/><path fill="#cdd2e4" d="M16 2v20l10-6z"/><path fill="#626a95" d="M6 18l10 12v-6z"/><path fill="#a7afd3" d="M26 18 16 30v-6z"/></svg></span><span>Ethereum</span><span class="chain-check" aria-hidden="true"></span></button>
     <button type="button" class="chain-option" role="option" data-chain="robinhood" aria-selected="false" id="chainOptionRobinhood"><span class="chain-mark chain-robinhood"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="9" cy="16" r="4" fill="none" stroke="#cce3eb" stroke-width="2.4"/><circle cx="23" cy="9" r="4" fill="none" stroke="#cce3eb" stroke-width="2.4"/><circle cx="23" cy="23" r="4" fill="none" stroke="#cce3eb" stroke-width="2.4"/><path d="M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3" fill="none" stroke="#cce3eb" stroke-width="2.4" stroke-linecap="round"/></svg></span><span>Robinhood Chain</span><span class="chain-check" aria-hidden="true"></span></button>
   </div>
@@ -608,7 +609,7 @@ function setChartRange(range){
  }
 }
 const selected=()=>$('chain').value;
-const NETWORK_ICON_MARKUP=Object.freeze({"arc":"<img src=\"https://cdn.prod.website-files.com/685311a976e7c248b5dfde95/6a16350a8030caf548ad77b9_logo-1.avif\" alt=\"\" loading=\"eager\" referrerpolicy=\"no-referrer\"/>","ethereum":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path fill=\"#7b83ad\" d=\"M16 2 6 16l10 6 10-6z\"/><path fill=\"#cdd2e4\" d=\"M16 2v20l10-6z\"/><path fill=\"#626a95\" d=\"M6 18l10 12v-6z\"/><path fill=\"#a7afd3\" d=\"M26 18 16 30v-6z\"/></svg>","robinhood":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"16\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"9\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"23\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><path d=\"M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\" stroke-linecap=\"round\"/></svg>"});
+const NETWORK_ICON_MARKUP=Object.freeze({"arc":"<img src=\"https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif\" alt=\"\" loading=\"eager\" referrerpolicy=\"no-referrer\"/>","ethereum":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path fill=\"#7b83ad\" d=\"M16 2 6 16l10 6 10-6z\"/><path fill=\"#cdd2e4\" d=\"M16 2v20l10-6z\"/><path fill=\"#626a95\" d=\"M6 18l10 12v-6z\"/><path fill=\"#a7afd3\" d=\"M26 18 16 30v-6z\"/></svg>","robinhood":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"16\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"9\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"23\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><path d=\"M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\" stroke-linecap=\"round\"/></svg>"});
 function syncNetworkPicker(){
  const network=selected();
  if(!Object.hasOwn(NETWORKS,network))return;
