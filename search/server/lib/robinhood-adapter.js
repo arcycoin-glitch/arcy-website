@@ -64,11 +64,20 @@ async function holder({address}){
   top10Pct:NO('No complete pinned-block holder ranking with supply reconciliation.'),
   top20Pct:NO('No complete pinned-block holder ranking with supply reconciliation.')
  };
- const count=await require('./robinhood-holder-count').fetchCount(address);
+ const [count,reported]=await Promise.all([
+  require('./robinhood-holder-count').fetchCount(address),
+  require('./goplus-evidence').inspectHolders('robinhood',address)
+ ]);
  if(count)fields.holderCount=count;
- return {description:count?
-  'Contract-matched current explorer holder count; whale percentages need a complete reconciled snapshot.':
-  'No verifiable holder population; whale concentration is NOT VERIFIED.',fields};
+ else if(reported.holderCount?.dataState==='DATA_FOUND')
+  fields.holderCount=reported.holderCount;
+ for(const key of ['largestWalletPct','top10Pct']){
+  if(reported[key]?.dataState==='DATA_FOUND')fields[key]=reported[key];
+ }
+ const sourceRank=fields.top10Pct.dataState==='DATA_FOUND';
+ return {description:sourceRank?
+  'GoPlus source-reported top-wallet sample, not a complete pinned-chain ranking. Contract-matched holder counts may come from Blockscout or GoPlus. Top 20 remains NOT VERIFIED.':
+  'Holder count is source-reported where available; complete whale concentration is NOT VERIFIED.',fields};
 }
 async function activity({address},cardId){
  const fields=await inspectMarket(address);
