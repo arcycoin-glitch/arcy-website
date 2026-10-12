@@ -9,6 +9,7 @@ const arc=require('./arc-adapter');
 const chains=require('./chains');
 const identities=require('./token-identity');
 const logos=require('./search-logo');
+const explorerDiscovery=require('./discover');
 const ethereumAdapter={
  async inspectToken({address}){
   const report=await ethereumReport.build(address);
@@ -47,12 +48,20 @@ async function token({network='ethereum',address}){
 }
 async function discover({network='ethereum',query}){
  const candidates=network==='robinhood'?await robinhood.discover({query}):[];
+ let indexed=[],providerError=false;
+ try{indexed=await explorerDiscovery.searchExplorer(network,query)}catch(error){providerError=true;console.warn('Explorer discovery unavailable:',String(error?.code||error?.name||'UNKNOWN').slice(0,64));}
  // Issuer-curated Arc/Ethereum addresses and the first-party Robinhood asset
  // registry remain searchable; no market-data catalog is queried.
  const ranked=identities.rank(network,query,candidates);
- const matches=await logos.enhance(network,ranked);
+ const verified=await logos.enhance(network,ranked);
+ const seen=new Set(verified.map(item=>String(item.address||'').toLowerCase()));
+ const matches=[...verified];
+ for(const item of indexed){if(seen.has(item.address))continue;seen.add(item.address);
+  matches.push({...item,identity:{status:'NOT_VERIFIED'},identityVerified:false,logoUrl:null});
+  if(matches.length>=24)break;
+ }
  return {ok:true,query,chainId:chains.chain(network).chainId,network,
-  matches,source:'First-party issuer/asset registries',providerError:false,
+  matches,source:'First-party issuer/asset registries and network explorer index',providerError,
   note:'Official contract matches require an exact chain+address match to first-party sources. Other search results remain NOT VERIFIED; contract identity does not establish investment safety.'};
 }
 module.exports={parseChain,report,token,discover,engine};
