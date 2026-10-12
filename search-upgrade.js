@@ -21,6 +21,20 @@
    navGitHub.remove();
   }
  }
+ // Preserve the dated, six-section historical issue in the existing Pulse archive slot.
+ // The signed automated feed's older edition endpoint currently returns 404:
+ // never send visitors to that broken link or mislabel October 2026 editorial content as current.
+ const historicalArchive=document.getElementById('pulseArchive');
+ if(historicalArchive){
+  const fixHistoricalLink=()=>{
+   if(historicalArchive.href!==location.origin+'/pulse/003.html')historicalArchive.href='/pulse/003.html';
+   if(historicalArchive.hidden)historicalArchive.hidden=false;
+   const label='ARCHIVED PULSE #003 · 5–11 OCT 2026';
+   if(historicalArchive.textContent!==label)historicalArchive.textContent=label;
+  };
+  fixHistoricalLink();
+  new MutationObserver(fixHistoricalLink).observe(historicalArchive,{attributes:true,attributeFilter:['href','hidden'],childList:true});
+ }
  if(!section||!header||section.querySelector('.home-search'))return;
 
  const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
