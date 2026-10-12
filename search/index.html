@@ -412,19 +412,19 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
   <div id="quickFacts" class="detail-quick" aria-label="Key token metrics"></div>
   <div class="chart-shell" aria-label="Pool-specific price history">
     <div class="chart-heading">
-      <div><span class="chart-kicker">PRICE HISTORY · DATA SOURCE PENDING</span><h2>Price history</h2></div>
-      <div class="chart-ranges" id="chartRanges" role="group" aria-label="Price history timeframe">
-       <button type="button" class="chart-range" data-range="4H" aria-pressed="false" title="Last 4 hours; 15-minute candles">4H</button>
-       <button type="button" class="chart-range" data-range="1D" aria-pressed="false" title="Last 24 hours; hourly candles">1D</button>
-       <button type="button" class="chart-range" data-range="1W" aria-pressed="false" title="Last 7 days; daily candles">1W</button>
-       <button type="button" class="chart-range" data-range="30D" aria-pressed="true" title="Last 30 days; daily candles">30D</button>
+      <div><span class="chart-kicker">PRICE HISTORY · GECKOTERMINAL LIVE EMBED</span><h2>Price history</h2></div>
+      <div class="chart-ranges" id="chartRanges" role="group" aria-label="GeckoTerminal candle resolution presets; displayed date range is provider-controlled">
+       <button type="button" class="chart-range" data-range="4H" aria-pressed="false" title="4H preset: 15-minute candles; GeckoTerminal controls visible window">4H</button>
+       <button type="button" class="chart-range" data-range="1D" aria-pressed="false" title="1D preset: 1-hour candles; GeckoTerminal controls visible window">1D</button>
+       <button type="button" class="chart-range" data-range="1W" aria-pressed="false" title="1W preset: 4-hour candles; GeckoTerminal controls visible window">1W</button>
+       <button type="button" class="chart-range" data-range="30D" aria-pressed="true" title="30D preset: daily candles; GeckoTerminal controls visible window">30D</button>
       </div>
     </div>
     <div id="chartStats" class="chart-stats" hidden></div>
     <div id="chartPlot" hidden role="img" tabindex="0" aria-label="Verified daily USD price history; use left and right arrows to inspect" class="price-canvas"></div>
     <div id="chartAxis" class="chart-axis" hidden aria-label="Chart start and end dates"></div>
     <div id="chartInspector" class="chart-inspector" hidden role="status" aria-live="polite"></div>
-    <p id="chartNote" class="chart-note">Data source pending commercial-use verification. We will never draw invented price history.</p>
+    <p id="chartNote" class="chart-note">Official GeckoTerminal chart loads for supported tokens. Data and viewport are controlled by GeckoTerminal.</p>
     <a id="marketLink" hidden target="_blank" rel="noopener noreferrer">View source-matched market ↗</a>
   </div>
 <div class="research-intro">
