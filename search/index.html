@@ -523,6 +523,15 @@ function render(report){
       value.textContent=displayed;
       value.title=data?.reason||data?.source||'';
       result.append(value);
+      if(!missing&&data?.freshness?.state==='LAST_VERIFIED'){
+       const observed=Date.parse(data.freshness.observedAt||'');
+       if(Number.isFinite(observed)){
+        const age=document.createElement('small');
+        age.textContent='HISTORICAL · Last verified '+new Date(observed).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+        age.style.cssText='display:block;margin-top:3px;font-size:9px;line-height:1.4;color:#ffcc82';
+        result.append(age);
+       }
+      }
       if(report&&!missing){
        // Precise figures are also shown in 'View sources & evidence'.
        value.title='Full value: '+metricFormat.full(data.value,key,kind);
