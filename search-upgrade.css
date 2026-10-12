@@ -2,7 +2,8 @@
    sections keep their existing markup and styles. */
 html.search-upgraded #search{min-height:0;padding:38px 0 62px;background:linear-gradient(175deg,#061523,#04101c)}
 html.search-upgraded #search .app{max-width:980px;padding:24px 20px}
-html.search-upgraded #search .header{margin-bottom:19px}
+/* The upgraded discovery card carries the official ARCY SEARCH logo. Hide the legacy header so it does not display a second owl and duplicate title. */
+html.search-upgraded #search .header{display:none}
 html.search-upgraded #search .header .title p{letter-spacing:.13em}
 html.search-upgraded #search>.wrap>.app>.search,
 html.search-upgraded #search .helper,
