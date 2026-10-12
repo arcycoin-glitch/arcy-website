@@ -56,3 +56,51 @@
 }
 @media(max-width:390px){#discovery .hero-mascot{width:138px;max-width:138px}#discovery .hero h2{font-size:22px}}
 @media(min-width:701px){#discovery .hero-mascot{width:300px;max-width:300px;margin:0 auto;aspect-ratio:648/440}#discovery .hero-mascot img{object-fit:contain;mask-image:none;-webkit-mask-image:none}#discovery .hero{padding:0 0 12px}#discovery .hero h2{margin:12px auto 8px;font-size:clamp(31px,4.4vw,48px)}#discovery .hero p{font-size:14px;line-height:1.55}}
+
+/* A distinctive, compact owl-led research entry point inside token reports.
+   Keep the existing report/search APIs and controls; this is a UI-only layer. */
+#tokenDetail .detail-discover-panel{
+ position:relative;isolation:isolate;margin:4px 0 23px;
+ padding:19px clamp(15px,2.8vw,25px) 17px;
+ border:1px solid rgba(89,197,223,.28);border-radius:19px;
+ background:radial-gradient(ellipse at 12% 0%,rgba(18,95,127,.18),transparent 62%),linear-gradient(140deg,#091f31,#061523);
+ box-shadow:0 18px 48px rgba(0,0,0,.17),inset 0 1px rgba(138,219,240,.065);
+}
+#tokenDetail .detail-discover-header{display:flex;align-items:center;gap:14px;margin:0 0 15px}
+#tokenDetail .detail-discover-owl{width:92px;max-width:25%;height:auto;aspect-ratio:320/217;object-fit:contain;flex:none;filter:drop-shadow(0 0 13px rgba(24,183,228,.17))}
+#tokenDetail .detail-discover-copy{min-width:0}
+#tokenDetail .detail-discover-kicker{display:block;margin:0 0 6px;color:#55c7e3;font-size:9px;font-weight:760;letter-spacing:.15em}
+#tokenDetail .detail-discover-copy h2{margin:0;color:#f0faff;font-size:clamp(21px,2.8vw,31px);letter-spacing:-.035em;line-height:1.18}
+#tokenDetail .detail-discover-copy p{margin:7px 0 0;color:#91b1c3;font-size:11px;line-height:1.55}
+#tokenDetail .detail-network-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+#tokenDetail .detail-network-shortcuts button{
+ padding:8px 14px;min-height:37px;border:1px solid #25465d;border-radius:9px;
+ background:#081a29;color:#a4c5d5;font-family:inherit;font-weight:700;font-size:11px;line-height:1.2;cursor:pointer;
+ transition:border-color .15s ease,background .15s ease;
+}
+#tokenDetail .detail-network-shortcuts button:hover,
+#tokenDetail .detail-network-shortcuts button:focus-visible{border-color:#53bad6;color:#e9fcff;outline-offset:2px}
+#tokenDetail .detail-network-shortcuts button[aria-pressed="true"]{
+ border-color:#4bd1df;background:linear-gradient(112deg,#12415b,#0d3546);
+ color:#e5fdff;box-shadow:inset 0 0 0 1px rgba(58,215,236,.12);
+}
+#tokenDetail .detail-discover-panel .detail-search{
+ margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;
+}
+#tokenDetail .detail-discover-panel .detail-search-status{margin:9px 2px 0;min-height:18px}
+#tokenDetail .detail-discover-panel .detail-matches{margin:12px 0 0}
+@media(max-width:700px){
+ #tokenDetail .detail-discover-panel{padding:15px 13px 14px;border-radius:16px}
+ #tokenDetail .detail-discover-header{gap:9px;margin-bottom:12px}
+ #tokenDetail .detail-discover-owl{width:64px}
+ #tokenDetail .detail-discover-kicker{font-size:8px;letter-spacing:.08em}
+ #tokenDetail .detail-discover-copy h2{font-size:clamp(19px,5.4vw,25px)}
+ #tokenDetail .detail-discover-copy p{font-size:10px;margin-top:5px}
+ #tokenDetail .detail-network-shortcuts{gap:6px;margin-bottom:10px}
+ #tokenDetail .detail-network-shortcuts button{min-height:35px;padding:7px 10px;font-size:10px}
+}
+@media(max-width:370px){
+ #tokenDetail .detail-discover-owl{width:50px}
+ #tokenDetail .detail-discover-copy h2{font-size:18px}
+ #tokenDetail .detail-network-shortcuts button{padding:7px 8px;font-size:9px}
+}
