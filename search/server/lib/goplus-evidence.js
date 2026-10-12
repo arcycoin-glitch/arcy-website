@@ -89,4 +89,53 @@ async function inspect(network,address,{fetcher=global.fetch,now=Date.now()}={})
  try{return parse(await json(url,{fetcher,now}),network,token,{now})}
  catch{return parse(null,network,token,{now})}
 }
-module.exports={NETWORKS,bool,fraction,parse,inspect};
+function parseHolders(body,network,rawAddress,{now=Date.now()}={}){
+ if(!Object.hasOwn(NETWORKS,network)||typeof rawAddress!=='string'||!ADDRESS.test(rawAddress))
+  throw Error('Invalid holder source identity');
+ const address=rawAddress.toLowerCase();
+ const fields={
+  holderCount:missing('No exact-contract GoPlus holder count was supplied.','HOLDER_COUNT_UNVERIFIED'),
+  largestWalletPct:missing('No complete source-ranked large holder list.','HOLDER_RANK_NOT_VERIFIED'),
+  top10Pct:missing('Ten distinct source-ranked wallet shares are unavailable.','TOP10_NOT_VERIFIED'),
+  top20Pct:missing('GoPlus provides only a limited top-holder list; not a validated top 20.','TOP20_NOT_VERIFIED')
+ };
+ if(!body||(body.code!==1&&body.code!=='1')||!body.result||
+    typeof body.result!=='object'||Array.isArray(body.result))return fields;
+ const record=Object.entries(body.result).find(([key])=>key.toLowerCase()===address)?.[1];
+ if(!record||typeof record!=='object'||Array.isArray(record))return fields;
+ const rawCount=record.holder_count;
+ const count=(typeof rawCount==='string'&&/^[1-9]\\d*$/.test(rawCount))?Number(rawCount):
+  typeof rawCount==='number'?rawCount:null;
+ const validCount=Number.isSafeInteger(count)&&count>0&&count<1e10;
+ const scope='GoPlus-reported token holder population and limited ranked wallet snapshot, not independently pinned or fully enumerated. Exchange custody and multiple wallets per owner are not resolved; source publication timestamp may differ from retrieval time.';
+ if(validCount)fields.holderCount=found(count,network,address,'holder_count',scope,now);
+ if(!validCount||!Array.isArray(record.holders)||record.holders.length<1)return fields;
+ const seen=new Set(),shares=[];
+ for(const row of record.holders.slice(0,10)){
+  const wallet=typeof row?.address==='string'?row.address.toLowerCase():'';
+  const raw=typeof row?.percent==='string'?row.percent:null;
+  if(!ADDRESS.test(wallet)||seen.has(wallet)||raw===null||
+    !/^(?:0|1)(?:\\.\\d{1,30})?$/.test(raw))return fields;
+  const fractionNumber=Number(raw);
+  if(!Number.isFinite(fractionNumber)||fractionNumber<=0||fractionNumber>1)return fields;
+  seen.add(wallet);shares.push(fractionNumber);
+ }
+ if(shares.length>count||shares.some((v,i)=>i>0&&shares[i-1]+1e-10<v)||
+    shares.reduce((a,b)=>a+b,0)>1.00001)return fields;
+ const percent=v=>Math.round(v*1000000)/10000;
+ fields.largestWalletPct=found(percent(shares[0]),network,address,'largest GoPlus holder percent',scope,now);
+ if(shares.length===10)fields.top10Pct=found(
+  percent(shares.reduce((a,b)=>a+b,0)),network,address,
+  'sum of ten GoPlus source-ranked holder percentages',scope,now);
+ return fields;
+}
+async function inspectHolders(network,address,{fetcher=global.fetch,now=Date.now()}={}){
+ if(!Object.hasOwn(NETWORKS,network)||typeof address!=='string'||!ADDRESS.test(address))
+  throw Error('Invalid holder network or address');
+ const token=address.toLowerCase();
+ try{
+  const url=ORIGIN+NETWORKS[network]+'?contract_addresses='+encodeURIComponent(token);
+  return parseHolders(await json(url,{fetcher,now}),network,token,{now});
+ }catch{return parseHolders(null,network,token,{now})}
+}
+module.exports={NETWORKS,bool,fraction,parse,inspect,parseHolders,inspectHolders};
