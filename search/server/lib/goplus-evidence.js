@@ -1,7 +1,9 @@
 'use strict';
 /**
  * GoPlus exact-network ERC-20 risk observations.
- * GoPlus describes its token security API as open and license-free.
+ * The API is free, but its license restricts revenue-generating commercial
+ * use without written permission and requires its logo/attribution. Keep
+ * production requests disabled until those conditions are approved.
  * These are detection/simulation observations, never a substitute for
  * on-chain source review or proof that privileged roles do not exist.
  * https://www.gopluslabs.io/en/security-api
@@ -13,6 +15,10 @@ const NETWORKS=Object.freeze({arc:5042,ethereum:1,robinhood:4663});
 const ORIGIN='https://api.gopluslabs.io/api/v1/token_security/';
 const TTL=120000;
 const cache=new Map(),inflight=new Map();
+function productionUseAllowed(){
+ return process.env.VERCEL!=='1'||process.env.VERCEL_ENV!=='production'||
+  process.env.GOPLUS_PUBLIC_DISPLAY_APPROVED==='true';
+}
 function missing(reason,code='SECURITY_SOURCE_UNAVAILABLE'){
  return {value:null,dataState:'NOT_VERIFIED',status:'NOT_VERIFIED',reason,reasonCode:code,source:null,evidence:[]};
 }
@@ -93,6 +99,9 @@ async function inspect(network,address,{fetcher=global.fetch,now=Date.now()}={})
  if(!Object.hasOwn(NETWORKS,network)||typeof address!=='string'||!ADDRESS.test(address))
   throw Error('Invalid security network or address');
  const token=address.toLowerCase();
+ if(!productionUseAllowed())return Object.fromEntries([
+  'tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'
+ ].map(key=>[key,missing('GoPlus public production use is disabled pending written commercial permission and required attribution.','PROVIDER_DISABLED_LICENSE_UNVERIFIED')]));
  const url=ORIGIN+NETWORKS[network]+'?contract_addresses='+encodeURIComponent(token);
  try{return parse(await json(url,{fetcher,now}),network,token,{now})}
  catch{return parse(null,network,token,{now})}
@@ -142,9 +151,12 @@ async function inspectHolders(network,address,{fetcher=global.fetch,now=Date.now
  if(!Object.hasOwn(NETWORKS,network)||typeof address!=='string'||!ADDRESS.test(address))
   throw Error('Invalid holder network or address');
  const token=address.toLowerCase();
+ if(!productionUseAllowed())return Object.fromEntries([
+  'holderCount','largestWalletPct','top10Pct','top20Pct'
+ ].map(key=>[key,missing('GoPlus public production use is disabled pending written commercial permission and required attribution.','PROVIDER_DISABLED_LICENSE_UNVERIFIED')]));
  try{
   const url=ORIGIN+NETWORKS[network]+'?contract_addresses='+encodeURIComponent(token);
   return parseHolders(await json(url,{fetcher,now}),network,token,{now});
  }catch{return parseHolders(null,network,token,{now})}
 }
-module.exports={NETWORKS,bool,fraction,parse,inspect,parseHolders,inspectHolders};
+module.exports={NETWORKS,bool,fraction,parse,inspect,parseHolders,inspectHolders,productionUseAllowed};

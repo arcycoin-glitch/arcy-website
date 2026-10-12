@@ -30,16 +30,26 @@ circulating supply is permitted.
 
 ## Upstream terms and source references
 
-- DEX Screener API terms explicitly allow commercial and noncommercial use **with restrictions**,
-  particularly no competing API business, unauthorized re-licensing or redistribution:
+- DEX Screener API terms allow commercial and noncommercial use **subject to restrictions**,
+  including no product whose primary purpose directly competes with DEX Screener/API and no
+  unauthorized resale, re-licensing or making the API itself available to third parties:
   https://docs.dexscreener.com/api/api-terms-and-conditions .
-  This site returns a small attributed research summary, **never** raw API payloads
-  or a developer API replacement. Review these restrictions if ARCY SEARCH changes its business model.
+  ARCY SEARCH returns only an attributed, compact research summary, not raw payloads or an API.
+  Whether this public research product fits the direct-competition restriction has not been
+  confirmed in writing. Vercel Production therefore withholds DEX market/discovery calls unless
+  `DEXSCREENER_PUBLIC_DISPLAY_APPROVED=true` is explicitly configured after that review.
 - DEX Screener public API routes/rate limits:
   https://docs.dexscreener.com/api/reference .
-- GoPlus describes its Security API as open and license-free for builders:
-  https://www.gopluslabs.io/en/security-api .
-  Observations are **SOURCE_REPORTED**, not independent security attestations.
+- GoPlus API access is free and its API License Agreement grants a royalty-free
+  license, but clause 6 restricts using original data for revenue-generating
+  commercial activity without explicit written permission. Clause 5 requires
+  its logo together with “Powered by GoPlus”; the current product does not show
+  that required mark. Therefore Search and legacy GoPlus production calls fail
+  closed unless `GOPLUS_PUBLIC_DISPLAY_APPROVED=true` is explicitly configured
+  after permission and attribution are resolved. Preview/local testing remains
+  available. Any GoPlus values are **SOURCE_REPORTED**, not independent security
+  attestations. Sources: https://docs.gopluslabs.io/reference/api-license-agreement-new
+  and https://docs.gopluslabs.io/reference/support .
 - Robinhood Blockscout public counters sometimes answer 403. A free **Blockscout PRO**
   key can optionally be configured as `BLOCKSCOUT_API_KEY` in Vercel's server-only
   environment to improve holder count availability:
@@ -47,6 +57,8 @@ circulating supply is permitted.
   Never place that key in front-end HTML, error messages or evidence source URLs.
 - GeckoTerminal chart remains a **provider-owned official iframe**. Independent raw
   historical OHLCV extraction stays disabled until a separate license is established.
+- CoinGecko circulating-supply access remains disabled; the free API tier is not treated as
+  commercial permission. CoinGecko has no active Search adapter.
 
 ## Coverage measurement (illustrative and time-dependent)
 

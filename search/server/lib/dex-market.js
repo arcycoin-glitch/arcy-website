@@ -82,11 +82,12 @@ function parseMarket(payload,network,address){
   change24h:asField(best?.change24h,network,token,best,'baseToken priceChange.h24',scope)
  }};
 }
-function unavailable(reason='DEX Screener did not return exact-contract pool data.'){
- return {liquidityUsd:missing(reason),volume24h:missing(reason),
-  dexPairCount:missing(reason),lpStatus:missing('No independently verified LP lock/custody evidence.','LP_STATUS_NOT_VERIFIED'),
-  priceUsd:missing(reason),valuation:missing(reason),change24h:missing(reason)};
+function unavailable(reason='DEX Screener did not return exact-contract pool data.',reasonCode='DEXSCREENER_SOURCE_UNAVAILABLE'){
+ return {liquidityUsd:missing(reason,reasonCode),volume24h:missing(reason,reasonCode),
+  dexPairCount:missing(reason,reasonCode),lpStatus:missing('No independently verified LP lock/custody evidence.','LP_STATUS_NOT_VERIFIED'),
+  priceUsd:missing(reason,reasonCode),valuation:missing(reason,reasonCode),change24h:missing(reason,reasonCode)};
 }
+function productionDisplayAllowed(){if(process.env.VERCEL!=='1')return true;return process.env.VERCEL_ENV==='preview'||(process.env.VERCEL_ENV==='production'&&process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED==='true');}
 async function json(url,{fetcher=global.fetch,now=Date.now()}={}){
  const cached=cache.get(url);
  if(fetcher===global.fetch&&cached&&cached.expires>now)return structuredClone(cached.body);
@@ -105,6 +106,7 @@ async function json(url,{fetcher=global.fetch,now=Date.now()}={}){
 async function inspect(network,address,{fetcher=global.fetch,now=Date.now()}={}){
  if(!Object.hasOwn(NETWORKS,network)||typeof address!=='string'||!ADDRESS.test(address))
   throw Error('Invalid market network/contract');
+ if(!productionDisplayAllowed())return unavailable('DEX Screener public display is disabled until its production-use restrictions are reviewed.','PROVIDER_DISABLED_LICENSE_UNVERIFIED');
  const token=address.toLowerCase();
  const url=ORIGIN+'/token-pairs/v1/'+NETWORKS[network]+'/'+token;
  try{
@@ -140,7 +142,8 @@ function parseSearch(payload,network,rawQuery){
 async function discover(network,rawQuery,{fetcher=global.fetch,now=Date.now()}={}){
  if(!Object.hasOwn(NETWORKS,network)||typeof rawQuery!=='string'||rawQuery.length<2||rawQuery.length>48)
   throw Error('Invalid market discovery query');
+ if(!productionDisplayAllowed())return [];
  const url=ORIGIN+'/latest/dex/search?q='+encodeURIComponent(rawQuery.normalize('NFKC').trim());
  return parseSearch(await json(url,{fetcher,now}),network,rawQuery.trim());
 }
-module.exports={NETWORKS,finite,validPools,parseMarket,inspect,unavailable,parseSearch,discover};
+module.exports={NETWORKS,finite,validPools,parseMarket,inspect,unavailable,parseSearch,discover,productionDisplayAllowed};

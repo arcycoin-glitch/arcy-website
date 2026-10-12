@@ -80,6 +80,30 @@ test('Correct GoPlus chain and contract used for Robinhood',async()=>{
  assert.equal(f.contractArchitecture.chainId,4663);
 });
 
+test('Production GoPlus requests fail closed until written permission and required attribution are approved',async()=>{
+ const names=['VERCEL','VERCEL_ENV','GOPLUS_PUBLIC_DISPLAY_APPROVED'];
+ const prior=Object.fromEntries(names.map(name=>[name,process.env[name]]));
+ let calls=0;
+ try{
+  process.env.VERCEL='1';process.env.VERCEL_ENV='production';delete process.env.GOPLUS_PUBLIC_DISPLAY_APPROVED;
+  const security=await gp.inspect('arc','0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b',{fetcher:async()=>{calls++;throw Error('must not call provider')}});
+  const holders=await gp.inspectHolders('arc','0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b',{fetcher:async()=>{calls++;throw Error('must not call provider')}});
+  assert.equal(calls,0);
+  for(const field of [...Object.values(security),...Object.values(holders)]){
+   assert.equal(field.dataState,'NOT_VERIFIED');
+   assert.equal(field.reasonCode,'PROVIDER_DISABLED_LICENSE_UNVERIFIED');
+  }
+  process.env.GOPLUS_PUBLIC_DISPLAY_APPROVED='true';
+  assert.equal(gp.productionUseAllowed(),true);
+  const enabled=await gp.inspect('robinhood',tsla,{fetcher:async()=>{
+   calls++;return new Response(JSON.stringify(response('robinhood',tsla,{is_proxy:'1'})),{status:200});
+  }});
+  assert.equal(calls,1);assert.equal(enabled.contractArchitecture.dataState,'DATA_FOUND');
+ }finally{
+  for(const name of names){if(prior[name]===undefined)delete process.env[name];else process.env[name]=prior[name]}
+ }
+});
+
 test('GoPlus holder proportions are fractions and top-10 is clearly source reported',()=>{
  const rows=Array.from({length:10},(_,i)=>({
   address:'0x'+(i+1).toString(16).padStart(40,'0'),

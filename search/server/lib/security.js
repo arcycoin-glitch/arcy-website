@@ -3,6 +3,7 @@ const {found,unknown}=require('./evidence');
 const {ADDRESS}=require('./eth');
 const {readJson}=require('./http');
 const BASE='https://api.gopluslabs.io/api/v1/token_security/1';
+const productionUseAllowed=()=>process.env.VERCEL!=='1'||process.env.VERCEL_ENV!=='production'||process.env.GOPLUS_PUBLIC_DISPLAY_APPROVED==='true';
 const field=(name,reason)=>unknown(reason||'GoPlus has not provided an attributable security observation.',name.toUpperCase()+'_NOT_VERIFIED');
 function parse(body,address){
  if(body?.code!==1&&body?.code!=='1')return {taxes:field('taxes','GoPlus did not confirm successful analysis.'),mint:field('mint','GoPlus did not confirm successful analysis.'),securityStatus:'SOURCE_FAILED'};
@@ -33,6 +34,7 @@ function parse(body,address){
 }
 async function inspect(address){
  if(!ADDRESS.test(address))return parse(null,address);
+ if(!productionUseAllowed())return {taxes:field('taxes','GoPlus public production use is disabled pending written commercial permission and required attribution.'),mint:field('mint','GoPlus public production use is disabled pending written commercial permission and required attribution.'),securityStatus:'PROVIDER_DISABLED_LICENSE_UNVERIFIED'};
  try{
   const url=BASE+'?contract_addresses='+encodeURIComponent(address.toLowerCase());
   const response=await fetch(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(8500)});

@@ -336,7 +336,7 @@ View details →
   <div class="pulse-grid" id="pulseGrid">
     <article class="pulse-card pulse-week"><span>🔥 THIS WEEK</span><small class="pulse-owner">ARC / CIRCLE</small><h4>Loading weekly signal…</h4><p>Fetching the latest official Arc/Circle updates.</p></article>
   </div>
-  <div class="pulse-take"><b>🦉 ARCY TAKE</b><p id="pulseTake">Infrastructure is arriving. The next test is measurable usage: users, liquidity, settlement activity and repeat demand.</p><small>No hype. Just signal. • arcyusdc.xyz</small></div>
+  <div class="pulse-take"><b>🦉 ARCY TAKE</b><p id="pulseTake">Infrastructure is arriving. The next test is measurable usage: users, liquidity, settlement activity and repeat demand.</p><small>No hype. Just signal. • arcyusdc.xyz</small><a class="pulse-archive-link" id="pulseArchive" hidden></a></div>
 </div></section>
 
 <section id="buy"><div class="wrap grid2">
@@ -529,22 +529,33 @@ loadUnlocks();
 
 <script>
 (async function loadPulse(){
+  const renderCards=(grid,cards)=>{
+    const styles={week:["pulse-week","🔥 THIS WEEK"],new:["pulse-new","🆕 NEW"],watch:["pulse-watch","🔍 WATCH"],reality:["pulse-risk","⚠️ RISK / REALITY CHECK"],unlock:["pulse-unlock","🔓 WHAT'S UNLOCKING"]};
+    if(!grid||!Array.isArray(cards))return;
+    grid.innerHTML=cards.slice(0,5).map(c=>{
+      const style=styles[c.kind]||styles.watch;
+      const href=typeof c.url==='string'&&(c.url==='#unlocks'||/^https:\/\//i.test(c.url))?c.url:'';
+      const link=href?`<a href="${escapeHtml(href)}" ${href.startsWith('https:')?'target="_blank" rel="noopener"':''} style="display:inline-block;margin-top:10px;color:var(--accent);font-size:12px;font-weight:800">${escapeHtml(c.linkLabel||'SOURCE ↗')}</a>`:'';
+      return `<article class="pulse-card ${style[0]}"><span>${style[1]}</span><small class="pulse-owner">${escapeHtml(c.owner||'ARC ECOSYSTEM')}</small><h4>${escapeHtml(c.title||'Update unavailable')}</h4><p>${escapeHtml(c.summary||'No verified detail is available for this section.')}</p>${link}</article>`;
+    }).join('');
+  };
   try{
-    const r=await dataFetch('/api/pulse',{cache:'no-store'});
+    const params=new URLSearchParams(location.search),edition=Number(params.get('pulseEdition'));
+    const archived=Number.isSafeInteger(edition)&&edition>0;
+    const endpoint=archived?`/api/pulse?action=edition&number=${edition}`:'/api/pulse';
+    const r=await dataFetch(endpoint,{cache:'no-store'});
     const j=await r.json();
     const title=document.getElementById('pulseTitle');
-    if(title && Number.isSafeInteger(j.number)) title.textContent=`ARCY ARC PULSE #${String(j.number).padStart(3,'0')} 📡`;
-    if(!r.ok) throw new Error(j.message||"Pulse HTTP "+r.status);
-    if(!j.ok) throw new Error("Pulse feed unavailable");
+    if(title && Number.isSafeInteger(j.number)) title.textContent=`ARCY ARC PULSE #${String(j.number).padStart(3,'0')}${archived?' · ARCHIVE':''} 📡`;
     const grid=document.getElementById('pulseGrid');
-    const styles={week:["pulse-week","🔥 THIS WEEK"],new:["pulse-new","🆕 NEW"],watch:["pulse-watch","🔍 WATCH"],reality:["pulse-risk","⚠️ REALITY CHECK"],signal:["pulse-watch","📡 SIGNAL"]};
-
-    if(grid && j.cards?.length){
-      grid.innerHTML=j.cards.slice(0,5).map((c,i)=>`<article class="pulse-card ${(styles[c.kind]||styles.watch)[0]}"><span>${(styles[c.kind]||styles.watch)[1]}</span><small class="pulse-owner">${escapeHtml(c.owner||'ARC ECOSYSTEM')}</small><h4>${escapeHtml(c.title)}</h4><p>${escapeHtml(c.summary)}</p>${c.url?`<a href="${escapeHtml(c.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;color:var(--accent);font-size:12px;font-weight:800">SOURCE ↗</a>`:''}</article>`).join('');
-    }
+    if(Array.isArray(j.cards))renderCards(grid,j.cards);
+    if(!r.ok) throw new Error(j.message||j.error||"Pulse HTTP "+r.status);
+    if(!j.ok) throw new Error("Pulse feed unavailable");
     const take=document.getElementById('pulseTake');
     if(take && j.take) take.textContent=j.take;
-  }catch(error){const grid=document.getElementById("pulseGrid");if(grid)grid.innerHTML=`<article class="pulse-card pulse-week"><span>📡 PULSE</span><h4>Updates unavailable for this cycle</h4><p>${escapeHtml(error.message||'Please try again later.')}</p></article>`;}
+    const archive=document.getElementById('pulseArchive');
+    if(archive&&Number.isSafeInteger(j.number)&&j.number>1){archive.hidden=false;archive.href=archived?'/?#pulse':`/?pulseEdition=${j.number-1}#pulse`;archive.textContent=archived?'CURRENT EDITION':`PREVIOUS EDITION #${String(j.number-1).padStart(3,'0')}`;}
+  }catch(error){const grid=document.getElementById("pulseGrid");if(grid)renderCards(grid,Array.from({length:5},(_,i)=>({kind:['week','new','watch','reality','unlock'][i],owner:'SOURCE STATUS',title:'Pulse section unavailable',summary:error.message||'A verified update could not be loaded. No headline has been substituted.'})));const take=document.getElementById('pulseTake');if(take)take.textContent='ARCY Take unavailable: the dated source check did not complete. No stale news was presented as current.';}
 })();
 </script>
 

@@ -83,7 +83,7 @@ async function activity({address},cardId){
  const fields=await inspectMarket(address);
  const keys=cardId==='liquidity'?['liquidityUsd','volume24h','dexPairCount','lpStatus']:
   ['priceUsd','valuation','change24h','volume24h'];
- return {description:require('./market-pending').REASON,
+ return {description:'Market observations are source-reported from exact-contract Robinhood Chain pools and may cover only a subset of pools. They do not represent the underlying company share price; unsupported fields remain NOT VERIFIED.',
   fields:Object.fromEntries(keys.map(k=>[k,fields[k]??NO('Market source missing field.')]))};
 }
 const PROXY='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
