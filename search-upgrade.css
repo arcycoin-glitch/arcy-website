@@ -21,7 +21,10 @@ html.search-upgraded #search .grid{display:none!important}
 #search .home-field-label{display:block;margin:0 0 6px;color:#93adbd;font-size:9px;font-weight:750;letter-spacing:.1em}
 #search .home-network-trigger{display:flex;width:100%;min-height:45px;align-items:center;gap:10px;padding:6px 11px;border:1px solid #31586b;border-radius:11px;background:#081b2b;color:#e8f6ff;text-align:left;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
 #search .home-network-trigger:focus-visible,#search .home-network-option:focus-visible{outline:2px solid #66d5ed;outline-offset:2px}
-#search .home-network-mark{display:inline-grid;width:28px;height:26px;flex:none;place-items:center;border:1px solid #34627b;border-radius:7px;background:#0e2b3e;color:#a7deed;font-size:8px;font-weight:850;letter-spacing:.02em}
+#search .home-network-mark{display:inline-grid;width:35px;height:35px;flex:none;place-items:center;border:1px solid #31546a;border-radius:10px;background:#091e2e;overflow:hidden}
+#search .home-network-mark svg,#search .home-network-mark img{display:block;width:28px;height:28px;object-fit:contain}
+#search .home-network-mark[data-network="arc"] img{width:32px;height:32px}
+#search .home-network-mark[data-network="robinhood"]{background:#101b24;border-color:#3a525a}
 #search .home-network-name{flex:1}
 #search .home-network-chevron{color:#83adc0;font-size:19px;line-height:1}
 #search .home-network-menu[hidden]{display:none}
