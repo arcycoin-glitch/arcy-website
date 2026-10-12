@@ -1100,7 +1100,11 @@ function displayLogo(raw,network,address){
   address.toLowerCase()===ARCY_OFFICIAL_PROJECT_CONTRACT)return '/assets/hero-arcy.png';
  return safeCandidateImage(raw);
 }
-function safeCandidateImage(){return null}
+function safeCandidateImage(raw){
+ if(typeof raw!=='string')return null;
+ // Only artwork that ships with this website and is exact-contract mapped.
+ return /^\/search\/assets\/token-icons\/(?:usdc|usdt|link|uni|dai|wbtc|paxg)\.svg$/.test(raw)?raw:null;
+}
 function showCandidates(data,network,version){
  const container=$('matches');container.replaceChildren();
  const candidates=data.matches.filter(item=>
