@@ -21,10 +21,8 @@ html.search-upgraded #search .grid{display:none!important}
 #search .home-field-label{display:block;margin:0 0 6px;color:#93adbd;font-size:9px;font-weight:750;letter-spacing:.1em}
 #search .home-network-trigger{display:flex;width:100%;min-height:45px;align-items:center;gap:10px;padding:6px 11px;border:1px solid #31586b;border-radius:11px;background:#081b2b;color:#e8f6ff;text-align:left;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
 #search .home-network-trigger:focus-visible,#search .home-network-option:focus-visible{outline:2px solid #66d5ed;outline-offset:2px}
-#search .home-network-mark{display:inline-grid;width:54px;height:54px;flex:none;place-items:center;border:1px solid #31546a;border-radius:10px;background:#091e2e;overflow:hidden}
-#search .home-network-mark svg,#search .home-network-mark img{display:block;width:36px;height:36px;object-fit:contain}
-#search .home-network-mark[data-network="arc"] img{width:50px;height:50px}
-#search .home-network-mark[data-network="robinhood"]{background:#101b24;border-color:#3a525a}
+#search .home-network-mark{display:inline-grid;width:36px;height:36px;flex:none;place-items:center;border:1px solid #31546a;border-radius:10px;background:#091e2e;overflow:hidden}
+#search .home-network-mark{color:#bfeeff;font-size:13px;font-weight:800;letter-spacing:-.03em}
 #search .home-network-name{flex:1}
 #search .home-network-chevron{color:#83adc0;font-size:19px;line-height:1}
 #search .home-network-menu[hidden]{display:none}
@@ -79,6 +77,7 @@ html.search-upgraded #search .home-search{padding-top:19px;padding-bottom:16px}
 #search .home-search-owl{width:62px}
 #search .home-search-intro{margin-bottom:13px}
 #search .home-search-attribution{display:block;margin:9px 0 0;color:#94adbb;font-size:10px;line-height:1.55;text-decoration:none}
+#search .home-search-attribution a{color:#b6e4ee;text-underline-offset:2px}
 @media(max-width:560px){
  html.search-upgraded #search{padding-top:18px;padding-bottom:32px}
  #search .home-search{padding:15px 10px 13px}
@@ -89,6 +88,7 @@ html.search-upgraded #search .home-search{padding-top:19px;padding-bottom:16px}
  #search .home-network-picker{margin-bottom:8px}
  #search .home-network-trigger{min-height:42px}
  #search .home-search-input-wrap{min-height:43px}
+ #search .home-network-mark{width:34px;height:34px}
 }
 
 /* Clear visual proof tiers; do not confuse listing or art with issuer identity. */
