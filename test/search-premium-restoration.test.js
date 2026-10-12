@@ -78,12 +78,16 @@ test('Premium chart permits only source-backed, matching licensed candles',async
   else process.env.ARCY_CHART_DATA_LICENSE_APPROVED=previous;
  }
 });
-test('Premium native SVG renderer retained with no GeckoTerminal iframe',()=>{
+test('Official GeckoTerminal iframe embed replaces custom chart fetch without removing supported presets',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../search/index.html'),'utf8');
- assert.match(html,/function drawVerifiedChart\(data\)/);
- assert.match(html,/SOURCE-MATCHED PRICE DATA/);
- assert.match(html,/View source-matched market/);
- assert.doesNotMatch(html,/createElement\(['"]iframe['"]\)/);
- assert.match(html,/data-range="4H"/);
- assert.match(html,/data-range="30D"/);
+ assert.match(html,/PRICE HISTORY · GECKOTERMINAL LIVE EMBED/);
+ assert.match(html,/createElement\(['"]iframe['"]\)/);
+ assert.match(html,/www\.geckoterminal\.com/);
+ assert.match(html,/chart_type:'price'/);
+ assert.match(html,/The provider controls the visible date range/);
+ assert.match(html,/Open GeckoTerminal source chart/);
+ for(const preset of ['4H','1D','1W','30D'])assert.match(html,new RegExp('data-range="'+preset+'"'));
+ assert.match(html,/const supported=Object\.freeze\(\{arc:'arc',ethereum:'eth'\}\)/);
+ const fn=html.slice(html.indexOf('async function loadVerifiedChart('),html.indexOf('function renderQuickFacts(',html.indexOf('async function loadVerifiedChart(')));
+ assert.doesNotMatch(fn,/fetch\(/);
 });
