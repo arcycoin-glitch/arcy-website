@@ -174,3 +174,7 @@ html.search-upgraded #search .home-search{max-width:850px;margin-inline:auto}
  #search .home-network-picker{margin-bottom:9px}
 }
 @media(prefers-reduced-motion:reduce){#search .home-network-segments .home-network-option{transition:none}}
+
+/* Never show fabricated network initials as brand marks. */
+#search .home-network-segments .home-network-mark[hidden]{display:none!important}
+#search .home-network-segments .home-network-option-name{white-space:normal;text-align:center;line-height:1.25}
