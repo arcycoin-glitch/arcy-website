@@ -1,7 +1,4 @@
 /* Final premium release layer: scoped to Search, leaving the legacy site intact. */
-.detail-github{display:inline-flex;align-items:center;gap:8px;flex:none;border:1px solid rgba(116,206,229,.22);border-radius:11px;padding:9px 12px;color:#afd6e5;font-size:11px;font-weight:700;text-decoration:none}
-.detail-github svg{width:16px;height:16px}
-.detail-github:hover,.detail-github:focus-visible{color:#f2fbff;border-color:#63cade;outline-offset:3px}
 #tokenDetail .detail-search{display:grid;grid-template-columns:minmax(142px,.3fr) minmax(0,1fr) auto;align-items:end;gap:9px;margin:0 0 2px;padding:13px;border:1px solid rgba(108,189,221,.16);border-radius:15px;background:linear-gradient(150deg,rgba(11,34,51,.84),rgba(7,22,36,.94))}
 #tokenDetail .detail-search label{display:grid;gap:6px;min-width:0;color:#86aabc;font-size:9px;font-weight:740;letter-spacing:.1em}
 #tokenDetail .detail-search select,#tokenDetail .detail-search input{width:100%;min-width:0;height:43px;border:1px solid #294d63;border-radius:10px;background:#071725;color:#e8f7ff;padding:0 11px;font-family:inherit;font-size:12px;font-weight:500;line-height:1.3;letter-spacing:normal;outline:none}
@@ -25,7 +22,6 @@
 .market-source-pending a{color:#a7c9d9}
 @media(max-width:700px){
  header{align-items:center;gap:10px}
- .detail-github{padding:8px 9px;font-size:10px}
  #tokenDetail .detail-search{grid-template-columns:minmax(0,1fr) auto;padding:10px;gap:8px}
  #tokenDetail .detail-search-network{grid-column:1/-1}
  #tokenDetail .detail-search-query{grid-column:1}
@@ -33,8 +29,6 @@
 }
 @media(max-width:380px){
  header .sub{max-width:195px}
- .detail-github{gap:5px;padding:8px;font-size:9px}
- .detail-github svg{width:14px;height:14px}
  #tokenDetail .detail-search-query span{font-size:8px}
  #tokenDetail .detail-match{grid-template-columns:31px minmax(0,1fr);gap:8px}
  #tokenDetail .detail-match-badge{grid-column:2;justify-self:start}
@@ -74,10 +68,11 @@
 #tokenDetail .detail-discover-copy p{margin:7px 0 0;color:#91b1c3;font-size:11px;line-height:1.55}
 #tokenDetail .detail-network-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
 #tokenDetail .detail-network-shortcuts button{
- padding:8px 14px;min-height:37px;border:1px solid #25465d;border-radius:9px;
+ display:inline-flex;align-items:center;gap:8px;padding:8px 14px;min-height:37px;border:1px solid #25465d;border-radius:9px;
  background:#081a29;color:#a4c5d5;font-family:inherit;font-weight:700;font-size:11px;line-height:1.2;cursor:pointer;
  transition:border-color .15s ease,background .15s ease;
 }
+#tokenDetail .detail-network-shortcuts img{width:18px;height:18px;display:block;object-fit:contain}
 #tokenDetail .detail-network-shortcuts button:hover,
 #tokenDetail .detail-network-shortcuts button:focus-visible{border-color:#53bad6;color:#e9fcff;outline-offset:2px}
 #tokenDetail .detail-network-shortcuts button[aria-pressed="true"]{

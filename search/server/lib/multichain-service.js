@@ -46,13 +46,26 @@ async function token({network='ethereum',address}){
    burnAddressPct:supply.fields.burnAddressPct}};
 }
 async function discover({network='ethereum',query}){
- const candidates=network==='robinhood'?await robinhood.discover({query}):[];
- // Issuer-curated Arc/Ethereum addresses and the first-party Robinhood asset
- // registry remain searchable; no market-data catalog is queried.
+ chains.chain(network);
+ const explorerDiscover=require('./discover').searchExplorer;
+ const sources=[explorerDiscover(network,query)];
+ if(network==='robinhood')sources.push(robinhood.discover({query}));
+ const settled=await Promise.allSettled(sources);
+ const candidates=settled.filter(x=>x.status==='fulfilled').flatMap(x=>x.value);
+ const providerError=settled.some(x=>x.status==='rejected');
+ // The explorer index is used only for token discovery. Its icon, market,
+ // exchange-rate, and verification fields are deliberately discarded.
+ // Issuer identity remains exact chain + contract evidence only.
  const ranked=identities.rank(network,query,candidates);
+ if(!ranked.length&&providerError&&settled.every(x=>x.status==='rejected')){
+  const failure=settled.find(x=>x.status==='rejected')?.reason;
+  const error=Error('Token discovery sources are temporarily unavailable');
+  error.code=String(failure?.code||failure?.cause?.code||failure?.name||'DISCOVERY_SOURCE_UNAVAILABLE').slice(0,64);
+  throw error;
+ }
  const matches=await logos.enhance(network,ranked);
  return {ok:true,query,chainId:chains.chain(network).chainId,network,
-  matches,source:'First-party issuer/asset registries',providerError:false,
-  note:'Official contract matches require an exact chain+address match to first-party sources. Other search results remain NOT VERIFIED; contract identity does not establish investment safety.'};
+  matches,source:'Official issuer records, Robinhood asset registry, and Blockscout explorer index',providerError,
+  note:'An indexed result is a discovery candidate, not proof of issuer identity. OFFICIAL CONTRACT requires an exact chain+address match to first-party issuer documentation; registry matches are separately labeled.'};
 }
 module.exports={parseChain,report,token,discover,engine};

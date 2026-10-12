@@ -17,7 +17,6 @@ body{margin:0;background:radial-gradient(ellipse at top,#0a2d43 0,transparent 52
 main{max-width:1120px;margin:auto;padding:42px 20px 80px}
 header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:30px}
 h1{display:flex;align-items:center;gap:8px;font-size:clamp(25px,4vw,40px);margin:0;letter-spacing:.05em}
-.brand-owl-mark{display:block;width:38px;height:26px;object-fit:contain;flex:none}
 h1 span{color:#22d4ff}
 .sub{color:#97b1c4;font-size:13px;margin-top:8px}
 .chip{border:1px solid #27546c;color:#b5ebf7;background:#0d2534;padding:8px 12px;border-radius:40px;font-size:12px}
@@ -97,6 +96,9 @@ footer{font-size:12px;color:#7f99a8;margin-top:32px}
 #networkNote{color:#86aabc}
 @media(max-width:550px){.network{align-items:stretch;flex-direction:column}.network select{width:100%}}
 footer .source-link{margin-top:14px}footer .source-link a{color:#67dcf3;text-underline-offset:3px}footer .source-link a:focus-visible{outline:2px solid #45dfff;outline-offset:4px}
+.search-github-icon{display:inline-grid;width:38px;height:38px;place-items:center;border:1px solid #1b536b;border-radius:11px;background:#071722;color:#dff8ff!important;vertical-align:middle}
+.search-github-icon svg{width:19px;height:19px;fill:currentColor}
+.search-github-icon:hover{border-color:#22d9ff;color:#66e7ff!important}
 
 /* ARCY SEARCH DESIGN SYSTEM — intentionally quiet, airy, and premium. */
 :root{color-scheme:dark;--midnight:#06111d;--panel:#0a1b2a;--stroke:rgba(160,202,228,.13);--quiet:#9bb1c2;--cyan:#6ad7ed}
@@ -192,15 +194,11 @@ footer{border-top:1px solid var(--stroke);padding-top:24px;line-height:1.9;margi
 .network-trigger-name{flex:1}
 .chain-chevron{width:17px;height:17px;color:#9dbfcc;transition:transform .18s}
 .network-trigger[aria-expanded="true"] .chain-chevron{transform:rotate(180deg)}
-.chain-mark{display:inline-grid;place-items:center;flex:none;width:30px;height:30px;border-radius:9px;
+.chain-mark{display:inline-grid;place-items:center;flex:none;width:42px;height:42px;border-radius:11px;
  background:#102d40;color:#bfeeff;border:1px solid rgba(94,180,212,.2)}
-.chain-mark svg{width:22px;height:22px;display:block}
-.chain-mark.chain-robinhood{color:#cce3eb}
 .chain-mark{overflow:hidden;border:1px solid #31546a;background:#091e2e}
-.chain-mark img,.chain-mark svg{display:block;width:36px;height:36px;max-width:100%;max-height:100%;object-fit:contain}
-.chain-mark.chain-arc img{width:50px;height:50px}
-.chain-mark.chain-robinhood{background:#101b24;border-color:#3a525a}
-#discovery .chain-mark,.network-trigger .chain-mark,.chain-option .chain-mark{width:54px;height:54px;flex-shrink:0}
+.chain-mark img{display:block;width:23px;height:23px;object-fit:contain}
+#discovery .chain-mark,.network-trigger .chain-mark,.chain-option .chain-mark{width:44px;height:44px;flex-shrink:0}
 .network-menu{position:absolute;top:calc(100% + 7px);left:0;right:0;padding:6px;
  border:1px solid #326f86;border-radius:15px;background:#0a2536;color:#ecf8ff;
  box-shadow:0 16px 44px rgba(0,3,10,.52);max-height:min(300px,58vh);overflow-y:auto;overscroll-behavior:contain}
@@ -324,13 +322,9 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 <main>
 <header>
 <div>
-<h1 class="notranslate" translate="no"><img class="brand-owl-mark" src="/search/assets/arcy-neon-owl.svg" width="38" height="26" alt=""><span class="brand-arcy">ARC<span class="brand-y">Y</span></span><span class="brand-search">SEARCH</span></h1>
+<h1 class="notranslate" translate="no"><span class="brand-arcy">ARC<span class="brand-y">Y</span></span><span class="brand-search">SEARCH</span></h1>
 <div class="sub">ARC + ETHEREUM + ROBINHOOD CHAIN · TOKEN INTELLIGENCE · READ ONLY</div>
 </div>
-<a class="detail-github" href="https://github.com/arcycoin-glitch/arcy-website" target="_blank" rel="noopener noreferrer" aria-label="Open ARCY SEARCH source repository on GitHub">
- <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.56.1.76-.24.76-.54v-2.08c-3.1.67-3.76-1.31-3.76-1.31-.5-1.28-1.24-1.62-1.24-1.62-1.02-.7.08-.69.08-.69 1.12.08 1.71 1.15 1.71 1.15 1 .1.57 2.03 3.04 1.55.1-.72.39-1.2.7-1.48-2.48-.28-5.08-1.24-5.08-5.52 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.14a10.6 10.6 0 0 1 5.55 0c2.1-1.43 3.04-1.14 3.04-1.14.61 1.54.23 2.68.12 2.96.71.78 1.14 1.78 1.14 3.01 0 4.3-2.6 5.23-5.09 5.5.4.35.75 1.03.75 2.08v3.1c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z"/></svg>
- <span>GitHub</span>
-</a>
 </header>
 <section id="discovery">
 <div class="hero">
@@ -343,14 +337,14 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 <div class="network-picker" id="networkPicker">
   <input type="hidden" id="chain" value="arc">
   <button type="button" id="chainTrigger" class="network-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="chainMenu" aria-label="Select token network">
-    <span id="currentChainLogo" class="chain-mark chain-arc"><img src="https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif" alt="" loading="eager" referrerpolicy="no-referrer"/></span>
+    <span id="currentChainLogo" class="chain-mark chain-arc" aria-hidden="true"><img src="/search/assets/network-neutral.svg" width="23" height="23" alt=""></span>
     <span id="currentChainName" class="network-trigger-name">Arc</span>
     <svg class="chain-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
   <div class="network-menu" id="chainMenu" role="listbox" aria-label="Token network" hidden>
-    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="true" id="chainOptionArc"><span class="chain-mark chain-arc"><img src="https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif" alt="" loading="eager" referrerpolicy="no-referrer"/></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
-    <button type="button" class="chain-option" role="option" data-chain="ethereum" aria-selected="false" id="chainOptionEthereum"><span class="chain-mark chain-ethereum"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#7b83ad" d="M16 2 6 16l10 6 10-6z"/><path fill="#cdd2e4" d="M16 2v20l10-6z"/><path fill="#626a95" d="M6 18l10 12v-6z"/><path fill="#a7afd3" d="M26 18 16 30v-6z"/></svg></span><span>Ethereum</span><span class="chain-check" aria-hidden="true"></span></button>
-    <button type="button" class="chain-option" role="option" data-chain="robinhood" aria-selected="false" id="chainOptionRobinhood"><span class="chain-mark chain-robinhood"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="9" cy="16" r="4" fill="none" stroke="#cce3eb" stroke-width="2.4"/><circle cx="23" cy="9" r="4" fill="none" stroke="#cce3eb" stroke-width="2.4"/><circle cx="23" cy="23" r="4" fill="none" stroke="#cce3eb" stroke-width="2.4"/><path d="M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3" fill="none" stroke="#cce3eb" stroke-width="2.4" stroke-linecap="round"/></svg></span><span>Robinhood Chain</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="true" id="chainOptionArc"><span class="chain-mark chain-arc" aria-hidden="true"><img src="/search/assets/network-neutral.svg" width="23" height="23" alt=""></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="ethereum" aria-selected="false" id="chainOptionEthereum"><span class="chain-mark chain-ethereum" aria-hidden="true"><img src="/search/assets/network-neutral.svg" width="23" height="23" alt=""></span><span>Ethereum</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="robinhood" aria-selected="false" id="chainOptionRobinhood"><span class="chain-mark chain-robinhood" aria-hidden="true"><img src="/search/assets/network-neutral.svg" width="23" height="23" alt=""></span><span>Robinhood Chain</span><span class="chain-check" aria-hidden="true"></span></button>
   </div>
 </div><span id="networkNote">Results never mix token data from different networks.</span></div>
 <div class="search">
@@ -385,9 +379,9 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
       </div>
     </div>
     <div id="detailNetworkShortcuts" class="detail-network-shortcuts" role="group" aria-label="Choose a token search network">
-      <button type="button" data-detail-chain="arc" aria-pressed="false">Arc</button>
-      <button type="button" data-detail-chain="ethereum" aria-pressed="false">Ethereum</button>
-      <button type="button" data-detail-chain="robinhood" aria-pressed="false">Robinhood Chain</button>
+      <button type="button" data-detail-chain="arc" aria-pressed="false"><img src="/search/assets/network-neutral.svg" width="18" height="18" alt="" aria-hidden="true">Arc</button>
+      <button type="button" data-detail-chain="ethereum" aria-pressed="false"><img src="/search/assets/network-neutral.svg" width="18" height="18" alt="" aria-hidden="true">Ethereum</button>
+      <button type="button" data-detail-chain="robinhood" aria-pressed="false"><img src="/search/assets/network-neutral.svg" width="18" height="18" alt="" aria-hidden="true">Robinhood Chain</button>
     </div>
   <form id="detailSearchForm" class="detail-search" role="search" aria-label="Search another token">
     <label class="detail-search-network" for="detailSearchChain"><span>NETWORK</span>
@@ -438,7 +432,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 </details>
 
 </section>
-<footer>Evidence is token and network specific. NOT VERIFIED does not mean false or zero. This tool does not execute transactions or provide investment advice. ARCY SEARCH is independent and is not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.<div class="source-link market-source-pending">Market-data provider pending commercial-use verification. Price and pool metrics remain unavailable until then.</div><div class="source-link"><a href="https://github.com/arcycoin-glitch/arcy-website" target="_blank" rel="noopener noreferrer" aria-label="Inspect ARCY SEARCH source code on GitHub">GitHub · View Source ↗</a></div></footer>
+<footer>Evidence is token and network specific. NOT VERIFIED does not mean false or zero. This tool does not execute transactions or provide investment advice. ARCY SEARCH is independent and is not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.<div class="source-link market-source-pending">Market-data provider pending commercial-use verification. Price and pool metrics remain unavailable until then.</div><div class="source-link"><a href="https://blockscout.com" target="_blank" rel="noopener noreferrer">Token discovery powered by Blockscout ↗</a></div><div class="source-link"><a class="search-github-icon" href="https://github.com/arcycoin-glitch/arcy-website" target="_blank" rel="noopener noreferrer" aria-label="Inspect ARCY SEARCH source repository on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.56.1.76-.24.76-.54v-2.08c-3.1.67-3.76-1.31-3.76-1.31-.5-1.28-1.24-1.62-1.24-1.62-1.02-.7.08-.69.08-.69 1.12.08 1.71 1.15 1.71 1.15 1 .1.57 2.03 3.04 1.55.1-.72.39-1.2.7-1.48-2.48-.28-5.08-1.24-5.08-5.52 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.14a10.6 10.6 0 0 1 5.55 0c2.1-1.43 3.04-1.14 3.04-1.14.61 1.54.23 2.68.12 2.96.71.78 1.14 1.78 1.14 3.01 0 4.3-2.6 5.23-5.09 5.5.4.35.75 1.03.75 2.08v3.1c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z"/></svg></a></div></footer>
 </main>
 <script src="/search/schema.js"></script>
 <script src="/search/format.js"></script>
@@ -642,14 +636,13 @@ function setChartRange(range){
  }
 }
 const selected=()=>$('chain').value;
-const NETWORK_ICON_MARKUP=Object.freeze({"arc":"<img src=\"https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif\" alt=\"\" loading=\"eager\" referrerpolicy=\"no-referrer\"/>","ethereum":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path fill=\"#7b83ad\" d=\"M16 2 6 16l10 6 10-6z\"/><path fill=\"#cdd2e4\" d=\"M16 2v20l10-6z\"/><path fill=\"#626a95\" d=\"M6 18l10 12v-6z\"/><path fill=\"#a7afd3\" d=\"M26 18 16 30v-6z\"/></svg>","robinhood":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"16\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"9\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"23\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><path d=\"M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\" stroke-linecap=\"round\"/></svg>"});
 function syncNetworkPicker(){
  const network=selected();
  if(!Object.hasOwn(NETWORKS,network))return;
  $('currentChainName').textContent=NETWORKS[network].label;
  const logo=$('currentChainLogo');
- // Static local SVG paths: never derive HTML from API responses.
- logo.innerHTML=NETWORK_ICON_MARKUP[network];
+ const icon=document.createElement('img');icon.src='/search/assets/network-neutral.svg';icon.width=23;icon.height=23;icon.alt='';icon.decoding='async';
+ logo.replaceChildren(icon);
  logo.className='chain-mark chain-'+network;
  for(const option of $('chainMenu').querySelectorAll('[data-chain]'))
   option.setAttribute('aria-selected',String(option.dataset.chain===network));
@@ -1170,7 +1163,8 @@ function renderDetailMatches(matches,network,version){
   const copy=document.createElement('span');copy.className='detail-match-copy';
   const name=document.createElement('strong');name.textContent=(item.name||'Unnamed token')+' ('+(item.symbol||'?')+')';
   const address=document.createElement('small');address.textContent=item.address;
-  copy.append(name,address);
+  const source=document.createElement('small');source.textContent=String(item.source||'Indexed candidate').slice(0,70);
+  copy.append(name,address,source);
   const badge=document.createElement('span');badge.className='detail-match-badge';
   if(item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'){badge.textContent='OFFICIAL CONTRACT';badge.classList.add('verified')}
   else if(item.identity?.status==='REGISTRY_MATCHED'){badge.textContent='REGISTRY MATCH';badge.classList.add('verified')}
@@ -1192,15 +1186,15 @@ async function searchFromDetail(event){
  if(EVM_ADDRESS.test(query)){activateDetail(query.toLowerCase(),network);return}
  if(query.length<2||query.length>48||/^0x/i.test(query)){$('detailSearchStatus').textContent='Enter 2–48 characters or a full contract address.';return}
  const version=searchVersion,button=$('detailSearchSubmit');button.disabled=true;
- $('detailSearchStatus').textContent='Searching '+NETWORKS[network].label+' first-party sources…';
+ $('detailSearchStatus').textContent='Searching '+NETWORKS[network].label+' explorer and issuer sources…';
  try{
   const response=await fetch('/api/search?action=discover&'+new URLSearchParams({q:query,chain:network}),{cache:'no-store',headers:{accept:'application/json'}});
   const data=await response.json();
   if(request!==detailSearchGeneration||version!==searchVersion)return;
   if(!response.ok||data.ok!==true||data.network!==network||data.chainId!==NETWORKS[network].id||!Array.isArray(data.matches))
-   throw Error(data.reason||data.error||'First-party token source unavailable');
+   throw Error(data.reason||data.error||'Token discovery source unavailable');
   const count=renderDetailMatches(data.matches,network,version);
-  $('detailSearchStatus').textContent=count?count+' candidate(s) · Select one to replace this analysis.':'No first-party '+NETWORKS[network].label+' match. Try a full contract address.';
+  $('detailSearchStatus').textContent=count?count+' candidate(s) · Select one to replace this analysis.'+(data.providerError?' Some discovery sources were unavailable.':''):'No indexed '+NETWORKS[network].label+' token matched. Explorer coverage can be incomplete; try the exact contract address.';
  }catch(error){
   if(request===detailSearchGeneration&&version===searchVersion)
    $('detailSearchStatus').textContent='Search unavailable: '+String(error.message||'source error').slice(0,120);
@@ -1214,7 +1208,7 @@ async function searchOrScan(){
  if(q.length<2||q.length>48||/^0x/i.test(q)){
   $('state').textContent='Enter a token name (2–48 characters) or a full contract address.';return;
  }
- $('go').disabled=true;$('state').textContent='Finding '+NETWORKS[network].label+' candidates…';
+ $('go').disabled=true;$('state').textContent='Finding '+NETWORKS[network].label+' candidates in explorer and issuer sources…';
  $('asset').replaceChildren();clearIdentity();render(null);
  const controller=requestController();
  try{
@@ -1224,9 +1218,9 @@ async function searchOrScan(){
   if(version!==searchVersion||network!==selected())return;
   if(!response.ok||data.ok!==true||data.chainId!==NETWORKS[network].id||
    data.network!==network||!Array.isArray(data.matches))throw Error(data.error||'Discovery source unavailable');
-  if(!data.matches.length){$('state').textContent='No '+NETWORKS[network].label+' candidates found. Try the full contract address.';return}
+  if(!data.matches.length){$('state').textContent='No indexed '+NETWORKS[network].label+' token matched. Explorer coverage can be incomplete; try the exact contract address.';return}
   showCandidates(data,network,version);
-  $('state').textContent=data.matches.length+' matching contract(s). Verified issuers show one primary result; unverified names show all candidates.';
+  $('state').textContent=data.matches.length+' candidate contract(s). Only exact issuer records are marked official; indexed candidates remain unverified.'+(data.providerError?' Some discovery sources were unavailable.':'');
  }catch(error){
   if(version===searchVersion&&network===selected()&&!controller.signal.aborted)
    $('state').textContent='Token search unavailable: '+String(error.message).slice(0,140);
@@ -1253,7 +1247,7 @@ function syncDetailSearchNetwork(){
 $('detailSearchChain').addEventListener('change',()=>{
  syncDetailSearchNetwork();
  $('detailMatches').replaceChildren();$('detailMatches').hidden=true;
- $('detailSearchStatus').textContent='Search on '+NETWORKS[$('detailSearchChain').value].label+' first-party sources.';
+ $('detailSearchStatus').textContent='Search on '+NETWORKS[$('detailSearchChain').value].label+' explorer and issuer sources.';
 });
 for(const button of document.querySelectorAll('#detailNetworkShortcuts [data-detail-chain]')){
  button.addEventListener('click',()=>{

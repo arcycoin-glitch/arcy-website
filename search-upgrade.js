@@ -4,15 +4,13 @@
  const header=section?.querySelector('.header');
  if(!section||!header||section.querySelector('.home-search'))return;
 
- const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
- const NETWORK_MARKUP=Object.freeze({"arc":"<img src=\"https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif\" alt=\"\" loading=\"eager\" referrerpolicy=\"no-referrer\"/>","ethereum":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path fill=\"#7b83ad\" d=\"M16 2 6 16l10 6 10-6z\"/><path fill=\"#cdd2e4\" d=\"M16 2v20l10-6z\"/><path fill=\"#626a95\" d=\"M6 18l10 12v-6z\"/><path fill=\"#a7afd3\" d=\"M26 18 16 30v-6z\"/></svg>","robinhood":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"16\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"9\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"23\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><path d=\"M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\" stroke-linecap=\"round\"/></svg>"});
- const setMark=(el,id)=>{el.innerHTML=NETWORK_MARKUP[id]||'';el.dataset.network=id;};
+ const networks=[['arc','Arc'],['ethereum','Ethereum'],['robinhood','Robinhood Chain']];
+ const setMark=(el,id)=>{const image=document.createElement('img');image.src='/search/assets/network-neutral.svg';image.width=23;image.height=23;image.alt='';image.decoding='async';el.replaceChildren(image);el.dataset.network=id;};
  const app=document.createElement('section');app.className='home-search';app.setAttribute('aria-label','ARCY Search token discovery');
  const brand=document.createElement('div');brand.className='home-search-brand notranslate';brand.setAttribute('aria-label','ARCY SEARCH');brand.setAttribute('translate','no');
- const owl=document.createElement('img');owl.className='home-search-owl';owl.src='/search/assets/arcy-owl-reference.webp';owl.width=320;owl.height=217;owl.alt='';owl.decoding='async';
  const wordmark=document.createElement('div');wordmark.className='home-search-wordmark';
  const arcy=document.createElement('span');arcy.className='home-search-arcy';arcy.append(document.createTextNode('ARC'));const y=document.createElement('span');y.className='home-search-y';y.textContent='Y';arcy.append(y);
- const searchBrand=document.createElement('span');searchBrand.className='home-search-search';searchBrand.textContent='SEARCH';wordmark.append(arcy,searchBrand);brand.append(owl,wordmark);
+ const searchBrand=document.createElement('span');searchBrand.className='home-search-search';searchBrand.textContent='SEARCH';wordmark.append(arcy,searchBrand);brand.append(wordmark);
  const intro=document.createElement('p');intro.className='home-search-intro';intro.textContent='Multichain token research. Search a name, ticker, or exact contract.';
  const picker=document.createElement('div');picker.className='home-network-picker';picker.id='homeNetworkPicker';
  const pickerLabel=document.createElement('span');pickerLabel.className='home-field-label';pickerLabel.textContent='NETWORK';
@@ -23,10 +21,10 @@
  const menu=document.createElement('div');menu.id='homeNetworkMenu';menu.className='home-network-menu';menu.setAttribute('role','listbox');menu.setAttribute('aria-label','Token network');menu.hidden=true;
  let selected='arc';
  const options=new Map();
- function setNetwork(id,focus=false){selected=id;const [,label,monogram]=networks.find(x=>x[0]===id);networkName.textContent=label;setMark(mark,id);
+ function setNetwork(id,focus=false){selected=id;const [,label]=networks.find(x=>x[0]===id);networkName.textContent=label;setMark(mark,id);
   for(const [key,button] of options)button.setAttribute('aria-selected',String(key===id));
   menu.hidden=true;trigger.setAttribute('aria-expanded','false');if(focus)trigger.focus();}
- for(const [id,label,monogram] of networks){const option=document.createElement('button');option.type='button';option.className='home-network-option';option.setAttribute('role','option');option.dataset.network=id;option.setAttribute('aria-selected','false');const badge=document.createElement('span');badge.className='home-network-mark';setMark(badge,id);const text=document.createElement('span');text.textContent=label;option.append(badge,text);option.addEventListener('click',()=>setNetwork(id,true));option.addEventListener('keydown',event=>{
+ for(const [id,label] of networks){const option=document.createElement('button');option.type='button';option.className='home-network-option';option.setAttribute('role','option');option.dataset.network=id;option.setAttribute('aria-selected','false');const badge=document.createElement('span');badge.className='home-network-mark';setMark(badge,id);const text=document.createElement('span');text.textContent=label;option.append(badge,text);option.addEventListener('click',()=>setNetwork(id,true));option.addEventListener('keydown',event=>{
    const items=[...options.values()],index=items.indexOf(option);let next=null;
    if(event.key==='ArrowDown')next=items[(index+1)%items.length];if(event.key==='ArrowUp')next=items[(index+items.length-1)%items.length];
    if(event.key==='Home')next=items[0];if(event.key==='End')next=items.at(-1);
@@ -46,7 +44,7 @@
  const state=document.createElement('p');state.className='home-search-state';state.id='homeSearchState';state.setAttribute('role','status');state.setAttribute('aria-live','polite');state.textContent='Exact contracts, source-backed candidates and 20 research checks.';
  const results=document.createElement('div');results.className='home-search-results';results.hidden=true;results.setAttribute('aria-label','Matching tokens');
 
- const attribution=document.createElement('p');attribution.className='home-search-attribution home-market-pending';attribution.textContent='Market data pending commercial-use verification. Contract and source-backed on-chain checks remain available.';
+ const attribution=document.createElement('p');attribution.className='home-search-attribution home-market-pending';attribution.append(document.createTextNode('Market data pending commercial-use verification. Token discovery powered by '));const explorerCredit=document.createElement('a');explorerCredit.href='https://blockscout.com';explorerCredit.target='_blank';explorerCredit.rel='noopener noreferrer';explorerCredit.textContent='Blockscout';attribution.append(explorerCredit,document.createTextNode('. Contract and source-backed on-chain checks remain available.'));
  const robinhoodNotice=document.createElement('p');robinhoodNotice.className='home-search-disclaimer';robinhoodNotice.textContent='Independent research tool. Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.';
  app.append(brand,intro,picker,form,state,results,attribution,robinhoodNotice);header.after(app);
  document.documentElement.classList.add('search-upgraded');
@@ -69,7 +67,7 @@
   }
   const copy=document.createElement('span');copy.className='home-result-copy';
   const name=document.createElement('strong');name.textContent=String(candidate.name||'Unknown token').slice(0,90);
-  const meta=document.createElement('span');meta.textContent=(candidate.symbol?String(candidate.symbol).slice(0,30)+' · ':'')+networks.find(x=>x[0]===network)[1];
+  const meta=document.createElement('span');meta.textContent=(candidate.symbol?String(candidate.symbol).slice(0,30)+' · ':'')+networks.find(x=>x[0]===network)[1]+' · '+String(candidate.source||'indexed candidate').slice(0,45);
   copy.append(name,meta);
   const id=candidate.identity&&typeof candidate.identity==='object'?candidate.identity:null;
   const status=document.createElement('span');status.className='home-result-status';
@@ -104,12 +102,12 @@
    const response=await fetch('/api/search?action=discover&chain='+encodeURIComponent(selected)+'&q='+encodeURIComponent(query),{headers:{accept:'application/json'},signal:controller.signal,credentials:'same-origin'});
    const body=await response.json().catch(()=>null);
    if(!response.ok||!body||body.ok!==true||body.network!==selected||!Array.isArray(body.matches))throw Error(body?.reason||body?.error||'Search sources are temporarily unavailable.');
-   if(!body.matches.length){state.textContent='No '+networks.find(x=>x[0]===selected)[1]+' matches. Check the network or try the full contract address.';return}
+   if(!body.matches.length){state.textContent='No indexed '+networks.find(x=>x[0]===selected)[1]+' token matched. Explorer coverage can be incomplete; try the exact contract address.';return}
    for(const candidate of body.matches.slice(0,12)){
     if(!candidate||candidate.network!==selected||candidate.chainId!==({arc:5042,ethereum:1,robinhood:4663})[selected]||!addressPattern.test(candidate.address||''))continue;
     results.append(addCandidate(candidate,selected));
    }
-   results.hidden=results.childElementCount===0;state.textContent=results.hidden?'No valid '+networks.find(x=>x[0]===selected)[1]+' candidates returned.':'Select a candidate to open its separate, exact-contract research page.';
+   results.hidden=results.childElementCount===0;state.textContent=results.hidden?'No valid '+networks.find(x=>x[0]===selected)[1]+' candidates returned.':'Select a candidate to open its separate, exact-contract research page.'+(body.providerError?' Some discovery sources were unavailable.':'');
   }catch(error){state.textContent=error.name==='AbortError'?'Search timed out. Try again shortly.':'Search unavailable: '+String(error.message||'upstream error').slice(0,130)}
   finally{clearTimeout(timeout);submit.disabled=false;input.disabled=false}
  });

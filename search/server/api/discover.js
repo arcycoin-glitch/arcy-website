@@ -16,6 +16,10 @@ module.exports=async function handler(req,res){
  try{network=service.parseChain(p.chain)}catch{return res.status(400).json({ok:false,error:'UNSUPPORTED_CHAIN'})}
  if(!enforce(req,res))return;
  try{return res.status(200).json(await service.discover({network,query:q}))}
- catch{return res.status(502).json({ok:false,network,error:'TOKEN_DISCOVERY_UNAVAILABLE',
-  reason:'Exact-network discovery sources did not respond with usable results.'})}
+ catch(error){
+  const diagnostic=error?.code||error?.cause?.code||error?.name||'UNKNOWN';
+  console.error('Token discovery upstream failure:',String(diagnostic).slice(0,64));
+  return res.status(502).json({ok:false,network,error:'TOKEN_DISCOVERY_UNAVAILABLE',
+  reason:diagnostic==='UNKNOWN'?'Exact-network discovery sources did not respond with usable results.':
+   'A token discovery source is unavailable ('+String(diagnostic).slice(0,64)+').'})}
 };
