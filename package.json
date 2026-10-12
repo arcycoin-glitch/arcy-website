@@ -7,7 +7,10 @@
     "dev": "node dev.cjs",
     "worker:holders": "node scripts/holder-worker.cjs",
     "test:live": "node test/live.cjs",
-    "test:browser": "node test/browser-regression.cjs"
+    "test:browser": "node scripts/search-browser-acceptance.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.0"
   },
   "engines": {
     "node": ">=22"
