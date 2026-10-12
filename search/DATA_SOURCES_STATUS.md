@@ -14,8 +14,8 @@ circulating supply is permitted.
 
 | Network | Field family | Primary evidence | Limitations |
 | --- | --- | --- | --- |
-| Arc (5042) | Supply & contract | Arc RPC pinned ERC-20 getters and mature first-party Arc source adapter | **Do not replace 3% ARCY tax** with conflicting GoPlus observation. |
-| Arc | Holders | Reconciled original Arc holder worker publication, explicitly date-labelled | Historical snapshot ≠ live distribution. |
+| Arc (5042) | Supply & contract | Arc RPC pinned ERC-20 getters and mature first-party Arc source adapter; GoPlus 5042 fallback for missing contract observations | **Never replace source-reviewed 3% ARCY buy/sell tax** with conflicting GoPlus 0% simulation. First-party evidence takes precedence. |
+| Arc | Holders | Reconciled original Arc holder worker publication; then current Blockscout count; then exact-contract GoPlus chain 5042 partial sample | Historical snapshot ≠ current distribution. GoPlus top-10 and count are SOURCE_REPORTED; never infer complete top-20. |
 | Arc | Price/volume/liquidity | Original working Arc DEX/source readers | Source-reported market observations; tracked pools, not chain-wide census. |
 | Ethereum (1) | Supply | Pinned Ethereum RPC | Burn-address balances are not lifetime buyback/burn. |
 | Ethereum | Holder count / ranking | Blockscout indexed count + pinned RPC-ranked balances when reconciled | On mismatch, GoPlus **SOURCE_REPORTED** top-wallet sample only; not on-chain-verified ranking. |
