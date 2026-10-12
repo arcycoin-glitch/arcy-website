@@ -897,46 +897,49 @@ function drawVerifiedChart(data){
 async function loadVerifiedChart(address,network,version){
  if(version!==searchVersion||network!==selected()||location.pathname!==tokenPath(network,address))return;
  const generation=++chartGeneration;
- if(chartController)chartController.abort();
- const controller=new AbortController();chartController=controller;
- const range=activeChartRange;
+ if(chartController){chartController.abort();chartController=null}
  clearPriceChart();$('marketLink').hidden=true;
  const kicker=document.querySelector('.chart-kicker');
- if(kicker)kicker.textContent='SOURCE-MATCHED PRICE DATA';
- $('chartNote').textContent='Checking verified '+range+' historical pool prices…';
- try{
-  const url='/api/search?action=chart&'+new URLSearchParams({chain:network,address,range});
-  const response=await fetch(url,{signal:controller.signal,headers:{accept:'application/json'},cache:'no-store'});
-  const data=await response.json().catch(()=>null);
-  if(controller.signal.aborted||generation!==chartGeneration||version!==searchVersion||
-    network!==selected()||location.pathname!==tokenPath(network,address))return;
-  if(!response.ok)throw Error(data?.reason||data?.error||'Historical chart source unavailable.');
-  if(!data||data.ok!==true||data.network!==network||data.chainId!==NETWORKS[network].id||
-     data.address!==address||data.range!==range||data.currency!=='USD'||!Array.isArray(data.points))
-    throw Error('Source did not verify the selected chain, contract or time range.');
-  if(!drawVerifiedChart(data))throw Error('No usable, source-verified OHLCV close series for this range.');
-  if(range==='30D')verifiedDaily30=data;
-  const source=typeof data.sourceUrl==='string'?new URL(data.sourceUrl):null;
-  if(source&&source.protocol==='https:'&&source.hostname==='www.geckoterminal.com'&&
-   /^\/(?:arc|eth|robinhood)\/pools\/0x[0-9a-f]{40,64}$/i.test(source.pathname)){
-   $('marketLink').href=source.href;
-   $('marketLink').textContent='View source-matched market ↗';
-   $('marketLink').hidden=false;
-  }
-  const latest=Number.isSafeInteger(data.lastCandleTime)?new Date(data.lastCandleTime*1000).toISOString().slice(0,16).replace('T',' ')+' UTC':'unknown';
-  $('chartNote').textContent=(data.source||'Verified market source')+' · '+data.points.length+
-   ' source-backed USD pool closes · One contract-matched pool · Latest candle: '+latest+
-   ' · Not market-wide or an execution quote.';
- }catch(error){
-  if(controller.signal.aborted||generation!==chartGeneration||version!==searchVersion)return;
-  clearPriceChart();
-  $('chartNote').textContent='Premium historical chart temporarily unavailable · '+range+
-    '. '+String(error.message||'Source unavailable').slice(0,180)+
-    ' We never draw estimated or invented prices.';
- }finally{
-  if(chartController===controller)chartController=null;
+ if(kicker)kicker.textContent='PRICE HISTORY · GECKOTERMINAL LIVE EMBED';
+
+ // GeckoTerminal explicitly provides first-party embeds for website and app use.
+ // We render its own iframe, not redistribute raw GeckoTerminal OHLCV data.
+ // No local /api/search?action=chart request, so CHART_SOURCE_PENDING is irrelevant.
+ const supported=Object.freeze({arc:'arc',ethereum:'eth'});
+ const chartNetwork=supported[network];
+ if(!chartNetwork||!EVM_ADDRESS.test(address)){
+  $('chartNote').textContent='GeckoTerminal chart is not currently confirmed for '+NETWORKS[network].label+
+   '. The token analysis above remains available; no unrelated chart will be substituted.';
+  return;
  }
+ const resolution={ '4H':'15m','1D':'1h','1W':'4h','30D':'1d'}[activeChartRange]||'1d';
+ const source='https://www.geckoterminal.com/'+chartNetwork+'/tokens/'+address.toLowerCase();
+ const iframeSrc=source+'?'+new URLSearchParams({
+  embed:'1',info:'0',swaps:'0',light_chart:'0',
+  chart_type:'price',resolution,bg_color:'091b2a'
+ });
+ if(generation!==chartGeneration||version!==searchVersion)return;
+ const wrap=document.createElement('div');
+ wrap.id='officialChartFallback';
+ wrap.className='official-gecko-embed';
+ wrap.style.cssText='width:100%;min-width:0;overflow:hidden;border:1px solid #24495a;border-radius:14px;background:#061625;margin:14px 0';
+ const frame=document.createElement('iframe');
+ frame.title=NETWORKS[network].label+' token price history on GeckoTerminal';
+ frame.loading='lazy';
+ frame.referrerPolicy='strict-origin-when-cross-origin';
+ frame.setAttribute('allow','clipboard-write');
+ frame.setAttribute('allowfullscreen','');
+ frame.style.cssText='display:block;width:100%;height:410px;max-width:100%;border:0;background:#061625';
+ frame.src=iframeSrc;
+ wrap.append(frame);
+ $('chartNote').after(wrap);
+ $('chartNote').textContent='Official GeckoTerminal embedded chart · '+activeChartRange+
+  ' preset ('+resolution+' candles). The provider controls the visible date range and live refresh. Prices and candles are not ARCY-calculated.';
+ $('marketLink').href=source;
+ $('marketLink').textContent='Open GeckoTerminal source chart ↗';
+ $('marketLink').hidden=false;
 }
+
 function renderQuickFacts(report){
  // Buyer-priority headline facts: use verified-by-source values, never blank
  // fixed-price cards when a young chain has useful, pinned supply evidence.
