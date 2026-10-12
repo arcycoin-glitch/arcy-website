@@ -57,8 +57,12 @@ async function discover({network='ethereum',query}){
  // exchange-rate, and verification fields are deliberately discarded.
  // Issuer identity remains exact chain + contract evidence only.
  const ranked=identities.rank(network,query,candidates);
- if(!ranked.length&&providerError&&settled.every(x=>x.status==='rejected'))
-  throw Error('Token discovery sources are temporarily unavailable');
+ if(!ranked.length&&providerError&&settled.every(x=>x.status==='rejected')){
+  const failure=settled.find(x=>x.status==='rejected')?.reason;
+  const error=Error('Token discovery sources are temporarily unavailable');
+  error.code=String(failure?.code||failure?.cause?.code||failure?.name||'DISCOVERY_SOURCE_UNAVAILABLE').slice(0,64);
+  throw error;
+ }
  const matches=await logos.enhance(network,ranked);
  return {ok:true,query,chainId:chains.chain(network).chainId,network,
   matches,source:'Official issuer records, Robinhood asset registry, and Blockscout explorer index',providerError,

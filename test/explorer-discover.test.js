@@ -60,3 +60,12 @@ test('Blockscout candidates never gain official status from explorer verificatio
   assert.equal(fake.logoUrl,null);
  }finally{global.fetch=original}
 });
+
+test('unavailable Arc discovery keeps a safe machine-readable upstream code',async()=>{
+ const original=global.fetch;
+ global.fetch=async()=>{const error=Error('no transport details');error.code='EXPLORER_HTTP_403';throw error};
+ try{
+  const service=require('../search/server/lib/multichain-service');
+  await assert.rejects(service.discover({network:'arc',query:'ArcTools'}),error=>error.code==='EXPLORER_HTTP_403');
+ }finally{global.fetch=original}
+});
