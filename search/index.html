@@ -713,6 +713,7 @@ function clearPriceChart(){
   $(id).replaceChildren();$(id).hidden=true;
  }
  const root=$('chartPlot');root.replaceChildren();root.hidden=true;
+ const backup=document.getElementById('officialChartFallback');if(backup)backup.remove();
 }
 function weeklyVerifiedDaily(network,address){
  // A 1W chart is seven recent *actual* daily closes from the already
@@ -887,9 +888,22 @@ async function loadVerifiedChart(address,network,version){
  }catch(error){
   if(!current())return;
   clearPriceChart();$('marketLink').hidden=true;
-  $('chartNote').textContent=error?.message==='CHART_SOURCE_RETRY'?
-   'Historical price source is temporarily unavailable. Try again shortly; this does not mean the token has no trading history.':
+  const sourceRetry=error?.message==='CHART_SOURCE_RETRY';
+  $('chartNote').textContent=sourceRetry?
+   'Historical price source is temporarily unavailable. The provider-hosted interactive chart below may offer an independent view; use its own controls to set the time window.':
    'Not enough verified '+requestedRange+' price history for this exact contract and pool. No estimated movement is shown.';
+  if(sourceRetry && ['arc','ethereum','robinhood'].includes(network) && /^0x[0-9a-f]{40}$/i.test(address)){
+   // Official GeckoTerminal embeds load from their own website rather than
+   // proxying OHLCV through our rate-limited API. Not an exact-window substitute.
+   const providerNetwork={arc:'arc',ethereum:'eth',robinhood:'robinhood'}[network];
+   const resolution={'4H':'15m','1D':'1h','1W':'1d','30D':'1d'}[requestedRange];
+   const frame=document.createElement('iframe');frame.id='officialChartFallback';
+   frame.title='GeckoTerminal interactive chart — use provider controls to select exact time window';
+   frame.loading='lazy';frame.referrerPolicy='no-referrer';
+   frame.src='https://www.geckoterminal.com/'+providerNetwork+'/tokens/'+address.toLowerCase()+'?embed=1&info=0&swaps=0&light_chart=0&chart_type=price&resolution='+resolution+'&bg_color=050d18';
+   frame.style.cssText='display:block;width:100%;min-height:360px;height:440px;border:1px solid #1b3d53;border-radius:12px;background:#050d18;margin-top:12px';
+   $('chartNote').after(frame);
+  }
  }finally{
   if(chartController===controller)chartController=null;
  }
