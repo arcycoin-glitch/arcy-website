@@ -9,7 +9,7 @@
 const {readJson}=require('./http');
 const {chain}=require('./chains');
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
-const NETWORKS=Object.freeze({ethereum:1,robinhood:4663});
+const NETWORKS=Object.freeze({arc:5042,ethereum:1,robinhood:4663});
 const ORIGIN='https://api.gopluslabs.io/api/v1/token_security/';
 const TTL=120000;
 const cache=new Map(),inflight=new Map();
