@@ -5,7 +5,11 @@
  if(!section||!header||section.querySelector('.home-search'))return;
 
  const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
- const NETWORK_MARKUP=Object.freeze({"arc":"<img src=\"https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif\" alt=\"\" loading=\"eager\" referrerpolicy=\"no-referrer\"/>","ethereum":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path fill=\"#7b83ad\" d=\"M16 2 6 16l10 6 10-6z\"/><path fill=\"#cdd2e4\" d=\"M16 2v20l10-6z\"/><path fill=\"#626a95\" d=\"M6 18l10 12v-6z\"/><path fill=\"#a7afd3\" d=\"M26 18 16 30v-6z\"/></svg>","robinhood":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"16\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"9\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"23\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><path d=\"M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\" stroke-linecap=\"round\"/></svg>"});
+ const NETWORK_MARKUP=Object.freeze({
+  arc:'<span class="home-glyph home-glyph-arc" aria-hidden="true">A</span>',
+  ethereum:'<span class="home-glyph home-glyph-ethereum" aria-hidden="true">Ξ</span>',
+  robinhood:'<span class="home-glyph home-glyph-robinhood" aria-hidden="true">R</span>'
+ });
  const setMark=(el,id)=>{el.innerHTML=NETWORK_MARKUP[id]||'';el.dataset.network=id;};
  const app=document.createElement('section');app.className='home-search';app.setAttribute('aria-label','ARCY Search token discovery');
  const brand=document.createElement('div');brand.className='home-search-brand notranslate';brand.setAttribute('aria-label','ARCY SEARCH');brand.setAttribute('translate','no');
@@ -16,27 +20,36 @@
  const intro=document.createElement('p');intro.className='home-search-intro';intro.textContent='Multichain token research. Search a name, ticker, or exact contract.';
  const picker=document.createElement('div');picker.className='home-network-picker';picker.id='homeNetworkPicker';
  const pickerLabel=document.createElement('span');pickerLabel.className='home-field-label';pickerLabel.textContent='NETWORK';
- const trigger=document.createElement('button');trigger.type='button';trigger.className='home-network-trigger';trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-controls','homeNetworkMenu');
- const mark=document.createElement('span');mark.className='home-network-mark';mark.setAttribute('aria-hidden','true');
- const networkName=document.createElement('span');networkName.className='home-network-name';
- const chevron=document.createElement('span');chevron.className='home-network-chevron';chevron.setAttribute('aria-hidden','true');chevron.textContent='⌄';trigger.append(mark,networkName,chevron);
- const menu=document.createElement('div');menu.id='homeNetworkMenu';menu.className='home-network-menu';menu.setAttribute('role','listbox');menu.setAttribute('aria-label','Token network');menu.hidden=true;
+ const segments=document.createElement('div');segments.className='home-network-segments';segments.setAttribute('role','group');segments.setAttribute('aria-label','Choose blockchain network');
  let selected='arc';
  const options=new Map();
- function setNetwork(id,focus=false){selected=id;const [,label,monogram]=networks.find(x=>x[0]===id);networkName.textContent=label;setMark(mark,id);
-  for(const [key,button] of options)button.setAttribute('aria-selected',String(key===id));
-  menu.hidden=true;trigger.setAttribute('aria-expanded','false');if(focus)trigger.focus();}
- for(const [id,label,monogram] of networks){const option=document.createElement('button');option.type='button';option.className='home-network-option';option.setAttribute('role','option');option.dataset.network=id;option.setAttribute('aria-selected','false');const badge=document.createElement('span');badge.className='home-network-mark';setMark(badge,id);const text=document.createElement('span');text.textContent=label;option.append(badge,text);option.addEventListener('click',()=>setNetwork(id,true));option.addEventListener('keydown',event=>{
-   const items=[...options.values()],index=items.indexOf(option);let next=null;
-   if(event.key==='ArrowDown')next=items[(index+1)%items.length];if(event.key==='ArrowUp')next=items[(index+items.length-1)%items.length];
-   if(event.key==='Home')next=items[0];if(event.key==='End')next=items.at(-1);
-   if(event.key==='Escape'){menu.hidden=true;trigger.setAttribute('aria-expanded','false');trigger.focus();event.preventDefault();return}
-   if(next){event.preventDefault();next.focus()}
-  });options.set(id,option);menu.append(option);}
- picker.append(pickerLabel,trigger,menu);setNetwork(selected);
- trigger.addEventListener('click',()=>{menu.hidden=!menu.hidden;trigger.setAttribute('aria-expanded',String(!menu.hidden));if(!menu.hidden)options.get(selected).focus()});
- trigger.addEventListener('keydown',event=>{if(['ArrowDown','Enter',' '].includes(event.key)){event.preventDefault();menu.hidden=false;trigger.setAttribute('aria-expanded','true');options.get(selected).focus()}});
- document.addEventListener('pointerdown',event=>{if(!picker.contains(event.target)){menu.hidden=true;trigger.setAttribute('aria-expanded','false')}});
+ function setNetwork(id,focus=false){
+  if(!options.has(id))return;
+  selected=id;
+  for(const [key,button] of options)button.setAttribute('aria-pressed',String(key===id));
+  if(focus)options.get(id).focus();
+ }
+ for(const [id,label] of networks){
+  const option=document.createElement('button');option.type='button';option.className='home-network-option';option.dataset.network=id;
+  option.setAttribute('aria-pressed','false');option.setAttribute('aria-label',label);
+  const badge=document.createElement('span');badge.className='home-network-mark';badge.setAttribute('aria-hidden','true');setMark(badge,id);
+  const name=document.createElement('span');name.className='home-network-option-name';name.textContent=id==='robinhood'?'Robinhood':label;
+  option.append(badge,name);
+  option.addEventListener('click',()=>{
+   if(selected===id)return;
+   setNetwork(id);
+   results.replaceChildren();results.hidden=true;
+   state.textContent='Searching '+label+' only. Enter a token name, ticker or exact contract.';
+  });
+  option.addEventListener('keydown',event=>{
+   if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
+   const ids=[...options.keys()],index=ids.indexOf(id);
+   const next=ids[(index+(event.key==='ArrowRight'?1:ids.length-1))%ids.length];
+   event.preventDefault();options.get(next).focus();
+  });
+  options.set(id,option);segments.append(option);
+ }
+ picker.append(pickerLabel,segments);setNetwork('arc');
 
  const form=document.createElement('form');form.className='home-search-form';form.noValidate=true;
  const inputWrap=document.createElement('label');inputWrap.className='home-search-input-wrap';inputWrap.htmlFor='homeSearchQuery';
