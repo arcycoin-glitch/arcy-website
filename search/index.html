@@ -17,7 +17,6 @@ body{margin:0;background:radial-gradient(ellipse at top,#0a2d43 0,transparent 52
 main{max-width:1120px;margin:auto;padding:42px 20px 80px}
 header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:30px}
 h1{display:flex;align-items:center;gap:8px;font-size:clamp(25px,4vw,40px);margin:0;letter-spacing:.05em}
-.brand-owl-mark{display:block;width:38px;height:26px;object-fit:contain;flex:none}
 h1 span{color:#22d4ff}
 .sub{color:#97b1c4;font-size:13px;margin-top:8px}
 .chip{border:1px solid #27546c;color:#b5ebf7;background:#0d2534;padding:8px 12px;border-radius:40px;font-size:12px}
@@ -322,7 +321,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 <main>
 <header>
 <div>
-<h1 class="notranslate" translate="no"><img class="brand-owl-mark" src="/search/assets/arcy-neon-owl.svg" width="38" height="26" alt=""><span class="brand-arcy">ARC<span class="brand-y">Y</span></span><span class="brand-search">SEARCH</span></h1>
+<h1 class="notranslate" translate="no"><span class="brand-arcy">ARC<span class="brand-y">Y</span></span><span class="brand-search">SEARCH</span></h1>
 <div class="sub">ARC + ETHEREUM + ROBINHOOD CHAIN · TOKEN INTELLIGENCE · READ ONLY</div>
 </div>
 </header>
@@ -1248,7 +1247,7 @@ function syncDetailSearchNetwork(){
 $('detailSearchChain').addEventListener('change',()=>{
  syncDetailSearchNetwork();
  $('detailMatches').replaceChildren();$('detailMatches').hidden=true;
- $('detailSearchStatus').textContent='Search on '+NETWORKS[$('detailSearchChain').value].label+' first-party sources.';
+ $('detailSearchStatus').textContent='Search on '+NETWORKS[$('detailSearchChain').value].label+' explorer and issuer sources.';
 });
 for(const button of document.querySelectorAll('#detailNetworkShortcuts [data-detail-chain]')){
  button.addEventListener('click',()=>{
