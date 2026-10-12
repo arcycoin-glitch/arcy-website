@@ -896,36 +896,46 @@ function drawVerifiedChart(data){
 }
 async function loadVerifiedChart(address,network,version){
  if(version!==searchVersion||network!==selected()||location.pathname!==tokenPath(network,address))return;
- ++chartGeneration;
- if(chartController){chartController.abort();chartController=null}
+ const generation=++chartGeneration;
+ if(chartController)chartController.abort();
+ const controller=new AbortController();chartController=controller;
+ const range=activeChartRange;
  clearPriceChart();$('marketLink').hidden=true;
- // Official GeckoTerminal embedded charts are a published embed product.
- // Do not copy, cache, estimate or redistribute provider OHLCV via our API.
- const gtNetwork={arc:'arc',ethereum:'eth'}[network];
- if(!gtNetwork){
-  $('chartNote').textContent='Robinhood Chain: a contract-matched supported pool chart has not been established. No fabricated price history is shown.';
-  return;
- }
- const resolutions={'4H':'15m','1D':'1h','1W':'1d','30D':'1d'};
- const src='https://www.geckoterminal.com/'+gtNetwork+'/tokens/'+address+
-  '?embed=1&info=0&swaps=0&light_chart=0&chart_type=price&resolution='+resolutions[activeChartRange]+'&bg_color=061625';
- const wrap=document.createElement('div');
- wrap.id='officialChartFallback';
- wrap.style.cssText='margin-top:14px;width:100%;min-height:340px;border:1px solid #23475a;border-radius:12px;overflow:hidden;background:#061625';
- const frame=document.createElement('iframe');
- frame.title='GeckoTerminal official pool price chart · '+NETWORKS[network].label;
- frame.loading='lazy';frame.referrerPolicy='no-referrer';
- frame.setAttribute('allow','fullscreen');frame.setAttribute('allowfullscreen','');
- frame.style.cssText='display:block;width:100%;height:390px;border:0;background:#061625';
- frame.src=src;wrap.append(frame);
- $('chartNote').after(wrap);
- const market=$('marketLink');market.hidden=false;
- market.href='https://www.geckoterminal.com/'+gtNetwork+'/tokens/'+address;
- market.textContent='Open GeckoTerminal source chart ↗';
  const kicker=document.querySelector('.chart-kicker');
- if(kicker)kicker.textContent='PRICE HISTORY · GECKOTERMINAL EMBED';
- $('chartNote').textContent='GeckoTerminal official external embed · '+activeChartRange+
-  ' selected ('+resolutions[activeChartRange]+' candle resolution). Displayed viewport is controlled by the provider; values are not ARCY-calculated.';
+ if(kicker)kicker.textContent='SOURCE-MATCHED PRICE DATA';
+ $('chartNote').textContent='Checking verified '+range+' historical pool prices…';
+ try{
+  const url='/api/search?action=chart&'+new URLSearchParams({chain:network,address,range});
+  const response=await fetch(url,{signal:controller.signal,headers:{accept:'application/json'},cache:'no-store'});
+  const data=await response.json().catch(()=>null);
+  if(controller.signal.aborted||generation!==chartGeneration||version!==searchVersion||
+    network!==selected()||location.pathname!==tokenPath(network,address))return;
+  if(!response.ok)throw Error(data?.reason||data?.error||'Historical chart source unavailable.');
+  if(!data||data.ok!==true||data.network!==network||data.chainId!==NETWORKS[network].id||
+     data.address!==address||data.range!==range||data.currency!=='USD'||!Array.isArray(data.points))
+    throw Error('Source did not verify the selected chain, contract or time range.');
+  if(!drawVerifiedChart(data))throw Error('No usable, source-verified OHLCV close series for this range.');
+  if(range==='30D')verifiedDaily30=data;
+  const source=typeof data.sourceUrl==='string'?new URL(data.sourceUrl):null;
+  if(source&&source.protocol==='https:'&&source.hostname==='www.geckoterminal.com'&&
+   /^\/(?:arc|eth|robinhood)\/pools\/0x[0-9a-f]{40,64}$/i.test(source.pathname)){
+   $('marketLink').href=source.href;
+   $('marketLink').textContent='View source-matched market ↗';
+   $('marketLink').hidden=false;
+  }
+  const latest=Number.isSafeInteger(data.lastCandleTime)?new Date(data.lastCandleTime*1000).toISOString().slice(0,16).replace('T',' ')+' UTC':'unknown';
+  $('chartNote').textContent=(data.source||'Verified market source')+' · '+data.points.length+
+   ' source-backed USD pool closes · One contract-matched pool · Latest candle: '+latest+
+   ' · Not market-wide or an execution quote.';
+ }catch(error){
+  if(controller.signal.aborted||generation!==chartGeneration||version!==searchVersion)return;
+  clearPriceChart();
+  $('chartNote').textContent='Premium historical chart temporarily unavailable · '+range+
+    '. '+String(error.message||'Source unavailable').slice(0,180)+
+    ' We never draw estimated or invented prices.';
+ }finally{
+  if(chartController===controller)chartController=null;
+ }
 }
 function renderQuickFacts(report){
  // Buyer-priority headline facts: use verified-by-source values, never blank
