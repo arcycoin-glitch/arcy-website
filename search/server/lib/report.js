@@ -44,7 +44,13 @@ function mechanicsCard(controls,securityData={}){
 }
 async function build(address){
  const t=await inspectToken(address);
- const [marketResult,controlResult,holderResult,circulatingResult,securityResult]=await Promise.allSettled([market.inspect(t.address),control.inspect(t.address,t.block),holdersSource.inspect(t.address,t.block,t.totalSupplyRaw),circulation.inspect(t.address,t.fields.totalSupply.value),security.inspect('ethereum',t.address)]);
+ const [marketResult,controlResult,holderResult,circulatingResult,securityResult,goPlusHolderResult]=await Promise.allSettled([
+  market.inspect(t.address),control.inspect(t.address,t.block),
+  holdersSource.inspect(t.address,t.block,t.totalSupplyRaw),
+  circulation.inspect(t.address,t.fields.totalSupply.value),
+  security.inspect('ethereum',t.address),
+  security.inspectHolders('ethereum',t.address)
+ ]);
  const m=marketResult.status==='fulfilled'?marketResult.value:market.failure(marketResult.reason);
  const c=controlResult.status==='fulfilled'?controlResult.value:control.failure(controlResult.reason);
  const h=holderResult.status==='fulfilled'?holderResult.value:holdersSource.blank('Holder provider request failed.','SOURCE_API_FAILED');
@@ -57,7 +63,15 @@ async function build(address){
    burnAddressBalance:onChain(t.fields.burnAddressBalance),
    burnAddressPct:burnAddressPercent(t.totalSupplyRaw,t.burnAddressRaw,t.block,t.address)
  },'Pinned-block on-chain supply and standard burn address balances.');
- const holders=copyFields(h,['holderCount','largestWalletPct','top10Pct','top20Pct'],'Explorer-reported holder count; concentration not asserted without complete rankings.');
+ const goPlusHolders=goPlusHolderResult.status==='fulfilled'?goPlusHolderResult.value:{};
+ const holders=copyFields(h,['holderCount','largestWalletPct','top10Pct','top20Pct'],
+  'Blockscout source-ranked pinned balances where reconciled; GoPlus top-wallet samples are SOURCE_REPORTED only, not on-chain rank proofs.');
+ for(const key of ['holderCount','largestWalletPct','top10Pct']){
+  if(holders.fields[key]?.dataState!=='DATA_FOUND'&&goPlusHolders[key]?.dataState==='DATA_FOUND')
+   holders.fields[key]=goPlusHolders[key];
+ }
+ if(Object.values(holders.fields).some(f=>f.dataState==='DATA_FOUND'))
+  holders.status='PARTIAL_EVIDENCE';
  const liquidity=copyFields(m,['liquidityUsd','volume24h','dexPairCount','lpStatus'],'Exact-matched source-reported market data. LP permissions remain unverified.');
  const activity=copyFields(m,['priceUsd','valuation','change24h','volume24h'],'Primary base-token market values from exact Ethereum pairs; source-reported.');
  const mechanics=mechanicsCard(c,sec);
