@@ -78,7 +78,7 @@
  const state=document.createElement('p');state.className='home-search-state';state.id='homeSearchState';state.setAttribute('role','status');state.setAttribute('aria-live','polite');state.textContent='Exact contracts, source-backed candidates and 20 research checks.';
  const results=document.createElement('div');results.className='home-search-results';results.hidden=true;results.setAttribute('aria-label','Matching tokens');
 
- const attribution=document.createElement('p');attribution.className='home-search-attribution home-market-pending';attribution.textContent='Market data pending commercial-use verification. Contract and source-backed on-chain checks remain available.';
+ const attribution=document.createElement('p');attribution.className='home-search-attribution home-market-pending';attribution.textContent='Market prices, liquidity and volume are source-reported from cited pools and may be incomplete. Unsupported checks remain NOT VERIFIED.';
  const robinhoodNotice=document.createElement('p');robinhoodNotice.className='home-search-disclaimer';robinhoodNotice.textContent='Independent research tool. Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.';
  app.append(brand,intro,picker,form,state,results,attribution,robinhoodNotice);header.after(app);
  document.documentElement.classList.add('search-upgraded');

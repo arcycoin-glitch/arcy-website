@@ -10,6 +10,7 @@ const chains=require('./chains');
 const identities=require('./token-identity');
 const logos=require('./search-logo');
 const explorerDiscovery=require('./discover');
+const dexMarket=require('./dex-market');
 const ethereumAdapter={
  async inspectToken({address}){
   const report=await ethereumReport.build(address);
@@ -50,21 +51,28 @@ async function token({network='ethereum',address}){
    burnAddressPct:supply.fields.burnAddressPct}};
 }
 async function discover({network='ethereum',query}){
- const candidates=network==='robinhood'?await robinhood.discover({query}):[];
- let indexed=[],providerError=false;
- try{indexed=await explorerDiscovery.searchExplorer(network,query)}catch(error){providerError=true;console.warn('Explorer discovery unavailable:',String(error?.code||error?.name||'UNKNOWN').slice(0,64));}
- // Issuer-curated Arc/Ethereum addresses and the first-party Robinhood asset
- // registry remain searchable; no market-data catalog is queried.
+ chains.chain(network);
+ // Providers are independent; Blockscout 403 or an unavailable official
+ // registry must not blank other verified/source-scoped search candidates.
+ const [registry,indexed,dexSearch]=await Promise.allSettled([
+  network==='robinhood'?robinhood.discover({query}):Promise.resolve([]),
+  explorerDiscovery.searchExplorer(network,query),
+  dexMarket.discover(network,query)
+ ]);
+ const providers=[
+  {name:'Robinhood official registry',response:registry},
+  {name:'Blockscout explorer index',response:indexed},
+  {name:'DEX Screener exact-chain pair index',response:dexSearch}
+ ];
+ const errors=providers.filter(p=>p.response.status==='rejected').map(p=>p.name);
+ const candidates=providers.flatMap(p=>p.response.status==='fulfilled'&&Array.isArray(p.response.value)?
+  p.response.value:[]);
  const ranked=identities.rank(network,query,candidates);
- const verified=await logos.enhance(network,ranked);
- const seen=new Set(verified.map(item=>String(item.address||'').toLowerCase()));
- const matches=[...verified];
- for(const item of indexed){if(seen.has(item.address))continue;seen.add(item.address);
-  matches.push({...item,identity:{status:'NOT_VERIFIED'},identityVerified:false,logoUrl:null});
-  if(matches.length>=24)break;
- }
+ const matches=await logos.enhance(network,ranked);
  return {ok:true,query,chainId:chains.chain(network).chainId,network,
-  matches,source:'First-party issuer/asset registries and network explorer index',providerError,
-  note:'Official contract matches require an exact chain+address match to first-party sources. Other search results remain NOT VERIFIED; contract identity does not establish investment safety.'};
+  matches,source:'Issuer/Robinhood registries, explorer and DEX Screener source-scoped candidates',
+  providerError:errors.length>0,unavailableSources:errors,
+  note:'Official contract matches require exact chain+address identity. DEX pools and explorer names are NOT VERIFIED issuer identities. Names, logos and market activity do not establish investment safety.'};
 }
+
 module.exports={parseChain,report,token,discover,engine};

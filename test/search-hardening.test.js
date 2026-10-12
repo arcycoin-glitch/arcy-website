@@ -112,8 +112,12 @@ test('Search health describes all three deployed networks without claiming upstr
  assert.equal(ok.body.expectedCards,5);
  assert.equal(ok.body.expectedMetrics,20);
  assert.ok(ok.body.capabilities.includes('chart-ui'));
- assert.ok(ok.body.disabledProviders.includes('GeckoTerminal API'));
- assert.equal(ok.body.marketDataState,'PENDING_COMMERCIAL_USE_VERIFICATION');
+ assert.ok(ok.body.disabledProviders.includes('GeckoTerminal raw OHLCV API'));
+ assert.ok(!ok.body.disabledProviders.includes('DEX Screener API'));
+ assert.ok(ok.body.marketSources.some(x=>x.includes('DEX Screener')));
+ assert.ok(ok.body.marketSources.some(x=>x.includes('GoPlus Security')));
+ assert.equal(ok.body.marketDataState,'CONTRACT_SCOPED_SOURCE_REPORTED');
+ assert.equal(ok.body.chartDataState,'OFFICIAL_PROVIDER_IFRAME_ONLY');
  assert.match(ok.body.note,/Liveness only/);
  const rejected=res();
  await route({method:'POST',query:{action:'health'}},rejected);

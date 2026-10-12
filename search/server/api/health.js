@@ -14,9 +14,12 @@ module.exports=function health(req,res){
   networks,chainIds:networks.map(name=>CHAIN_CONFIG[name].chainId),
   expectedCards:schema.length,expectedMetrics:schema.reduce((sum,c)=>sum+c.fields.length,0),
   capabilities:['health','token','report','discover','chart-ui'],
-  marketSources:['read-only chain RPC','official issuer/asset registries'],
-  disabledProviders:['CoinGecko API','DEX Screener API','GeckoTerminal API'],
-  marketDataState:'PENDING_COMMERCIAL_USE_VERIFICATION',
-  note:'Liveness only. Contract evidence is on-chain or first-party; market values and candles are withheld until provider rights are verified.'
+  marketSources:['read-only chain RPC','official issuer/asset registries',
+   'DEX Screener compact source-reported Ethereum/Robinhood pool observations',
+   'GoPlus Security detection observations'],
+  disabledProviders:['CoinGecko circulating-supply API','GeckoTerminal raw OHLCV API'],
+  marketDataState:'CONTRACT_SCOPED_SOURCE_REPORTED',
+  chartDataState:'OFFICIAL_PROVIDER_IFRAME_ONLY',
+  note:'Liveness only. DEX price/liquidity and GoPlus checks are provider-reported, not on-chain verified; raw historical candles and unsupported metrics are withheld. This endpoint does not prove live provider availability.'
  });
 };

@@ -64,11 +64,20 @@ async function holder({address}){
   top10Pct:NO('No complete pinned-block holder ranking with supply reconciliation.'),
   top20Pct:NO('No complete pinned-block holder ranking with supply reconciliation.')
  };
- const count=await require('./robinhood-holder-count').fetchCount(address);
+ const [count,reported]=await Promise.all([
+  require('./robinhood-holder-count').fetchCount(address),
+  require('./goplus-evidence').inspectHolders('robinhood',address)
+ ]);
  if(count)fields.holderCount=count;
- return {description:count?
-  'Contract-matched current explorer holder count; whale percentages need a complete reconciled snapshot.':
-  'No verifiable holder population; whale concentration is NOT VERIFIED.',fields};
+ else if(reported.holderCount?.dataState==='DATA_FOUND')
+  fields.holderCount=reported.holderCount;
+ for(const key of ['largestWalletPct','top10Pct']){
+  if(reported[key]?.dataState==='DATA_FOUND')fields[key]=reported[key];
+ }
+ const sourceRank=fields.top10Pct.dataState==='DATA_FOUND';
+ return {description:sourceRank?
+  'GoPlus source-reported top-wallet sample, not a complete pinned-chain ranking. Contract-matched holder counts may come from Blockscout or GoPlus. Top 20 remains NOT VERIFIED.':
+  'Holder count is source-reported where available; complete whale concentration is NOT VERIFIED.',fields};
 }
 async function activity({address},cardId){
  const fields=await inspectMarket(address);
@@ -84,19 +93,25 @@ function addressOf(word){
 async function mechanics({address,base}){
  const result=await Promise.allSettled([
   rpc('eth_call',[{to:address,data:'0x8da5cb5b'},base.block]),
-  rpc('eth_getStorageAt',[address,PROXY,base.block])
+  rpc('eth_getStorageAt',[address,PROXY,base.block]),
+  require('./goplus-evidence').inspect('robinhood',address)
  ]);
  const owner=result[0].status==='fulfilled'?addressOf(result[0].value):null;
  const implementation=result[1].status==='fulfilled'?addressOf(result[1].value):null;
+ const observed=result[2].status==='fulfilled'?result[2].value:{};
  const proof={address,block:base.block};
- return {description:'Read-only contract getter/storage signals, not a complete privilege audit.',
+ return {description:'On-chain getters and chain-specific GoPlus security observations; not a complete privilege or upgradeability audit.',
   fields:{
-   tradingTaxes:NO('No verified Robinhood chain-specific trading-tax provider.'),
-   mintCapability:NO('Mint ability cannot be proven by an absent getter or unsupported source.'),
+   tradingTaxes:observed.tradingTaxes?.dataState==='DATA_FOUND'?observed.tradingTaxes:
+    NO('No contract-matched trading-tax report.'),
+   mintCapability:observed.mintCapability?.dataState==='DATA_FOUND'?observed.mintCapability:
+    NO('Mint permission is unverified; absent getter does not prove no minting.'),
    ownerAdmin:owner?evidence('owner() getter: '+owner,'Robinhood RPC',{...proof,method:'owner()'},'GETTER_REPORTED'):
-    NO('Owner getter unavailable; absence does not prove renouncement.'),
+    observed.ownerAdmin?.dataState==='DATA_FOUND'?observed.ownerAdmin:
+    NO('No source-confirmed owner/admin model; absence of owner getter does not prove renouncement.'),
    contractArchitecture:implementation?evidence('EIP-1967 implementation: '+implementation,'Robinhood RPC',{
     ...proof,method:'EIP-1967 implementation storage',scope:'Does not prove all upgrade permissions.'},'ON_CHAIN'):
+    observed.contractArchitecture?.dataState==='DATA_FOUND'?observed.contractArchitecture:
     NO('EIP-1967 implementation not established; other proxy designs may exist.')
   }};
 }

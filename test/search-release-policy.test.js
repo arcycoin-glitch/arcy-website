@@ -2,9 +2,9 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 
-test('Search market cards fail closed while provider rights are pending',async()=>{
+test('Search external source failures fail closed, and no unsupported market numbers are invented',async()=>{
  const original=global.fetch;let requests=0;
- global.fetch=async()=>{requests++;throw Error('Market provider must remain disabled')};
+ global.fetch=async()=>{requests++;throw Error('Simulated market provider outage')};
  try{
   for(const adapter of [
    require('../search/server/lib/market'),
@@ -15,10 +15,10 @@ test('Search market cards fail closed while provider rights are pending',async()
    const fields=result.fields||result;
    for(const key of ['priceUsd','valuation','liquidityUsd','volume24h']){
     assert.equal(fields[key].value,null);
-    assert.equal(fields[key].reasonCode,'PROVIDER_DISABLED_LICENSE_UNVERIFIED');
+    assert.ok(['PROVIDER_DISABLED_LICENSE_UNVERIFIED','DEXSCREENER_SOURCE_UNAVAILABLE'].includes(fields[key].reasonCode));
    }
   }
-  assert.equal(requests,0);
+  assert.equal(requests,2); // Ethereum and Robinhood each attempt one market source; Arc remains gated.
  }finally{global.fetch=original}
 });
 
@@ -40,7 +40,11 @@ test('Chart API keeps range validation and returns a sourced-data-pending status
 
 test('Official Arc and Ethereum search survives blocked network explorers without false verification',async()=>{
  const original=global.fetch;let requests=0;
- global.fetch=async url=>{requests++;assert.match(String(url),/\/api\/v2\/search\?q=/);return {ok:false,status:403}};
+ global.fetch=async url=>{
+  requests++;
+  assert.ok(/\/api\/v2\/search\?q=|\/latest\/dex\/search\?q=/.test(String(url)));
+  return {ok:false,status:403};
+ };
  try{
   const service=require('../search/server/lib/multichain-service');
   const arc=await service.discover({network:'arc',query:'ARCY'});
@@ -48,7 +52,7 @@ test('Official Arc and Ethereum search survives blocked network explorers withou
   assert.equal(arc.matches[0].address,'0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b');
   assert.equal(arc.matches[0].identity.status,'OFFICIAL_CONTRACT_MATCHED');
   assert.ok(eth.matches.some(x=>x.symbol==='USDC'&&x.identity.status==='OFFICIAL_CONTRACT_MATCHED'));
-  assert.equal(requests,2);
+  assert.equal(requests,4); // Two independent discovery sources per chain.
   assert.equal(arc.providerError,true);
   assert.equal(eth.providerError,true);
  }finally{global.fetch=original}
