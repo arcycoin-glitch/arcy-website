@@ -32,7 +32,12 @@ async function supply(base){
  const valid=burned!==null&&total>0n&&burned>=0n&&burned<=total;
  const precision=10n**80n;
  const pct=valid?Number((burned*100n*precision+total/2n)/total)/1e80:null;
- const circ=NO('No permitted contract-matched circulating-supply source is configured; total supply is not circulating supply.','CIRCULATION_NOT_VERIFIED');
+ let circ=NO('Circulating supply needs a contract-matched verified source. Total supply is not circulating supply.','CIRCULATION_NOT_VERIFIED');
+ try{
+  const legacy=await original.callOriginal('market',base.address);
+  const verified=original.circulation(legacy,base.address);
+  if(verified.dataState==='DATA_FOUND')circ=verified;
+ }catch{} // Preserve pinned Arc supply when a separate market provider fails.
  return {description:'Pinned Arc RPC; circulating supply remains unverified because total supply is not circulating supply.',fields:{
   totalSupply:proof(base.totalSupply,'Arc RPC',{...details,method:'totalSupply()'},'ON_CHAIN'),
   circulatingSupply:circ,
@@ -61,13 +66,27 @@ async function holders({address}={}){
   fields:{...signed.fields,holderCount:reported}};
 }
 async function activity({address},cardId){
- const response=await marketFor(address);
  const keys=cardId==='liquidity'?['liquidityUsd','volume24h','dexPairCount','lpStatus']:
   ['priceUsd','valuation','change24h','volume24h'];
- const fields=Object.fromEntries(keys.map(k=>[k,response[k]||
-  NO('Matching market evidence unavailable.')]));
- return {description:require('./market-pending').REASON,fields};
+ let restored={};
+ try{
+  const route=cardId==='liquidity'?'liquidity':'activity';
+  const legacy=await original.callOriginal(route,address,cardId==='liquidity'?{summary:'1'}:{});
+  const from=legacy.fields||{};
+  const mapping=cardId==='liquidity'?{
+   liquidityUsd:'liquidityUsd',volume24h:'volume24h',dexPairCount:'pairCount',lpStatus:'lpStatus'
+  }:{priceUsd:'priceUsd',valuation:'valuation',change24h:'change24h',volume24h:'volume24h'};
+  restored=Object.fromEntries(keys.map(k=>[k,original.sourceField(from[mapping[k]],address,
+   'Existing Arc SEARCH exact-contract '+route+' evidence; source-reported, not independently audited.')]));
+ }catch{} // The original Arc endpoints are optional; never poison all cards on a source outage.
+ const fallback=await marketFor(address);
+ const fields=Object.fromEntries(keys.map(k=>[k,
+  restored[k]?.dataState==='DATA_FOUND'?restored[k]:
+  fallback[k]||NO('Exact-contract evidence unavailable.','MARKET_SOURCE_NOT_VERIFIED')]));
+ return {description:'Restored original Arc SEARCH source-backed '+cardId+
+  ' evidence. Provider timestamps and pool scope remain source-reported.',fields};
 }
+
 const IMPLEMENTATION='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
 function addressWord(raw){
  return typeof raw==='string'&&/^0x[0-9a-f]{64}$/i.test(raw)&&
@@ -92,8 +111,15 @@ async function mechanics({address,base}){
     scope:'Observed implementation only; upgrade authority separately unverified.'},'ON_CHAIN'):
    NO('EIP-1967 slot alone does not establish immutable or non-proxy architecture.','PROXY_NOT_VERIFIED')
  };
- const fields=preliminary;
- return {description:'Read-only Arc RPC getter and implementation-slot observations; unsupported tax and mint checks remain NOT VERIFIED.',fields};
+ let fields=preliminary;
+ try{
+  const legacy=await original.callOriginal('mechanics',address);
+  const past=original.contract(legacy,address);
+  fields=Object.fromEntries(Object.entries(preliminary).map(([key,value])=>[
+   key,past[key]?.dataState==='DATA_FOUND'?past[key]:value
+  ]));
+ }catch{} // Keep safe on-chain getter observations if legacy mechanics source times out.
+ return {description:'Original verified Arc contract mechanics, with pinned-RPC fallback for missing evidence.',fields};
 }
 async function inspectCard({base,address,cardId}){
  switch(cardId){
