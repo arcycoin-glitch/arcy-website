@@ -5,7 +5,7 @@ const market=require('./market');
 const control=require('./control');
 const holdersSource=require('./holders');
 const circulation=require('./circulating');
-const security=require('./security');
+const security=require('./goplus-evidence');
 const schema=require('../schema');
 function unavailable(description,fields){
  return evidence.card(Object.fromEntries(fields.map(([key,reason])=>[key,evidence.unknown(reason)])),description);
@@ -27,22 +27,24 @@ function mechanicsCard(controls,securityData={}){
  const proxy=controls.fields?.proxyImplementation;
  const ownerAdmin=owner?.dataState==='DATA_FOUND'
    ?{...owner,value:'owner() getter: '+owner.value,scope:'Getter-reported only. Does not prove the complete contract admin role model.'}
-   :evidence.unknown('Owner/admin authority cannot be established from a missing getter. Role/implementation inspection needed.','OWNER_ADMIN_NOT_VERIFIED');
+   :securityData.ownerAdmin?.dataState==='DATA_FOUND'?securityData.ownerAdmin:
+    evidence.unknown('Owner/admin authority cannot be established from a missing getter. Role/implementation inspection needed.','OWNER_ADMIN_NOT_VERIFIED');
  const contractArchitecture=proxy?.dataState==='DATA_FOUND'
    ?{...proxy,value:'EIP-1967 implementation: '+proxy.value,scope:'An implementation slot is populated; verify admin, beacon, UUPS and delegatecall behavior separately.'}
-   :evidence.unknown('No EIP-1967 implementation established; absence does not prove non-upgradeability.','ARCHITECTURE_NOT_VERIFIED');
+   :securityData.contractArchitecture?.dataState==='DATA_FOUND'?securityData.contractArchitecture:
+    evidence.unknown('No EIP-1967 implementation established; absence does not prove non-upgradeability.','ARCHITECTURE_NOT_VERIFIED');
  const result=evidence.card({
-   tradingTaxes:securityData.taxes||evidence.unknown('No contract-matched source fee observation.','TRADING_TAXES_NOT_VERIFIED'),
-   mintCapability:securityData.mint||evidence.unknown('Mint authority requires a verified source observation.','MINT_CAPABILITY_NOT_VERIFIED'),
+   tradingTaxes:securityData.tradingTaxes||securityData.taxes||evidence.unknown('No contract-matched source fee observation.','TRADING_TAXES_NOT_VERIFIED'),
+   mintCapability:securityData.mintCapability||securityData.mint||evidence.unknown('Mint authority requires a verified source observation.','MINT_CAPABILITY_NOT_VERIFIED'),
    ownerAdmin,
    contractArchitecture
- },'Four production fields. Reports only confirmed getter/storage evidence, not inferred privileges.');
+ },'Pinned getter/storage evidence with separately labelled GoPlus source-reported detections. No claim of complete role or authority enumeration.');
  result.controlEvidence=controls.fields;
  return result;
 }
 async function build(address){
  const t=await inspectToken(address);
- const [marketResult,controlResult,holderResult,circulatingResult,securityResult]=await Promise.allSettled([market.inspect(t.address),control.inspect(t.address,t.block),holdersSource.inspect(t.address,t.block,t.totalSupplyRaw),circulation.inspect(t.address,t.fields.totalSupply.value),security.inspect(t.address)]);
+ const [marketResult,controlResult,holderResult,circulatingResult,securityResult]=await Promise.allSettled([market.inspect(t.address),control.inspect(t.address,t.block),holdersSource.inspect(t.address,t.block,t.totalSupplyRaw),circulation.inspect(t.address,t.fields.totalSupply.value),security.inspect('ethereum',t.address)]);
  const m=marketResult.status==='fulfilled'?marketResult.value:market.failure(marketResult.reason);
  const c=controlResult.status==='fulfilled'?controlResult.value:control.failure(controlResult.reason);
  const h=holderResult.status==='fulfilled'?holderResult.value:holdersSource.blank('Holder provider request failed.','SOURCE_API_FAILED');
