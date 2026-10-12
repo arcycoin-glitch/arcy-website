@@ -375,6 +375,20 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
       <span id="shareStatus" role="status" aria-live="polite"></span>
     </div>
   </div>
+  <section class="detail-discover-panel" aria-label="Search another token">
+    <div class="detail-discover-header">
+      <img class="detail-discover-owl" src="/search/assets/arcy-owl-reference.webp" width="96" height="65" alt="" decoding="async">
+      <div class="detail-discover-copy">
+        <span class="detail-discover-kicker">ARCY SEARCH · RESEARCH CONTINUES</span>
+        <h2>Explore another token</h2>
+        <p>Switch networks or scan a new contract without leaving this report.</p>
+      </div>
+    </div>
+    <div id="detailNetworkShortcuts" class="detail-network-shortcuts" role="group" aria-label="Choose a token search network">
+      <button type="button" data-detail-chain="arc" aria-pressed="false">Arc</button>
+      <button type="button" data-detail-chain="ethereum" aria-pressed="false">Ethereum</button>
+      <button type="button" data-detail-chain="robinhood" aria-pressed="false">Robinhood Chain</button>
+    </div>
   <form id="detailSearchForm" class="detail-search" role="search" aria-label="Search another token">
     <label class="detail-search-network" for="detailSearchChain"><span>NETWORK</span>
       <select id="detailSearchChain" name="chain" aria-label="Search network">
@@ -388,6 +402,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
   </form>
   <p id="detailSearchStatus" class="detail-search-status" role="status" aria-live="polite">Search without leaving this analysis.</p>
   <div id="detailMatches" class="detail-matches" hidden aria-label="Matching tokens"></div>
+  </section>
   <div class="detail-hero">
     <div class="detail-kicker">INDEPENDENT TOKEN RESEARCH · READ ONLY</div>
     <div id="asset"></div>
@@ -709,7 +724,7 @@ function activateDetail(address,network,{push=true,identity=null,logoUrl=null}={
  const canonical=tokenPath(network,address);
  if(push&&location.pathname!==canonical)history.pushState({},'',canonical);
  setNetwork(network,{notify:false});
- $('detailSearchChain').value=network;
+ $('detailSearchChain').value=network;syncDetailSearchNetwork();
  $('detailSearchQuery').value='';$('detailMatches').replaceChildren();$('detailMatches').hidden=true;
  $('detailSearchStatus').textContent='Search without leaving this analysis.';
  $('discovery').hidden=true;$('tokenDetail').hidden=false;
@@ -1229,7 +1244,24 @@ $('chartRanges').addEventListener('click',event=>{
 $('chain').addEventListener('change',chainChanged);
 $('go').addEventListener('click',searchOrScan);
 $('detailSearchForm').addEventListener('submit',searchFromDetail);
-$('detailSearchChain').addEventListener('change',()=>{$('detailMatches').replaceChildren();$('detailMatches').hidden=true;$('detailSearchStatus').textContent='Search on '+NETWORKS[$('detailSearchChain').value].label+' first-party sources.'});
+function syncDetailSearchNetwork(){
+ const network=$('detailSearchChain').value;
+ for(const button of document.querySelectorAll('#detailNetworkShortcuts [data-detail-chain]')){
+  button.setAttribute('aria-pressed',String(button.dataset.detailChain===network));
+ }
+}
+$('detailSearchChain').addEventListener('change',()=>{
+ syncDetailSearchNetwork();
+ $('detailMatches').replaceChildren();$('detailMatches').hidden=true;
+ $('detailSearchStatus').textContent='Search on '+NETWORKS[$('detailSearchChain').value].label+' first-party sources.';
+});
+for(const button of document.querySelectorAll('#detailNetworkShortcuts [data-detail-chain]')){
+ button.addEventListener('click',()=>{
+  $('detailSearchChain').value=button.dataset.detailChain;
+  $('detailSearchChain').dispatchEvent(new Event('change',{bubbles:true}));
+  $('detailSearchQuery').focus();
+ });
+}
 $('address').addEventListener('keydown',event=>{if(event.key==='Enter')void searchOrScan()});
 $('address').addEventListener('input',()=>{cancelPending();clearMatches();$('asset').replaceChildren();clearIdentity();render(null)});
  $('backSearch').addEventListener('click',()=>location.assign('/#search'));
