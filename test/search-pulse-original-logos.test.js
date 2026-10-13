@@ -137,7 +137,7 @@ test('GitHub site navigation is deduplicated to one footer icon',()=>{
  const home=fs.readFileSync(require.resolve('../search-upgrade.js'),'utf8');
  const css=fs.readFileSync(require.resolve('../search-upgrade.css'),'utf8');
  const detail=fs.readFileSync(require.resolve('../search/index.html'),'utf8');
- assert.match(home,/footerSocial\.querySelector\('a\[href="'\+githubHref\+'"\]'\)/);
+ assert.match(home,/const footerGitHub=footerSocial\?\.querySelector/);
  assert.match(home,/footerGitHub\.setAttribute\('aria-label','GitHub'\)/);
  assert.match(home,/if\(link!==footerGitHub\)link\.remove\(\)/);
  assert.match(css,/\.nav #siteLinks > a\.nav-github\{display:none!important\}/);
