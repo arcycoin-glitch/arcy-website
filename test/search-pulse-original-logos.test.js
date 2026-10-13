@@ -131,3 +131,15 @@ test('playing owl video is visible without doubling the still image or square ma
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(js,/\['pause','waiting','stalled','ended'\]/);
 });
+
+/* Site-chrome GitHub appears only as the footer social icon; sources are retained. */
+test('GitHub site navigation is deduplicated to one footer icon',()=>{
+ const home=fs.readFileSync(require.resolve('../search-upgrade.js'),'utf8');
+ const css=fs.readFileSync(require.resolve('../search-upgrade.css'),'utf8');
+ const detail=fs.readFileSync(require.resolve('../search/index.html'),'utf8');
+ assert.match(home,/footerSocial\.querySelector\('a\[href="'\+githubHref\+'"\]'\)/);
+ assert.match(home,/footerGitHub\.setAttribute\('aria-label','GitHub'\)/);
+ assert.match(home,/if\(link!==footerGitHub\)link\.remove\(\)/);
+ assert.match(css,/\.nav #siteLinks > a\.nav-github\{display:none!important\}/);
+ assert.doesNotMatch(detail,/class="detail-github"/);
+});
