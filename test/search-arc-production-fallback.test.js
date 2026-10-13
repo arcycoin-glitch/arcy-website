@@ -2,6 +2,8 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const arc=require('../search/server/lib/arc-rpc');
+const legacy=require('../search/server/lib/arc-legacy-evidence');
+async function withoutRemoteMarket(fn){const old=legacy.callOriginal;try{legacy.callOriginal=async()=>{throw Error('Offline fixture')};return await fn()}finally{legacy.callOriginal=old}}
 const A='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
 const ZERO='0x0000000000000000000000000000000000000000';
 const DEAD='0x000000000000000000000000000000000000dead';
@@ -35,7 +37,7 @@ test('original Arc fallback returns five-card compatible, chain-pinned source fi
  assert.equal(v.token.decimals,2);assert.equal(v.token.name,null);
  assert.equal(v.rpcFallback,'ORIGINAL_ARC_READ_ONLY_PINNED_RPC');
  assert.ok(m.calls.slice(1).every(x=>x[1]==='0x2a'));
- const card=await require('../search/server/lib/arc-adapter').supply(v);
+ const card=await withoutRemoteMarket(()=>require('../search/server/lib/arc-adapter').supply(v));
  assert.equal(card.fields.totalSupply.dataState,'DATA_FOUND');
  assert.equal(card.fields.burnAddressBalance.dataState,'DATA_FOUND');
  assert.equal(card.fields.burnAddressPct.dataState,'DATA_FOUND');
@@ -53,7 +55,7 @@ test('Arc fallback with malformed burn evidence does not manufacture a burn valu
  const result=await arc.inspectUsingLegacyCore(A,{core:tooLarge.core});
  assert.equal(result.burnAddressBalance,null);
  assert.equal(result.burnAddressRaw,null);
- const card=await require('../search/server/lib/arc-adapter').supply(result);
+ const card=await withoutRemoteMarket(()=>require('../search/server/lib/arc-adapter').supply(result));
  assert.equal(card.fields.burnAddressBalance.dataState,'NOT_VERIFIED');
  assert.equal(card.fields.burnAddressPct.dataState,'NOT_VERIFIED');
 });
