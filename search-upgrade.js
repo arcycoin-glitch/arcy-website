@@ -21,6 +21,20 @@
    navGitHub.remove();
   }
  }
+ // Preserve the dated, six-section historical issue in the existing Pulse archive slot.
+ // The signed automated feed's older edition endpoint currently returns 404:
+ // never send visitors to that broken link or mislabel October 2026 editorial content as current.
+ const historicalArchive=document.getElementById('pulseArchive');
+ if(historicalArchive){
+  const fixHistoricalLink=()=>{
+   if(historicalArchive.href!==location.origin+'/pulse/003.html')historicalArchive.href='/pulse/003.html';
+   if(historicalArchive.hidden)historicalArchive.hidden=false;
+   const label='ARCHIVED PULSE #003 · 5–11 OCT 2026';
+   if(historicalArchive.textContent!==label)historicalArchive.textContent=label;
+  };
+  fixHistoricalLink();
+  new MutationObserver(fixHistoricalLink).observe(historicalArchive,{attributes:true,attributeFilter:['href','hidden'],childList:true});
+ }
  if(!section||!header||section.querySelector('.home-search'))return;
 
  const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
@@ -78,7 +92,7 @@
  const state=document.createElement('p');state.className='home-search-state';state.id='homeSearchState';state.setAttribute('role','status');state.setAttribute('aria-live','polite');state.textContent='Exact contracts, source-backed candidates and 20 research checks.';
  const results=document.createElement('div');results.className='home-search-results';results.hidden=true;results.setAttribute('aria-label','Matching tokens');
 
- const attribution=document.createElement('p');attribution.className='home-search-attribution home-market-pending';attribution.textContent='Market prices, liquidity and volume are source-reported from cited pools and may be incomplete. Unsupported checks remain NOT VERIFIED.';
+ const attribution=document.createElement('p');attribution.className='home-search-attribution home-market-pending';attribution.textContent='When enabled, market prices, liquidity and volume are source-reported from cited pools and may be incomplete. Unsupported checks remain NOT VERIFIED.';
  const robinhoodNotice=document.createElement('p');robinhoodNotice.className='home-search-disclaimer';robinhoodNotice.textContent='Independent research tool. Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.';
  app.append(brand,intro,picker,form,state,results,attribution,robinhoodNotice);header.after(app);
  document.documentElement.classList.add('search-upgraded');

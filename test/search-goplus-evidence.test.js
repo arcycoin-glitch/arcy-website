@@ -4,7 +4,7 @@ const gp=require('../search/server/lib/goplus-evidence');
 const eth='0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 const tsla='0x322f0929c4625ed5bad873c95208d54e1c003b2d';
 function response(network,address,flags){
- const id=network==='ethereum'?1:4663;
+ const id=network==='ethereum'?1:network==='arc'?5042:4663;
  return {code:1,result:{[address]:flags},message:'OK',chainId:id};
 }
 test('Ethereum partial fee report does not invent a missing transfer tax',()=>{
@@ -44,8 +44,29 @@ test('Unknown proxy and mint fields remain unknown; zero owner is not renounceme
  assert.match(f.ownerAdmin.value,/other roles unverified/);
  assert.equal(f.mintCapability.value,null);
 });
-test('Only Ethereum and Robinhood are admitted; Arc verified tax claims cannot be overwritten',async()=>{
- assert.rejects(()=>gp.inspect('arc',eth),/Invalid security network/);
+test('GoPlus Arc 5042 has a separate exact-contract source scope',async()=>{
+ const arcy='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
+ const official=response('arc',arcy,{buy_tax:'0',sell_tax:'0',holder_count:'37'});
+ const fees=gp.parse(official,'arc',arcy);
+ assert.equal(fees.tradingTaxes.dataState,'DATA_FOUND');
+ assert.equal(fees.tradingTaxes.chainId,5042);
+ assert.equal(fees.tradingTaxes.status,'SOURCE_REPORTED');
+ const count=gp.parseHolders(official,'arc',arcy).holderCount;
+ assert.equal(count.value,37);
+ assert.equal(count.source,'GoPlus Security');
+ const wrong=gp.parse(official,'ethereum',arcy);
+ assert.equal(wrong.tradingTaxes.dataState,'NOT_VERIFIED');
+ const inspected=await gp.inspectHolders('arc',arcy,{fetcher:async url=>{
+  assert.equal(String(url),'https://api.gopluslabs.io/api/v1/token_security/5042?contract_addresses='+arcy);
+  return new Response(JSON.stringify(official),{status:200});
+ }});
+ assert.equal(inspected.holderCount.value,37);
+ assert.equal(inspected.top20Pct.dataState,'NOT_VERIFIED');
+});
+test('Arc mechanics cannot replace strong first-party ARCY 3/3 taxes with conflicting GoPlus 0/0',()=>{
+ const source=require('node:fs').readFileSync(require('node:path').join(__dirname,'../search/server/lib/arc-adapter.js'),'utf8');
+ assert.match(source,/existing.dataState==='DATA_FOUND'\?existing:/);
+ assert.match(source,/isARCY&&key==='tradingTaxes'\?existing:/);
 });
 test('Upstream 403 cannot produce any fabricated fee or owner values',async()=>{
  const f=await gp.inspect('robinhood',tsla,{fetcher:async()=>({ok:false,status:403})});
@@ -57,6 +78,30 @@ test('Correct GoPlus chain and contract used for Robinhood',async()=>{
  const f=await gp.inspect('robinhood',tsla,{fetcher});
  assert.equal(u,'https://api.gopluslabs.io/api/v1/token_security/4663?contract_addresses='+tsla);
  assert.equal(f.contractArchitecture.chainId,4663);
+});
+
+test('Production GoPlus requests fail closed until written permission and required attribution are approved',async()=>{
+ const names=['VERCEL','VERCEL_ENV','GOPLUS_PUBLIC_DISPLAY_APPROVED'];
+ const prior=Object.fromEntries(names.map(name=>[name,process.env[name]]));
+ let calls=0;
+ try{
+  process.env.VERCEL='1';process.env.VERCEL_ENV='production';delete process.env.GOPLUS_PUBLIC_DISPLAY_APPROVED;
+  const security=await gp.inspect('arc','0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b',{fetcher:async()=>{calls++;throw Error('must not call provider')}});
+  const holders=await gp.inspectHolders('arc','0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b',{fetcher:async()=>{calls++;throw Error('must not call provider')}});
+  assert.equal(calls,0);
+  for(const field of [...Object.values(security),...Object.values(holders)]){
+   assert.equal(field.dataState,'NOT_VERIFIED');
+   assert.equal(field.reasonCode,'PROVIDER_DISABLED_LICENSE_UNVERIFIED');
+  }
+  process.env.GOPLUS_PUBLIC_DISPLAY_APPROVED='true';
+  assert.equal(gp.productionUseAllowed(),true);
+  const enabled=await gp.inspect('robinhood',tsla,{fetcher:async()=>{
+   calls++;return new Response(JSON.stringify(response('robinhood',tsla,{is_proxy:'1'})),{status:200});
+  }});
+  assert.equal(calls,1);assert.equal(enabled.contractArchitecture.dataState,'DATA_FOUND');
+ }finally{
+  for(const name of names){if(prior[name]===undefined)delete process.env[name];else process.env[name]=prior[name]}
+ }
 });
 
 test('GoPlus holder proportions are fractions and top-10 is clearly source reported',()=>{

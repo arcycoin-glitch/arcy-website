@@ -14,8 +14,8 @@ circulating supply is permitted.
 
 | Network | Field family | Primary evidence | Limitations |
 | --- | --- | --- | --- |
-| Arc (5042) | Supply & contract | Arc RPC pinned ERC-20 getters and mature first-party Arc source adapter | **Do not replace 3% ARCY tax** with conflicting GoPlus observation. |
-| Arc | Holders | Reconciled original Arc holder worker publication, explicitly date-labelled | Historical snapshot ≠ live distribution. |
+| Arc (5042) | Supply & contract | Arc RPC pinned ERC-20 getters and mature first-party Arc source adapter; GoPlus 5042 fallback for missing contract observations | **Never replace source-reviewed 3% ARCY buy/sell tax** with conflicting GoPlus 0% simulation. First-party evidence takes precedence. |
+| Arc | Holders | Reconciled original Arc holder worker publication; then current Blockscout count; then exact-contract GoPlus chain 5042 partial sample | Historical snapshot ≠ current distribution. GoPlus top-10 and count are SOURCE_REPORTED; never infer complete top-20. |
 | Arc | Price/volume/liquidity | Original working Arc DEX/source readers | Source-reported market observations; tracked pools, not chain-wide census. |
 | Ethereum (1) | Supply | Pinned Ethereum RPC | Burn-address balances are not lifetime buyback/burn. |
 | Ethereum | Holder count / ranking | Blockscout indexed count + pinned RPC-ranked balances when reconciled | On mismatch, GoPlus **SOURCE_REPORTED** top-wallet sample only; not on-chain-verified ranking. |
@@ -30,16 +30,26 @@ circulating supply is permitted.
 
 ## Upstream terms and source references
 
-- DEX Screener API terms explicitly allow commercial and noncommercial use **with restrictions**,
-  particularly no competing API business, unauthorized re-licensing or redistribution:
+- DEX Screener API terms allow commercial and noncommercial use **subject to restrictions**,
+  including no product whose primary purpose directly competes with DEX Screener/API and no
+  unauthorized resale, re-licensing or making the API itself available to third parties:
   https://docs.dexscreener.com/api/api-terms-and-conditions .
-  This site returns a small attributed research summary, **never** raw API payloads
-  or a developer API replacement. Review these restrictions if ARCY SEARCH changes its business model.
+  ARCY SEARCH returns only an attributed, compact research summary, not raw payloads or an API.
+  Whether this public research product fits the direct-competition restriction has not been
+  confirmed in writing. Vercel Production therefore withholds DEX market/discovery calls unless
+  `DEXSCREENER_PUBLIC_DISPLAY_APPROVED=true` is explicitly configured after that review.
 - DEX Screener public API routes/rate limits:
   https://docs.dexscreener.com/api/reference .
-- GoPlus describes its Security API as open and license-free for builders:
-  https://www.gopluslabs.io/en/security-api .
-  Observations are **SOURCE_REPORTED**, not independent security attestations.
+- GoPlus API access is free and its API License Agreement grants a royalty-free
+  license, but clause 6 restricts using original data for revenue-generating
+  commercial activity without explicit written permission. Clause 5 requires
+  its logo together with “Powered by GoPlus”; the current product does not show
+  that required mark. Therefore Search and legacy GoPlus production calls fail
+  closed unless `GOPLUS_PUBLIC_DISPLAY_APPROVED=true` is explicitly configured
+  after permission and attribution are resolved. Preview/local testing remains
+  available. Any GoPlus values are **SOURCE_REPORTED**, not independent security
+  attestations. Sources: https://docs.gopluslabs.io/reference/api-license-agreement-new
+  and https://docs.gopluslabs.io/reference/support .
 - Robinhood Blockscout public counters sometimes answer 403. A free **Blockscout PRO**
   key can optionally be configured as `BLOCKSCOUT_API_KEY` in Vercel's server-only
   environment to improve holder count availability:
@@ -47,6 +57,10 @@ circulating supply is permitted.
   Never place that key in front-end HTML, error messages or evidence source URLs.
 - GeckoTerminal chart remains a **provider-owned official iframe**. Independent raw
   historical OHLCV extraction stays disabled until a separate license is established.
+- CoinGecko is disabled across Search, legacy market endpoints, and homepage token-logo
+  enrichment. The free API tier is not treated as commercial permission; contract and linked-ID
+  routes fail closed with `PROVIDER_DISABLED_LICENSE_UNVERIFIED`. Unlock rows retain a
+  source-provided HTTPS logo when present and otherwise show the initials fallback.
 
 ## Coverage measurement (illustrative and time-dependent)
 

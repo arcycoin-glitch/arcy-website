@@ -60,10 +60,17 @@ async function holders({address}={}){
    fields:prior.fields};
  // Explorer-reported count is separately sourced, never presented as full whale proof.
  const reported=await require('./arc-holder-count').fetchCount(address);
- if(!reported)return signed;
- return {...signed,
+ if(reported)return {...signed,
   description:'Arc Blockscout current holder count; whale metrics require signed, reconciled COMPLETE publication.',
   fields:{...signed.fields,holderCount:reported}};
+ // Arc Blockscout can return 403. GoPlus explicitly supports chain 5042,
+ // but its limited ranked sample must NEVER be called an on-chain verified census.
+ const detected=await require('./goplus-evidence').inspectHolders('arc',address);
+ const backed=Object.fromEntries(Object.entries(detected).filter(([,f])=>f.dataState==='DATA_FOUND'));
+ if(!Object.keys(backed).length)return signed;
+ return {...signed,
+  description:'GoPlus exact-contract Arc holder count and limited ranked sample; source-reported, not complete pinned-wallet proof.',
+  fields:{...signed.fields,...backed}};
 }
 async function activity({address},cardId){
  const keys=cardId==='liquidity'?['liquidityUsd','volume24h','dexPairCount','lpStatus']:
@@ -119,7 +126,18 @@ async function mechanics({address,base}){
    key,past[key]?.dataState==='DATA_FOUND'?past[key]:value
   ]));
  }catch{} // Keep safe on-chain getter observations if legacy mechanics source times out.
- return {description:'Original verified Arc contract mechanics, with pinned-RPC fallback for missing evidence.',fields};
+ if(Object.values(fields).some(f=>f.dataState!=='DATA_FOUND')){
+  const detected=await require('./goplus-evidence').inspect('arc',address);
+  const isARCY=address==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
+  fields=Object.fromEntries(Object.entries(fields).map(([key,existing])=>[
+   key,existing.dataState==='DATA_FOUND'?existing:
+    // GoPlus currently reports 0% taxes for ARCY, contrary to the project's
+    // reviewed 3%/3% source. Never silently overwrite with conflicting claims.
+    isARCY&&key==='tradingTaxes'?existing:
+    detected[key]?.dataState==='DATA_FOUND'?detected[key]:existing
+  ]));
+ }
+ return {description:'Verified Arc contract mechanics with pinned-RPC/GoPlus-source fallback; external detection never overrides stronger first-party evidence.',fields};
 }
 async function inspectCard({base,address,cardId}){
  switch(cardId){

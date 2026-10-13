@@ -68,3 +68,18 @@ test('Fetch uses approved fixed host, exact chain and contract',async()=>{
  assert.equal(requested,'https://api.dexscreener.com/token-pairs/v1/robinhood/'+tsla);
  assert.equal(f.priceUsd.value,1.002);
 });
+test('Production DEX market and discovery calls fail closed until explicit provider-use approval',async()=>{
+ const before={VERCEL:process.env.VERCEL,VERCEL_ENV:process.env.VERCEL_ENV,APPROVED:process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED};let calls=0;
+ try{
+  process.env.VERCEL='1';process.env.VERCEL_ENV='production';delete process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED;
+  const fields=await dex.inspect('ethereum',eth,{fetcher:async()=>{calls++;throw Error('must remain disabled');}});
+  assert.equal(fields.priceUsd.dataState,'NOT_VERIFIED');assert.equal(fields.priceUsd.reasonCode,'PROVIDER_DISABLED_LICENSE_UNVERIFIED');
+  assert.deepEqual(await dex.discover('ethereum','USDC',{fetcher:async()=>{calls++;throw Error('must remain disabled');}}),[]);
+  assert.equal(calls,0);assert.equal(dex.productionDisplayAllowed(),false);
+  process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED='true';
+  const enabled=await dex.inspect('ethereum',eth,{fetcher:async()=>{calls++;return new Response(JSON.stringify([pair()]),{status:200});}});
+  assert.equal(enabled.priceUsd.value,1.002);assert.equal(calls,1);assert.equal(dex.productionDisplayAllowed(),true);
+ }finally{
+  for(const [key,value] of [['VERCEL',before.VERCEL],['VERCEL_ENV',before.VERCEL_ENV],['DEXSCREENER_PUBLIC_DISPLAY_APPROVED',before.APPROVED]])if(value===undefined)delete process.env[key];else process.env[key]=value;
+ }
+});
