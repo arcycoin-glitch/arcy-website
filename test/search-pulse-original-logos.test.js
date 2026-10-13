@@ -17,7 +17,7 @@ test('three distinct Pulse source panels plus ARCY Take never present archived h
  assert.equal(v.generatedAt,null);assert.equal(v.audit.currentWeekVerified,false);
  assert.ok(v.cards.every(x=>x.verifiedCurrentWeek===false&&x.publishedAt===null));
  assert.ok(v.cards.every(x=>x.url==='#unlocks'||x.url.startsWith('https://')));
- assert.match(v.take,/pending/i);
+ assert.match(v.take,/(verify|usage|unlock)/i);
 });
 test('public Pulse GET presents dated verified edition unchanged when current',async()=>{
  const latest=client.latest,audit=client.audit;
