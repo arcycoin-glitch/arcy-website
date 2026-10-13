@@ -1,7 +1,19 @@
 const crypto=require('node:crypto'),client=require('../lib/pulse-client'),edition=require('../lib/pulse-edition'),fallback=require('../lib/pulse-display-fallback');
 function authorized(req){const secret=process.env.CRON_SECRET,provided=Buffer.from(req.headers?.authorization||''),expected=Buffer.from(secret?'Bearer '+secret:'');return !!secret&&provided.length===expected.length&&crypto.timingSafeEqual(provided,expected);}
 function cronRequest(req){return req.headers?.['x-vercel-cron']==='1'||/vercel-cron/i.test(req.headers?.['user-agent']||'');}
-function response(value,audit){return {ok:true,number:value.number,status:value.status,generatedAt:value.generatedAt,cycle:value.cycle,cards:value.cards,take:value.take,sources:value.sources,audit:{...value.audit,lastSuccessful:audit?.lastSuccessful||{number:value.number,status:value.status,generatedAt:value.generatedAt,trigger:value.trigger},lastFailure:audit?.lastFailure||null,nextScheduledAt:edition.nextRun()}};}
+function fiveSections(raw){
+ // Signed editions may predate the five-slot layout. Preserve their confirmed
+ // stories, but fill missing categories with SOURCE NAVIGATION — not news.
+ const items=Array.isArray(raw)?raw:[];
+ const kinds=['week','new','watch','reality','unlock'];
+ const stock=fallback.ITEMS;
+ return kinds.map((kind,i)=>{
+  const published=items.find(card=>card?.kind===kind&&typeof card.title==='string'&&card.title.trim()&&
+   typeof card.summary==='string'&&card.summary.trim());
+  return published||{...stock[i],publishedAt:null,verifiedCurrentWeek:false};
+ });
+}
+function response(value,audit){return {ok:true,number:value.number,status:value.status,generatedAt:value.generatedAt,cycle:value.cycle,cards:fiveSections(value.cards),take:value.take||fallback.fallback().take,sources:value.sources,audit:{...value.audit,lastSuccessful:audit?.lastSuccessful||{number:value.number,status:value.status,generatedAt:value.generatedAt,trigger:value.trigger},lastFailure:audit?.lastFailure||null,nextScheduledAt:edition.nextRun()}};}
 async function handler(req,res){
  res.setHeader('Cache-Control','no-store');const scheduled=cronRequest(req),manual=req.method==='POST'||req.query?.action==='refresh',auditOnly=req.query?.action==='audit';
  if(req.method==='GET'&&req.query?.action==='edition'){const number=Number(req.query.number);if(!Number.isSafeInteger(number)||number<1||number>9999)return res.status(400).json({ok:false,error:'INVALID_EDITION'});const saved=await client.edition(number);return saved?res.status(200).json(response(saved,null)):res.status(404).json({ok:false,error:'EDITION_NOT_FOUND',number});}
@@ -25,3 +37,4 @@ async function handler(req,res){
  catch(error){return res.status(200).json(fallback.fallback(now,{reasonCode:error.code||'PULSE_SOURCE_CHECK_UNAVAILABLE'}));}
 }
 module.exports=handler;
+module.exports.fiveSections=fiveSections;
