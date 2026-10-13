@@ -120,7 +120,12 @@
  function issuerArtwork(network,address,identity){
   if(identity?.status!=='OFFICIAL_CONTRACT_MATCHED'||typeof address!=='string')return null;
   const icon=VERIFIED_TOKEN_ART[network]?.[address.toLowerCase()];
-  return icon?'/search/assets/token-icons/'+icon+'.svg':null;
+  if(icon)return '/search/assets/token-icons/'+icon+'.svg';
+  // Ondo's own public tokenlist points to this original brand icon.
+  // Never apply it to a name/ticker lookalike or another network.
+  if(network==='ethereum'&&address.toLowerCase()==='0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3')
+   return 'https://cdn.ondo.finance/brand/logos/ondo-icon-black_160x160.png';
+  return null;
  }
  function addCandidate(candidate,network){
   const button=document.createElement('a');button.className='home-search-result';button.href=detailPath(network,candidate.address);
