@@ -18,8 +18,16 @@
     }
   ],
   "redirects": [
-    {"source":"/search","destination":"/#search","permanent":false},
-    {"source":"/search/","destination":"/#search","permanent":false}
+    {
+      "source": "/search",
+      "destination": "/#search",
+      "permanent": false
+    },
+    {
+      "source": "/search/",
+      "destination": "/#search",
+      "permanent": false
+    }
   ],
   "rewrites": [
     {
@@ -30,5 +38,6 @@
       "source": "/search/token/:network/:address",
       "destination": "/search/index.html"
     }
-  ]
+  ],
+  "buildCommand": "node --check hero-video.js && node --check search-upgrade.js && node --check api/pulse.js && npm test && mkdir -p public && cp index.html public/index.html"
 }
