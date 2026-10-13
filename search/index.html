@@ -98,6 +98,8 @@ footer{font-size:12px;color:#7f99a8;margin-top:32px}
 @media(max-width:550px){.network{align-items:stretch;flex-direction:column}.network select{width:100%}}
 footer .source-link{margin-top:14px}footer .source-link a{color:#67dcf3;text-underline-offset:3px}footer .source-link a:focus-visible{outline:2px solid #45dfff;outline-offset:4px}
 
+.chain-icon-pending{font-weight:800;font-size:10px;letter-spacing:.025em;color:#e1f8ff;display:grid;place-items:center;min-width:20px;min-height:20px}
+.chain-mark img{max-height:100%;max-width:100%;object-fit:contain}
 /* ARCY SEARCH DESIGN SYSTEM — intentionally quiet, airy, and premium. */
 :root{color-scheme:dark;--midnight:#06111d;--panel:#0a1b2a;--stroke:rgba(160,202,228,.13);--quiet:#9bb1c2;--cyan:#6ad7ed}
 body{background:radial-gradient(ellipse 80% 550px at 50% -220px,#10384b 0,transparent 85%),#06111d;color:#e7f4fb}
@@ -350,7 +352,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
   <div class="network-menu" id="chainMenu" role="listbox" aria-label="Token network" hidden>
     <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="true" id="chainOptionArc"><span class="chain-mark chain-arc"><img src="https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif" alt="" loading="eager" referrerpolicy="no-referrer"/></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
     <button type="button" class="chain-option" role="option" data-chain="ethereum" aria-selected="false" id="chainOptionEthereum"><span class="chain-mark chain-ethereum"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#7b83ad" d="M16 2 6 16l10 6 10-6z"/><path fill="#cdd2e4" d="M16 2v20l10-6z"/><path fill="#626a95" d="M6 18l10 12v-6z"/><path fill="#a7afd3" d="M26 18 16 30v-6z"/></svg></span><span>Ethereum</span><span class="chain-check" aria-hidden="true"></span></button>
-    <button type="button" class="chain-option" role="option" data-chain="robinhood" aria-selected="false" id="chainOptionRobinhood"><span class="chain-mark chain-robinhood"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="9" cy="16" r="4" fill="none" stroke="#cce3eb" stroke-width="2.4"/><circle cx="23" cy="9" r="4" fill="none" stroke="#cce3eb" stroke-width="2.4"/><circle cx="23" cy="23" r="4" fill="none" stroke="#cce3eb" stroke-width="2.4"/><path d="M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3" fill="none" stroke="#cce3eb" stroke-width="2.4" stroke-linecap="round"/></svg></span><span>Robinhood Chain</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="robinhood" aria-selected="false" id="chainOptionRobinhood"><span class="chain-mark chain-robinhood"><span aria-hidden="true" class="chain-icon-pending">RH</span></span><span>Robinhood Chain</span><span class="chain-check" aria-hidden="true"></span></button>
   </div>
 </div><span id="networkNote">Results never mix token data from different networks.</span></div>
 <div class="search">
@@ -651,7 +653,7 @@ function setChartRange(range){
  }
 }
 const selected=()=>$('chain').value;
-const NETWORK_ICON_MARKUP=Object.freeze({"arc":"<img src=\"https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif\" alt=\"\" loading=\"eager\" referrerpolicy=\"no-referrer\"/>","ethereum":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path fill=\"#7b83ad\" d=\"M16 2 6 16l10 6 10-6z\"/><path fill=\"#cdd2e4\" d=\"M16 2v20l10-6z\"/><path fill=\"#626a95\" d=\"M6 18l10 12v-6z\"/><path fill=\"#a7afd3\" d=\"M26 18 16 30v-6z\"/></svg>","robinhood":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"16\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"9\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><circle cx=\"23\" cy=\"23\" r=\"4\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\"/><path d=\"M12.3 14.2 19.5 10.7 M12.3 17.8 19.5 21.3\" fill=\"none\" stroke=\"#cce3eb\" stroke-width=\"2.4\" stroke-linecap=\"round\"/></svg>"});
+const NETWORK_ICON_MARKUP=Object.freeze({"arc":"<img src=\"https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif\" alt=\"\" loading=\"eager\" referrerpolicy=\"no-referrer\"/>","ethereum":"<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path fill=\"#7b83ad\" d=\"M16 2 6 16l10 6 10-6z\"/><path fill=\"#cdd2e4\" d=\"M16 2v20l10-6z\"/><path fill=\"#626a95\" d=\"M6 18l10 12v-6z\"/><path fill=\"#a7afd3\" d=\"M26 18 16 30v-6z\"/></svg>","robinhood":"<span aria-hidden=\"true\" class=\"chain-icon-pending\">RH</span>"});
 function syncNetworkPicker(){
  const network=selected();
  if(!Object.hasOwn(NETWORKS,network))return;
@@ -1116,7 +1118,8 @@ function displayLogo(raw,network,address){
 function safeCandidateImage(raw){
  if(typeof raw!=='string')return null;
  // Only artwork that ships with this website and is exact-contract mapped.
- return /^\/search\/assets\/token-icons\/(?:usdc|usdt|link|uni|dai|wbtc|paxg)\.svg$/.test(raw)?raw:null;
+ return /^\/search\/assets\/token-icons\/(?:usdc|usdt|link|uni|dai|wbtc|paxg)\.svg$/.test(raw)?raw:
+  /^https:\/\/cdn\.robinhood\.com\/ncw_assets\/logos\/0x[0-9a-f]{40}\.png$/i.test(raw)?raw:null;
 }
 function showCandidates(data,network,version){
  const container=$('matches');container.replaceChildren();

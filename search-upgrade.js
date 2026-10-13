@@ -39,9 +39,12 @@
 
  const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
  const NETWORK_MARKUP=Object.freeze({
-  arc:'',
+  // Arc uses the original file already referenced by the approved detail
+  // page. Robinhood Chain must use ONLY a symbol from its own brand kit, not
+  // the Robinhood brokerage master logo or a home-drawn imitation.
+  arc:'<img src="https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif" alt="" loading="lazy" referrerpolicy="no-referrer"/>',
   ethereum:'<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#a6add2" d="M16 2 6 16l10 6 10-6z"/><path fill="#dde4fc" d="M16 2v20l10-6z"/><path fill="#717aab" d="M6 18l10 12v-6z"/><path fill="#b7c0eb" d="M26 18 16 30v-6z"/></svg>',
-  robinhood:''
+  robinhood:'<span class="chain-icon-pending" aria-label="Robinhood Chain logo pending official brand asset">RH</span>'
  });
  const setMark=(el,id)=>{el.innerHTML=NETWORK_MARKUP[id]||'';el.dataset.network=id;};
  const app=document.createElement('section');app.className='home-search';app.setAttribute('aria-label','ARCY Search token discovery');
@@ -65,7 +68,7 @@
  for(const [id,label] of networks){
   const option=document.createElement('button');option.type='button';option.className='home-network-option';option.dataset.network=id;
   option.setAttribute('aria-pressed','false');option.setAttribute('aria-label',label);
-  const badge=document.createElement('span');badge.className='home-network-mark';badge.setAttribute('aria-hidden','true');setMark(badge,id);if(id!=='ethereum')badge.hidden=true;
+  const badge=document.createElement('span');badge.className='home-network-mark';badge.setAttribute('aria-hidden','true');setMark(badge,id);badge.hidden=false;
   const name=document.createElement('span');name.className='home-network-option-name';name.textContent=label;
   option.append(badge,name);
   option.addEventListener('click',()=>{
@@ -104,8 +107,13 @@
   const button=document.createElement('a');button.className='home-search-result';button.href=detailPath(network,candidate.address);
   const trustedLocal=typeof candidate.logoUrl==='string'&&
    /^\/search\/assets\/token-icons\/(?:usdc|usdt|link|uni|dai|wbtc|paxg)\.svg$/.test(candidate.logoUrl);
+  const officialStockArt=network==='robinhood'&&candidate.network==='robinhood'&&
+   candidate.chainId===4663&&candidate.registryMatched===true&&
+   candidate.identity?.status==='REGISTRY_MATCHED'&&
+   /^https:\/\/cdn\.robinhood\.com\/ncw_assets\/logos\/0x[0-9a-f]{40}\.png$/i.test(candidate.logoUrl||'')?
+   candidate.logoUrl:null;
   const logoHost=network==='arc'&&candidate.address?.toLowerCase()==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'?
-   '/assets/hero-arcy.png':trustedLocal?candidate.logoUrl:null;
+   '/assets/hero-arcy.png':trustedLocal?candidate.logoUrl:officialStockArt;
   // ALWAYS keep a readable token-symbol fallback under remote artwork.
   // Failed or blocked provider images must not leave a blank logo box.
   const placeholder=document.createElement('span');placeholder.className='home-token-logo home-token-placeholder';
@@ -162,4 +170,44 @@
   }catch(error){state.textContent=error.name==='AbortError'?'Search timed out. Try again shortly.':'Search unavailable: '+String(error.message||'upstream error').slice(0,130)}
   finally{clearTimeout(timeout);submit.disabled=false;input.disabled=false}
  });
+})();
+
+
+// Pulse is editorially useful even if an upstream source is offline. These
+// are evergreen navigation cards, NOT fabricated or reused weekly headlines.
+(()=>{
+ const grid=document.getElementById('pulseGrid');if(!grid)return;
+ const title=document.getElementById('pulseTitle'),take=document.getElementById('pulseTake');
+ const kinds=[
+  ['pulse-week','🔥 THIS WEEK','OFFICIAL ARC','Current week awaiting source verification','The current live edition is pending. Review Arc’s dated official announcements instead of assuming an old headline is new.','https://www.arc.io/blog','ARC BLOG ↗'],
+  ['pulse-new','🆕 NEW','ARC COMMUNITY','Review the newest published developments','Arc community announcements have original dates and sources. A source outage is not proof of no activity.','https://community.arc.io/public/blogs','SOURCE HUB ↗'],
+  ['pulse-watch','🔍 WATCH','ONCHAIN RESEARCH','Track execution, not just announcements','Look for actual transactions, settlements and participants when checking project launch claims.','https://explorer.arc.io','ARC EXPLORER ↗'],
+  ['pulse-risk','⚠️ RISK / REALITY CHECK','SOURCE COVERAGE','Missing data does not mean zero risk','Do not present undocumented token claims, missing coverage or unreleased features as verified facts.','https://www.arc.io/blog','VERIFY SOURCE ↗'],
+  ['pulse-unlock','🔓 WHAT’S UNLOCKING','TOKEN RESEARCH','View separately verified unlock schedules','The current Pulse cannot assert a token unlock until its timing, contract and source are checked.','#unlocks','UNLOCKS ↗']
+ ];
+ function renderFallback(){
+  if(!grid.isConnected)return;
+  const old=[...grid.querySelectorAll('.pulse-card')];
+  const loading=old.length===1&&old[0].textContent.includes('Loading weekly signal');
+  const generic=old.length>0&&old.every(e=>e.textContent.includes('Pulse section unavailable'));
+  if(old.length>=5&&!generic||old.length>0&&!loading&&!generic)return;
+  const fragment=document.createDocumentFragment();
+  for(const [cls,kicker,owner,headline,summary,link,label] of kinds){
+   const card=document.createElement('article');card.className='pulse-card '+cls;
+   const k=document.createElement('span');k.textContent=kicker;
+   const who=document.createElement('small');who.className='pulse-owner';who.textContent=owner;
+   const h=document.createElement('h4');h.textContent=headline;
+   const p=document.createElement('p');p.textContent=summary;
+   const a=document.createElement('a');a.href=link;a.textContent=label;
+   a.style.cssText='display:inline-block;margin-top:10px;color:var(--accent);font-size:12px;font-weight:800';
+   if(link.startsWith('https:')){a.target='_blank';a.rel='noopener noreferrer'}
+   card.append(k,who,h,p,a);fragment.append(card);
+  }
+  grid.replaceChildren(fragment);
+  if(take)take.textContent='ARCY TAKE — Source check pending. Use official dated releases and the Pulse archive as context; do not treat old announcements as current news.';
+  if(title&&title.textContent.includes('Loading'))title.textContent='ARCY ARC PULSE · SOURCE CHECK PENDING 📡';
+ }
+ const observer=new MutationObserver(renderFallback);
+ observer.observe(grid,{childList:true});
+ renderFallback();
 })();

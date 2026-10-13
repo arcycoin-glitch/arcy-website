@@ -112,6 +112,7 @@ function rank(network,query,candidates){
   }
   const official=verified(network,address);
   const stock=trustedStock(item);
+  const stockArt=stock?require('./robinhood-assets').registryLogo(item.logoUrl):null;
   const identity=official||(stock?{
    status:'REGISTRY_MATCHED',type:'STOCK_TOKEN',chainId:4663,address,
    issuer:'Robinhood Chain official asset registry',
@@ -123,7 +124,7 @@ function rank(network,query,candidates){
    name:canonical?.name||String(item.name||'').slice(0,90),
    symbol:canonical?.symbol||String(item.symbol||'').slice(0,30),
    source:canonical?'Official issuer contract documentation':String(item.source||'').slice(0,100),
-   registryMatched:stock,logoUrl:safeLogoUrl(item.logoUrl),identityVerified:identity.status==='OFFICIAL_CONTRACT_MATCHED'||identity.status==='REGISTRY_MATCHED',identity});
+   registryMatched:stock,logoUrl:stockArt,identityVerified:identity.status==='OFFICIAL_CONTRACT_MATCHED'||identity.status==='REGISTRY_MATCHED',identity});
  }
  const rows=[...ordered.values()];
  rows.sort((a,b)=>{
