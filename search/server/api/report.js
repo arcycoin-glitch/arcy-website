@@ -9,7 +9,7 @@ module.exports=async function handler(req,res){
  const p=req.query;
  if(!p||typeof p!=='object'||Array.isArray(p)||!Object.keys(p).every(k=>['address','chain'].includes(k))||
   Object.keys(p).length>2||typeof p.address!=='string'||(p.chain!==undefined&&typeof p.chain!=='string'))
-  return res.status(400).json({ok:false,error:'INVALID_QUERY'});
+  return res.status(400).json({ok:false,error:'INVALID_QUERY',qaKeyTypes:Object.fromEntries(Object.entries(p||{}).map(([key,value])=>[key,typeof value]))});
  const address=p.address.trim();
  if(!ADDRESS.test(address))return res.status(400).json({ok:false,error:'VALID_CONTRACT_REQUIRED'});
  let network;
