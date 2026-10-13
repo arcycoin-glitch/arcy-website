@@ -87,7 +87,7 @@ test('Official GeckoTerminal iframe embed replaces custom chart fetch without re
  assert.match(html,/The provider controls the visible date range/);
  assert.match(html,/Open GeckoTerminal source chart/);
  for(const preset of ['4H','1D','1W','30D'])assert.match(html,new RegExp('data-range="'+preset+'"'));
- assert.match(html,/const supported=Object\.freeze\(\{arc:'arc',ethereum:'eth'\}\)/);
+ assert.match(html,/const supported=Object\.freeze\(\{arc:'arc',ethereum:'eth',robinhood:'robinhood'\}\)/);
  const fn=html.slice(html.indexOf('async function loadVerifiedChart('),html.indexOf('function renderQuickFacts(',html.indexOf('async function loadVerifiedChart(')));
  assert.doesNotMatch(fn,/fetch\(/);
 });
