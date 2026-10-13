@@ -23,7 +23,7 @@ for(const [surface,logo] of implementations){
  test(surface+': exact issuer contract maps to installed local artwork',()=>{
   assert.equal(logo('arc','0x3600000000000000000000000000000000000000',recognized),'/search/assets/token-icons/usdc.svg');
   assert.equal(logo('ethereum','0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',recognized),'/search/assets/token-icons/usdc.svg');
-  assert.equal(logo('ethereum','0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3',recognized),'https://cdn.ondo.finance/brand/logos/ondo-icon-black_160x160.png','Ondo official brand icon only on issuer-confirmed contract');
+  assert.equal(logo('ethereum','0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3',recognized),null,'Ondo identity stays verified but its logo uses the initials fallback until express reuse permission is documented');
  });
  test(surface+': name and ticker alone cannot give copycats original icons',()=>{
   assert.equal(logo('ethereum','0x0000000000000000000000000000000000000001',recognized),null);
