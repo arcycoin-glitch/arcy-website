@@ -10,10 +10,10 @@ const identities=require('../search/server/lib/token-identity');
 const fs=require('node:fs');
 const A='0x322f0929c4625ed5bad873c95208d54e1c003b2d';
 function response(){return {code:200,setHeader(){return this},status(n){this.code=n;return this},json(x){this.body=x;return x}}}
-test('five Pulse source panels plus ARCY Take never present archived headlines as current',()=>{
+test('three distinct Pulse source panels plus ARCY Take never present archived headlines as current',()=>{
  const v=fallback.fallback(Date.parse('2026-10-13T10:00:00Z'));
  assert.equal(v.ok,true);assert.equal(v.status,'source_pending');
- assert.equal(v.cards.length,5);assert.deepEqual(v.cards.map(x=>x.kind),fallback.KINDS);
+ assert.equal(v.cards.length,3);assert.deepEqual(v.cards.map(x=>x.kind),fallback.KINDS);
  assert.equal(v.generatedAt,null);assert.equal(v.audit.currentWeekVerified,false);
  assert.ok(v.cards.every(x=>x.verifiedCurrentWeek===false&&x.publishedAt===null));
  assert.ok(v.cards.every(x=>x.url==='#unlocks'||x.url.startsWith('https://')));
@@ -32,24 +32,29 @@ test('public Pulse GET presents dated verified edition unchanged when current',a
   assert.equal(res.body.cards[0].title,'Verified test fixture');
  }finally{client.latest=latest;client.audit=audit}
 });
-test('existing signed Pulse with only three cards retains them and fills the two missing source sections',()=>{
+test('three Pulse slots preserve dated exact-cycle stories without reusing quiet or invalid items',()=>{
+ const today=Date.now(),week=edition.cycle(today),cycle={
+  start:new Date(week.start).toISOString(),end:new Date(week.end).toISOString()};
+ const when=new Date(week.start+3_600_000).toISOString();
  const original=[
-  {kind:'week',title:'Verified week development',summary:'Dated official event',publishedAt:'2026-10-13T09:00:00Z',url:'https://www.arc.io/blog'},
-  {kind:'new',title:'Verified new development',summary:'Source-backed',publishedAt:'2026-10-13T09:00:00Z',url:'https://community.arc.io/public/blogs'},
-  {kind:'watch',title:'Verified watch development',summary:'Source-backed',publishedAt:'2026-10-13T09:00:00Z',url:'https://www.arc.io/blog'}
+  {kind:'week',title:'Verified week development',summary:'Dated official event',publishedAt:when,url:'https://www.arc.io/blog/dated'},
+  {kind:'new',title:'Verified new development',summary:'Source-backed',publishedAt:when,url:'https://community.arc.io/public/blogs/dated'},
+  {kind:'watch',title:'Duplicate project source',summary:'Duplicate URL',publishedAt:when,url:'https://community.arc.io/public/blogs/dated'},
+  {kind:'unlock',title:'Actual documented unlock risk',summary:'Original schedule',publishedAt:when,url:'https://www.arc.io/blog/verified-risk'}
  ];
- const result=pulse.fiveSections(original);
- assert.equal(result.length,5);
- assert.deepEqual(result.slice(0,3),original);
+ const result=pulse.threeSections(original,{status:'updated',cycle});
+ assert.equal(result.length,3);
  assert.deepEqual(result.map(x=>x.kind),fallback.KINDS);
- assert.equal(result[3].verifiedCurrentWeek,false);
- assert.equal(result[4].verifiedCurrentWeek,false);
- assert.equal(result[3].publishedAt,null);
- assert.equal(result[4].publishedAt,null);
- assert.equal(result[4].url,'#unlocks');
- const malformed=pulse.fiveSections([{kind:'week',title:'Unsupported',summary:''}]);
- assert.equal(malformed.length,5);
- assert.notEqual(malformed[0].title,'Unsupported');
+ assert.deepEqual(result.map(x=>x.verifiedCurrentWeek),[true,true,true]);
+ assert.equal(result[0].title,original[0].title);
+ assert.equal(result[1].title,original[1].title);
+ assert.equal(result[2].title,original[3].title);
+ const quiet=pulse.threeSections(original,{status:'quiet_week',cycle});
+ assert.equal(quiet.length,3);
+ assert.ok(quiet.every(x=>x.verifiedCurrentWeek===false&&x.contentType==='SOURCE_GUIDE'));
+ const missing=pulse.threeSections([{kind:'week',title:'Unsupported',summary:''}],{status:'updated',cycle});
+ assert.equal(missing.length,3);
+ assert.notEqual(missing[0].title,'Unsupported');
 });
 test('stale signed Pulse is not relabeled as the current weekly headline',async()=>{
  const old=client.latest;
@@ -59,19 +64,19 @@ test('stale signed Pulse is not relabeled as the current weekly headline',async(
   client.latest=async()=>oldEdition;
   const res=response();await pulse({method:'GET',query:{},headers:{}},res);
   assert.equal(res.code,200);assert.equal(res.body.status,'source_pending');
-  assert.equal(res.body.cards.length,5);
+  assert.equal(res.body.cards.length,3);
   assert.equal(res.body.audit.lastSuccessful.number,3);
   assert.ok(res.body.cards.every(x=>x.title!=='Old event'));
  }finally{client.latest=old}
 });
-test('provider failure yields five truthful Pulse slots and never 503 with empty cards',async()=>{
+test('provider failure yields three truthful Pulse slots and never 503 with empty cards',async()=>{
  const old=client.latest,orig=edition.generate;
  try{
   client.latest=async()=>null;
   edition.generate=async()=>{throw Object.assign(Error('No current source'),{code:'PULSE_DISCOVERY_UNAVAILABLE'})};
   const res=response();await pulse({method:'GET',query:{},headers:{}},res);
   assert.equal(res.code,200);assert.equal(res.body.ok,true);
-  assert.equal(res.body.cards.length,5);
+  assert.equal(res.body.cards.length,3);
   assert.equal(res.body.audit.reasonCode,'PULSE_DISCOVERY_UNAVAILABLE');
  }finally{client.latest=old;edition.generate=orig}
 });
@@ -97,7 +102,7 @@ test('official Robinhood Stock Token artwork matches signed chain-4663 registry,
  const eth=await logos.enhance('ethereum',[{...rows[0],network:'ethereum',logoUrl:logo}]);
  assert.equal(eth[0].logoUrl,null);
 });
-test('landing page has no empty Arc chain mark and Pulse guarantees a source-led backup',()=>{
+test('landing page has no empty Arc chain mark and Pulse guarantees a three-card source-led backup',()=>{
  const home=fs.readFileSync(require.resolve('../search-upgrade.js'),'utf8');
  assert.match(home,/arc:'<img src=/);
  assert.match(home,/setMark\(badge,id\);badge\.hidden=false/);
