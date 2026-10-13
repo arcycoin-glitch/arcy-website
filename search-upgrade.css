@@ -214,3 +214,24 @@ html.search-upgraded .nav #siteLinks a:focus-visible{outline:2px solid var(--nav
 /* GitHub exists once, as a footer icon beside X and Telegram.
    Avoid showing the old desktop/mobile header link before JS initialization. */
 .nav #siteLinks > a.nav-github{display:none!important}
+
+/* ARCY SEARCH type-ahead: overlays the existing form without resizing other
+   sections, results, analysis cards or the original mobile layout. */
+#search .home-search-form{position:relative}
+#search .home-search-suggest[hidden]{display:none!important}
+#search .home-search-suggest{
+ position:absolute;z-index:50;top:calc(100% + 6px);left:0;right:0;
+ display:grid;gap:6px;padding:9px;border:1px solid #378cab;
+ border-radius:13px;background:#081927;
+ box-shadow:0 18px 36px rgba(0,0,0,.65),0 0 16px rgba(47,201,233,.12);
+ max-height:min(370px,52vh);overflow-y:auto;overscroll-behavior:contain
+}
+#search .home-search-suggest-label{padding:4px 6px;color:#85dcee;font-size:10px;font-weight:800;letter-spacing:.075em}
+#search .home-search-suggest .home-search-result{grid-template-columns:34px minmax(0,1fr) minmax(80px,auto) auto;padding:9px 10px}
+#search .home-search-suggest .home-result-copy strong{font-size:12px}
+@media(max-width:560px){
+ #search .home-search-suggest{max-height:min(310px,47vh);padding:7px}
+ #search .home-search-suggest .home-search-result{grid-template-columns:32px minmax(0,1fr) auto;gap:7px}
+ #search .home-search-suggest .home-search-result code{display:none}
+ #search .home-search-suggest .home-result-status{font-size:8px}
+}
