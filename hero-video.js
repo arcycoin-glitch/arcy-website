@@ -15,6 +15,8 @@
  }
  video.addEventListener('playing',()=>{if(motion.matches){video.pause();fallback();}else frame.classList.add('video-playing');});
  video.addEventListener('error',()=>{failed=true;fallback();});
+ // Avoid an invisible static mascot when playback pauses, buffers or stalls.
+ for(const type of ['pause','waiting','stalled','ended'])video.addEventListener(type,fallback);
  motion.addEventListener('change',()=>{if(motion.matches){clearTimeout(timer);video.pause();video.removeAttribute('src');video.load();fallback();}else start();});
  document.addEventListener('visibilitychange',()=>{if(document.hidden)video.pause();else start();});
  new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;if(visible)start();else video.pause();},{threshold:0.05}).observe(frame);
