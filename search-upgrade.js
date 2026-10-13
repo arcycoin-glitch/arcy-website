@@ -3,23 +3,27 @@
  const section=document.querySelector('main > #search');
  const header=section?.querySelector('.header');
 
- // GitHub belongs with X and Telegram in the footer, not the mobile menu.
- // Reuse the existing GitHub SVG and the existing source link: no duplicate link.
+ // Keep precisely ONE GitHub navigation link: the footer social icon beside X and Telegram.
+ // Source/evidence URLs inside research reports are untouched.
+ const githubHref='https://github.com/arcycoin-glitch/arcy-website';
  const navGitHub=document.querySelector('#siteLinks > a.nav-github');
- const sourceGitHub=document.querySelector('footer .footer-source-link[href="https://github.com/arcycoin-glitch/arcy-website"]');
- const footerTelegram=document.querySelector('footer .social-icons > a.social-icon[aria-label="Telegram"]');
- if(navGitHub&&sourceGitHub&&footerTelegram){
-  const githubIcon=navGitHub.querySelector('svg')?.cloneNode(true);
-  if(githubIcon){
-   githubIcon.setAttribute('aria-hidden','true');
-   sourceGitHub.classList.remove('footer-source-link');
-   sourceGitHub.classList.add('social-icon');
-   sourceGitHub.setAttribute('aria-label','GitHub');
-   sourceGitHub.setAttribute('title','GitHub · View source');
-   sourceGitHub.replaceChildren(githubIcon);
-   footerTelegram.after(sourceGitHub);
-   navGitHub.remove();
-  }
+ const footerSocial=document.querySelector('footer .social-icons');
+ const footerGitHub=footerSocial?.querySelector('a[href="'+githubHref+'"]')||
+  document.querySelector('footer .footer-source-link[href="'+githubHref+'"]');
+ const footerTelegram=footerSocial?.querySelector('a.social-icon[aria-label="Telegram"]');
+ if(footerSocial&&footerGitHub){
+  const svg=navGitHub?.querySelector('svg')?.cloneNode(true)||
+   footerGitHub.querySelector('svg')?.cloneNode(true);
+  if(svg){svg.setAttribute('aria-hidden','true');footerGitHub.replaceChildren(svg);}
+  footerGitHub.classList.remove('footer-source-link');
+  footerGitHub.classList.add('social-icon');
+  footerGitHub.setAttribute('aria-label','GitHub');
+  footerGitHub.setAttribute('title','GitHub · View source');
+  if(footerTelegram&&footerTelegram.nextElementSibling!==footerGitHub)footerTelegram.after(footerGitHub);
+ }
+ // Remove the former header/menu GitHub link and any repeated site-chrome links.
+ for(const link of document.querySelectorAll('a[href="'+githubHref+'"]')){
+  if(link!==footerGitHub)link.remove();
  }
  // Preserve the dated, six-section historical issue in the existing Pulse archive slot.
  // The signed automated feed's older edition endpoint currently returns 404:
