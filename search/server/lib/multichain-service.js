@@ -33,7 +33,14 @@ async function report({network='ethereum',address}){
  const official=identities.verified(network,result.address);
  if(official)result.tokenIdentity=official;
  // Artwork is locally-hosted, strictly chain+contract matched decoration.
- const logoUrl=logos.localLogo(network,result.address);
+ let logoUrl=logos.localLogo(network,result.address);
+ if(!logoUrl&&network==='robinhood'&&result.tokenIdentity?.status==='REGISTRY_MATCHED'){
+  // Recheck directly against the issuer-operated asset registry. Never infer
+  // a Stock Token logo from a ticker, DEX pair or unrelated token address.
+  const issuer=await robinhood.inspectStock({address:result.address});
+  logoUrl=issuer?.registryMatched===true&&issuer.address===result.address?
+   require('./robinhood-assets').registryLogo(issuer.logoUrl):null;
+ }
  if(logoUrl)result.token={...result.token,logoUrl};
  return result;
 }
