@@ -45,7 +45,7 @@ async function requestAt(endpoint,method,params,{timeoutMs=11000}={}){
  }finally{clearTimeout(timer)}
  if(!body||typeof body!=='object'||Array.isArray(body)||body.jsonrpc!=='2.0'||
   body.id!==id||body.error||!Object.hasOwn(body,'result'))
-  throw Error('Arc RPC invalid response');
+  throw Object.assign(Error('Arc RPC invalid response'),{retryable:true});
  return body.result;
 }
 // Standalone read-only RPC calls also fail over, but pin-sensitive token scans
