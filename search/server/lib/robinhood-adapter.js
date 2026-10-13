@@ -100,6 +100,13 @@ async function mechanics({address,base}){
  const implementation=result[1].status==='fulfilled'?addressOf(result[1].value):null;
  const observed=result[2].status==='fulfilled'?result[2].value:{};
  const proof={address,block:base.block};
+ let extra={};
+ if(!owner||!implementation){
+  try{extra=await require('./admin-getters').inspect({
+   network:'robinhood',address,block:base.block,rpc,
+   needAdmin:!owner,needImplementation:!implementation
+  })}catch{} // Optional fallback never replaces known on-chain evidence.
+ }
  return {description:'On-chain getters and chain-specific GoPlus security observations; not a complete privilege or upgradeability audit.',
   fields:{
    tradingTaxes:observed.tradingTaxes?.dataState==='DATA_FOUND'?observed.tradingTaxes:
@@ -107,10 +114,12 @@ async function mechanics({address,base}){
    mintCapability:observed.mintCapability?.dataState==='DATA_FOUND'?observed.mintCapability:
     NO('Mint permission is unverified; absent getter does not prove no minting.'),
    ownerAdmin:owner?evidence('owner() getter: '+owner,'Robinhood RPC',{...proof,method:'owner()'},'GETTER_REPORTED'):
+    extra.ownerAdmin?.dataState==='DATA_FOUND'?extra.ownerAdmin:
     observed.ownerAdmin?.dataState==='DATA_FOUND'?observed.ownerAdmin:
     NO('No source-confirmed owner/admin model; absence of owner getter does not prove renouncement.'),
    contractArchitecture:implementation?evidence('EIP-1967 implementation: '+implementation,'Robinhood RPC',{
     ...proof,method:'EIP-1967 implementation storage',scope:'Does not prove all upgrade permissions.'},'ON_CHAIN'):
+    extra.contractArchitecture?.dataState==='DATA_FOUND'?extra.contractArchitecture:
     observed.contractArchitecture?.dataState==='DATA_FOUND'?observed.contractArchitecture:
     NO('EIP-1967 implementation not established; other proxy designs may exist.')
   }};
