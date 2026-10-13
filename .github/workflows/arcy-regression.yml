@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - fix/restore-new-ui-old-data-20261012
+      - release/arcy-search-ultimate-20261013
       - main
   pull_request:
     branches:
