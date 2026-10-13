@@ -907,7 +907,7 @@ async function loadVerifiedChart(address,network,version){
  // GeckoTerminal explicitly provides first-party embeds for website and app use.
  // We render its own iframe, not redistribute raw GeckoTerminal OHLCV data.
  // No local /api/search?action=chart request, so CHART_SOURCE_PENDING is irrelevant.
- const supported=Object.freeze({arc:'arc',ethereum:'eth'});
+ const supported=Object.freeze({arc:'arc',ethereum:'eth',robinhood:'robinhood'});
  const chartNetwork=supported[network];
  if(!chartNetwork||!EVM_ADDRESS.test(address)){
   $('chartNote').textContent='GeckoTerminal chart is not currently confirmed for '+NETWORKS[network].label+

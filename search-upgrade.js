@@ -173,39 +173,45 @@
 })();
 
 
-// Pulse is editorially useful even if an upstream source is offline. These
-// are evergreen navigation cards, NOT fabricated or reused weekly headlines.
+// Pulse is three evidence-led research cards, independent of older signed
+// storage editions. The script only affects #pulse, never the site skeleton.
 (()=>{
  const grid=document.getElementById('pulseGrid');if(!grid)return;
+ if(!document.getElementById('pulse-three-layout')){
+  const css=document.createElement('style');css.id='pulse-three-layout';
+  css.textContent='#pulse .pulse-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}'+
+   '@media(max-width:850px){#pulse .pulse-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}'+
+   '@media(max-width:580px){#pulse .pulse-grid{grid-template-columns:1fr}}';
+  document.head.append(css);
+ }
  const title=document.getElementById('pulseTitle'),take=document.getElementById('pulseTake');
  const kinds=[
-  ['pulse-week','🔥 THIS WEEK','OFFICIAL ARC','Current week awaiting source verification','The current live edition is pending. Review Arc’s dated official announcements instead of assuming an old headline is new.','https://www.arc.io/blog','ARC BLOG ↗'],
-  ['pulse-new','🆕 NEW','ARC COMMUNITY','Review the newest published developments','Arc community announcements have original dates and sources. A source outage is not proof of no activity.','https://community.arc.io/public/blogs','SOURCE HUB ↗'],
-  ['pulse-watch','🔍 WATCH','ONCHAIN RESEARCH','Track execution, not just announcements','Look for actual transactions, settlements and participants when checking project launch claims.','https://explorer.arc.io','ARC EXPLORER ↗'],
-  ['pulse-risk','⚠️ RISK / REALITY CHECK','SOURCE COVERAGE','Missing data does not mean zero risk','Do not present undocumented token claims, missing coverage or unreleased features as verified facts.','https://www.arc.io/blog','VERIFY SOURCE ↗'],
-  ['pulse-unlock','🔓 WHAT’S UNLOCKING','TOKEN RESEARCH','View separately verified unlock schedules','The current Pulse cannot assert a token unlock until its timing, contract and source are checked.','#unlocks','UNLOCKS ↗']
+  ['pulse-week','🔥 THIS WEEK','OFFICIAL ARC','What actually changed on Arc this week?','Start with dated, first-party Arc releases. Check shipped features and on-chain adoption instead of interpreting plans as launches.','https://www.arc.io/blog','VERIFY ARC UPDATES ↗'],
+  ['pulse-new','🆕 PROJECTS & ACTIVITY','ARC EXPLORER','Follow real Arc projects and activity','Measure on-chain usage and contract deployments before calling an ecosystem launch a success.','https://explorer.arc.io','EXPLORE ACTIVITY ↗'],
+  ['pulse-unlock','🔓 UNLOCKS & RISKS','CONTRACT RESEARCH','Check verified token unlocks and supply risks','Compare exact-contract schedules, ownership and liquidity information. Missing schedules are not proof of no unlock.','#unlocks','CHECK UNLOCKS ↗']
  ];
  function renderFallback(){
   if(!grid.isConnected)return;
   const old=[...grid.querySelectorAll('.pulse-card')];
   const loading=old.length===1&&old[0].textContent.includes('Loading weekly signal');
   const generic=old.length>0&&old.every(e=>e.textContent.includes('Pulse section unavailable'));
-  if(old.length>=5&&!generic||old.length>0&&!loading&&!generic)return;
+  if(old.length===3&&!loading&&!generic)return;
+  if(old.length>0&&!loading&&!generic&&old.length<3)return;
   const fragment=document.createDocumentFragment();
   for(const [cls,kicker,owner,headline,summary,link,label] of kinds){
    const card=document.createElement('article');card.className='pulse-card '+cls;
-   const k=document.createElement('span');k.textContent=kicker;
+   const heading=document.createElement('span');heading.textContent=kicker;
    const who=document.createElement('small');who.className='pulse-owner';who.textContent=owner;
    const h=document.createElement('h4');h.textContent=headline;
    const p=document.createElement('p');p.textContent=summary;
    const a=document.createElement('a');a.href=link;a.textContent=label;
    a.style.cssText='display:inline-block;margin-top:10px;color:var(--accent);font-size:12px;font-weight:800';
    if(link.startsWith('https:')){a.target='_blank';a.rel='noopener noreferrer'}
-   card.append(k,who,h,p,a);fragment.append(card);
+   card.append(heading,who,h,p,a);fragment.append(card);
   }
   grid.replaceChildren(fragment);
-  if(take)take.textContent='ARCY TAKE — Source check pending. Use official dated releases and the Pulse archive as context; do not treat old announcements as current news.';
-  if(title&&title.textContent.includes('Loading'))title.textContent='ARCY ARC PULSE · SOURCE CHECK PENDING 📡';
+  if(take)take.textContent='ARCY TAKE — A launch announcement is the starting point, not the result. Check measured usage, liquidity and verified unlock schedules.';
+  if(title&&title.textContent.includes('Loading'))title.textContent='ARCY ARC PULSE · RESEARCH FIRST 📡';
  }
  const observer=new MutationObserver(renderFallback);
  observer.observe(grid,{childList:true});
