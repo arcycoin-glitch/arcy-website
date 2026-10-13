@@ -46,13 +46,15 @@ test('partial production approval exposes only independently approved provider',
   assert.ok(v.disabledProviders.some(p=>p.includes('GoPlus')));
  });
 });
-test('preview health is never represented as production licensing approval',async()=>{
+test('preview health keeps unapproved restricted providers disabled',async()=>{
  await withEnvironment({VERCEL:'1',VERCEL_ENV:'preview'},()=>{
   const res=response();health({method:'GET'},res);const v=res.body;
   assert.equal(v.environment,'preview-or-build');
   assert.equal(v.productionReleaseGate.mode,'NOT_A_PRODUCTION_DEPLOYMENT');
-  assert.equal(v.providerAccess.dexScreener.enabled,true);
-  assert.equal(v.providerAccess.goPlus.enabled,true);
+  assert.equal(v.providerAccess.dexScreener.enabled,false);
+  assert.equal(v.providerAccess.goPlus.enabled,false);
+  assert.ok(v.disabledProviders.some(p=>p.startsWith('DEX Screener')));
+  assert.ok(v.disabledProviders.some(p=>p.startsWith('GoPlus')));
   assert.equal(v.productionReleaseGate.sourcePermissionVerifiedByThisEndpoint,false);
   assert.match(v.productionReleaseGate.note,/Boolean flags alone are not proof/);
  });

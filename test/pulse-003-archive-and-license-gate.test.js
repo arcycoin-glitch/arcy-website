@@ -40,6 +40,10 @@ test('External DEX Screener and GoPlus production use stays gated by explicit se
   assert.equal(dex.productionDisplayAllowed(),false);
   assert.equal(goplus.productionUseAllowed(),false);
   process.env.VERCEL_ENV='preview';
+  assert.equal(dex.productionDisplayAllowed(),false);
+  assert.equal(goplus.productionUseAllowed(),false);
+  process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED='true';
+  process.env.GOPLUS_PUBLIC_DISPLAY_APPROVED='true';
   assert.equal(dex.productionDisplayAllowed(),true);
   assert.equal(goplus.productionUseAllowed(),true);
  }finally{

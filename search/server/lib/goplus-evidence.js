@@ -16,8 +16,9 @@ const ORIGIN='https://api.gopluslabs.io/api/v1/token_security/';
 const TTL=120000;
 const cache=new Map(),inflight=new Map();
 function productionUseAllowed(){
- return process.env.VERCEL!=='1'||process.env.VERCEL_ENV!=='production'||
-  process.env.GOPLUS_PUBLIC_DISPLAY_APPROVED==='true';
+ // Preview responses are public deployments as well; written permission and
+ // required attribution must be approved before any Vercel request is sent.
+ return process.env.VERCEL!=='1'||process.env.GOPLUS_PUBLIC_DISPLAY_APPROVED==='true';
 }
 function missing(reason,code='SECURITY_SOURCE_UNAVAILABLE'){
  return {value:null,dataState:'NOT_VERIFIED',status:'NOT_VERIFIED',reason,reasonCode:code,source:null,evidence:[]};

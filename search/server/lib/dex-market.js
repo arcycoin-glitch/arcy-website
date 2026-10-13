@@ -87,7 +87,11 @@ function unavailable(reason='DEX Screener did not return exact-contract pool dat
   dexPairCount:missing(reason,reasonCode),lpStatus:missing('No independently verified LP lock/custody evidence.','LP_STATUS_NOT_VERIFIED'),
   priceUsd:missing(reason,reasonCode),valuation:missing(reason,reasonCode),change24h:missing(reason,reasonCode)};
 }
-function productionDisplayAllowed(){if(process.env.VERCEL!=='1')return true;return process.env.VERCEL_ENV==='preview'||(process.env.VERCEL_ENV==='production'&&process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED==='true');}
+function productionDisplayAllowed(){
+ // Vercel Preview is externally reachable too. Keep the source disabled in
+ // every deployed environment until the intended use restrictions are reviewed.
+ return process.env.VERCEL!=='1'||process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED==='true';
+}
 async function json(url,{fetcher=global.fetch,now=Date.now()}={}){
  const cached=cache.get(url);
  if(fetcher===global.fetch&&cached&&cached.expires>now)return structuredClone(cached.body);

@@ -32,13 +32,10 @@ async function supply(base){
  const valid=burned!==null&&total>0n&&burned>=0n&&burned<=total;
  const precision=10n**80n;
  const pct=valid?Number((burned*100n*precision+total/2n)/total)/1e80:null;
- let circ=NO('Circulating supply needs a contract-matched verified source. Total supply is not circulating supply.','CIRCULATION_NOT_VERIFIED');
- try{
-  const legacy=await original.callOriginal('market',base.address);
-  const verified=original.circulation(legacy,base.address);
-  if(verified.dataState==='DATA_FOUND')circ=verified;
- }catch{} // Preserve pinned Arc supply when a separate market provider fails.
- return {description:'Pinned Arc RPC; circulating supply remains unverified because total supply is not circulating supply.',fields:{
+ // The original website market route queries CoinGecko and GeckoTerminal.
+ // Search must not bridge into it while commercial-use scope is unresolved.
+ const circ=NO('No permitted, exact-contract circulating-supply source is currently approved. Total supply is not circulating supply.','PROVIDER_DISABLED_LICENSE_UNVERIFIED');
+ return {description:'Pinned Arc RPC. Circulating supply remains unverified; shared legacy market providers are withheld until usage rights are verified.',fields:{
   totalSupply:proof(base.totalSupply,'Arc RPC',{...details,method:'totalSupply()'},'ON_CHAIN'),
   circulatingSupply:circ,
   burnAddressBalance:burned===null?NO('Pinned zero/dead address reads failed.','BURN_BALANCE_READ_FAILED'):
@@ -72,26 +69,28 @@ async function holders({address}={}){
   description:'GoPlus exact-contract Arc holder count and limited ranked sample; source-reported, not complete pinned-wallet proof.',
   fields:{...signed.fields,...backed}};
 }
-async function activity({address},cardId){
+function validateArcMarketCap(valuation,base,priceUsd){
+ if(valuation?.dataState!=='DATA_FOUND'||valuation.kind!=='MARKET_CAP')return valuation;
+ const supply=Number(base?.totalSupply),price=Number(priceUsd?.value),cap=Number(valuation.value);
+ if(!Number.isFinite(supply)||supply<=0||!Number.isFinite(price)||price<=0||
+  !Number.isFinite(cap)||cap<0)return valuation;
+ // A chain-scoped circulating market cap cannot exceed this contract's total
+ // on-chain supply multiplied by the exact-token price (allowing small rounding).
+ if(cap>supply*price*1.05)return NO(
+  'Market cap exceeds this Arc contract total supply multiplied by its exact-token price; chain scope could not be verified.',
+  'MARKET_CAP_EXCEEDS_ONCHAIN_SUPPLY_VALUE');
+ return valuation;
+}
+async function activity({address,base},cardId){
  const keys=cardId==='liquidity'?['liquidityUsd','volume24h','dexPairCount','lpStatus']:
   ['priceUsd','valuation','change24h','volume24h'];
- let restored={};
- try{
-  const route=cardId==='liquidity'?'liquidity':'activity';
-  const legacy=await original.callOriginal(route,address,cardId==='liquidity'?{summary:'1'}:{});
-  const from=legacy.fields||{};
-  const mapping=cardId==='liquidity'?{
-   liquidityUsd:'liquidityUsd',volume24h:'volume24h',dexPairCount:'pairCount',lpStatus:'lpStatus'
-  }:{priceUsd:'priceUsd',valuation:'valuation',change24h:'change24h',volume24h:'volume24h'};
-  restored=Object.fromEntries(keys.map(k=>[k,original.sourceField(from[mapping[k]],address,
-   'Existing Arc SEARCH exact-contract '+route+' evidence; source-reported, not independently audited.')]));
- }catch{} // The original Arc endpoints are optional; never poison all cards on a source outage.
+ // Do not bridge to the legacy site routes here: their market adapter calls
+ // DEX Screener directly and bypasses the Search provider-permission gate.
  const fallback=await marketFor(address);
  const fields=Object.fromEntries(keys.map(k=>[k,
-  restored[k]?.dataState==='DATA_FOUND'?restored[k]:
   fallback[k]||NO('Exact-contract evidence unavailable.','MARKET_SOURCE_NOT_VERIFIED')]));
- return {description:'Restored original Arc SEARCH source-backed '+cardId+
-  ' evidence. Provider timestamps and pool scope remain source-reported.',fields};
+ if(cardId==='activity')fields.valuation=validateArcMarketCap(fields.valuation,base,fields.priceUsd);
+ return {description:'Arc Search market fields are restricted to the separately permission-gated provider path; missing market values remain NOT VERIFIED.',fields};
 }
 
 const IMPLEMENTATION='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
@@ -119,13 +118,8 @@ async function mechanics({address,base}){
    NO('EIP-1967 slot alone does not establish immutable or non-proxy architecture.','PROXY_NOT_VERIFIED')
  };
  let fields=preliminary;
- try{
-  const legacy=await original.callOriginal('mechanics',address);
-  const past=original.contract(legacy,address);
-  fields=Object.fromEntries(Object.entries(preliminary).map(([key,value])=>[
-   key,past[key]?.dataState==='DATA_FOUND'?past[key]:value
-  ]));
- }catch{} // Keep safe on-chain getter observations if legacy mechanics source times out.
+ // Do not call the shared legacy mechanics route here: it can fan out to
+ // GoPlus outside Search's permission gate. Search uses pinned RPC below.
  if(Object.values(fields).some(f=>f.dataState!=='DATA_FOUND')){
   const detected=await require('./goplus-evidence').inspect('arc',address);
   const isARCY=address==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
@@ -143,7 +137,7 @@ async function inspectCard({base,address,cardId}){
  switch(cardId){
  case 'supply':return supply(base);
  case 'holders':return holders({address});
- case 'liquidity':case 'activity':return activity({address},cardId);
+ case 'liquidity':case 'activity':return activity({address,base},cardId);
  case 'mechanics':return mechanics({address,base});
  default:throw Error('Invalid Arc card ID');
  }
@@ -155,4 +149,4 @@ async function discover({query}){
  if(!SEARCH.test(normalized)||ADDRESS.test(normalized))throw Error('Invalid search query');
  return [];
 }
-module.exports={inspectToken,inspectCard,supply,holders,activity,mechanics,discover,addressWord,marketFor};
+module.exports={inspectToken,inspectCard,supply,holders,activity,mechanics,discover,addressWord,marketFor,validateArcMarketCap};
