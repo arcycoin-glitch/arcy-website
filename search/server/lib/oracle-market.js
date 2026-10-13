@@ -1,0 +1,55 @@
+'use strict';
+// Read-only Chainlink fallback for exact canonical Ethereum contracts. No
+// aggregator HTTP API, DEX dataset, logo, FDV, or circulating supply is used.
+const {rpc,uint}=require('./eth');
+const NETWORK='ethereum',CHAIN_ID=1;
+const ASSETS=Object.freeze({
+ '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2':Object.freeze({
+  symbol:'WETH',feed:'0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419',decimals:8,
+  basis:'Ethereum Chainlink ETH/USD reference; canonical WETH contract is redeemable for ETH at 1:1.'
+ }),
+ '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48':Object.freeze({
+  symbol:'USDC',feed:'0x8fffffd4afb6115b954bd326cbe7b4ba576818f6',decimals:8,
+  basis:'Ethereum Chainlink USDC/USD reference feed for the exact USDC contract.'
+ })
+});
+const FEED='0xfeaf968c',DECIMALS='0x313ce567';
+const word=(hex,index)=>{
+ if(typeof hex!=='string'||!/^0x(?:[0-9a-f]{64}){5}$/i.test(hex))throw Error('Invalid Chainlink round data');
+ return '0x'+hex.slice(2+index*64,2+(index+1)*64);
+};
+function failure(reason,reasonCode='ORACLE_UNAVAILABLE'){
+ return {priceUsd:{value:null,status:'NOT_VERIFIED',dataState:'NOT_VERIFIED',
+  reason,reasonCode,source:null,evidence:[],chainId:CHAIN_ID,network:NETWORK}};
+}
+async function inspect(address,block,{rpcCall=rpc,now=Date.now()}={}){
+ if(typeof address!=='string'||!/^0x[0-9a-f]{40}$/i.test(address)||!/^0x[0-9a-f]+$/i.test(block||''))
+  return failure('Exact Ethereum token and pinned block are required.','INVALID_INPUT');
+ const token=address.toLowerCase(),asset=ASSETS[token];
+ if(!asset)return failure('No exact-contract Chainlink USD feed is configured for this Ethereum token.','NO_EXACT_ORACLE_FEED');
+ const [decimalsWord,round,blockData]=await Promise.all([
+  rpcCall('eth_call',[{to:asset.feed,data:DECIMALS},block]),
+  rpcCall('eth_call',[{to:asset.feed,data:FEED},block]),
+  rpcCall('eth_getBlockByNumber',[block,false])
+ ]);
+ if(Number(uint(decimalsWord))!==asset.decimals)throw Error('Unexpected Chainlink feed precision');
+ const answer=BigInt(word(round,1));
+ const updatedAt=Number(BigInt(word(round,3)));
+ const roundId=BigInt(word(round,0)).toString();
+ const blockTimestamp=Number(BigInt(blockData?.timestamp||'0x0'));
+ if(answer<=0n||!Number.isSafeInteger(updatedAt)||updatedAt<=0||
+   !Number.isSafeInteger(blockTimestamp)||updatedAt>blockTimestamp)
+  return failure('Oracle answer or timestamp is not valid at the pinned Ethereum block.','INVALID_ORACLE_ANSWER');
+ const ageSeconds=Math.floor(now/1000)-updatedAt;
+ if(ageSeconds<0||ageSeconds>86400)
+  return failure('Chainlink answer is older than 24 hours.','STALE_ORACLE_ANSWER');
+ const value=Number(answer)/10**asset.decimals;
+ if(!Number.isFinite(value)||value<=0)return failure('Oracle USD answer is outside the supported numeric range.','INVALID_ORACLE_ANSWER');
+ return {priceUsd:{value,status:'ON_CHAIN_ORACLE',dataState:'DATA_FOUND',
+  source:'Chainlink Data Feed via Ethereum RPC',network:NETWORK,chainId:CHAIN_ID,
+  evidence:[{provider:'Chainlink Data Feed',network:NETWORK,chainId:CHAIN_ID,
+   token,feed:asset.feed,block,roundId,updatedAt:new Date(updatedAt*1000).toISOString(),
+   ageSeconds,basis:asset.basis,
+   scope:'Oracle reference price only. Not a DEX execution price, market cap, circulating supply, volume, liquidity, or 24h change.'}]}};
+}
+module.exports={ASSETS,word,failure,inspect};

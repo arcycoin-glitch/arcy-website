@@ -47,7 +47,7 @@ function mechanicsCard(controls,securityData={},getters={}){
 async function build(address){
  const t=await inspectToken(address);
  const [marketResult,controlResult,holderResult,circulatingResult,securityResult,goPlusHolderResult]=await Promise.allSettled([
-  market.inspect(t.address),control.inspect(t.address,t.block),
+  market.inspect(t.address,t.block),control.inspect(t.address,t.block),
   holdersSource.inspect(t.address,t.block,t.totalSupplyRaw),
   circulation.inspect(t.address,t.fields.totalSupply.value),
   security.inspect('ethereum',t.address),
