@@ -79,6 +79,7 @@
    if(selected===id)return;
    setNetwork(id);
    results.replaceChildren();results.hidden=true;
+   scheduleSuggestions();
    state.textContent='Searching '+label+' only. Enter a token name, ticker or exact contract.';
   });
   option.addEventListener('keydown',event=>{
@@ -176,8 +177,121 @@
   return button;
  }
 
+ // Instant Google-style discovery suggestions. Every pinned entry is an
+ // already issuer-documented exact chain + contract (see token-identity.js).
+ // Live results stay scoped to the selected network; neither type-ahead nor
+ // artwork is allowed to claim that an arbitrary ticker match is official.
+ const OFFICIAL_SUGGESTIONS=Object.freeze([
+  ['arc','0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b','ARCY','ARCY'],
+  ['arc','0x3600000000000000000000000000000000000000','USD Coin','USDC'],
+  ['ethereum','0xcf0c122c6b73ff809c693db761e7baebe62b6a2e','Floki','FLOKI'],
+  ['ethereum','0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48','USD Coin','USDC'],
+  ['ethereum','0x1f9840a85d5af5bf1d1762f925bdaddc4201f984','Uniswap','UNI'],
+  ['ethereum','0x514910771af9ca656af840dff83e8264ecf986ca','Chainlink','LINK'],
+  ['ethereum','0xdac17f958d2ee523a2206206994597c13d831ec7','Tether USD','USDT'],
+  ['ethereum','0x6b175474e89094c44da98b954eedeac495271d0f','Dai Stablecoin','DAI'],
+  ['ethereum','0x2260fac5e5542a773aa44fbcfedf7c193bc2c599','Wrapped BTC','WBTC'],
+  ['ethereum','0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce','Shiba Inu','SHIB'],
+  ['ethereum','0x9813037ee2218799597d83d4a5b6f3b6778218d9','Bone ShibaSwap','BONE'],
+  ['ethereum','0x27c70cd1946795b66be9d954418546998b546634','Doge Killer','LEASH'],
+  ['ethereum','0xa02c49da76a085e4e1ee60a6b920ddbc8db599f4','Shiba Inu TREAT','TREAT'],
+  ['ethereum','0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3','Ondo','ONDO'],
+  ['ethereum','0x45804880de22913dafe09f4980848ece6ecbaf78','PAX Gold','PAXG']
+ ]);
+ const SUGGEST_CHAIN_IDS=Object.freeze({arc:5042,ethereum:1,robinhood:4663});
+ const suggestBox=document.createElement('div');suggestBox.id='homeSearchSuggestions';
+ suggestBox.className='home-search-suggest';suggestBox.hidden=true;
+ suggestBox.setAttribute('role','region');
+ suggestBox.setAttribute('aria-label','Suggested token contracts');
+ form.append(suggestBox);
+ input.setAttribute('aria-controls',suggestBox.id);
+ input.setAttribute('aria-expanded','false');
+ let suggestGeneration=0,suggestTimer=null,suggestController=null;
+ const hideSuggestions=()=>{
+  suggestBox.hidden=true;suggestBox.replaceChildren();
+  input.setAttribute('aria-expanded','false');
+ };
+ const cancelSuggestions=()=>{
+  suggestGeneration++;clearTimeout(suggestTimer);
+  if(suggestController){suggestController.abort();suggestController=null;}
+ };
+ function matchedOfficial(query){
+  const q=query.toLocaleLowerCase('en-US');
+  const matches=OFFICIAL_SUGGESTIONS.filter(row=>row[2].toLowerCase().includes(q)||row[3].toLowerCase().includes(q));
+  matches.sort((a,b)=>{
+   const score=row=>(row[0]===selected?0:4)+
+    (row[3].toLowerCase()===q?0:row[3].toLowerCase().startsWith(q)?1:row[2].toLowerCase().startsWith(q)?2:3);
+   return score(a)-score(b)||a[3].localeCompare(b[3]);
+  });
+  return matches.slice(0,6).map(row=>({
+   network:row[0],chainId:SUGGEST_CHAIN_IDS[row[0]],address:row[1],
+   name:row[2],symbol:row[3],identity:{status:'OFFICIAL_CONTRACT_MATCHED'}
+  }));
+ }
+ function showSuggestions(query,remote=[]){
+  if(input.value.trim()!==query||query.length<2||addressPattern.test(query))return;
+  const unique=new Map();
+  for(const item of matchedOfficial(query))unique.set(item.network+':'+item.address,item);
+  for(const item of remote){
+   if(!item||item.network!==selected||item.chainId!==SUGGEST_CHAIN_IDS[selected]||
+      !addressPattern.test(item.address||''))continue;
+   const key=item.network+':'+item.address.toLowerCase();
+   if(!unique.has(key))unique.set(key,item);
+  }
+  suggestBox.replaceChildren();
+  const rows=[...unique.values()].slice(0,7);
+  if(!rows.length){hideSuggestions();return;}
+  const heading=document.createElement('div');heading.className='home-search-suggest-label';
+  heading.textContent='SUGGESTED TOKENS · SELECT TO RESEARCH';
+  suggestBox.append(heading);
+  for(const item of rows)suggestBox.append(addCandidate(item,item.network));
+  suggestBox.hidden=false;input.setAttribute('aria-expanded','true');
+ }
+ function scheduleSuggestions(){
+  cancelSuggestions();hideSuggestions();
+  const query=input.value.trim(),generation=suggestGeneration,network=selected;
+  if(query.length<2||query.length>48||query.toLowerCase().startsWith('0x'))return;
+  // Instant issuer-known results, including e.g. ONDO on Ethereum when Arc
+  // is selected. Network-sourced suggestions follow after a short pause.
+  showSuggestions(query);
+  suggestTimer=setTimeout(async()=>{
+   if(generation!==suggestGeneration||network!==selected)return;
+   const controller=new AbortController();suggestController=controller;
+   const timeout=setTimeout(()=>controller.abort(),7000);
+   try{
+    const response=await fetch('/api/search?action=discover&'+new URLSearchParams({chain:network,q:query}),{
+     signal:controller.signal,headers:{accept:'application/json'},credentials:'same-origin'
+    });
+    if(!response.ok)return;
+    const body=await response.json();
+    if(generation!==suggestGeneration||network!==selected||input.value.trim()!==query||
+       !body||body.ok!==true||body.network!==network||body.chainId!==SUGGEST_CHAIN_IDS[network]||
+       !Array.isArray(body.matches))return;
+    showSuggestions(query,body.matches.slice(0,12));
+   }catch(_){/* Preserve instant known suggestions if the live source is offline. */}
+   finally{clearTimeout(timeout);if(suggestController===controller)suggestController=null;}
+  },340);
+ }
+ input.addEventListener('input',()=>{
+  results.replaceChildren();results.hidden=true;
+  scheduleSuggestions();
+ });
+ input.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){cancelSuggestions();hideSuggestions();}
+  if(event.key==='ArrowDown'&&!suggestBox.hidden){
+   const first=suggestBox.querySelector('a.home-search-result');
+   if(first){event.preventDefault();first.focus();}
+  }
+ });
+ document.addEventListener('pointerdown',event=>{
+  if(!form.contains(event.target)){cancelSuggestions();hideSuggestions();}
+ });
+ form.addEventListener('focusout',()=>{
+  setTimeout(()=>{if(!form.contains(document.activeElement)){cancelSuggestions();hideSuggestions();}},0);
+ });
+
  form.addEventListener('submit',async event=>{
-  event.preventDefault();results.replaceChildren();results.hidden=true;const query=input.value.trim();
+  event.preventDefault();cancelSuggestions();hideSuggestions();results.replaceChildren();results.hidden=true;const query=input.value.trim();
   if(!query){state.textContent='Enter a token name, symbol or full contract address.';input.focus();return}
   if(addressPattern.test(query)){location.assign(detailPath(selected,query));return}
   if(query.length<2||query.length>48){state.textContent='Enter at least 2 characters (maximum 48).';return}
