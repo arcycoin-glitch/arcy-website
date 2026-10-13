@@ -103,17 +103,34 @@
 
  const addressPattern=/^0x[0-9a-fA-F]{40}$/;
  function detailPath(network,address){return '/search/token/'+network+'/'+address.toLowerCase()}
+// Display-only issuer artwork: each entry is scoped to an issuer-confirmed chain + contract.
+ // These files are already bundled with ARCY SEARCH; ticker similarity proves nothing.
+ const VERIFIED_TOKEN_ART=Object.freeze({
+  arc:Object.freeze({'0x3600000000000000000000000000000000000000':'usdc'}),
+  ethereum:Object.freeze({
+   '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48':'usdc',
+   '0xdac17f958d2ee523a2206206994597c13d831ec7':'usdt',
+   '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984':'uni',
+   '0x514910771af9ca656af840dff83e8264ecf986ca':'link',
+   '0x6b175474e89094c44da98b954eedeac495271d0f':'dai',
+   '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599':'wbtc',
+   '0x45804880de22913dafe09f4980848ece6ecbaf78':'paxg'
+  })
+ });
+ function issuerArtwork(network,address,identity){
+  if(identity?.status!=='OFFICIAL_CONTRACT_MATCHED'||typeof address!=='string')return null;
+  const icon=VERIFIED_TOKEN_ART[network]?.[address.toLowerCase()];
+  return icon?'/search/assets/token-icons/'+icon+'.svg':null;
+ }
  function addCandidate(candidate,network){
   const button=document.createElement('a');button.className='home-search-result';button.href=detailPath(network,candidate.address);
-  const trustedLocal=typeof candidate.logoUrl==='string'&&
-   /^\/search\/assets\/token-icons\/(?:usdc|usdt|link|uni|dai|wbtc|paxg)\.svg$/.test(candidate.logoUrl);
   const officialStockArt=network==='robinhood'&&candidate.network==='robinhood'&&
    candidate.chainId===4663&&candidate.registryMatched===true&&
    candidate.identity?.status==='REGISTRY_MATCHED'&&
    /^https:\/\/cdn\.robinhood\.com\/ncw_assets\/logos\/0x[0-9a-f]{40}\.png$/i.test(candidate.logoUrl||'')?
    candidate.logoUrl:null;
   const logoHost=network==='arc'&&candidate.address?.toLowerCase()==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'?
-   '/assets/hero-arcy.png':trustedLocal?candidate.logoUrl:officialStockArt;
+   '/assets/hero-arcy.png':issuerArtwork(network,candidate.address,candidate.identity)||officialStockArt;
   // ALWAYS keep a readable token-symbol fallback under remote artwork.
   // Failed or blocked provider images must not leave a blank logo box.
   const placeholder=document.createElement('span');placeholder.className='home-token-logo home-token-placeholder';
