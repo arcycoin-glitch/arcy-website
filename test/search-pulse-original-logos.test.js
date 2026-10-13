@@ -32,6 +32,25 @@ test('public Pulse GET presents dated verified edition unchanged when current',a
   assert.equal(res.body.cards[0].title,'Verified test fixture');
  }finally{client.latest=latest;client.audit=audit}
 });
+test('existing signed Pulse with only three cards retains them and fills the two missing source sections',()=>{
+ const original=[
+  {kind:'week',title:'Verified week development',summary:'Dated official event',publishedAt:'2026-10-13T09:00:00Z',url:'https://www.arc.io/blog'},
+  {kind:'new',title:'Verified new development',summary:'Source-backed',publishedAt:'2026-10-13T09:00:00Z',url:'https://community.arc.io/public/blogs'},
+  {kind:'watch',title:'Verified watch development',summary:'Source-backed',publishedAt:'2026-10-13T09:00:00Z',url:'https://www.arc.io/blog'}
+ ];
+ const result=pulse.fiveSections(original);
+ assert.equal(result.length,5);
+ assert.deepEqual(result.slice(0,3),original);
+ assert.deepEqual(result.map(x=>x.kind),fallback.KINDS);
+ assert.equal(result[3].verifiedCurrentWeek,false);
+ assert.equal(result[4].verifiedCurrentWeek,false);
+ assert.equal(result[3].publishedAt,null);
+ assert.equal(result[4].publishedAt,null);
+ assert.equal(result[4].url,'#unlocks');
+ const malformed=pulse.fiveSections([{kind:'week',title:'Unsupported',summary:''}]);
+ assert.equal(malformed.length,5);
+ assert.notEqual(malformed[0].title,'Unsupported');
+});
 test('stale signed Pulse is not relabeled as the current weekly headline',async()=>{
  const old=client.latest;
  const oldEdition={number:3,status:'updated',generatedAt:'2026-10-06T10:00:00.000Z',
