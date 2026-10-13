@@ -210,3 +210,7 @@ html.search-upgraded .nav #siteLinks a:focus-visible{outline:2px solid var(--nav
 
 /* Ondo's original black icon stays unmodified; white backing preserves contrast on navy. */
 #search .home-token-placeholder img[src="https://cdn.ondo.finance/brand/logos/ondo-icon-black_160x160.png"]{box-sizing:border-box;padding:4px;background:#fff}
+
+/* GitHub exists once, as a footer icon beside X and Telegram.
+   Avoid showing the old desktop/mobile header link before JS initialization. */
+.nav #siteLinks > a.nav-github{display:none!important}
