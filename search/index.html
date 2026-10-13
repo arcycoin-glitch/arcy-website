@@ -1078,7 +1078,7 @@ async function scanAddress(address,network=selected(),version=searchVersion,chos
   const block=document.createElement('span');
   block.textContent=' · Block '+BigInt(data.block).toString();
   container.append(title,explorer,block);
-  const verifiedLogo=displayLogo(chosenLogo||asset.logoUrl,network,data.address);
+  const verifiedLogo=displayLogo(chosenLogo||asset.logoUrl,network,data.address,data.tokenIdentity);
   if(verifiedLogo){
    const art=document.createElement('img');
    art.className='token-title-logo';art.src=verifiedLogo;
@@ -1110,10 +1110,36 @@ async function scanAddress(address,network=selected(),version=searchVersion,chos
 }
 // Site-owned ARCY mascot is an on-site brand graphic, NOT issuer verification.
 const ARCY_OFFICIAL_PROJECT_CONTRACT='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
-function displayLogo(raw,network,address){
+// Display-only issuer artwork: each entry is scoped to an issuer-confirmed chain + contract.
+// These files are already bundled with ARCY SEARCH; ticker similarity proves nothing.
+const VERIFIED_TOKEN_ART=Object.freeze({
+ arc:Object.freeze({'0x3600000000000000000000000000000000000000':'usdc'}),
+ ethereum:Object.freeze({
+  '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48':'usdc',
+  '0xdac17f958d2ee523a2206206994597c13d831ec7':'usdt',
+  '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984':'uni',
+  '0x514910771af9ca656af840dff83e8264ecf986ca':'link',
+  '0x6b175474e89094c44da98b954eedeac495271d0f':'dai',
+  '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599':'wbtc',
+  '0x45804880de22913dafe09f4980848ece6ecbaf78':'paxg'
+ })
+});
+function issuerArtwork(network,address,identity){
+ if(identity?.status!=='OFFICIAL_CONTRACT_MATCHED'||typeof address!=='string')return null;
+ const icon=VERIFIED_TOKEN_ART[network]?.[address.toLowerCase()];
+ return icon?'/search/assets/token-icons/'+icon+'.svg':null;
+}
+function displayLogo(raw,network,address,identity){
  if(network==='arc'&&typeof address==='string'&&
   address.toLowerCase()===ARCY_OFFICIAL_PROJECT_CONTRACT)return '/assets/hero-arcy.png';
- return safeCandidateImage(raw);
+ const verifiedLocal=issuerArtwork(network,address,identity);
+ if(verifiedLocal)return verifiedLocal;
+ if(network==='robinhood'&&identity?.status==='REGISTRY_MATCHED'&&
+   typeof address==='string'&&/^0x[0-9a-f]{40}$/i.test(address)&&
+   typeof raw==='string'&&
+   raw.toLowerCase()==='https://cdn.robinhood.com/ncw_assets/logos/'+address.toLowerCase()+'.png')
+  return safeCandidateImage(raw);
+ return null;
 }
 function safeCandidateImage(raw){
  if(typeof raw!=='string')return null;
@@ -1147,7 +1173,7 @@ function showCandidates(data,network,version){
   const art=document.createElement('span');art.className='candidate-logo';
   const initials=String(item.symbol||item.name||'?').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'?';
   art.textContent=initials;
-  const logo=displayLogo(item.logoUrl,network,item.address);
+  const logo=displayLogo(item.logoUrl,network,item.address,item.identity);
   if(logo){
    const img=document.createElement('img');
    img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
@@ -1219,7 +1245,7 @@ function renderDetailMatches(matches,network,version){
   const option=document.createElement('button');option.type='button';option.className='detail-match';
   const avatar=document.createElement('span');avatar.className='detail-match-avatar';
   avatar.textContent=String(item.symbol||item.name||'?').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'?';
-  const logo=displayLogo(item.logoUrl,network,item.address);
+  const logo=displayLogo(item.logoUrl,network,item.address,item.identity);
   if(logo){const image=document.createElement('img');image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.src=logo;image.addEventListener('error',()=>image.remove(),{once:true});avatar.append(image)}
   const copy=document.createElement('span');copy.className='detail-match-copy';
   const name=document.createElement('strong');name.textContent=(item.name||'Unnamed token')+' ('+(item.symbol||'?')+')';
