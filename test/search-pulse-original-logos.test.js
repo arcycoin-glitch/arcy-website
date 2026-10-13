@@ -120,10 +120,14 @@ test('official local token marks are mapped by exact chain and contract, never t
  assert.equal(logos.localLogo('ethereum','0x'+'a'.repeat(40)),null);
  assert.equal(logos.localLogo('arc','0xece5ca8bf9220718e5727754026757512212cb3c'),null);
 });
-test('playing the decorative hero video never hides or dims the original owl artwork',()=>{
+test('playing owl video is visible without doubling the still image or square matte',()=>{
  const css=fs.readFileSync(require.resolve('../hero-video.css'),'utf8');
- assert.match(css,/#hero \.hero-flight\.video-playing>img\{visibility:visible\}/);
- assert.match(css,/#hero \.hero-flight\.video-playing \.hero-video\{opacity:\.28;mix-blend-mode:screen\}/);
- assert.match(css,/mask-image:radial-gradient/);
+ const js=fs.readFileSync(require.resolve('../hero-video.js'),'utf8');
+ assert.match(css,/#hero \.hero-flight\.video-playing \.hero-video\{opacity:1;mix-blend-mode:screen\}/);
+ assert.match(css,/#hero \.hero-flight\.video-playing>img\{opacity:0;visibility:visible\}/);
+ assert.match(css,/border-radius:50%/);
+ assert.match(css,/mask-image:radial-gradient\(ellipse 49% 49%/);
+ assert.match(css,/#hero \.hero-flight:not\(\.video-playing\)>img\{opacity:1;visibility:visible\}/);
  assert.match(css,/prefers-reduced-motion:reduce/);
+ assert.match(js,/\['pause','waiting','stalled','ended'\]/);
 });
