@@ -24,7 +24,7 @@ test('public Pulse GET presents dated verified edition unchanged when current',a
  const now=Date.now(),week=edition.cycle(now);
  const signed={number:edition.number(now),status:'updated',generatedAt:new Date(now).toISOString(),
    cycle:{start:new Date(week.start).toISOString(),end:new Date(week.end).toISOString()},
-   cards:[{kind:'week',title:'Verified test fixture'}],take:'Example',sources:[]};
+   cards:[{kind:'week',title:'Verified test fixture',summary:'A dated and source-backed official Arc update.',url:'https://www.arc.io/blog',publishedAt:new Date(now).toISOString()}],take:'Example',sources:[]};
  try{
   client.latest=async()=>signed;client.audit=async()=>null;
   const res=response();await pulse({method:'GET',query:{},headers:{}},res);
