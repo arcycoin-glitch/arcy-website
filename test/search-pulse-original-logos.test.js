@@ -110,3 +110,20 @@ test('landing page has no empty Arc chain mark and Pulse guarantees a three-card
  assert.match(home,/MutationObserver\(renderFallback\)/);
  assert.match(home,/officialStockArt/);
 });
+
+test('official local token marks are mapped by exact chain and contract, never ticker alone',()=>{
+ const arcUsdc='0x3600000000000000000000000000000000000000';
+ const ethUsdc='0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
+ assert.equal(logos.localLogo('arc',arcUsdc),'/search/assets/token-icons/usdc.svg');
+ assert.equal(logos.localLogo('ethereum',ethUsdc),'/search/assets/token-icons/usdc.svg');
+ assert.equal(logos.localLogo('arc',ethUsdc),null);
+ assert.equal(logos.localLogo('ethereum','0x'+'a'.repeat(40)),null);
+ assert.equal(logos.localLogo('arc','0xece5ca8bf9220718e5727754026757512212cb3c'),null);
+});
+test('playing the decorative hero video never hides or dims the original owl artwork',()=>{
+ const css=fs.readFileSync(require.resolve('../hero-video.css'),'utf8');
+ assert.match(css,/#hero \.hero-flight\.video-playing>img\{visibility:visible\}/);
+ assert.match(css,/#hero \.hero-flight\.video-playing \.hero-video\{opacity:\.28;mix-blend-mode:screen\}/);
+ assert.match(css,/mask-image:radial-gradient/);
+ assert.match(css,/prefers-reduced-motion:reduce/);
+});
