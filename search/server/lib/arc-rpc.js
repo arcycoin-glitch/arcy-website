@@ -95,6 +95,36 @@ async function inspectAt(endpoint,address){
   burnAddressRaw:raw?.toString()??null,
   burnAddressBalance:raw===null?null:units(raw,decimals)};
 }
+// Use the original, independently exercised Arc RPC path only when all new
+// provider transports fail. Both paths attest chain 5042 and pin all reads to
+// one block. Never substitute a value from a different block/chain.
+async function inspectUsingLegacyCore(address,{core=require('../../../lib/core')}={}){
+ if(!ADDRESS.test(address))throw Error('Invalid Arc contract');
+ const normalized=address.toLowerCase();
+ if(core.CHAIN!==5042)throw Error('Legacy reader chain mismatch');
+ const {block}=await core.context(normalized); // Revalidates chain and deployed bytecode.
+ if(typeof block!=='string'||!/^0x[0-9a-f]+$/i.test(block))throw Error('Invalid pinned Arc block');
+ const call=data=>core.call(normalized,data,block);
+ const [supplyHex,decimalHex]=await Promise.all([call('0x18160ddd'),call('0x313ce567')]);
+ const raw=core.uint(supplyHex),decimals=Number(core.uint(decimalHex));
+ if(!Number.isInteger(decimals)||decimals<0||decimals>36)throw Error('Invalid Arc precision');
+ const reads=await Promise.allSettled([
+  call('0x06fdde03'),call('0x95d89b41'),
+  ...core.BURNS.map(a=>call('0x70a08231'+a.slice(2).padStart(64,'0')))
+ ]);
+ const getName=i=>{try{return reads[i].status==='fulfilled'?core.string(reads[i].value):null}catch{return null}};
+ const balances=reads.slice(2).map(x=>{try{return x.status==='fulfilled'?core.uint(x.value):null}catch{return null}});
+ const burned=balances.every(x=>typeof x==='bigint')?balances.reduce((a,b)=>a+b,0n):null;
+ // Current balances larger than total cannot be published as a burn percentage.
+ const checked=burned!==null&&burned<=raw?burned:null;
+ return {chainId:5042,network:'arc',address:normalized,block,
+  token:{name:getName(0),symbol:getName(1),decimals},
+  totalSupplyRaw:raw.toString(),totalSupply:core.units(raw,decimals),
+  burnAddressRaw:checked?.toString()??null,
+  burnAddressBalance:checked===null?null:core.units(checked,decimals),
+  rpcFallback:'ORIGINAL_ARC_READ_ONLY_PINNED_RPC'};
+}
+
 async function inspectToken({address}){
  if(!ADDRESS.test(address))throw Error('Invalid contract address');
  const normalized=address.toLowerCase();
@@ -109,6 +139,10 @@ async function inspectToken({address}){
    if(!retryable(error))throw error;
   }
  }
+ if(retryable(last)){
+  try{return await inspectUsingLegacyCore(normalized)}
+  catch{} // If legacy source also fails, retain the original failure signal.
+ }
  throw last;
 }
-module.exports={rpc,inspectToken,providers,retryable,requestAt,inspectAt};
+module.exports={rpc,inspectToken,inspectUsingLegacyCore,providers,retryable,requestAt,inspectAt};
