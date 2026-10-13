@@ -120,17 +120,14 @@ function candidate(network) {
         const detailLogo = page.locator('#tokenDetail img.token-title-logo');
         assert.equal(await detailLogo.count(), network === 'arc' ? 1 : 0, 'only the site-owned ARCY artwork is used when a token image is unavailable');
         if (network === 'arc') assert.ok(await detailLogo.evaluate(image => image.complete && image.naturalWidth > 0), 'site-owned ARCY art loads');
-        if (network === 'robinhood') {
-          assert.equal(await page.locator('#officialChartFallback').count(), 0, 'unsupported Robinhood chart is not fabricated');
-          assert.match(await page.locator('#chartNote').innerText(), /not currently confirmed/);
-        } else {
-          const expected = { '4H': '15m', '1D': '1h', '1W': '4h', '30D': '1d' };
-          for (const [range, resolution] of Object.entries(expected)) {
-            await page.locator(`#chartRanges [data-range="${range}"]`).click();
-            const frame = page.locator('#officialChartFallback iframe');
-            await frame.waitFor({ state: 'attached' });
-            assert.equal(new URL(await frame.getAttribute('src')).searchParams.get('resolution'), resolution);
-          }
+        const expected = { '4H': '15m', '1D': '1h', '1W': '4h', '30D': '1d' };
+        for (const [range, resolution] of Object.entries(expected)) {
+          await page.locator(`#chartRanges [data-range="${range}"]`).click();
+          const frame = page.locator('#officialChartFallback iframe');
+          await frame.waitFor({ state: 'attached' });
+          const source = new URL(await frame.getAttribute('src'));
+          assert.equal(source.searchParams.get('resolution'), resolution);
+          assert.match(source.pathname, new RegExp(`/${network === 'robinhood' ? 'robinhood' : network === 'ethereum' ? 'eth' : 'arc'}/tokens/`), 'chart embed stays on the selected chain');
         }
         await page.locator('#detailSearchChain').selectOption(network === 'arc' ? 'ethereum' : 'arc');
         await page.locator('#detailSearchQuery').fill('USDC');
@@ -144,7 +141,7 @@ function candidate(network) {
     assert.deepEqual(pageErrors, []);
     assert.equal(seen.filter(x => x.action === 'discover').length, 24, 'homepage and detail-page discovery each run once per chain/viewport');
     assert.equal(seen.filter(x => x.action === 'report').length, 12);
-    console.log('PASS: mocked browser E2E at 320/390/768/1440px; home discovery on all chains; official labels remain unverified; fallback logos; 5 cards/20 checks; 4 GeckoTerminal presets on Arc/Ethereum; unsupported Robinhood chart withheld; detail-page re-search. All API data in this test is mocked, not real provider evidence.');
+    console.log('PASS: mocked browser E2E at 320/390/768/1440px; home discovery on all chains; official labels remain unverified; fallback logos; 5 cards/20 checks; all four GeckoTerminal presets stay on the selected chain; detail-page re-search. All API data in this test is mocked, not real provider evidence.');
   } finally {
     if (browser) await browser.close();
     server.kill();
