@@ -207,3 +207,6 @@ html.search-upgraded .nav #siteLinks a:focus-visible{outline:2px solid var(--nav
  html.search-upgraded #search .home-search-result{grid-template-columns:40px minmax(0,1.2fr) minmax(260px,.8fr) auto;gap:14px;padding:10px 14px}
  html.search-upgraded #search .home-search-result code{box-sizing:border-box;min-width:0;max-width:100%;font-size:clamp(9px,.8vw,11px)}
 }
+
+/* Ondo's original black icon stays unmodified; white backing preserves contrast on navy. */
+#search .home-token-placeholder img[src="https://cdn.ondo.finance/brand/logos/ondo-icon-black_160x160.png"]{box-sizing:border-box;padding:4px;background:#fff}
