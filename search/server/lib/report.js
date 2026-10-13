@@ -22,16 +22,18 @@ function burnAddressPercent(totalRaw,burnRaw,block,address){
  const scaled=(burn*100n*precision+supply/2n)/supply;
  return evidence.found(Number(scaled)/1e80,'Ethereum RPC',[{chainId:1,block,address,method:'balanceOf(0x0 and 0xdead) / totalSupply()',scope:'Current balances only, not historic burned total.'}],'ON_CHAIN_DERIVED');
 }
-function mechanicsCard(controls,securityData={}){
+function mechanicsCard(controls,securityData={},getters={}){
  const owner=controls.fields?.owner;
  const proxy=controls.fields?.proxyImplementation;
  const ownerAdmin=owner?.dataState==='DATA_FOUND'
    ?{...owner,value:'owner() getter: '+owner.value,scope:'Getter-reported only. Does not prove the complete contract admin role model.'}
-   :securityData.ownerAdmin?.dataState==='DATA_FOUND'?securityData.ownerAdmin:
+   :getters.ownerAdmin?.dataState==='DATA_FOUND'?getters.ownerAdmin:
+    securityData.ownerAdmin?.dataState==='DATA_FOUND'?securityData.ownerAdmin:
     evidence.unknown('Owner/admin authority cannot be established from a missing getter. Role/implementation inspection needed.','OWNER_ADMIN_NOT_VERIFIED');
  const contractArchitecture=proxy?.dataState==='DATA_FOUND'
    ?{...proxy,value:'EIP-1967 implementation: '+proxy.value,scope:'An implementation slot is populated; verify admin, beacon, UUPS and delegatecall behavior separately.'}
-   :securityData.contractArchitecture?.dataState==='DATA_FOUND'?securityData.contractArchitecture:
+   :getters.contractArchitecture?.dataState==='DATA_FOUND'?getters.contractArchitecture:
+    securityData.contractArchitecture?.dataState==='DATA_FOUND'?securityData.contractArchitecture:
     evidence.unknown('No EIP-1967 implementation established; absence does not prove non-upgradeability.','ARCHITECTURE_NOT_VERIFIED');
  const result=evidence.card({
    tradingTaxes:securityData.tradingTaxes||securityData.taxes||evidence.unknown('No contract-matched source fee observation.','TRADING_TAXES_NOT_VERIFIED'),
@@ -74,7 +76,15 @@ async function build(address){
   holders.status='PARTIAL_EVIDENCE';
  const liquidity=copyFields(m,['liquidityUsd','volume24h','dexPairCount','lpStatus'],'Exact-matched source-reported market data. LP permissions remain unverified.');
  const activity=copyFields(m,['priceUsd','valuation','change24h','volume24h'],'Primary base-token market values from exact Ethereum pairs; source-reported.');
- const mechanics=mechanicsCard(c,sec);
+ let extra={};
+ if(c.fields?.owner?.dataState!=='DATA_FOUND'||c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'){
+  try{extra=await require('./admin-getters').inspect({
+   network:'ethereum',address:t.address,block:t.block,rpc:require('./eth').rpc,
+   needAdmin:c.fields?.owner?.dataState!=='DATA_FOUND',
+   needImplementation:c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'
+  })}catch{} // A failing optional getter never removes existing evidence.
+ }
+ const mechanics=mechanicsCard(c,sec,extra);
  const cards={supply,holders,liquidity,activity,mechanics};
  for(const d of schema){
    if(!cards[d.id])throw Error('Missing required card '+d.id);
