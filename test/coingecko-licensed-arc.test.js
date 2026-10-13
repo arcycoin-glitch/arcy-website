@@ -3,6 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const adapter=require('../lib/coingecko-adapter');
 const core=require('../lib/core');
+require('../api/supply'); // Register original export so the mock can restore it safely.
 const supplyPath=require.resolve('../api/supply');
 const ADDRESS='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
 function response(){return {code:200,setHeader(){return this},status(n){this.code=n;return this},json(x){this.body=x;return x}};}
