@@ -104,3 +104,9 @@
  #tokenDetail .detail-discover-copy h2{font-size:18px}
  #tokenDetail .detail-network-shortcuts button{padding:7px 8px;font-size:9px}
 }
+
+/* Use the same verified network marks in detail search and result navigation. */
+#discovery .chain-mark,.network-trigger .chain-mark,.chain-option .chain-mark{box-sizing:border-box;width:42px!important;height:42px!important}
+#discovery .chain-mark img,.network-trigger .chain-mark img,.chain-option .chain-mark img,#discovery .chain-mark svg,.network-trigger .chain-mark svg,.chain-option .chain-mark svg{display:block;width:25px!important;height:27px!important;max-width:100%;max-height:100%;object-fit:contain;object-position:center}
+#tokenDetail .detail-network-shortcuts button{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+#tokenDetail .detail-network-shortcuts .detail-network-icon{display:block;flex:none;width:16px;height:18px;object-fit:contain;object-position:center}

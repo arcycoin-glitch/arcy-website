@@ -3,23 +3,27 @@
  const section=document.querySelector('main > #search');
  const header=section?.querySelector('.header');
 
- // GitHub belongs with X and Telegram in the footer, not the mobile menu.
- // Reuse the existing GitHub SVG and the existing source link: no duplicate link.
+ // Keep precisely ONE GitHub navigation link: the footer social icon beside X and Telegram.
+ // Source/evidence URLs inside research reports are untouched.
+ const githubHref='https://github.com/arcycoin-glitch/arcy-website';
  const navGitHub=document.querySelector('#siteLinks > a.nav-github');
- const sourceGitHub=document.querySelector('footer .footer-source-link[href="https://github.com/arcycoin-glitch/arcy-website"]');
- const footerTelegram=document.querySelector('footer .social-icons > a.social-icon[aria-label="Telegram"]');
- if(navGitHub&&sourceGitHub&&footerTelegram){
-  const githubIcon=navGitHub.querySelector('svg')?.cloneNode(true);
-  if(githubIcon){
-   githubIcon.setAttribute('aria-hidden','true');
-   sourceGitHub.classList.remove('footer-source-link');
-   sourceGitHub.classList.add('social-icon');
-   sourceGitHub.setAttribute('aria-label','GitHub');
-   sourceGitHub.setAttribute('title','GitHub · View source');
-   sourceGitHub.replaceChildren(githubIcon);
-   footerTelegram.after(sourceGitHub);
-   navGitHub.remove();
-  }
+ const footerSocial=document.querySelector('footer .social-icons');
+ const footerGitHub=footerSocial?.querySelector('a[href="'+githubHref+'"]')||
+  document.querySelector('footer .footer-source-link[href="'+githubHref+'"]');
+ const footerTelegram=footerSocial?.querySelector('a.social-icon[aria-label="Telegram"]');
+ if(footerSocial&&footerGitHub){
+  const svg=navGitHub?.querySelector('svg')?.cloneNode(true)||
+   footerGitHub.querySelector('svg')?.cloneNode(true);
+  if(svg){svg.setAttribute('aria-hidden','true');footerGitHub.replaceChildren(svg);}
+  footerGitHub.classList.remove('footer-source-link');
+  footerGitHub.classList.add('social-icon');
+  footerGitHub.setAttribute('aria-label','GitHub');
+  footerGitHub.setAttribute('title','GitHub · View source');
+  if(footerTelegram&&footerTelegram.nextElementSibling!==footerGitHub)footerTelegram.after(footerGitHub);
+ }
+ // Remove the former header/menu GitHub link and any repeated site-chrome links.
+ for(const link of document.querySelectorAll('a[href="'+githubHref+'"]')){
+  if(link!==footerGitHub)link.remove();
  }
  // Preserve the dated, six-section historical issue in the existing Pulse archive slot.
  // The signed automated feed's older edition endpoint currently returns 404:
@@ -42,9 +46,9 @@
   // Arc uses the original file already referenced by the approved detail
   // page. Robinhood Chain must use ONLY a symbol from its own brand kit, not
   // the Robinhood brokerage master logo or a home-drawn imitation.
-  arc:'<img src="https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif" alt="" loading="lazy" referrerpolicy="no-referrer"/>',
-  ethereum:'<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#a6add2" d="M16 2 6 16l10 6 10-6z"/><path fill="#dde4fc" d="M16 2v20l10-6z"/><path fill="#717aab" d="M6 18l10 12v-6z"/><path fill="#b7c0eb" d="M26 18 16 30v-6z"/></svg>',
-  robinhood:'<span class="chain-icon-pending" aria-label="Robinhood Chain logo pending official brand asset">RH</span>'
+  arc:'<img src="/search/assets/arc-network-mark.svg" alt="" loading="lazy" referrerpolicy="no-referrer"/>',
+  ethereum:'<img src="/search/assets/ethereum-mark.svg" alt="" loading="lazy" decoding="async"/>',
+  robinhood:'<img src="/search/assets/robinhood-chain-mark.svg" alt="" loading="lazy" decoding="async"/>'
  });
  const setMark=(el,id)=>{el.innerHTML=NETWORK_MARKUP[id]||'';el.dataset.network=id;};
  const app=document.createElement('section');app.className='home-search';app.setAttribute('aria-label','ARCY Search token discovery');
@@ -75,6 +79,7 @@
    if(selected===id)return;
    setNetwork(id);
    results.replaceChildren();results.hidden=true;
+   scheduleSuggestions();
    state.textContent='Searching '+label+' only. Enter a token name, ticker or exact contract.';
   });
   option.addEventListener('keydown',event=>{
@@ -103,17 +108,39 @@
 
  const addressPattern=/^0x[0-9a-fA-F]{40}$/;
  function detailPath(network,address){return '/search/token/'+network+'/'+address.toLowerCase()}
+// Display-only issuer artwork: each entry is scoped to an issuer-confirmed chain + contract.
+ // These files are already bundled with ARCY SEARCH; ticker similarity proves nothing.
+ const VERIFIED_TOKEN_ART=Object.freeze({
+  arc:Object.freeze({'0x3600000000000000000000000000000000000000':'usdc'}),
+  ethereum:Object.freeze({
+   '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48':'usdc',
+   '0xdac17f958d2ee523a2206206994597c13d831ec7':'usdt',
+   '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984':'uni',
+   '0x514910771af9ca656af840dff83e8264ecf986ca':'link',
+   '0x6b175474e89094c44da98b954eedeac495271d0f':'dai',
+   '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599':'wbtc',
+   '0x45804880de22913dafe09f4980848ece6ecbaf78':'paxg'
+  })
+ });
+ function issuerArtwork(network,address,identity){
+  if(identity?.status!=='OFFICIAL_CONTRACT_MATCHED'||typeof address!=='string')return null;
+  const icon=VERIFIED_TOKEN_ART[network]?.[address.toLowerCase()];
+  if(icon)return '/search/assets/token-icons/'+icon+'.svg';
+  // Ondo's own public tokenlist points to this original brand icon.
+  // Never apply it to a name/ticker lookalike or another network.
+  if(network==='ethereum'&&address.toLowerCase()==='0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3')
+   return 'https://cdn.ondo.finance/brand/logos/ondo-icon-black_160x160.png';
+  return null;
+ }
  function addCandidate(candidate,network){
   const button=document.createElement('a');button.className='home-search-result';button.href=detailPath(network,candidate.address);
-  const trustedLocal=typeof candidate.logoUrl==='string'&&
-   /^\/search\/assets\/token-icons\/(?:usdc|usdt|link|uni|dai|wbtc|paxg)\.svg$/.test(candidate.logoUrl);
   const officialStockArt=network==='robinhood'&&candidate.network==='robinhood'&&
    candidate.chainId===4663&&candidate.registryMatched===true&&
    candidate.identity?.status==='REGISTRY_MATCHED'&&
    /^https:\/\/cdn\.robinhood\.com\/ncw_assets\/logos\/0x[0-9a-f]{40}\.png$/i.test(candidate.logoUrl||'')?
    candidate.logoUrl:null;
   const logoHost=network==='arc'&&candidate.address?.toLowerCase()==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'?
-   '/assets/hero-arcy.png':trustedLocal?candidate.logoUrl:officialStockArt;
+   '/assets/hero-arcy.png':issuerArtwork(network,candidate.address,candidate.identity)||officialStockArt;
   // ALWAYS keep a readable token-symbol fallback under remote artwork.
   // Failed or blocked provider images must not leave a blank logo box.
   const placeholder=document.createElement('span');placeholder.className='home-token-logo home-token-placeholder';
@@ -150,8 +177,121 @@
   return button;
  }
 
+ // Instant Google-style discovery suggestions. Every pinned entry is an
+ // already issuer-documented exact chain + contract (see token-identity.js).
+ // Live results stay scoped to the selected network; neither type-ahead nor
+ // artwork is allowed to claim that an arbitrary ticker match is official.
+ const OFFICIAL_SUGGESTIONS=Object.freeze([
+  ['arc','0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b','ARCY','ARCY'],
+  ['arc','0x3600000000000000000000000000000000000000','USD Coin','USDC'],
+  ['ethereum','0xcf0c122c6b73ff809c693db761e7baebe62b6a2e','Floki','FLOKI'],
+  ['ethereum','0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48','USD Coin','USDC'],
+  ['ethereum','0x1f9840a85d5af5bf1d1762f925bdaddc4201f984','Uniswap','UNI'],
+  ['ethereum','0x514910771af9ca656af840dff83e8264ecf986ca','Chainlink','LINK'],
+  ['ethereum','0xdac17f958d2ee523a2206206994597c13d831ec7','Tether USD','USDT'],
+  ['ethereum','0x6b175474e89094c44da98b954eedeac495271d0f','Dai Stablecoin','DAI'],
+  ['ethereum','0x2260fac5e5542a773aa44fbcfedf7c193bc2c599','Wrapped BTC','WBTC'],
+  ['ethereum','0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce','Shiba Inu','SHIB'],
+  ['ethereum','0x9813037ee2218799597d83d4a5b6f3b6778218d9','Bone ShibaSwap','BONE'],
+  ['ethereum','0x27c70cd1946795b66be9d954418546998b546634','Doge Killer','LEASH'],
+  ['ethereum','0xa02c49da76a085e4e1ee60a6b920ddbc8db599f4','Shiba Inu TREAT','TREAT'],
+  ['ethereum','0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3','Ondo','ONDO'],
+  ['ethereum','0x45804880de22913dafe09f4980848ece6ecbaf78','PAX Gold','PAXG']
+ ]);
+ const SUGGEST_CHAIN_IDS=Object.freeze({arc:5042,ethereum:1,robinhood:4663});
+ const suggestBox=document.createElement('div');suggestBox.id='homeSearchSuggestions';
+ suggestBox.className='home-search-suggest';suggestBox.hidden=true;
+ suggestBox.setAttribute('role','region');
+ suggestBox.setAttribute('aria-label','Suggested token contracts');
+ form.append(suggestBox);
+ input.setAttribute('aria-controls',suggestBox.id);
+ input.setAttribute('aria-expanded','false');
+ let suggestGeneration=0,suggestTimer=null,suggestController=null;
+ const hideSuggestions=()=>{
+  suggestBox.hidden=true;suggestBox.replaceChildren();
+  input.setAttribute('aria-expanded','false');
+ };
+ const cancelSuggestions=()=>{
+  suggestGeneration++;clearTimeout(suggestTimer);
+  if(suggestController){suggestController.abort();suggestController=null;}
+ };
+ function matchedOfficial(query){
+  const q=query.toLocaleLowerCase('en-US');
+  const matches=OFFICIAL_SUGGESTIONS.filter(row=>row[2].toLowerCase().includes(q)||row[3].toLowerCase().includes(q));
+  matches.sort((a,b)=>{
+   const score=row=>(row[0]===selected?0:4)+
+    (row[3].toLowerCase()===q?0:row[3].toLowerCase().startsWith(q)?1:row[2].toLowerCase().startsWith(q)?2:3);
+   return score(a)-score(b)||a[3].localeCompare(b[3]);
+  });
+  return matches.slice(0,6).map(row=>({
+   network:row[0],chainId:SUGGEST_CHAIN_IDS[row[0]],address:row[1],
+   name:row[2],symbol:row[3],identity:{status:'OFFICIAL_CONTRACT_MATCHED'}
+  }));
+ }
+ function showSuggestions(query,remote=[]){
+  if(input.value.trim()!==query||query.length<2||addressPattern.test(query))return;
+  const unique=new Map();
+  for(const item of matchedOfficial(query))unique.set(item.network+':'+item.address,item);
+  for(const item of remote){
+   if(!item||item.network!==selected||item.chainId!==SUGGEST_CHAIN_IDS[selected]||
+      !addressPattern.test(item.address||''))continue;
+   const key=item.network+':'+item.address.toLowerCase();
+   if(!unique.has(key))unique.set(key,item);
+  }
+  suggestBox.replaceChildren();
+  const rows=[...unique.values()].slice(0,7);
+  if(!rows.length){hideSuggestions();return;}
+  const heading=document.createElement('div');heading.className='home-search-suggest-label';
+  heading.textContent='SUGGESTED TOKENS · SELECT TO RESEARCH';
+  suggestBox.append(heading);
+  for(const item of rows)suggestBox.append(addCandidate(item,item.network));
+  suggestBox.hidden=false;input.setAttribute('aria-expanded','true');
+ }
+ function scheduleSuggestions(){
+  cancelSuggestions();hideSuggestions();
+  const query=input.value.trim(),generation=suggestGeneration,network=selected;
+  if(query.length<2||query.length>48||query.toLowerCase().startsWith('0x'))return;
+  // Instant issuer-known results, including e.g. ONDO on Ethereum when Arc
+  // is selected. Network-sourced suggestions follow after a short pause.
+  showSuggestions(query);
+  suggestTimer=setTimeout(async()=>{
+   if(generation!==suggestGeneration||network!==selected)return;
+   const controller=new AbortController();suggestController=controller;
+   const timeout=setTimeout(()=>controller.abort(),7000);
+   try{
+    const response=await fetch('/api/search?action=discover&'+new URLSearchParams({chain:network,q:query}),{
+     signal:controller.signal,headers:{accept:'application/json'},credentials:'same-origin'
+    });
+    if(!response.ok)return;
+    const body=await response.json();
+    if(generation!==suggestGeneration||network!==selected||input.value.trim()!==query||
+       !body||body.ok!==true||body.network!==network||body.chainId!==SUGGEST_CHAIN_IDS[network]||
+       !Array.isArray(body.matches))return;
+    showSuggestions(query,body.matches.slice(0,12));
+   }catch(_){/* Preserve instant known suggestions if the live source is offline. */}
+   finally{clearTimeout(timeout);if(suggestController===controller)suggestController=null;}
+  },340);
+ }
+ input.addEventListener('input',()=>{
+  results.replaceChildren();results.hidden=true;
+  scheduleSuggestions();
+ });
+ input.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){cancelSuggestions();hideSuggestions();}
+  if(event.key==='ArrowDown'&&!suggestBox.hidden){
+   const first=suggestBox.querySelector('a.home-search-result');
+   if(first){event.preventDefault();first.focus();}
+  }
+ });
+ document.addEventListener('pointerdown',event=>{
+  if(!form.contains(event.target)){cancelSuggestions();hideSuggestions();}
+ });
+ form.addEventListener('focusout',()=>{
+  setTimeout(()=>{if(!form.contains(document.activeElement)){cancelSuggestions();hideSuggestions();}},0);
+ });
+
  form.addEventListener('submit',async event=>{
-  event.preventDefault();results.replaceChildren();results.hidden=true;const query=input.value.trim();
+  event.preventDefault();cancelSuggestions();hideSuggestions();results.replaceChildren();results.hidden=true;const query=input.value.trim();
   if(!query){state.textContent='Enter a token name, symbol or full contract address.';input.focus();return}
   if(addressPattern.test(query)){location.assign(detailPath(selected,query));return}
   if(query.length<2||query.length>48){state.textContent='Enter at least 2 characters (maximum 48).';return}
@@ -173,39 +313,45 @@
 })();
 
 
-// Pulse is editorially useful even if an upstream source is offline. These
-// are evergreen navigation cards, NOT fabricated or reused weekly headlines.
+// Pulse is three evidence-led research cards, independent of older signed
+// storage editions. The script only affects #pulse, never the site skeleton.
 (()=>{
  const grid=document.getElementById('pulseGrid');if(!grid)return;
+ if(!document.getElementById('pulse-three-layout')){
+  const css=document.createElement('style');css.id='pulse-three-layout';
+  css.textContent='#pulse .pulse-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}'+
+   '@media(max-width:850px){#pulse .pulse-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}'+
+   '@media(max-width:580px){#pulse .pulse-grid{grid-template-columns:1fr}}';
+  document.head.append(css);
+ }
  const title=document.getElementById('pulseTitle'),take=document.getElementById('pulseTake');
  const kinds=[
-  ['pulse-week','🔥 THIS WEEK','OFFICIAL ARC','Current week awaiting source verification','The current live edition is pending. Review Arc’s dated official announcements instead of assuming an old headline is new.','https://www.arc.io/blog','ARC BLOG ↗'],
-  ['pulse-new','🆕 NEW','ARC COMMUNITY','Review the newest published developments','Arc community announcements have original dates and sources. A source outage is not proof of no activity.','https://community.arc.io/public/blogs','SOURCE HUB ↗'],
-  ['pulse-watch','🔍 WATCH','ONCHAIN RESEARCH','Track execution, not just announcements','Look for actual transactions, settlements and participants when checking project launch claims.','https://explorer.arc.io','ARC EXPLORER ↗'],
-  ['pulse-risk','⚠️ RISK / REALITY CHECK','SOURCE COVERAGE','Missing data does not mean zero risk','Do not present undocumented token claims, missing coverage or unreleased features as verified facts.','https://www.arc.io/blog','VERIFY SOURCE ↗'],
-  ['pulse-unlock','🔓 WHAT’S UNLOCKING','TOKEN RESEARCH','View separately verified unlock schedules','The current Pulse cannot assert a token unlock until its timing, contract and source are checked.','#unlocks','UNLOCKS ↗']
+  ['pulse-week','🔥 THIS WEEK','OFFICIAL ARC','What actually changed on Arc this week?','Start with dated, first-party Arc releases. Check shipped features and on-chain adoption instead of interpreting plans as launches.','https://www.arc.io/blog','VERIFY ARC UPDATES ↗'],
+  ['pulse-new','🆕 PROJECTS & ACTIVITY','ARC EXPLORER','Follow real Arc projects and activity','Measure on-chain usage and contract deployments before calling an ecosystem launch a success.','https://explorer.arc.io','EXPLORE ACTIVITY ↗'],
+  ['pulse-unlock','🔓 UNLOCKS & RISKS','CONTRACT RESEARCH','Check verified token unlocks and supply risks','Compare exact-contract schedules, ownership and liquidity information. Missing schedules are not proof of no unlock.','#unlocks','CHECK UNLOCKS ↗']
  ];
  function renderFallback(){
   if(!grid.isConnected)return;
   const old=[...grid.querySelectorAll('.pulse-card')];
   const loading=old.length===1&&old[0].textContent.includes('Loading weekly signal');
   const generic=old.length>0&&old.every(e=>e.textContent.includes('Pulse section unavailable'));
-  if(old.length>=5&&!generic||old.length>0&&!loading&&!generic)return;
+  if(old.length===3&&!loading&&!generic)return;
+  if(old.length>0&&!loading&&!generic&&old.length<3)return;
   const fragment=document.createDocumentFragment();
   for(const [cls,kicker,owner,headline,summary,link,label] of kinds){
    const card=document.createElement('article');card.className='pulse-card '+cls;
-   const k=document.createElement('span');k.textContent=kicker;
+   const heading=document.createElement('span');heading.textContent=kicker;
    const who=document.createElement('small');who.className='pulse-owner';who.textContent=owner;
    const h=document.createElement('h4');h.textContent=headline;
    const p=document.createElement('p');p.textContent=summary;
    const a=document.createElement('a');a.href=link;a.textContent=label;
    a.style.cssText='display:inline-block;margin-top:10px;color:var(--accent);font-size:12px;font-weight:800';
    if(link.startsWith('https:')){a.target='_blank';a.rel='noopener noreferrer'}
-   card.append(k,who,h,p,a);fragment.append(card);
+   card.append(heading,who,h,p,a);fragment.append(card);
   }
   grid.replaceChildren(fragment);
-  if(take)take.textContent='ARCY TAKE — Source check pending. Use official dated releases and the Pulse archive as context; do not treat old announcements as current news.';
-  if(title&&title.textContent.includes('Loading'))title.textContent='ARCY ARC PULSE · SOURCE CHECK PENDING 📡';
+  if(take)take.textContent='ARCY TAKE — A launch announcement is the starting point, not the result. Check measured usage, liquidity and verified unlock schedules.';
+  if(title&&title.textContent.includes('Loading'))title.textContent='ARCY ARC PULSE · RESEARCH FIRST 📡';
  }
  const observer=new MutationObserver(renderFallback);
  observer.observe(grid,{childList:true});
