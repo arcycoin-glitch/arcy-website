@@ -42,9 +42,9 @@
   // Arc uses the original file already referenced by the approved detail
   // page. Robinhood Chain must use ONLY a symbol from its own brand kit, not
   // the Robinhood brokerage master logo or a home-drawn imitation.
-  arc:'<img src="https://cdn.prod.website-files.com/67116d0daddc92483c812e88/69dd3db99cf1d8ec9699856a_logo%20%285%29.avif" alt="" loading="lazy" referrerpolicy="no-referrer"/>',
-  ethereum:'<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#a6add2" d="M16 2 6 16l10 6 10-6z"/><path fill="#dde4fc" d="M16 2v20l10-6z"/><path fill="#717aab" d="M6 18l10 12v-6z"/><path fill="#b7c0eb" d="M26 18 16 30v-6z"/></svg>',
-  robinhood:'<span class="chain-icon-pending" aria-label="Robinhood Chain logo pending official brand asset">RH</span>'
+  arc:'<img src="/search/assets/arc-network-mark.svg" alt="" loading="lazy" referrerpolicy="no-referrer"/>',
+  ethereum:'<img src="/search/assets/ethereum-mark.svg" alt="" loading="lazy" decoding="async"/>',
+  robinhood:'<img src="/search/assets/robinhood-chain-mark.svg" alt="" loading="lazy" decoding="async"/>'
  });
  const setMark=(el,id)=>{el.innerHTML=NETWORK_MARKUP[id]||'';el.dataset.network=id;};
  const app=document.createElement('section');app.className='home-search';app.setAttribute('aria-label','ARCY Search token discovery');

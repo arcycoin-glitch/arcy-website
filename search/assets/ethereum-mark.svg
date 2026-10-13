@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Ethereum mark">
+  <path fill="#7b83ad" d="M16 2 6 16l10 6 10-6z"/>
+  <path fill="#cdd2e4" d="M16 2v20l10-6z"/>
+  <path fill="#626a95" d="M6 18l10 12v-6z"/>
+  <path fill="#a7afd3" d="M26 18 16 30v-6z"/>
+</svg>
