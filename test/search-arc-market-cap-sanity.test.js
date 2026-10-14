@@ -57,7 +57,7 @@ test('Arc Blockscout counter parser rejects absent, zero and malformed values in
  assert.equal(holderCount.parseCount({}),null);
 });
 
-test('Arc Search market adapter never bridges to legacy endpoints that bypass provider permission gates',async()=>{
+test('Arc Search activity returns no market values when its exact-contract sources fail',async()=>{
  const legacy=require('../search/server/lib/arc-legacy-evidence');
  const market=require('../search/server/lib/arc-market');
  const previousCall=legacy.callOriginal,previousInspect=market.inspect;
@@ -79,6 +79,27 @@ test('Arc Search market adapter never bridges to legacy endpoints that bypass pr
   assert.equal(activity.fields.valuation.dataState,'NOT_VERIFIED');
   assert.equal(activity.fields.priceUsd.dataState,'NOT_VERIFIED');
   assert.equal(liquidity.fields.liquidityUsd.dataState,'NOT_VERIFIED');
+ }finally{legacy.callOriginal=previousCall;market.inspect=previousInspect}
+});
+
+test('Arc Search restores exact-contract activity fields from its existing market route before DEX fallback',async()=>{
+ const legacy=require('../search/server/lib/arc-legacy-evidence');
+ const market=require('../search/server/lib/arc-market');
+ const previousCall=legacy.callOriginal,previousInspect=market.inspect;
+ try{
+  legacy.callOriginal=async(name,address)=>({ok:true,address,chainId:5042,fields:{
+   priceUsd:{value:1,status:'MARKET_API_VERIFIED',dataState:'DATA_FOUND',source:'GeckoTerminal',evidence:[{address,chainId:5042}]},
+   valuation:{value:5000000000,kind:'MARKET_CAP',status:'MARKET_API_VERIFIED',dataState:'DATA_FOUND',source:'GeckoTerminal',evidence:[{address,chainId:5042}]},
+   change24h:{value:0.2,status:'MARKET_API_VERIFIED',dataState:'DATA_FOUND',source:'GeckoTerminal',evidence:[{address,chainId:5042}]},
+   volume24h:{value:1000,status:'MARKET_API_VERIFIED',dataState:'DATA_FOUND',source:'DexScreener',evidence:[{address,chainId:5042}]}
+  }});
+  market.inspect=async()=>({priceUsd:{value:null,dataState:'NOT_VERIFIED'},valuation:{value:null,dataState:'NOT_VERIFIED'},
+   change24h:{value:null,dataState:'NOT_VERIFIED'},volume24h:{value:null,dataState:'NOT_VERIFIED'}});
+  const result=await require('../search/server/lib/arc-adapter').activity({address:A,base:{totalSupply:'6000000000'}},'activity');
+  assert.equal(result.fields.priceUsd.source,'GeckoTerminal');
+  assert.equal(result.fields.valuation.kind,'MARKET_CAP');
+  assert.equal(result.fields.change24h.value,0.2);
+  assert.equal(result.fields.volume24h.source,'DexScreener');
  }finally{legacy.callOriginal=previousCall;market.inspect=previousInspect}
 });
 

@@ -84,11 +84,24 @@ function validateArcMarketCap(valuation,base,priceUsd){
 async function activity({address,base},cardId){
  const keys=cardId==='liquidity'?['liquidityUsd','volume24h','dexPairCount','lpStatus']:
   ['priceUsd','valuation','change24h','volume24h'];
- // Do not bridge to the legacy site routes here: their market adapter calls
- // DEX Screener directly and bypasses the Search provider-permission gate.
+ // Keep the existing Arc Search route path: it validates exact Arc contract
+ // market responses and adds the already-used GeckoTerminal fallback. The
+ // DEX flag remains the server-side gate for DEX Screener requests.
+ let restored={};
+ try{
+  const route=cardId==='liquidity'?'liquidity':'activity';
+  const legacy=await original.callOriginal(route,address,cardId==='liquidity'?{summary:'1'}:{});
+  const from=legacy.fields||{};
+  const mapping=cardId==='liquidity'?{
+   liquidityUsd:'liquidityUsd',volume24h:'volume24h',dexPairCount:'pairCount',lpStatus:'lpStatus'
+  }:{priceUsd:'priceUsd',valuation:'valuation',change24h:'change24h',volume24h:'volume24h'};
+  restored=Object.fromEntries(keys.map(key=>[key,original.sourceField(from[mapping[key]],address,
+   'Existing Arc Search exact-contract '+route+' source response.')]));
+ }catch{} // The alternate exact-contract DEX reader remains available on failure.
  const fallback=await marketFor(address);
  const fields=Object.fromEntries(keys.map(k=>[k,
-  fallback[k]||NO('Exact-contract evidence unavailable.','MARKET_SOURCE_NOT_VERIFIED')]));
+  restored[k]?.dataState==='DATA_FOUND'?restored[k]:
+   fallback[k]||NO('Exact-contract evidence unavailable.','MARKET_SOURCE_NOT_VERIFIED')]));
  if(cardId==='activity')fields.valuation=validateArcMarketCap(fields.valuation,base,fields.priceUsd);
  return {description:'Arc Search market fields are restricted to the separately permission-gated provider path; missing market values remain NOT VERIFIED.',fields};
 }
