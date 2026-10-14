@@ -23,6 +23,24 @@ test('exact Ethereum WETH and USDC Chainlink feeds return only a fresh pinned-bl
   assert.equal(m.calls.length,3);assert.ok(m.calls.every(c=>c.method==='eth_call'||c.method==='eth_getBlockByNumber'));
  }
 });
+test('AAVE, LINK and DAI read only pinned Ethereum Chainlink USD references',async()=>{
+ const addresses=[
+  '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
+  '0x514910771af9ca656af840dff83e8264ecf986ca',
+  '0x6b175474e89094c44da98b954eedeac495271d0f',
+  '0x0d8775f648430679a709e98d2b0cb6250d2887ef',
+  '0xc00e94cb662c3520282e6f5717214004a7f26888'
+ ];
+ for(const address of addresses){
+  const m=mock(),result=await oracle.inspect(address,block,{rpcCall:m.rpcCall,now});
+  assert.equal(result.priceUsd.dataState,'DATA_FOUND');
+  assert.equal(result.priceUsd.value,2500.12345678);
+  assert.equal(result.priceUsd.evidence[0].token,address);
+  assert.equal(result.priceUsd.evidence[0].block,block);
+  assert.equal(Object.keys(result).length,1);
+  assert.equal(m.calls.length,3);
+ }
+});
 test('unsupported contract and stale/future oracle observations remain NOT VERIFIED',async()=>{
  const unsupported=await oracle.inspect('0x'+'1'.repeat(40),block,{rpcCall:mock().rpcCall,now});
  assert.equal(unsupported.priceUsd.dataState,'NOT_VERIFIED');assert.equal(unsupported.priceUsd.reasonCode,'NO_EXACT_ORACLE_FEED');
