@@ -119,8 +119,13 @@ function candidate(network) {
         if (network === 'ethereum') {
           const remote = page.locator('.home-token-placeholder img');
           assert.equal(await remote.count(), 1, 'Ethereum token loads provider art from an exact-contract result');
-          await remote.evaluate(img => img.decode());
-          assert.ok(await remote.evaluate(img => img.naturalWidth > 0), 'provider artwork rendered correctly');
+          // Search thumbnails are loading=lazy; force the image into view before decoding.
+          await remote.scrollIntoViewIfNeeded();
+          await page.waitForFunction(() => {
+            const img=document.querySelector('.home-token-placeholder img');
+            return Boolean(img && img.complete && img.naturalWidth>0);
+          },{timeout:10000});
+          assert.ok(await remote.evaluate(img => img.complete && img.naturalWidth > 0), 'provider artwork rendered correctly');
         }
         await page.locator('.home-search-result').click();
         await page.waitForURL(`**/search/token/${network}/${addresses[network]}`);
