@@ -224,7 +224,7 @@
  };
  function matchedOfficial(query){
   const q=query.toLocaleLowerCase('en-US');
-  const matches=OFFICIAL_SUGGESTIONS.filter(row=>row[2].toLowerCase().includes(q)||row[3].toLowerCase().includes(q));
+  const matches=OFFICIAL_SUGGESTIONS.filter(row=>row[0]===selected&&(row[2].toLowerCase().includes(q)||row[3].toLowerCase().includes(q)));
   matches.sort((a,b)=>{
    const score=row=>(row[0]===selected?0:4)+
     (row[3].toLowerCase()===q?0:row[3].toLowerCase().startsWith(q)?1:row[2].toLowerCase().startsWith(q)?2:3);
@@ -258,8 +258,8 @@
   cancelSuggestions();hideSuggestions();
   const query=input.value.trim(),generation=suggestGeneration,network=selected;
   if(query.length<2||query.length>48||query.toLowerCase().startsWith('0x'))return;
-  // Instant issuer-known results, including e.g. ONDO on Ethereum when Arc
-  // is selected. Network-sourced suggestions follow after a short pause.
+  // Suggestions must stay on the selected chain; never show an Ethereum
+  // issuer badge under Arc. Network-sourced suggestions follow shortly.
   showSuggestions(query);
   suggestTimer=setTimeout(async()=>{
    if(generation!==suggestGeneration||network!==selected)return;
