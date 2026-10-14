@@ -76,6 +76,8 @@ async function holder({address,base}){
   if(reported[key]?.dataState==='DATA_FOUND')fields[key]=reported[key];
  }
  if(ranked){
+  // Prefer the complete pinned-census count over a live explorer estimate.
+  if(ranked.holderCount?.dataState==='DATA_FOUND')fields.holderCount=ranked.holderCount;
   for(const key of ['largestWalletPct','top10Pct','top20Pct'])
    if(ranked[key]?.dataState==='DATA_FOUND')fields[key]=ranked[key];
   if(ranked.reasonCode){
@@ -85,7 +87,9 @@ async function holder({address,base}){
  }
  const sourceRank=fields.top10Pct.dataState==='DATA_FOUND';
  const rpcReconciled=ranked?.top10Pct?.source==='Robinhood RPC + Blockscout';
- return {description:rpcReconciled?
+ const complete=ranked?.holderCount?.dataState==='DATA_FOUND';
+ return {description:complete?
+  'Full Robinhood positive-balance holder census reconciled at a pinned block. Top 10/20 includes all wallets when fewer exist; beneficial ownership is not inferred.':rpcReconciled?
   'Blockscout balance-ranked holder sample, reconciled to Robinhood RPC at the pinned report block; beneficial ownership is not inferred.':sourceRank?
   'GoPlus source-reported top-wallet sample, not a complete pinned-chain ranking. Contract-matched holder counts may come from Blockscout or GoPlus. Top 20 remains NOT VERIFIED.':
   'Holder count is source-reported where available; complete whale concentration is NOT VERIFIED.',fields};
