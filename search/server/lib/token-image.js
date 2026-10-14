@@ -17,7 +17,7 @@ function safeLogoUrl(raw){
   if(/\.(?:svg|html?|xml|pdf|js|mjs|json|php)(?:$|\/)/i.test(u.pathname))return null;
   // Width/quality variants are allowed only where they are numeric.
   if([...u.searchParams].some(([key,value])=>!['width','height','quality','w','h','q','format'].includes(key)||
-      (key==='format'?!/^(?:webp|png|jpeg|jpg|avif)$/i.test(value):!/^[0-9]{1,4}$/.test(value))))
+      (key==='format'?!/^(?:auto|webp|png|jpeg|jpg|avif)$/i.test(value):!/^[0-9]{1,4}$/.test(value))))
    return null;
   return u.href;
  }catch{return null}
