@@ -3,7 +3,7 @@
 // Source images are untrusted decoration and NEVER evidence of token authenticity.
 // Third-party token artwork is currently disabled until its redistribution
 // rights are established. The UI renders its built-in initials fallback.
-const DOMAINS=new Set();
+const DOMAINS=new Set(['cdn.dexscreener.com','dd.dexscreener.com','assets.geckoterminal.com']);
 function safeLogoUrl(raw){
  if(typeof raw!=='string'||raw.length>500||raw.length<16)return null;
  try{
