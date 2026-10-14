@@ -147,7 +147,7 @@ function rank(network,query,candidates){
    name:canonical?.name||String(item.name||'').slice(0,90),
    symbol:canonical?.symbol||String(item.symbol||'').slice(0,30),
    source:canonical?'Official issuer contract documentation':String(item.source||'').slice(0,100),
-   registryMatched:stock,logoUrl:stockArt||(network!=='robinhood'?safeLogoUrl(item.logoUrl):null),identityVerified:identity.status==='OFFICIAL_CONTRACT_MATCHED'||identity.status==='REGISTRY_MATCHED',identity});
+   registryMatched:stock,logoUrl:stockArt||(!stock?safeLogoUrl(item.logoUrl):null),identityVerified:identity.status==='OFFICIAL_CONTRACT_MATCHED'||identity.status==='REGISTRY_MATCHED',identity});
  }
  const rows=[...ordered.values()];
  rows.sort((a,b)=>{

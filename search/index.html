@@ -1162,7 +1162,7 @@ function displayLogo(raw,network,address,identity){
    /^0x[0-9a-f]{40}$/i.test(address)&&typeof raw==='string'&&
    raw.toLowerCase()==='https://cdn.robinhood.com/ncw_assets/logos/'+address.toLowerCase()+'.png')
    return safeCandidateImage(raw);
-  return null;
+  return identity?.status==='REGISTRY_MATCHED'?null:safeCandidateImage(raw);
  }
  return safeCandidateImage(raw);
 }
@@ -1284,7 +1284,12 @@ function renderDetailMatches(matches,network,version){
   const avatar=document.createElement('span');avatar.className='detail-match-avatar';
   avatar.textContent=String(item.symbol||item.name||'?').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'?';
   const logo=displayLogo(item.logoUrl,network,item.address,item.identity);
-  if(logo){const image=document.createElement('img');image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.src=logo;image.addEventListener('error',()=>image.remove(),{once:true});avatar.append(image)}
+  if(logo){
+    const image=document.createElement('img');image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';
+    image.addEventListener('load',()=>avatar.classList.add('has-logo'),{once:true});
+    image.addEventListener('error',()=>{image.remove();avatar.classList.remove('has-logo')},{once:true});
+    image.src=logo;avatar.append(image);
+   }
   const copy=document.createElement('span');copy.className='detail-match-copy';
   const name=document.createElement('strong');name.textContent=(item.name||'Unnamed token')+' ('+(item.symbol||'?')+')';
   const address=document.createElement('small');address.textContent=item.address;

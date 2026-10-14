@@ -83,6 +83,21 @@ function candidate(network) {
       const action = url.searchParams.get('action');
       seen.push({ network, action, query: url.searchParams.get('q') });
       if (action === 'discover') {
+        const q = url.searchParams.get('q')?.toLowerCase();
+        if (q === 'floki' && network === 'ethereum') {
+          return route.fulfill({ json: { ok: true, chainId: 1, network, matches: [{
+            network, chainId: 1, address: '0xcf0c122c6b73ff809c693db761e7baebe62b6a2e',
+            name: 'Floki', symbol: 'FLOKI', logoUrl: fixtureArt,
+            identity: { status: 'OFFICIAL_CONTRACT_MATCHED' }
+          }] } });
+        }
+        if (q === 'pons' && network === 'robinhood') {
+          return route.fulfill({ json: { ok: true, chainId: 4663, network, matches: [{
+            network, chainId: 4663, address: '0x39dbed3a2bd333467115de45665cc57f813c4571',
+            name: 'Pons', symbol: 'PONS', logoUrl: fixtureArt,
+            identity: { status: 'NOT_VERIFIED' }
+          }] } });
+        }
         return route.fulfill({ json: { ok: true, chainId: chains[network], network, matches: [candidate(network)] } });
       }
       if (action === 'report') {
@@ -155,6 +170,27 @@ function candidate(network) {
         await page.locator('#detailSearchForm').evaluate(form => form.requestSubmit());
         await page.locator('#detailMatches .detail-match').waitFor({ state: 'visible' });
         assert.match(await page.locator('#detailSearchStatus').innerText(), /candidate/);
+        // Regression: images in the detail-page secondary search must overlay
+        // initial-letter fallbacks, never become a second clipped grid row.
+        if (network === 'arc') {
+          const avatar = page.locator('#detailMatches .detail-match-avatar').first();
+          const image = avatar.locator('img');
+          await avatar.scrollIntoViewIfNeeded();
+          await page.waitForFunction(() => {
+            const img=document.querySelector('#detailMatches .detail-match-avatar img');
+            return Boolean(img && img.complete && img.naturalWidth>0);
+          },null,{timeout:10000});
+          const layout=await avatar.evaluate(el=>{
+            const img=el.querySelector('img'),a=el.getBoundingClientRect(),b=img.getBoundingClientRect();
+            return {avatarWidth:a.width,avatarHeight:a.height,imageWidth:b.width,
+              imageHeight:b.height,imageTop:b.top-a.top,position:getComputedStyle(img).position,
+              initialsHidden:el.classList.contains('has-logo')};
+          });
+          assert.equal(layout.position,'absolute','detail image must cover initials without consuming a grid row');
+          assert.equal(layout.initialsHidden,true,'loaded detail image hides initial letters');
+          assert.ok(layout.imageWidth>20&&layout.imageHeight>20&&layout.imageTop>=0&&layout.imageTop<3,
+            'detail-page token artwork is fitted inside avatar');
+        }
         await page.goto(origin + '/#search');
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `return to Search overflow at ${viewport}px`);
       }
@@ -162,6 +198,26 @@ function candidate(network) {
     assert.deepEqual(pageErrors, []);
     assert.equal(seen.filter(x => x.action === 'discover').length, 24, 'homepage and detail-page discovery each run once per chain/viewport');
     assert.equal(seen.filter(x => x.action === 'report').length, 12);
+    // Two real-world failure modes: an issuer-known static FLOKI suggestion
+    // receives art asynchronously; a Robinhood non-stock PONS gets DEX art.
+    await page.goto(origin + '/#search');
+    await page.locator('.home-network-option[data-network="ethereum"]').click();
+    await page.locator('#homeSearchQuery').fill('Floki');
+    await page.waitForFunction(() => {
+      const result=[...document.querySelectorAll('#homeSearchSuggestions .home-search-result')]
+        .find(x=>x.textContent.includes('Floki')&&x.textContent.includes('OFFICIAL CONTRACT'));
+      return Boolean(result?.querySelector('img'));
+    },null,{timeout:12000});
+    assert.match(await page.locator('#homeSearchSuggestions').innerText(),/OFFICIAL CONTRACT/);
+    await page.locator('.home-network-option[data-network="robinhood"]').click();
+    await page.locator('#homeSearchQuery').fill('Pons');
+    await page.waitForFunction(() => {
+      const result=[...document.querySelectorAll('#homeSearchSuggestions .home-search-result')]
+        .find(x=>x.textContent.includes('Pons'));
+      return Boolean(result?.querySelector('img'));
+    },null,{timeout:12000});
+    assert.match(await page.locator('#homeSearchSuggestions').innerText(),/NOT VERIFIED/);
+    assert.deepEqual(pageErrors, []);
     console.log('PASS: mocked browser E2E at 320/390/768/1440px; home discovery on all chains; official labels remain unverified; remote Ethereum logo + initials fallback; 5 cards/20 checks; all four GeckoTerminal presets stay on the selected chain; detail-page re-search. All API data in this test is mocked, not real provider evidence.');
   } finally {
     if (browser) await browser.close();

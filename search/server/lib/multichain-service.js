@@ -40,7 +40,7 @@ async function report({network='ethereum',address}){
   logoUrl=issuer?.registryMatched===true&&issuer.address===result.address?
    require('./robinhood-assets').registryLogo(issuer.logoUrl):null;
  }
- if(!logoUrl&&network!=='robinhood'){
+ if(!logoUrl&&(network!=='robinhood'||result.tokenIdentity?.status!=='REGISTRY_MATCHED')){
   const [decorated]=await logos.enhance(network,[{network,chainId:chains.chain(network).chainId,
    address:result.address,logoUrl:null}]);
   logoUrl=decorated?.logoUrl||null;

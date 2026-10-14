@@ -2,11 +2,17 @@
 // Diagnostic ONLY: failures are surfaced, not silently counted as verified logos.
 const {safeLogoUrl}=require('../search/server/lib/token-image');
 const probes=[
+ {name:'Ethereum FLOKI DEX exact contract',url:'https://api.dexscreener.com/tokens/v1/ethereum/0xcf0c122c6b73ff809c693db761e7baebe62b6a2e',kind:'dex'},
+ {name:'Robinhood PONS DEX exact contract',url:'https://api.dexscreener.com/tokens/v1/robinhood/0x39dbed3a2bd333467115de45665cc57f813c4571',kind:'dex'},
+ {name:'Ethereum FLOKI Blockscout token detail',url:'https://eth.blockscout.com/api/v2/tokens/0xcf0c122c6b73ff809c693db761e7baebe62b6a2e',kind:'token'},
+ {name:'Robinhood PONS Blockscout token detail',url:'https://robinhoodchain.blockscout.com/api/v2/tokens/0x39dbed3a2bd333467115de45665cc57f813c4571',kind:'token'},
  {name:'Ethereum AAVE DEX exact contract',url:'https://api.dexscreener.com/tokens/v1/ethereum/0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',kind:'dex'},
  {name:'Arc ARCY DEX exact contract',url:'https://api.dexscreener.com/tokens/v1/arc/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b',kind:'dex'},
  {name:'ArcTools Arc explorer search',url:'https://explorer.arc.io/api/v2/search?q=ArcTools',kind:'explorer'},
  {name:'ArcTools DEX keyword index',url:'https://api.dexscreener.com/latest/dex/search?q=ArcTools',kind:'search'},
  {name:'ARCY logo preview API',url:'https://arcy-official-ovujbewf1-arcy3.vercel.app/api/search?action=discover&chain=arc&q=ARCY',kind:'site'},
+ {name:'ARCY production FLOKI discover',url:'https://www.arcyusdc.xyz/api/search?action=discover&chain=ethereum&q=Floki',kind:'site'},
+ {name:'ARCY production PONS discover',url:'https://www.arcyusdc.xyz/api/search?action=discover&chain=robinhood&q=Pons',kind:'site'},
  {name:'ARCY production ArcTools discover',url:'https://www.arcyusdc.xyz/api/search?action=discover&chain=arc&q=ArcTools',kind:'site'}
 ];
 (async()=>{
@@ -14,13 +20,15 @@ const probes=[
   try{
    const res=await fetch(task.url,{signal:AbortSignal.timeout(8000),headers:{accept:'application/json'}});
    let body;try{body=await res.json()}catch{}
-   const arr=task.kind==='dex'?body:task.kind==='search'?body?.pairs:
+   const arr=task.kind==='token'?(body?[body]:[]):task.kind==='dex'?body:task.kind==='search'?body?.pairs:
     task.kind==='explorer'?body?.items:body?.matches;
    const first=Array.isArray(arr)?arr.slice(0,5):[];
    const example=first.find(x=>x?.info?.imageUrl||x?.icon_url||x?.logoUrl);
    console.log(JSON.stringify({name:task.name,http:res.status,count:Array.isArray(arr)?arr.length:null,
     logosFound:first.filter(x=>Boolean(x?.info?.imageUrl||x?.icon_url||x?.logoUrl)).length,
     artworkHost:example?.info?.imageUrl?new URL(example.info.imageUrl).hostname:null,
+    iconHost:example?.icon_url?new URL(example.icon_url).hostname:null,
+    sourceImages:Array.isArray(arr)?first.map(x=>({base:x?.baseToken?.address||x?.address||null,image:x?.info?.imageUrl||x?.icon_url||x?.logoUrl||null})).filter(x=>x.image).slice(0,3):[],
     artworkPath:example?.info?.imageUrl?new URL(example.info.imageUrl).pathname:null,
     artworkParams:example?.info?.imageUrl?[...new URL(example.info.imageUrl).searchParams]:[],
     artworkAllowed:Boolean(safeLogoUrl(example?.info?.imageUrl)),

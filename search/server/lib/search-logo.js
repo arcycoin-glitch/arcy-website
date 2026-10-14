@@ -49,7 +49,7 @@ function marketArtwork(pairs,network,addresses){
 }
 async function marketBatch(network,addresses,{fetchImpl=global.fetch,now=Date.now()}={}){
  const found=new Map();
- if(!['arc','ethereum'].includes(network)||!addresses.length)return found;
+ if(!['arc','ethereum','robinhood'].includes(network)||!addresses.length)return found;
  const outstanding=[];
  for(const address of addresses){
   const key=network+':'+address, cached=CACHE.get(key);
@@ -91,7 +91,8 @@ async function enhance(network,items,{fetchImpl=global.fetch,now=Date.now()}={})
  const cfg=chain(network);
  // Local first-party/CC0 art or the Robinhood stock registry always takes precedence.
  const needs=scoped.filter(item=>item&&item.network===network&&(item.chainId===undefined||item.chainId===cfg.chainId)&&
-  ADDRESS.test(item.address||'')&&!localLogo(network,item.address)&&!safeLogoUrl(item.logoUrl));
+  ADDRESS.test(item.address||'')&&!localLogo(network,item.address)&&!safeLogoUrl(item.logoUrl)&&
+  !(network==='robinhood'&&item.registryMatched===true));
  const addresses=[...new Set(needs.map(item=>item.address.toLowerCase()))];
  // Unit-test runs do not contact public services implicitly; mocks can be injected.
  const remote=(fetchImpl!==global.fetch||process.env.VERCEL==='1')?
@@ -102,8 +103,9 @@ async function enhance(network,items,{fetchImpl=global.fetch,now=Date.now()}={})
   const registry=matched&&network==='robinhood'&&item.registryMatched===true&&
    item.source==='Robinhood official asset registry'?
     require('./robinhood-assets').registryLogo(item.logoUrl):null;
-  const indexed=matched&&network!=='robinhood'?safeLogoUrl(item.logoUrl):null;
-  const provider=matched&&network!=='robinhood'?(indexed||remote.get(item.address.toLowerCase())):null;
+  const thirdParty=matched&&(network!=='robinhood'||item.registryMatched!==true);
+  const indexed=thirdParty?safeLogoUrl(item.logoUrl):null;
+  const provider=thirdParty?(indexed||remote.get(item.address.toLowerCase())):null;
   const logo=local||registry||provider||null;
   const logoSource=local?(local.endsWith('/hero-arcy.png')?'ARCY site-owned mascot':'CC0 cryptocurrency-icons; exact contract'):
    registry?'Robinhood official asset registry (chain 4663); artwork only':

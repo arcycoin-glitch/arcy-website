@@ -141,7 +141,9 @@
    candidate.identity?.status==='REGISTRY_MATCHED'&&
    /^https:\/\/cdn\.robinhood\.com\/ncw_assets\/logos\/0x[0-9a-f]{40}\.png$/i.test(candidate.logoUrl||'')?
    candidate.logoUrl:null;
-  const providerArt=network!=='robinhood'&&candidate.network===network&&
+  const providerArt=candidate.network===network&&
+   candidate.chainId===SUGGEST_CHAIN_IDS[network]&&
+   (network!=='robinhood'||candidate.identity?.status!=='REGISTRY_MATCHED')&&
    /^https:\/\/(?:cdn\.dexscreener\.com\/(?:cms\/images|ds-data\/tokens|token-images|images)\/|dd\.dexscreener\.com\/ds-data\/tokens\/|cdn-icons\.blockscout\.com\/)/i.test(candidate.logoUrl||'')?
    candidate.logoUrl:null;
   const logoHost=network==='arc'&&candidate.address?.toLowerCase()==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'?
@@ -246,7 +248,13 @@
    if(!item||item.network!==selected||item.chainId!==SUGGEST_CHAIN_IDS[selected]||
       !addressPattern.test(item.address||''))continue;
    const key=item.network+':'+item.address.toLowerCase();
-   if(!unique.has(key))unique.set(key,item);
+   if(unique.has(key)){
+    // Keep first-party name, contract and verification unchanged, but attach
+    // a contract-identical image returned later by the live source.
+    const existing=unique.get(key);
+    if(!existing.logoUrl&&typeof item.logoUrl==='string')
+     unique.set(key,{...existing,logoUrl:item.logoUrl});
+   }else unique.set(key,item);
   }
   suggestBox.replaceChildren();
   const rows=[...unique.values()].slice(0,7);

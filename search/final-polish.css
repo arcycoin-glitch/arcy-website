@@ -14,8 +14,10 @@
 #tokenDetail .detail-matches[hidden]{display:none}
 #tokenDetail .detail-match{display:grid;grid-template-columns:34px minmax(0,1fr) minmax(0,auto);align-items:center;gap:10px;width:100%;min-height:54px;padding:8px 11px;border:1px solid rgba(110,180,206,.2);border-radius:11px;background:#091d2b;color:#eaf6fd;text-align:left;cursor:pointer}
 #tokenDetail .detail-match:hover,#tokenDetail .detail-match:focus-visible{border-color:#54c7dc;background:#0c2837;outline-offset:2px}
-#tokenDetail .detail-match-avatar{display:grid;place-items:center;width:32px;height:32px;border:1px solid #31576b;border-radius:50%;background:#112b3b;color:#a9e6f0;font-size:10px;font-weight:800;overflow:hidden}
-#tokenDetail .detail-match-avatar img{width:100%;height:100%;object-fit:cover}
+#tokenDetail .detail-match-avatar{position:relative;display:grid;place-items:center;flex:none;width:32px;height:32px;border:1px solid #31576b;border-radius:50%;background:#112b3b;color:#a9e6f0;font-size:10px;font-weight:800;overflow:hidden}
+/* Overlay the image on top of initials; otherwise grid puts the image on a second row. */
+#tokenDetail .detail-match-avatar img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;background:#112b3b}
+#tokenDetail .detail-match-avatar.has-logo{color:transparent}
 #tokenDetail .detail-match-copy{display:grid;gap:4px;min-width:0}
 #tokenDetail .detail-match-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
 #tokenDetail .detail-match-copy small{overflow:hidden;color:#8ca9b9;text-overflow:ellipsis;white-space:nowrap;font-size:9px}

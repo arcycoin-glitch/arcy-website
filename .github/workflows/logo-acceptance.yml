@@ -1,7 +1,7 @@
 name: ARCY Logo End-to-End Acceptance
 on:
   push:
-    branches: [fix/logo-network-scope-20261014]
+    branches: [fix/logo-network-scope-20261014, fix/logo-coverage-3net-20261014]
   workflow_dispatch:
 jobs:
   regression:
