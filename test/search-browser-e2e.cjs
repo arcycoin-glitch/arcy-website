@@ -2,8 +2,8 @@ const { chromium } = require('playwright');
 const { spawn } = require('node:child_process');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const fs = require('node:fs');
-const fixtureArt = 'https://cdn.dexscreener.com/cms/images/arcy-search-browser-fixture.webp';
+const FIXTURE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAFElEQVR4nGP0XnCYAQaYGJAAbg4AVIgBtt6Y4a8AAAAASUVORK5CYII=', 'base64');
+const fixtureArt = 'https://cdn.dexscreener.com/cms/images/arcy-search-browser-fixture.png';
 
 const root = path.join(__dirname, '..');
 const origin = 'http://127.0.0.1:3111';
@@ -91,8 +91,7 @@ function candidate(network) {
       return route.fulfill({ status: 400, json: { ok: false } });
     });
     await page.route('https://cdn.dexscreener.com/**', route => route.fulfill({
-      status: 200, contentType: 'image/webp',
-      body: fs.readFileSync(path.join(root, 'search/assets/arcy-owl-reference.webp')),
+      status: 200, contentType: 'image/png', body: FIXTURE_PNG,
     }));
     await page.route('https://www.geckoterminal.com/**', route => route.fulfill({
       status: 200, contentType: 'text/html', body: '<title>GeckoTerminal controlled iframe fixture</title>',
