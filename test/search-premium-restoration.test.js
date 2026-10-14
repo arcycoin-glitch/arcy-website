@@ -6,6 +6,7 @@ const chart=require('../search/server/api/chart');
 const history=require('../search/server/lib/price-history');
 const ARCY='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
 const USDC='0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
+const WETH='0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const ROGUE='0x'+'f'.repeat(40);
 function reply(){
  return {statusCode:200,headers:{},body:null,
@@ -21,6 +22,8 @@ test('Site-owned mascot and CC0 token art are exact-network/exact-contract only'
  assert.equal(logos.localLogo('arc',ARCY),'/assets/hero-arcy.png');
  assert.equal(logos.localLogo('ethereum',ARCY),null);
  assert.equal(logos.localLogo('ethereum',USDC),'/search/assets/token-icons/usdc.svg');
+ assert.equal(logos.localLogo('ethereum',WETH),'/search/assets/token-icons/eth.svg');
+ assert.equal(logos.localLogo('arc',WETH),null);
  assert.equal(logos.localLogo('arc',USDC),null);
  assert.equal(logos.localLogo('ethereum',ROGUE),null);
  const rows=await logos.enhance('ethereum',[{
