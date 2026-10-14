@@ -113,6 +113,11 @@ async function mechanics({address,base}){
     },'ON_CHAIN');
   }catch{} // A missing implementation read leaves architecture unverified.
  }
+ const directArchitecture=!base.proxyImplementation&&base.runtimeDelegatecallDetected===false?evidence(
+  'No DELEGATECALL opcode or EIP-1167 proxy found in deployed runtime','Robinhood RPC',{
+   address,block:base.block,method:'eth_getCode opcode scan + EIP-1167 exact-template and EIP-1967 implementation-slot checks',
+   scope:'Observed runtime only. This does not rule out external control mechanisms or non-standard forwarding designs.'
+  },'ON_CHAIN'):null;
  const result=await Promise.allSettled([
   rpc('eth_call',[{to:address,data:'0x8da5cb5b'},base.block]),
   rpc('eth_getStorageAt',[address,PROXY,base.block]),
@@ -141,7 +146,7 @@ async function mechanics({address,base}){
     NO('No source-confirmed owner/admin model; absence of owner getter does not prove renouncement.'),
    contractArchitecture:implementation?evidence('EIP-1967 implementation: '+implementation,'Robinhood RPC',{
     ...proof,method:'EIP-1967 implementation storage',scope:'Does not prove all upgrade permissions.'},'ON_CHAIN'):
-    cloneArchitecture?cloneArchitecture:
+    cloneArchitecture?cloneArchitecture:directArchitecture?directArchitecture:
     extra.contractArchitecture?.dataState==='DATA_FOUND'?extra.contractArchitecture:
     observed.contractArchitecture?.dataState==='DATA_FOUND'?observed.contractArchitecture:
     NO('EIP-1967 implementation not established; other proxy designs may exist.')

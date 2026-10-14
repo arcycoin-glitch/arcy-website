@@ -76,6 +76,7 @@ async function inspectAt(endpoint,address){
  if(!/^0x[0-9a-f]+$/i.test(bytecode||'')||bytecode==='0x')
   throw Error('No verified token contract');
  const proxyImplementation=minimalProxyImplementation(bytecode);
+ const runtimeDelegatecallDetected=containsOpcode(bytecode,0xf4);
  const call=data=>callRpc('eth_call',[{to:address,data},block]);
  const [supplyWord,decimalsWord]=await Promise.all([
   call('0x18160ddd'),call('0x313ce567')
@@ -93,7 +94,7 @@ async function inspectAt(endpoint,address){
   names.slice(2).reduce((a,x)=>a+uint(x.value),0n):null;
  return {chainId:cfg.chainId,network:cfg.id,address,block,token:{name,symbol,decimals},
   totalSupplyRaw:totalSupplyRaw.toString(),totalSupply:units(totalSupplyRaw,decimals),
-  proxyImplementation,
+  proxyImplementation,runtimeDelegatecallDetected,
   burnAddressRaw:raw?.toString()??null,
   burnAddressBalance:raw===null?null:units(raw,decimals)};
 }
@@ -104,6 +105,16 @@ function minimalProxyImplementation(code){
  const match=bytes.match(/^363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3$/);
  if(!match||/^0{40}$/.test(match[1]))return null;
  return '0x'+match[1];
+}
+function containsOpcode(code,target){
+ if(typeof code!=='string'||!/^0x(?:[0-9a-f]{2})+$/i.test(code))return null;
+ const bytes=Buffer.from(code.slice(2),'hex');
+ for(let i=0;i<bytes.length;i++){
+  const opcode=bytes[i];
+  if(opcode===target)return true;
+  if(opcode>=0x60&&opcode<=0x7f)i+=opcode-0x5f;
+ }
+ return false;
 }
 async function inspectToken({address}){
  if(!ADDRESS.test(address))throw Error('Invalid contract address');
@@ -121,5 +132,5 @@ async function inspectToken({address}){
  }
  throw last;
 }
-module.exports={rpc,inspectToken,providers,retryable,requestAt,inspectAt,minimalProxyImplementation};
+module.exports={rpc,inspectToken,providers,retryable,requestAt,inspectAt,minimalProxyImplementation,containsOpcode};
 
