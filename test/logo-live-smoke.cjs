@@ -6,7 +6,8 @@ const probes=[
  {name:'Arc ARCY DEX exact contract',url:'https://api.dexscreener.com/tokens/v1/arc/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b',kind:'dex'},
  {name:'ArcTools Arc explorer search',url:'https://explorer.arc.io/api/v2/search?q=ArcTools',kind:'explorer'},
  {name:'ArcTools DEX keyword index',url:'https://api.dexscreener.com/latest/dex/search?q=ArcTools',kind:'search'},
- {name:'ARCY logo preview API',url:'https://arcy-official-9w6ioz0ki-arcy3.vercel.app/api/search?action=discover&chain=arc&q=ARCY',kind:'site'}
+ {name:'ARCY logo preview API',url:'https://arcy-official-ovujbewf1-arcy3.vercel.app/api/search?action=discover&chain=arc&q=ARCY',kind:'site'},
+ {name:'ARCY production ArcTools discover',url:'https://www.arcyusdc.xyz/api/search?action=discover&chain=arc&q=ArcTools',kind:'site'}
 ];
 (async()=>{
  for(const task of probes){
@@ -25,6 +26,11 @@ const probes=[
     artworkAllowed:Boolean(safeLogoUrl(example?.info?.imageUrl)),
     exactAddress:task.kind==='search'?example?.baseToken?.address:null,
     chains:[...new Set(first.map(x=>x?.chainId||x?.network||null))]}));
+    if(task.kind==='search'&&example?.info?.imageUrl){
+     try{const artwork=await fetch(example.info.imageUrl,{method:'HEAD',signal:AbortSignal.timeout(4500)});
+      console.log(JSON.stringify({name:'ArcTools CDN image HEAD',http:artwork.status,mime:artwork.headers.get('content-type')}));
+     }catch(error){console.log(JSON.stringify({name:'ArcTools CDN image HEAD',error:String(error.message).slice(0,80)}));}
+    }
     if(task.kind==='search'&&example?.chainId==='arc'&&/^0x[0-9a-f]{40}$/i.test(example.baseToken?.address||'')){
      const precise=await fetch('https://api.dexscreener.com/tokens/v1/arc/'+example.baseToken.address,{signal:AbortSignal.timeout(5000)});
      const pairs=precise.ok?await precise.json():[];
