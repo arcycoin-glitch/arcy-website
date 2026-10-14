@@ -31,6 +31,21 @@ test('Arc market cap is left unchanged when on-chain cross-check inputs are unav
  assert.equal(validateArcMarketCap(marketCap,base,{value:null}),marketCap);
 });
 
+test('Arc FDV is derived only from exact on-chain supply and an exact-contract price, never called market cap',()=>{
+ const derive=require('../search/server/lib/arc-adapter').deriveArcFullyDilutedValue;
+ const derived=derive({value:null,dataState:'NOT_VERIFIED'},
+  {address:A,block:'0x100',totalSupply:'1000000',totalSupplyEvidence:[{method:'totalSupply()'}]},
+  {value:2,dataState:'DATA_FOUND',source:'GeckoTerminal',evidence:[{address:A,chainId:5042}]});
+ assert.equal(derived.value,2000000);
+ assert.equal(derived.kind,'FDV');
+ assert.equal(derived.status,'ON_CHAIN_DERIVED');
+ assert.match(derived.scope,/not circulating-supply market cap/i);
+ assert.equal(derive({value:7,kind:'MARKET_CAP',dataState:'DATA_FOUND'},
+  {totalSupply:'1000000'},{value:2,dataState:'DATA_FOUND'}).value,7);
+ assert.equal(derive({value:null,dataState:'NOT_VERIFIED'},
+  {totalSupply:'invalid'},{value:2,dataState:'DATA_FOUND'}).value,null);
+});
+
 test('Arc Blockscout counter is reported only as a current holder count, never whale distribution',async()=>{
  const publication=require('../search/server/lib/arc-holder-publication');
  const legacy=require('../search/server/lib/arc-legacy-evidence');

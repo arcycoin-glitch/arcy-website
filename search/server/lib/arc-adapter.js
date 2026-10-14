@@ -81,6 +81,17 @@ function validateArcMarketCap(valuation,base,priceUsd){
   'MARKET_CAP_EXCEEDS_ONCHAIN_SUPPLY_VALUE');
  return valuation;
 }
+function deriveArcFullyDilutedValue(valuation,base,priceUsd){
+ if(valuation?.dataState==='DATA_FOUND'||priceUsd?.dataState!=='DATA_FOUND')return valuation;
+ const supply=Number(base?.totalSupply),price=Number(priceUsd.value),value=supply*price;
+ if(!Number.isFinite(supply)||supply<=0||!Number.isFinite(price)||price<=0||!Number.isFinite(value))return valuation;
+ return {value,kind:'FDV',status:'ON_CHAIN_DERIVED',dataState:'DATA_FOUND',
+  source:'Arc RPC totalSupply × '+(priceUsd.source||'exact-contract price'),network:cfg.id,chainId:cfg.chainId,
+  evidence:[...(base?.totalSupplyEvidence||[]),...(priceUsd.evidence||[]),
+   {chainId:cfg.chainId,network:cfg.id,address:base?.address,block:base?.block,
+    method:'totalSupply() × exact-contract USD price',scope:'Fully diluted value from on-chain total supply; not circulating-supply market capitalization.'}],
+  scope:'Calculated using the exact Arc contract total supply and exact-contract USD price. This is FDV, not circulating-supply market cap.'};
+}
 async function activity({address,base},cardId){
  const keys=cardId==='liquidity'?['liquidityUsd','volume24h','dexPairCount','lpStatus']:
   ['priceUsd','valuation','change24h','volume24h'];
@@ -102,7 +113,10 @@ async function activity({address,base},cardId){
  const fields=Object.fromEntries(keys.map(k=>[k,
   restored[k]?.dataState==='DATA_FOUND'?restored[k]:
    fallback[k]||NO('Exact-contract evidence unavailable.','MARKET_SOURCE_NOT_VERIFIED')]));
- if(cardId==='activity')fields.valuation=validateArcMarketCap(fields.valuation,base,fields.priceUsd);
+ if(cardId==='activity'){
+  fields.valuation=validateArcMarketCap(fields.valuation,base,fields.priceUsd);
+  fields.valuation=deriveArcFullyDilutedValue(fields.valuation,base,fields.priceUsd);
+ }
  return {description:'Arc Search market fields are restricted to the separately permission-gated provider path; missing market values remain NOT VERIFIED.',fields};
 }
 
@@ -172,4 +186,4 @@ async function discover({query}){
  if(!SEARCH.test(normalized)||ADDRESS.test(normalized))throw Error('Invalid search query');
  return [];
 }
-module.exports={inspectToken,inspectCard,supply,holders,activity,mechanics,discover,addressWord,marketFor,validateArcMarketCap};
+module.exports={inspectToken,inspectCard,supply,holders,activity,mechanics,discover,addressWord,marketFor,validateArcMarketCap,deriveArcFullyDilutedValue};
