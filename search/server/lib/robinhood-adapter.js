@@ -57,16 +57,17 @@ async function supply(base){
    evidence(share,'Robinhood RPC',{...proof,method:'current zero/dead balances divided by totalSupply()',scope:'Current balances only; not lifetime burned.'},'ON_CHAIN_DERIVED')
  }};
 }
-async function holder({address}){
+async function holder({address,base}){
  const fields={
   holderCount:NO('No contract-scoped Blockscout holder count available; optional PRO source not configured or unavailable.'),
   largestWalletPct:NO('No complete pinned-block holder ranking with supply reconciliation.'),
   top10Pct:NO('No complete pinned-block holder ranking with supply reconciliation.'),
   top20Pct:NO('No complete pinned-block holder ranking with supply reconciliation.')
  };
- const [count,reported]=await Promise.all([
+ const [count,reported,ranked]=await Promise.all([
   require('./robinhood-holder-count').fetchCount(address),
-  require('./goplus-evidence').inspectHolders('robinhood',address)
+  require('./goplus-evidence').inspectHolders('robinhood',address),
+  require('./robinhood-holder-rank').fetchRank(address,{block:base.block,totalSupplyRaw:base.totalSupplyRaw})
  ]);
  if(count)fields.holderCount=count;
  else if(reported.holderCount?.dataState==='DATA_FOUND')
@@ -74,8 +75,14 @@ async function holder({address}){
  for(const key of ['largestWalletPct','top10Pct']){
   if(reported[key]?.dataState==='DATA_FOUND')fields[key]=reported[key];
  }
+ if(ranked){
+  for(const key of ['largestWalletPct','top10Pct','top20Pct'])
+   if(ranked[key]?.dataState==='DATA_FOUND')fields[key]=ranked[key];
+ }
  const sourceRank=fields.top10Pct.dataState==='DATA_FOUND';
- return {description:sourceRank?
+ const rpcReconciled=ranked?.top10Pct?.source==='Robinhood RPC + Blockscout';
+ return {description:rpcReconciled?
+  'Blockscout balance-ranked holder sample, reconciled to Robinhood RPC at the pinned report block; beneficial ownership is not inferred.':sourceRank?
   'GoPlus source-reported top-wallet sample, not a complete pinned-chain ranking. Contract-matched holder counts may come from Blockscout or GoPlus. Top 20 remains NOT VERIFIED.':
   'Holder count is source-reported where available; complete whale concentration is NOT VERIFIED.',fields};
 }
@@ -139,7 +146,7 @@ async function mechanics({address,base}){
 async function inspectCard({base,cardId,address}){
  switch(cardId){
   case 'supply':return supply(base);
-  case 'holders':return holder({address});
+ case 'holders':return holder({address,base});
   case 'liquidity':case 'activity':return activity({address},cardId);
   case 'mechanics':return mechanics({address,base});
   default:throw Error('Unexpected card');

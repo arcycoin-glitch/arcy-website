@@ -3,6 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const read=require('../search/server/lib/robinhood-holder-count');
 const adapter=require('../search/server/lib/robinhood-adapter');
 const rhRpc=require('../search/server/lib/robinhood-rpc');
+const holderRank=require('../search/server/lib/robinhood-holder-rank');
 const ADDRESS='0x'+'a'.repeat(40);
 test('Robinhood runtime identifies only exact EIP-1167 clones',()=>{
  const implementation='0x'+'b'.repeat(40);
@@ -29,6 +30,21 @@ test('Robinhood mechanics adds architecture only after pinned implementation byt
   assert.equal(field.evidence[0].block,block);
   assert.equal(field.evidence[0].implementation,implementation);
  }finally{global.fetch=original}
+});
+test('Robinhood ranked holders publish only when Blockscout top 20 match pinned RPC balances',async()=>{
+ const rows=Array.from({length:20},(_,i)=>({address:{hash:'0x'+(i+1).toString(16).padStart(40,'0')},value:String(100-i)}));
+ const block='0x1234',calls=[];
+ const good=await holderRank.fetchRank(ADDRESS,{block,totalSupplyRaw:'10000',
+  fetcher:async url=>{assert.equal(url,'https://robinhoodchain.blockscout.com/api/v2/tokens/'+ADDRESS+'/holders');return new Response(JSON.stringify({items:rows}))},
+  rpcCall:async(method,params)=>{assert.equal(method,'eth_call');assert.equal(params[1],block);calls.push(params[0].data);return '0x'+BigInt(100-((parseInt(params[0].data.slice(-40),16))-1)).toString(16).padStart(64,'0')}
+ });
+ assert.equal(calls.length,20);assert.equal(good.largestWalletPct.value,1);
+ assert.equal(good.top10Pct.value,9.55);assert.equal(good.top20Pct.value,18.1);
+ assert.equal(good.top20Pct.evidence[0].chainId,4663);
+ const mismatch=await holderRank.fetchRank(ADDRESS,{block,totalSupplyRaw:'1000',
+  fetcher:async()=>new Response(JSON.stringify({items:rows})),rpcCall:async()=> '0x'+'0'.repeat(64)});
+ assert.equal(mismatch,null);
+ assert.equal(holderRank.rows({items:[rows[1],rows[0]]}),null);
 });
 test('Robinhood Blockscout holder count has bounded exact contract validation',()=>{
  for(const value of [{token_holders_count:42},{token_holders_count:'42'},{holders_count:42}])
