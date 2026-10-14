@@ -4,6 +4,20 @@
 const {rpc,uint}=require('./eth');
 const NETWORK='ethereum',CHAIN_ID=1;
 const ASSETS=Object.freeze({
+ // USD oracle reference prices for exact Ethereum ERC-20 contracts. No DEX
+ // market-cap, liquidity, volume or circulating-supply claims are inferred.
+ '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9':Object.freeze({
+  symbol:'AAVE',feed:'0x547a514d5e3769680ce22b2361c10ea13619e8a9',decimals:8,
+  basis:'Ethereum Chainlink AAVE/USD reference; verified Aave ERC-20 contract.'
+ }),
+ '0x514910771af9ca656af840dff83e8264ecf986ca':Object.freeze({
+  symbol:'LINK',feed:'0x2c1d072e956affc0d435cb7ac38ef18d24d9127c',decimals:8,
+  basis:'Ethereum Chainlink LINK/USD reference; verified Chainlink ERC-20 contract.'
+ }),
+ '0x6b175474e89094c44da98b954eedeac495271d0f':Object.freeze({
+  symbol:'DAI',feed:'0xaed0c38402a5d19df6e4c03f4e2dced6e29c1ee9',decimals:8,
+  basis:'Ethereum Chainlink DAI/USD reference; verified Maker DAI ERC-20 contract.'
+ }),
  '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2':Object.freeze({
   symbol:'WETH',feed:'0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419',decimals:8,
   basis:'Ethereum Chainlink ETH/USD reference; canonical WETH contract is redeemable for ETH at 1:1.'
