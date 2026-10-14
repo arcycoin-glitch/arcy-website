@@ -19,6 +19,14 @@ const OFFICIAL=Object.freeze([
   name:'USD Coin',symbol:'USDC',issuer:'Circle',
   proofUrl:'https://developers.circle.com/stablecoins/usdc-contract-addresses'
  }),
+ // First-party Argus token page plus the live Arc RPC metadata call confirms
+ // this name, symbol and contract. The token's actual ticker is ARCARG (not
+ // ARGUS); the name match supports searching for "Argus" without relabelling it.
+ Object.freeze({
+  network:'arc',chainId:5042,address:'0x7d10b4331a990017938d66542f43fa4a72aacb73',
+  name:'angel of arc argus',symbol:'ARCARG',issuer:'Argus',
+  proofUrl:'https://argus.world/token/0x7D10b4331A990017938d66542f43fa4A72AACB73'
+ }),
  // floki.com itself specifies its Ethereum contract. BNB token has a different
  // address and is deliberately NOT a match on the Ethereum Search network.
  Object.freeze({
@@ -84,8 +92,9 @@ function knownMatches(network,query){
  if(q.length<2)return [];
  const inNetwork=OFFICIAL.filter(x=>x.network===network);
  const exact=inNetwork.filter(x=>x.symbol.toLowerCase()===q||x.name.toLowerCase()===q);
- const matches=exact.length?exact:inNetwork.filter(x=>
-  x.symbol.toLowerCase().startsWith(q)||x.name.toLowerCase().startsWith(q));
+ const prefix=inNetwork.filter(x=>x.symbol.toLowerCase().startsWith(q)||x.name.toLowerCase().startsWith(q));
+ const matches=exact.length?exact:prefix.length?prefix:inNetwork.filter(x=>
+  x.symbol.toLowerCase().includes(q)||x.name.toLowerCase().includes(q));
  return matches.map(x=>({address:x.address,network:x.network,chainId:x.chainId,
   name:x.name,symbol:x.symbol,source:'Official issuer contract documentation',
   identity:verified(network,x.address),identityVerified:true}));

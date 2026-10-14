@@ -182,6 +182,7 @@
  const OFFICIAL_SUGGESTIONS=Object.freeze([
   ['arc','0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b','ARCY','ARCY'],
   ['arc','0x3600000000000000000000000000000000000000','USD Coin','USDC'],
+  ['arc','0x7d10b4331a990017938d66542f43fa4a72aacb73','angel of arc argus','ARCARG'],
   ['ethereum','0xcf0c122c6b73ff809c693db761e7baebe62b6a2e','Floki','FLOKI'],
   ['ethereum','0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48','USD Coin','USDC'],
   ['ethereum','0x1f9840a85d5af5bf1d1762f925bdaddc4201f984','Uniswap','UNI'],
