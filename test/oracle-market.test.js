@@ -27,7 +27,9 @@ test('AAVE, LINK and DAI read only pinned Ethereum Chainlink USD references',asy
  const addresses=[
   '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
   '0x514910771af9ca656af840dff83e8264ecf986ca',
-  '0x6b175474e89094c44da98b954eedeac495271d0f'
+  '0x6b175474e89094c44da98b954eedeac495271d0f',
+  '0x0d8775f648430679a709e98d2b0cb6250d2887ef',
+  '0xc00e94cb662c3520282e6f5717214004a7f26888'
  ];
  for(const address of addresses){
   const m=mock(),result=await oracle.inspect(address,block,{rpcCall:m.rpcCall,now});
