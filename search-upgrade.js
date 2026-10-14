@@ -142,7 +142,7 @@
    /^https:\/\/cdn\.robinhood\.com\/ncw_assets\/logos\/0x[0-9a-f]{40}\.png$/i.test(candidate.logoUrl||'')?
    candidate.logoUrl:null;
   const providerArt=network!=='robinhood'&&candidate.network===network&&
-   /^https:\/\/(?:cdn\.dexscreener\.com|dd\.dexscreener\.com|assets\.geckoterminal\.com)\//i.test(candidate.logoUrl||'')?
+   /^https:\/\/(?:cdn\.dexscreener\.com\/(?:cms\/images|ds-data\/tokens|token-images|images)\/|dd\.dexscreener\.com\/ds-data\/tokens\/|cdn-icons\.blockscout\.com\/)/i.test(candidate.logoUrl||'')?
    candidate.logoUrl:null;
   const logoHost=network==='arc'&&candidate.address?.toLowerCase()==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'?
    '/assets/hero-arcy.png':issuerArtwork(network,candidate.address,candidate.identity)||officialStockArt||providerArt;
