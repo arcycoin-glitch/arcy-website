@@ -3,6 +3,7 @@ const SEARCH=/^[\p{L}\p{N}\s.$_+\-&]{2,48}$/u;
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
 const {chain}=require('./chains');
 const {readJson}=require('./http');
+const {safeLogoUrl}=require('./token-image');
 function normalizeQuery(raw){
  if(typeof raw!=='string')return null;
  const q=raw.normalize('NFKC').trim().replace(/\s+/g,' ');
@@ -40,7 +41,7 @@ async function searchExplorer(network,rawQuery,{fetchImpl=global.fetch}={}){
   if(!haystack.includes(normalized))continue;
   matches.push({address,network,chainId:cfg.chainId,name:name||symbol,symbol,
    source:'Blockscout explorer index',sourceUrl:new URL('/token/'+address,base).toString(),
-   identityVerified:false,registryMatched:false,logoUrl:null});
+   identityVerified:false,registryMatched:false,logoUrl:safeLogoUrl(item.icon_url||item.token?.icon_url)});
  }
  return matches;
 }
