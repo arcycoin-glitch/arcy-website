@@ -28,9 +28,31 @@ function localLogo(network,address){
  return LOCAL[network]?.[address.toLowerCase()]||null;
 }
 const {safeLogoUrl}=require('./token-image');
-async function enhance(network,items){
+async function enhance(network,items,{fetchImpl=global.fetch}={}){
  if(!Array.isArray(items))return [];
- return items.slice(0,24).map(item=>{
+ const scoped=items.slice(0,24);
+ const addresses=[...new Set(scoped.filter(x=>x.network===network&&/^0x[0-9a-f]{40}$/i.test(x.address||'')).map(x=>x.address.toLowerCase()))];
+ const marketArt=new Map();
+ // Optional, one bounded request for exact token contracts, never ticker matching.
+ // Third-party images are decoration, never contract verification.
+ if((network==='ethereum'||network==='arc')&&addresses.length&&typeof fetchImpl==='function'){
+  const chain=network==='ethereum'?'ethereum':'arc';
+  try{
+   const response=await fetchImpl('https://api.dexscreener.com/tokens/v1/'+chain+'/'+addresses.join(','),{
+    headers:{accept:'application/json'},signal:AbortSignal.timeout(3500)});
+   if(response?.ok){
+    const pairs=await response.json();
+    if(Array.isArray(pairs))for(const pair of pairs.slice(0,120)){
+     if(String(pair.chainId||'').toLowerCase()!==chain)continue;
+     const address=String(pair.baseToken?.address||'').toLowerCase();
+     if(!addresses.includes(address)||marketArt.has(address))continue;
+     const logo=safeLogoUrl(pair.info?.imageUrl);
+     if(logo)marketArt.set(address,logo);
+    }
+   }
+  }catch(_){/* Gracefully retain existing icon or initials. */}
+ }
+ return scoped.map(item=>{
   const local=localLogo(network,item.address);
   const registry=network==='robinhood'&&item.network==='robinhood'&&
    item.chainId===4663&&item.registryMatched===true&&
@@ -38,7 +60,8 @@ async function enhance(network,items){
     require('./robinhood-assets').registryLogo(item.logoUrl):null;
   // Public DEX/explorer images do not prove identity; only the authenticated
   // issuer/chain registry may supply the remote Stock Token logo.
-  const provider=network!=='robinhood'&&item.network===network?safeLogoUrl(item.logoUrl):null;
+  const provider=network!=='robinhood'&&item.network===network?
+   (marketArt.get(String(item.address||'').toLowerCase())||safeLogoUrl(item.logoUrl)):null;
   const logo=local||registry||provider;
   return {...item,logoUrl:logo,logoSource:local?
    (local.endsWith('/hero-arcy.png')?'ARCY site-owned mascot':'CC0 cryptocurrency-icons; contract-matched'):
