@@ -90,13 +90,14 @@ async function balancesAtBlock(token,addresses,block){
  await Promise.all(workers);
  return result;
 }
-async function inspect(address,block,rawSupply){
+async function inspect(address,block,rawSupply,{getCounters=json,getPages=pages,getBalances=balancesAtBlock}={}){
  if(!ADDRESS.test(address)||!/^0x[0-9a-f]+$/i.test(block||''))return blank('Invalid Ethereum token or pinned block.','INVALID_INPUT');
+ let reported=null;
  try{
-   const info=await json(API+address.toLowerCase()+'/counters');
+   const info=await getCounters(API+address.toLowerCase()+'/counters');
    const count=parseCount(info);
    if(!count)return blank('A positive explorer holder count was not established.','COUNT_NOT_VERIFIED');
-   const reported=found(count,'Blockscout',[{provider:'Blockscout',address,scope:'Source-reported current holder count; may not match an earlier pinned block.'}],'SOURCE_REPORTED');
+   reported=found(count,'Blockscout',[{provider:'Blockscout',address,scope:'Source-reported current holder count; may not match an earlier pinned block.'}],'SOURCE_REPORTED');
    if(count>MAX_HOLDERS){
      const sourceRank=await require('./large-holders').inspect(address.toLowerCase(),block,rawSupply,count);
      return card({
@@ -109,13 +110,23 @@ async function inspect(address,block,rawSupply){
    }
    // Complete small-wallet census is allowed only after every indexed wallet
    // is re-read at the pinned block and balances equal the total token supply.
-   const all=await pages(address.toLowerCase(),count);
-   const balances=await balancesAtBlock(address.toLowerCase(),all,block);
+   const all=await getPages(address.toLowerCase(),count);
+   const balances=await getBalances(address.toLowerCase(),all,block);
    const raw=uint('0x'+BigInt(rawSupply).toString(16).padStart(64,'0')); // rawSupply must be base units, not formatted supply.
-   return calculate(all,balances,raw,count,block,address.toLowerCase());
+   const complete=calculate(all,balances,raw,count,block,address.toLowerCase());
+   if(complete.fields.holderCount?.dataState==='DATA_FOUND')return complete;
+   // Keep trustworthy source-reported count when pinned whale proof fails.
+   complete.fields.holderCount=reported;
+   complete.description='Blockscout source-reported current holder count only; wallet distribution could not be reconciled.';
+   complete.status='PARTIAL_EVIDENCE';
+   return complete;
  }catch(e){
    const result=blank('Holder verification failed.','SOURCE_API_FAILED');
-   result.fields.holderCount=error(e,'Blockscout / Ethereum RPC');
+   result.fields.holderCount=reported||error(e,'Blockscout / Ethereum RPC');
+   if(reported){
+    result.status='PARTIAL_EVIDENCE';
+    result.description='Blockscout source-reported current holder count; RPC wallet ranking unavailable.';
+   }
    return result;
  }
 }
