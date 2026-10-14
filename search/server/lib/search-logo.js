@@ -90,14 +90,14 @@ async function enhance(network,items,{fetchImpl=global.fetch,now=Date.now()}={})
  const scoped=items.slice(0,24);
  const cfg=chain(network);
  // Local first-party/CC0 art or the Robinhood stock registry always takes precedence.
- const needs=scoped.filter(item=>item&&item.network===network&&item.chainId===cfg.chainId&&
+ const needs=scoped.filter(item=>item&&item.network===network&&(item.chainId===undefined||item.chainId===cfg.chainId)&&
   ADDRESS.test(item.address||'')&&!localLogo(network,item.address)&&!safeLogoUrl(item.logoUrl));
  const addresses=[...new Set(needs.map(item=>item.address.toLowerCase()))];
  // Unit-test runs do not contact public services implicitly; mocks can be injected.
  const remote=(fetchImpl!==global.fetch||process.env.VERCEL==='1')?
   await marketBatch(network,addresses,{fetchImpl,now}):new Map();
  return scoped.map(item=>{
-  const matched=item&&item.network===network&&item.chainId===cfg.chainId&&ADDRESS.test(item.address||'');
+  const matched=item&&item.network===network&&(item.chainId===undefined||item.chainId===cfg.chainId)&&ADDRESS.test(item.address||'');
   const local=matched?localLogo(network,item.address):null;
   const registry=matched&&network==='robinhood'&&item.registryMatched===true&&
    item.source==='Robinhood official asset registry'?
