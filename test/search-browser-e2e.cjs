@@ -3,7 +3,7 @@ const { spawn } = require('node:child_process');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const FIXTURE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAFElEQVR4nGP0XnCYAQaYGJAAbg4AVIgBtt6Y4a8AAAAASUVORK5CYII=', 'base64');
-const fixtureArt = 'https://cdn.dexscreener.com/cms/images/arcy-search-browser-fixture.png';
+const fixtureArt = 'https://cdn.dexscreener.com/cms/images/y7ril8c3Y0da5KIP?width=64&height=64&quality=85&format=auto';
 
 const root = path.join(__dirname, '..');
 const origin = 'http://127.0.0.1:3111';
