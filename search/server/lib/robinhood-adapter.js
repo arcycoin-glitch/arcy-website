@@ -78,6 +78,10 @@ async function holder({address,base}){
  if(ranked){
   for(const key of ['largestWalletPct','top10Pct','top20Pct'])
    if(ranked[key]?.dataState==='DATA_FOUND')fields[key]=ranked[key];
+  if(ranked.reasonCode){
+   for(const key of ['largestWalletPct','top10Pct','top20Pct'])
+    fields[key]=NO('Blockscout holder ranking could not be reconciled at the pinned Robinhood block.',ranked.reasonCode);
+  }
  }
  const sourceRank=fields.top10Pct.dataState==='DATA_FOUND';
  const rpcReconciled=ranked?.top10Pct?.source==='Robinhood RPC + Blockscout';

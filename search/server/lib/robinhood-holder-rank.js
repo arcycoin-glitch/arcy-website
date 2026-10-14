@@ -7,6 +7,7 @@ const {readJson}=require('./http');
 const {rpc}=require('./robinhood-rpc');
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
 const BASE='https://robinhoodchain.blockscout.com/api/v2/tokens/';
+const unavailable=reasonCode=>({reasonCode});
 function rows(body){
  if(!body||!Array.isArray(body.items))return null;
  const result=[],seen=new Set();
@@ -30,25 +31,27 @@ function percentage(raw,totalRaw){
 }
 async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc}={}){
  if(typeof address!=='string'||!ADDRESS.test(address)||!/^0x[0-9a-f]+$/i.test(block||'')||
-  typeof totalSupplyRaw!=='string'||!/^[1-9]\d*$/.test(totalSupplyRaw))return null;
+  typeof totalSupplyRaw!=='string'||!/^[1-9]\d*$/.test(totalSupplyRaw))return unavailable('HOLDER_RANK_INPUT_INVALID');
  const token=address.toLowerCase();
  try{
   const url=BASE+token+'/holders';
   const response=await fetcher(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(8000)});
-  if(!response.ok)return null;
+  if(!response.ok)return unavailable('BLOCKSCOUT_HOLDERS_HTTP_'+response.status);
   const ranked=rows(await readJson(response,1024*1024));
-  if(!ranked||ranked.length<10)return null;
-  const reconciled=await Promise.all(ranked.map(async row=>{
+  if(!ranked)return unavailable('BLOCKSCOUT_HOLDERS_SCHEMA_INVALID');
+  if(ranked.length<10)return unavailable('BLOCKSCOUT_RANK_BELOW_TEN_ROWS');
+  let reconciled;
+  try{reconciled=await Promise.all(ranked.map(async row=>{
    const word=await rpcCall('eth_call',[{to:token,data:'0x70a08231'+row.address.slice(2).padStart(64,'0')},block]);
    if(typeof word!=='string'||!/^0x[0-9a-f]{64}$/i.test(word))throw Error('Invalid pinned balance');
    const balance=BigInt(word);
    if(balance!==row.amount)throw Error('Blockscout balance is not current at the pinned block');
    return {address:row.address,balance};
-  }));
+  }));}catch{return unavailable('BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED')}
   const largest=percentage(reconciled[0]?.balance, totalSupplyRaw);
   const top10=reconciled.length>=10?percentage(reconciled.slice(0,10).reduce((sum,row)=>sum+row.balance,0n),totalSupplyRaw):null;
   const top20=reconciled.length>=20?percentage(reconciled.slice(0,20).reduce((sum,row)=>sum+row.balance,0n),totalSupplyRaw):null;
-  if(largest===null||top10===null)return null;
+  if(largest===null||top10===null)return unavailable('BLOCKSCOUT_RANK_SUPPLY_RECONCILIATION_FAILED');
   const evidence=[{network:'robinhood',chainId:4663,address:token,sourceUrl:url,block,
    method:'Blockscout balance-sorted top-20 + RPC balanceOf(wallet) reconciliation',
    matchedWallets:reconciled.length,scope:'Blockscout rank is source-reported; all displayed balances matched Robinhood RPC at the pinned block. Supply denominator is on-chain totalSupply. This is wallet concentration, not beneficial-owner concentration.'}];
@@ -57,7 +60,7 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
   return {largestWalletPct:found(largest,'largest Blockscout-ranked wallet balance / totalSupply()'),
    top10Pct:found(top10,'sum of first 10 Blockscout-ranked balances / totalSupply()'),
    ...(top20===null?{}:{top20Pct:found(top20,'sum of first 20 Blockscout-ranked balances / totalSupply()')})};
- }catch{return null;}
+ }catch{return unavailable('BLOCKSCOUT_HOLDERS_REQUEST_FAILED');}
 }
 module.exports={rows,percentage,fetchRank};
 
