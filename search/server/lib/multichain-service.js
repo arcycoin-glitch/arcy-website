@@ -27,8 +27,7 @@ function parseChain(raw){
 }
 async function report({network='ethereum',address}){
  chains.chain(network);
- // Provider artwork is disabled until reuse terms are cleared. This report
- // uses on-chain identity and source evidence only.
+ // Logos are decorative and never contribute to on-chain identity or research evidence.
  const result=await engine.report({network,address});
  const official=identities.verified(network,result.address);
  if(official)result.tokenIdentity=official;
@@ -40,6 +39,11 @@ async function report({network='ethereum',address}){
   const issuer=await robinhood.inspectStock({address:result.address});
   logoUrl=issuer?.registryMatched===true&&issuer.address===result.address?
    require('./robinhood-assets').registryLogo(issuer.logoUrl):null;
+ }
+ if(!logoUrl&&network!=='robinhood'){
+  const [decorated]=await logos.enhance(network,[{network,chainId:chains.chain(network).chainId,
+   address:result.address,logoUrl:null}]);
+  logoUrl=decorated?.logoUrl||null;
  }
  if(logoUrl)result.token={...result.token,logoUrl};
  return result;

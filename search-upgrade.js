@@ -141,8 +141,11 @@
    candidate.identity?.status==='REGISTRY_MATCHED'&&
    /^https:\/\/cdn\.robinhood\.com\/ncw_assets\/logos\/0x[0-9a-f]{40}\.png$/i.test(candidate.logoUrl||'')?
    candidate.logoUrl:null;
+  const providerArt=network!=='robinhood'&&candidate.network===network&&
+   /^https:\/\/(?:cdn\.dexscreener\.com\/(?:cms\/images|ds-data\/tokens|token-images|images)\/|dd\.dexscreener\.com\/ds-data\/tokens\/|cdn-icons\.blockscout\.com\/)/i.test(candidate.logoUrl||'')?
+   candidate.logoUrl:null;
   const logoHost=network==='arc'&&candidate.address?.toLowerCase()==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'?
-   '/assets/hero-arcy.png':issuerArtwork(network,candidate.address,candidate.identity)||officialStockArt;
+   '/assets/hero-arcy.png':issuerArtwork(network,candidate.address,candidate.identity)||officialStockArt||providerArt;
   // ALWAYS keep a readable token-symbol fallback under remote artwork.
   // Failed or blocked provider images must not leave a blank logo box.
   const placeholder=document.createElement('span');placeholder.className='home-token-logo home-token-placeholder';
@@ -224,7 +227,7 @@
  };
  function matchedOfficial(query){
   const q=query.toLocaleLowerCase('en-US');
-  const matches=OFFICIAL_SUGGESTIONS.filter(row=>row[2].toLowerCase().includes(q)||row[3].toLowerCase().includes(q));
+  const matches=OFFICIAL_SUGGESTIONS.filter(row=>row[0]===selected&&(row[2].toLowerCase().includes(q)||row[3].toLowerCase().includes(q)));
   matches.sort((a,b)=>{
    const score=row=>(row[0]===selected?0:4)+
     (row[3].toLowerCase()===q?0:row[3].toLowerCase().startsWith(q)?1:row[2].toLowerCase().startsWith(q)?2:3);
@@ -258,8 +261,8 @@
   cancelSuggestions();hideSuggestions();
   const query=input.value.trim(),generation=suggestGeneration,network=selected;
   if(query.length<2||query.length>48||query.toLowerCase().startsWith('0x'))return;
-  // Instant issuer-known results, including e.g. ONDO on Ethereum when Arc
-  // is selected. Network-sourced suggestions follow after a short pause.
+  // Suggestions must stay on the selected chain; never show an Ethereum
+  // issuer badge under Arc. Network-sourced suggestions follow shortly.
   showSuggestions(query);
   suggestTimer=setTimeout(async()=>{
    if(generation!==suggestGeneration||network!==selected)return;

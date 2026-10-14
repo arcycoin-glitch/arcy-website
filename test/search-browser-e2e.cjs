@@ -1,7 +1,9 @@
-const { chromium } = require('C:/Users/cicek/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { chromium } = require('playwright');
 const { spawn } = require('node:child_process');
 const assert = require('node:assert/strict');
 const path = require('node:path');
+const FIXTURE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAFElEQVR4nGMUrLjPAANMDEgANwcARoYBcHIb//MAAAAASUVORK5CYII=', 'base64');
+const fixtureArt = 'https://cdn.dexscreener.com/cms/images/y7ril8c3Y0da5KIP?width=64&height=64&quality=85&format=auto';
 
 const root = path.join(__dirname, '..');
 const origin = 'http://127.0.0.1:3111';
@@ -43,7 +45,8 @@ function report(network, address) {
   }
   return {
     ok: true, chainId: chains[network], network, address, cardCount: 5, cards,
-    token: { name, symbol }, tokenIdentity: { status: 'NOT_VERIFIED' },
+    token: { name, symbol, logoUrl: network === 'ethereum' ? fixtureArt : null },
+    tokenIdentity: { status: 'NOT_VERIFIED' },
     block: '0x10', scannedAt: '2026-10-13T00:00:00.000Z',
   };
 }
@@ -52,7 +55,8 @@ function candidate(network) {
   const [name, symbol] = tokens[network];
   return {
     name, symbol, network, chainId: chains[network], address: addresses[network],
-    source: 'Browser fixture', logoUrl: null, identity: { status: 'NOT_VERIFIED' },
+    source: 'Browser fixture', logoUrl: network === 'ethereum' ? fixtureArt : null,
+    identity: { status: 'NOT_VERIFIED' },
   };
 }
 
@@ -68,7 +72,7 @@ function candidate(network) {
       server.stdout.once('data', () => { clearTimeout(timer); resolve(); });
       server.once('error', reject);
     });
-    browser = await chromium.launch({ headless: true, channel: 'msedge' });
+    browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     const pageErrors = [];
     const seen = [];
@@ -86,6 +90,9 @@ function candidate(network) {
       }
       return route.fulfill({ status: 400, json: { ok: false } });
     });
+    await page.route('https://cdn.dexscreener.com/**', route => route.fulfill({
+      status: 200, contentType: 'image/png', body: FIXTURE_PNG,
+    }));
     await page.route('https://www.geckoterminal.com/**', route => route.fulfill({
       status: 200, contentType: 'text/html', body: '<title>GeckoTerminal controlled iframe fixture</title>',
     }));
@@ -108,7 +115,18 @@ function candidate(network) {
         await page.locator('.home-search-result').waitFor({ state: 'visible' });
         assert.match(await page.locator('.home-search-result').innerText(), new RegExp(name));
         assert.match(await page.locator('.home-search-result .home-result-status').innerText(), /NOT VERIFIED/);
-        assert.equal(await page.locator('.home-token-placeholder').count(), 1, 'missing logos use a fallback avatar');
+        assert.equal(await page.locator('.home-token-placeholder').count(), 1, 'all logos retain a fallback avatar');
+        if (network === 'ethereum') {
+          const remote = page.locator('.home-token-placeholder img');
+          assert.equal(await remote.count(), 1, 'Ethereum token loads provider art from an exact-contract result');
+          // Search thumbnails are loading=lazy; force the image into view before decoding.
+          await remote.scrollIntoViewIfNeeded();
+          await page.waitForFunction(() => {
+            const img=document.querySelector('.home-token-placeholder img');
+            return Boolean(img && img.complete && img.naturalWidth>0);
+          },null,{timeout:10000});
+          assert.ok(await remote.evaluate(img => img.complete && img.naturalWidth > 0), 'provider artwork rendered correctly');
+        }
         await page.locator('.home-search-result').click();
         await page.waitForURL(`**/search/token/${network}/${addresses[network]}`);
         await page.waitForFunction(() => document.querySelector('#detailState')?.textContent.includes('Snapshot complete'));
@@ -118,8 +136,11 @@ function candidate(network) {
         assert.equal(await page.locator('#cards > .card .missingGroup').count(), 1);
         assert.match(await page.locator('#evidenceCount').innerText(), /20 checks/);
         const detailLogo = page.locator('#tokenDetail img.token-title-logo');
-        assert.equal(await detailLogo.count(), network === 'arc' ? 1 : 0, 'only the site-owned ARCY artwork is used when a token image is unavailable');
-        if (network === 'arc') assert.ok(await detailLogo.evaluate(image => image.complete && image.naturalWidth > 0), 'site-owned ARCY art loads');
+        assert.equal(await detailLogo.count(), network === 'robinhood' ? 0 : 1, 'site-owned and permitted provider artwork appear on detail while missing stock art stays absent');
+        if (network !== 'robinhood') {
+          await detailLogo.evaluate(img => img.decode());
+          assert.ok(await detailLogo.evaluate(img => img.complete && img.naturalWidth > 0), 'exact-contract token art loads');
+        }
         const expected = { '4H': '15m', '1D': '1h', '1W': '4h', '30D': '1d' };
         for (const [range, resolution] of Object.entries(expected)) {
           await page.locator(`#chartRanges [data-range="${range}"]`).click();
@@ -141,7 +162,7 @@ function candidate(network) {
     assert.deepEqual(pageErrors, []);
     assert.equal(seen.filter(x => x.action === 'discover').length, 24, 'homepage and detail-page discovery each run once per chain/viewport');
     assert.equal(seen.filter(x => x.action === 'report').length, 12);
-    console.log('PASS: mocked browser E2E at 320/390/768/1440px; home discovery on all chains; official labels remain unverified; fallback logos; 5 cards/20 checks; all four GeckoTerminal presets stay on the selected chain; detail-page re-search. All API data in this test is mocked, not real provider evidence.');
+    console.log('PASS: mocked browser E2E at 320/390/768/1440px; home discovery on all chains; official labels remain unverified; remote Ethereum logo + initials fallback; 5 cards/20 checks; all four GeckoTerminal presets stay on the selected chain; detail-page re-search. All API data in this test is mocked, not real provider evidence.');
   } finally {
     if (browser) await browser.close();
     server.kill();

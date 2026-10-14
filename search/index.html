@@ -1133,6 +1133,10 @@ const VERIFIED_TOKEN_ART=Object.freeze({
  arc:Object.freeze({'0x3600000000000000000000000000000000000000':'usdc'}),
  ethereum:Object.freeze({
   '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48':'usdc',
+  '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9':'aave',
+  '0x0d8775f648430679a709e98d2b0cb6250d2887ef':'bat',
+  '0xd533a949740bb3306d119cc777fa900ba034cd52':'crv',
+  '0xc00e94cb662c3520282e6f5717214004a7f26888':'comp',
   '0xdac17f958d2ee523a2206206994597c13d831ec7':'usdt',
   '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984':'uni',
   '0x514910771af9ca656af840dff83e8264ecf986ca':'link',
@@ -1150,20 +1154,36 @@ function issuerArtwork(network,address,identity){
 function displayLogo(raw,network,address,identity){
  if(network==='arc'&&typeof address==='string'&&
   address.toLowerCase()===ARCY_OFFICIAL_PROJECT_CONTRACT)return '/assets/hero-arcy.png';
- const verifiedLocal=issuerArtwork(network,address,identity);
- if(verifiedLocal)return verifiedLocal;
- if(network==='robinhood'&&identity?.status==='REGISTRY_MATCHED'&&
-   typeof address==='string'&&/^0x[0-9a-f]{40}$/i.test(address)&&
-   typeof raw==='string'&&
+ const local=issuerArtwork(network,address,identity);
+ if(local)return local;
+ // Robinhood logos must match the chain-4663 issuer registry EXACTLY.
+ if(network==='robinhood'){
+  if(identity?.status==='REGISTRY_MATCHED'&&typeof address==='string'&&
+   /^0x[0-9a-f]{40}$/i.test(address)&&typeof raw==='string'&&
    raw.toLowerCase()==='https://cdn.robinhood.com/ncw_assets/logos/'+address.toLowerCase()+'.png')
-  return safeCandidateImage(raw);
- return null;
+   return safeCandidateImage(raw);
+  return null;
+ }
+ return safeCandidateImage(raw);
 }
 function safeCandidateImage(raw){
- if(typeof raw!=='string')return null;
- // Only artwork that ships with this website and is exact-contract mapped.
- return /^\/search\/assets\/token-icons\/(?:usdc|usdt|link|uni|dai|wbtc|paxg)\.svg$/.test(raw)?raw:
-  /^https:\/\/cdn\.robinhood\.com\/ncw_assets\/logos\/0x[0-9a-f]{40}\.png$/i.test(raw)?raw:null;
+ if(typeof raw!=='string'||raw.length>500)return null;
+ if(/^\/search\/assets\/token-icons\/(?:usdc|usdt|link|uni|dai|wbtc|paxg|aave|bat|crv|comp)\.svg$/.test(raw))return raw;
+ if(/^https:\/\/cdn\.robinhood\.com\/ncw_assets\/logos\/0x[0-9a-f]{40}\.png$/i.test(raw))return raw;
+ try{
+  const u=new URL(raw),host=u.hostname;
+  if(u.protocol!=='https:'||u.port||u.username||u.password||u.hash||
+    /[\u0000-\u001f\\]/.test(raw)||/%(?:2f|5c|00)/i.test(u.pathname))return null;
+  const allowed=host==='cdn.dexscreener.com'?
+   /^\/(?:cms\/images|ds-data\/tokens|token-images|images)\/[a-z0-9_.\-/%]+$/i.test(u.pathname):
+   host==='dd.dexscreener.com'?/^\/ds-data\/tokens\/[a-z0-9_.\-/%]+$/i.test(u.pathname):
+   host==='cdn-icons.blockscout.com'?/^\/[a-z0-9_.\-/%]+$/i.test(u.pathname):false;
+  if(!allowed||/\.(?:svg|html?|xml|pdf|js|mjs|json)(?:$|\/)/i.test(u.pathname))return null;
+  for(const [key,value] of u.searchParams)
+   if(!['width','height','quality','w','h','q','format'].includes(key)||
+     (key==='format'?!/^(auto|webp|png|jpeg|jpg|avif)$/i.test(value):!/^[0-9]{1,4}$/.test(value)))return null;
+  return u.href;
+ }catch{return null}
 }
 function showCandidates(data,network,version){
  const container=$('matches');container.replaceChildren();

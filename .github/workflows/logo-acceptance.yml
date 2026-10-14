@@ -1,0 +1,26 @@
+name: ARCY Logo End-to-End Acceptance
+on:
+  push:
+    branches: [fix/logo-network-scope-20261014]
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: All Node regression tests
+        run: node --test --test-concurrency=1 test/*.test.js tests/*.test.mjs
+      - name: Probe real logo sources and preview API (diagnostic)
+        run: node test/logo-live-smoke.cjs
+      - name: Set up Chromium for browser acceptance
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Original site + Search browser regression
+        run: npm run test:browser
+      - name: Search across 3 networks and 4 viewports
+        run: npm run test:search-browser
