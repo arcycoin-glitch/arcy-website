@@ -6,6 +6,14 @@ const NETWORK='ethereum',CHAIN_ID=1;
 const ASSETS=Object.freeze({
  // USD oracle reference prices for exact Ethereum ERC-20 contracts. No DEX
  // market-cap, liquidity, volume or circulating-supply claims are inferred.
+ '0x0d8775f648430679a709e98d2b0cb6250d2887ef':Object.freeze({
+  symbol:'BAT',feed:'0x9441d7556e7820b5ca42082cfa99487d56aca958',decimals:8,
+  basis:'Ethereum Chainlink BAT/USD reference; canonical Basic Attention Token ERC-20.'
+ }),
+ '0xc00e94cb662c3520282e6f5717214004a7f26888':Object.freeze({
+  symbol:'COMP',feed:'0xdbd020caef83efd542f4de03e3cf0c28a4428bd5',decimals:8,
+  basis:'Ethereum Chainlink COMP/USD reference; canonical Compound governance ERC-20.'
+ }),
  '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9':Object.freeze({
   symbol:'AAVE',feed:'0x547a514d5e3769680ce22b2361c10ea13619e8a9',decimals:8,
   basis:'Ethereum Chainlink AAVE/USD reference; verified Aave ERC-20 contract.'
