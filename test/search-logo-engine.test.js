@@ -62,9 +62,30 @@ test('wrong-chain artwork never bleeds across Arc, Ethereum and Robinhood',async
  assert.equal(arc[0].logoUrl,null);
  const wrong=await logos.enhance('ethereum',[{network:'arc',chainId:5042,address:ETH,logoUrl:ICON}],{fetchImpl:remote});
  assert.equal(wrong[0].logoUrl,null);
+ const community=await logos.enhance('robinhood',[{network:'robinhood',chainId:4663,address:ARC,
+  registryMatched:false,logoUrl:ICON,identity:{status:'NOT_VERIFIED'}}],{fetchImpl:()=>{throw Error('Already indexed icon must avoid DEX fetch')}});
+ assert.equal(community[0].logoUrl,ICON);
+ assert.equal(community[0].identity.status,'NOT_VERIFIED');
  const stock=await logos.enhance('robinhood',[{network:'robinhood',chainId:4663,address:ARC,
-  registryMatched:false,logoUrl:ICON}],{fetchImpl:()=>{throw Error('Robinhood must not use DEX art')}});
+  registryMatched:true,source:'Robinhood official asset registry',logoUrl:ICON}],{fetchImpl:()=>{throw Error('Stock token must not fetch DEX art')}});
  assert.equal(stock[0].logoUrl,null);
+});
+test('Robinhood non-stock PONS resolves artwork only from exact chain and BASE token',async()=>{
+ const address='0x39dbed3a2bd333467115de45665cc57f813c4571';
+ const rows=[{network:'robinhood',chainId:4663,address,logoUrl:null,
+  identity:{status:'NOT_VERIFIED'},registryMatched:false}];
+ const fetchImpl=async url=>{
+  assert.match(url,/tokens\/v1\/robinhood\/0x39dbed3a/);
+  return response([
+   {chainId:'ethereum',baseToken:{address},info:{imageUrl:'https://cdn.dexscreener.com/cms/images/evil.png'},liquidity:{usd:100000}},
+   {chainId:'robinhood',baseToken:{address},info:{imageUrl:ICON},liquidity:{usd:2000}},
+   {chainId:'robinhood',baseToken:{address:'0x'+'e'.repeat(40)},quoteToken:{address},info:{imageUrl:'https://cdn.dexscreener.com/cms/images/quote.png'},liquidity:{usd:90000}}
+  ]);
+ };
+ const decorated=await logos.enhance('robinhood',rows,{fetchImpl});
+ assert.equal(decorated[0].logoUrl,ICON);
+ assert.equal(decorated[0].identity.status,'NOT_VERIFIED');
+ assert.match(decorated[0].logoSource,/NOT issuer verification/);
 });
 test('licensed site-owned art takes priority; unsupported icons keep initials fallback',async()=>{
  let calls=0;
@@ -105,7 +126,7 @@ test('DEX search artwork belongs only to base token and never proves authenticit
 test('both approved UIs include source-validated art and preserve fallback without design replacement',()=>{
  const root=path.join(__dirname,'..'),home=fs.readFileSync(path.join(root,'search-upgrade.js'),'utf8');
  const detail=fs.readFileSync(path.join(root,'search/index.html'),'utf8');
- assert.match(home,/const providerArt=network!=='robinhood'/);
+ assert.match(home,/const providerArt=candidate.network===network/);
  assert.match(home,/home-token-placeholder/);
  assert.match(detail,/return safeCandidateImage\(raw\);/);
  assert.match(detail,/art\.addEventListener\('error',\(\)=>art\.remove\(\)/);
