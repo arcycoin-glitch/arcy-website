@@ -45,7 +45,8 @@ function report(network, address) {
   }
   return {
     ok: true, chainId: chains[network], network, address, cardCount: 5, cards,
-    token: { name, symbol }, tokenIdentity: { status: 'NOT_VERIFIED' },
+    token: { name, symbol, logoUrl: network === 'ethereum' ? fixtureArt : null },
+    tokenIdentity: { status: 'NOT_VERIFIED' },
     block: '0x10', scannedAt: '2026-10-13T00:00:00.000Z',
   };
 }
