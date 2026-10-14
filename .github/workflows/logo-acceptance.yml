@@ -13,7 +13,7 @@ jobs:
         with:
           node-version: '22'
       - name: All Node regression tests
-        run: npm test
+        run: node --test --test-concurrency=1 test/*.test.js tests/*.test.mjs
       - name: Probe real logo sources and preview API (diagnostic)
         run: node test/logo-live-smoke.cjs
       - name: Set up Chromium for browser acceptance
