@@ -4,6 +4,17 @@
 const {rpc,uint}=require('./eth');
 const NETWORK='ethereum',CHAIN_ID=1;
 const ASSETS=Object.freeze({
+ // Direct Ethereum Chainlink USD feeds; exact canonical token addresses only.
+ // Sources: https://data.chain.link/feeds/ethereum/mainnet/uni-usd
+ // and Etherscan's verified Chainlink CRV/USD feed contract.
+ '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984':Object.freeze({
+  symbol:'UNI',feed:'0x553303d460ee0afb37edff9be42922d8ff63220e',decimals:8,
+  basis:'Ethereum Chainlink UNI/USD reference; canonical Uniswap UNI ERC-20.'
+ }),
+ '0xd533a949740bb3306d119cc777fa900ba034cd52':Object.freeze({
+  symbol:'CRV',feed:'0xcd627aa160a6fa45eb793d19ef54f5062f20f33f',decimals:8,
+  basis:'Ethereum Chainlink CRV/USD reference; canonical Curve DAO CRV ERC-20.'
+ }),
  // USD oracle reference prices for exact Ethereum ERC-20 contracts. No DEX
  // market-cap, liquidity, volume or circulating-supply claims are inferred.
  '0x0d8775f648430679a709e98d2b0cb6250d2887ef':Object.freeze({
