@@ -27,6 +27,17 @@ const OFFICIAL=Object.freeze([
   name:'angel of arc argus',symbol:'ARCARG',issuer:'Argus',
   proofUrl:'https://argus.world/token/0x7D10b4331A990017938d66542f43fa4A72AACB73'
  }),
+ // Exact Ethereum ERC-20 addresses from first-party project publications.
+ // Logos are community-created CC0 artwork, not issuer verification evidence.
+ Object.freeze({network:'ethereum',chainId:1,address:'0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
+  name:'Aave',symbol:'AAVE',issuer:'Aave DAO',
+  proofUrl:'https://governance.aave.com/t/arfc-aave-governance-adjust-level-2-requirements-long-executor/8693'}),
+ Object.freeze({network:'ethereum',chainId:1,address:'0x0d8775f648430679a709e98d2b0cb6250d2887ef',
+  name:'Basic Attention Token',symbol:'BAT',issuer:'Basic Attention Token',
+  proofUrl:'https://basicattentiontoken.org/faq/'}),
+ Object.freeze({network:'ethereum',chainId:1,address:'0xd533a949740bb3306d119cc777fa900ba034cd52',
+  name:'Curve DAO Token',symbol:'CRV',issuer:'Curve DAO',
+  proofUrl:'https://resources.curve.finance/developer/gauges/xchain-gauges/bridgers'}),
  // floki.com itself specifies its Ethereum contract. BNB token has a different
  // address and is deliberately NOT a match on the Ethereum Search network.
  Object.freeze({
