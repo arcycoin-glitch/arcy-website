@@ -41,6 +41,31 @@ test('AAVE, LINK and DAI read only pinned Ethereum Chainlink USD references',asy
   assert.equal(m.calls.length,3);
  }
 });
+test('UNI and CRV extend the USD price card using only official Ethereum contract and pinned Chainlink oracle',async()=>{
+ const sources=[
+  {token:'0x1f9840a85d5af5bf1d1762f925bdaddc4201f984',
+   feed:'0x553303d460ee0afb37edff9be42922d8ff63220e',symbol:'UNI'},
+  {token:'0xd533a949740bb3306d119cc777fa900ba034cd52',
+   feed:'0xcd627aa160a6fa45eb793d19ef54f5062f20f33f',symbol:'CRV'}
+ ];
+ for(const {token,feed,symbol} of sources){
+  assert.equal(oracle.ASSETS[token].feed,feed);
+  assert.equal(oracle.ASSETS[token].symbol,symbol);
+  const inner=mock();
+  const received=await oracle.inspect(token,block,{now,rpcCall:async(method,params)=>{
+   if(method==='eth_call'){
+    assert.equal(params[0].to,feed);
+    assert.equal(params[1],block);
+   }
+   return inner.rpcCall(method,params);
+  }});
+  assert.equal(received.priceUsd.dataState,'DATA_FOUND');
+  assert.equal(received.priceUsd.status,'ON_CHAIN_ORACLE');
+  assert.equal(received.priceUsd.value,2500.12345678);
+  assert.equal(received.priceUsd.evidence[0].feed,feed);
+  assert.equal(received.priceUsd.evidence[0].block,block);
+ }
+});
 test('unsupported contract and stale/future oracle observations remain NOT VERIFIED',async()=>{
  const unsupported=await oracle.inspect('0x'+'1'.repeat(40),block,{rpcCall:mock().rpcCall,now});
  assert.equal(unsupported.priceUsd.dataState,'NOT_VERIFIED');assert.equal(unsupported.priceUsd.reasonCode,'NO_EXACT_ORACLE_FEED');
