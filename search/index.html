@@ -1181,7 +1181,7 @@ function safeCandidateImage(raw){
   if(!allowed||/\.(?:svg|html?|xml|pdf|js|mjs|json)(?:$|\/)/i.test(u.pathname))return null;
   for(const [key,value] of u.searchParams)
    if(!['width','height','quality','w','h','q','format'].includes(key)||
-     (key==='format'?!/^(webp|png|jpeg|jpg|avif)$/i.test(value):!/^[0-9]{1,4}$/.test(value)))return null;
+     (key==='format'?!/^(auto|webp|png|jpeg|jpg|avif)$/i.test(value):!/^[0-9]{1,4}$/.test(value)))return null;
   return u.href;
  }catch{return null}
 }
