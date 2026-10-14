@@ -124,7 +124,7 @@ function candidate(network) {
           await page.waitForFunction(() => {
             const img=document.querySelector('.home-token-placeholder img');
             return Boolean(img && img.complete && img.naturalWidth>0);
-          },{timeout:10000});
+          },null,{timeout:10000});
           assert.ok(await remote.evaluate(img => img.complete && img.naturalWidth > 0), 'provider artwork rendered correctly');
         }
         await page.locator('.home-search-result').click();
