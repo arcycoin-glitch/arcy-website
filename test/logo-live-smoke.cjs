@@ -27,9 +27,9 @@ const probes=[
     exactAddress:task.kind==='search'?example?.baseToken?.address:null,
     chains:[...new Set(first.map(x=>x?.chainId||x?.network||null))]}));
     if(task.kind==='search'&&example?.info?.imageUrl){
-     try{const artwork=await fetch(example.info.imageUrl,{method:'HEAD',signal:AbortSignal.timeout(4500)});
-      console.log(JSON.stringify({name:'ArcTools CDN image HEAD',http:artwork.status,mime:artwork.headers.get('content-type')}));
-     }catch(error){console.log(JSON.stringify({name:'ArcTools CDN image HEAD',error:String(error.message).slice(0,80)}));}
+     try{const artwork=await fetch(example.info.imageUrl,{method:'GET',signal:AbortSignal.timeout(4500)});
+      console.log(JSON.stringify({name:'ArcTools CDN image GET',http:artwork.status,mime:artwork.headers.get('content-type'),length:artwork.headers.get('content-length')}));
+     }catch(error){console.log(JSON.stringify({name:'ArcTools CDN image GET',error:String(error.message).slice(0,80)}));}
     }
     if(task.kind==='search'&&example?.chainId==='arc'&&/^0x[0-9a-f]{40}$/i.test(example.baseToken?.address||'')){
      const precise=await fetch('https://api.dexscreener.com/tokens/v1/arc/'+example.baseToken.address,{signal:AbortSignal.timeout(5000)});
