@@ -248,7 +248,13 @@
    if(!item||item.network!==selected||item.chainId!==SUGGEST_CHAIN_IDS[selected]||
       !addressPattern.test(item.address||''))continue;
    const key=item.network+':'+item.address.toLowerCase();
-   if(!unique.has(key))unique.set(key,item);
+   if(unique.has(key)){
+    // Keep first-party name, contract and verification unchanged, but attach
+    // a contract-identical image returned later by the live source.
+    const existing=unique.get(key);
+    if(!existing.logoUrl&&typeof item.logoUrl==='string')
+     unique.set(key,{...existing,logoUrl:item.logoUrl});
+   }else unique.set(key,item);
   }
   suggestBox.replaceChildren();
   const rows=[...unique.values()].slice(0,7);
