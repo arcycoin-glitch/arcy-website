@@ -118,8 +118,18 @@ async function mechanics({address,base}){
    NO('EIP-1967 slot alone does not establish immutable or non-proxy architecture.','PROXY_NOT_VERIFIED')
  };
  let fields=preliminary;
- // Do not call the shared legacy mechanics route here: it can fan out to
- // GoPlus outside Search's permission gate. Search uses pinned RPC below.
+ // Restore the previous exact-contract Arc RPC/Sourcify mechanics bridge.
+ // The legacy route's GoPlus fallback is fail-closed on Vercel unless its
+ // separate explicit permission flag is enabled.
+ try{
+  const legacy=await original.callOriginal('mechanics',address);
+  const reviewed=original.contract(legacy,address);
+  fields=Object.fromEntries(Object.entries(preliminary).map(([key,value])=>[
+   key,value.dataState==='DATA_FOUND'?value:
+    reviewed[key]?.dataState==='DATA_FOUND'?reviewed[key]:value
+  ]));
+ }catch{} // Keep direct RPC observations if source verification is unavailable.
+ // Search's own GoPlus adapter is separately fail-closed without approval.
  if(Object.values(fields).some(f=>f.dataState!=='DATA_FOUND')){
   const detected=await require('./goplus-evidence').inspect('arc',address);
   const isARCY=address==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';

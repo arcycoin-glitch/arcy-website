@@ -18,7 +18,7 @@ test('Search external source failures fail closed, and no unsupported market num
     assert.ok(['PROVIDER_DISABLED_LICENSE_UNVERIFIED','DEXSCREENER_SOURCE_UNAVAILABLE'].includes(fields[key].reasonCode));
    }
   }
-  assert.equal(requests,2); // Ethereum and Robinhood each attempt one market source; Arc remains gated.
+  assert.equal(requests,3); // All three chains use the same fail-closed DEX adapter.
  }finally{global.fetch=original}
 });
 

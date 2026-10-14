@@ -82,7 +82,7 @@ test('Arc Search market adapter never bridges to legacy endpoints that bypass pr
  }finally{legacy.callOriginal=previousCall;market.inspect=previousInspect}
 });
 
-test('Arc Search supply and mechanics do not call shared legacy routes that fan out to unapproved providers',async()=>{
+test('Arc Search supply remains on pinned RPC and mechanics fails closed when reviewed source data is unavailable',async()=>{
  const legacy=require('../search/server/lib/arc-legacy-evidence');
  const rpc=require('../search/server/lib/arc-rpc');
  const previousCall=legacy.callOriginal,previousRpc=rpc.rpc;
@@ -105,5 +105,36 @@ test('Arc Search supply and mechanics do not call shared legacy routes that fan 
   legacy.callOriginal=previousCall;rpc.rpc=previousRpc;
   if(oldVercel===undefined)delete process.env.VERCEL;else process.env.VERCEL=oldVercel;
   if(oldEnv===undefined)delete process.env.VERCEL_ENV;else process.env.VERCEL_ENV=oldEnv;
+ }
+});
+
+test('Arc mechanics restores exact-contract reviewed fields while unapproved GoPlus stays gated on Preview',async()=>{
+ const legacy=require('../search/server/lib/arc-legacy-evidence');
+ const rpc=require('../search/server/lib/arc-rpc');
+ const previousCall=legacy.callOriginal,previousRpc=rpc.rpc,previousFetch=global.fetch;
+ const oldVercel=process.env.VERCEL,oldEnv=process.env.VERCEL_ENV,oldApproval=process.env.GOPLUS_PUBLIC_DISPLAY_APPROVED;
+ let goPlusCalls=0;
+ try{
+  process.env.VERCEL='1';process.env.VERCEL_ENV='preview';delete process.env.GOPLUS_PUBLIC_DISPLAY_APPROVED;
+  legacy.callOriginal=async(name,address)=>{
+   assert.equal(name,'mechanics');
+   return {ok:true,address,chainId:5042,contractFields:{
+    buyTax:{value:3,status:'VERIFIED_SOURCE',dataState:'DATA_FOUND',source:'Sourcify',evidence:[{source:'Sourcify'}]},
+    sellTax:{value:3,status:'VERIFIED_SOURCE',dataState:'DATA_FOUND',source:'Sourcify',evidence:[{source:'Sourcify'}]},
+    mint:{value:false,status:'NOT_DETECTED',dataState:'DATA_FOUND',source:'Sourcify',evidence:[{source:'Sourcify'}]},
+    proxyUpgradeable:{value:'0x'+'1'.repeat(40),status:'GETTER_REPORTED',dataState:'DATA_FOUND',source:'Arc RPC',evidence:[{source:'Arc RPC'}]}
+   }};
+  };
+  rpc.rpc=async()=> '0x'+'0'.repeat(64);
+  global.fetch=async url=>{if(String(url).includes('gopluslabs.io'))goPlusCalls++;throw Error('unexpected provider request')};
+  const result=await require('../search/server/lib/arc-adapter').mechanics({address:A,base:{block:'0x100'}});
+  assert.equal(result.fields.tradingTaxes.value,'Buy 3% · Sell 3%');
+  assert.equal(result.fields.mintCapability.value,false);
+  assert.equal(result.fields.contractArchitecture.dataState,'DATA_FOUND');
+  assert.equal(goPlusCalls,0);
+ }finally{
+  legacy.callOriginal=previousCall;rpc.rpc=previousRpc;global.fetch=previousFetch;
+  for(const [key,value] of [['VERCEL',oldVercel],['VERCEL_ENV',oldEnv],['GOPLUS_PUBLIC_DISPLAY_APPROVED',oldApproval]])
+   if(value===undefined)delete process.env[key];else process.env[key]=value;
  }
 });

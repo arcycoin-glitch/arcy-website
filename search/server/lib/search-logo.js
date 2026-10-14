@@ -8,6 +8,7 @@ const LOCAL=Object.freeze({
   '0x3600000000000000000000000000000000000000':'/search/assets/token-icons/usdc.svg'
  }),
  ethereum:Object.freeze({
+  '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2':'/search/assets/token-icons/eth.svg',
   '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48':'/search/assets/token-icons/usdc.svg',
   '0xdac17f958d2ee523a2206206994597c13d831ec7':'/search/assets/token-icons/usdt.svg',
   '0x514910771af9ca656af840dff83e8264ecf986ca':'/search/assets/token-icons/link.svg',
