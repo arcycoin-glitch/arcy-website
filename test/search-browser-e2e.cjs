@@ -170,6 +170,27 @@ function candidate(network) {
         await page.locator('#detailSearchForm').evaluate(form => form.requestSubmit());
         await page.locator('#detailMatches .detail-match').waitFor({ state: 'visible' });
         assert.match(await page.locator('#detailSearchStatus').innerText(), /candidate/);
+        // Regression: images in the detail-page secondary search must overlay
+        // initial-letter fallbacks, never become a second clipped grid row.
+        if (network === 'arc') {
+          const avatar = page.locator('#detailMatches .detail-match-avatar').first();
+          const image = avatar.locator('img');
+          await avatar.scrollIntoViewIfNeeded();
+          await page.waitForFunction(() => {
+            const img=document.querySelector('#detailMatches .detail-match-avatar img');
+            return Boolean(img && img.complete && img.naturalWidth>0);
+          },null,{timeout:10000});
+          const layout=await avatar.evaluate(el=>{
+            const img=el.querySelector('img'),a=el.getBoundingClientRect(),b=img.getBoundingClientRect();
+            return {avatarWidth:a.width,avatarHeight:a.height,imageWidth:b.width,
+              imageHeight:b.height,imageTop:b.top-a.top,position:getComputedStyle(img).position,
+              initialsHidden:el.classList.contains('has-logo')};
+          });
+          assert.equal(layout.position,'absolute','detail image must cover initials without consuming a grid row');
+          assert.equal(layout.initialsHidden,true,'loaded detail image hides initial letters');
+          assert.ok(layout.imageWidth>20&&layout.imageHeight>20&&layout.imageTop>=0&&layout.imageTop<3,
+            'detail-page token artwork is fitted inside avatar');
+        }
         await page.goto(origin + '/#search');
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `return to Search overflow at ${viewport}px`);
       }
