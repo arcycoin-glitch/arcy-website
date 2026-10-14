@@ -105,7 +105,7 @@ test('both approved UIs include source-validated art and preserve fallback witho
  const detail=fs.readFileSync(path.join(root,'search/index.html'),'utf8');
  assert.match(home,/const providerArt=network!=='robinhood'/);
  assert.match(home,/home-token-placeholder/);
- assert.match(detail,/return network==='robinhood'\?null:safeCandidateImage\(raw\)/);
+ assert.match(detail,/return safeCandidateImage\(raw\);/);
  assert.match(detail,/art\.addEventListener\('error',\(\)=>art\.remove\(\)/);
  assert.match(detail,/image\.addEventListener\('error',\(\)=>image\.remove\(\)/);
 });
