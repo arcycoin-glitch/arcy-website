@@ -45,6 +45,13 @@ test('typeahead is debounced, cancels stale requests and keeps official selectio
  assert.match(source,/event\.key==='Escape'/);
  assert.match(source,/cancelSuggestions\(\);hideSuggestions\(\);results\.replaceChildren/);
 });
+test('official typeahead merges only artwork from a matching exact-chain contract without changing identity',()=>{
+ assert.match(source,/if\(unique\.has\(key\)\)\{/);
+ assert.match(source,/const existing=unique\.get\(key\)/);
+ assert.match(source,/if\(!existing\.logoUrl&&typeof item\.logoUrl==='string'\)/);
+ assert.match(source,/unique\.set\(key,\{\.\.\.existing,logoUrl:item\.logoUrl\}\)/);
+ assert.match(source,/item\.network!==selected\|\|item\.chainId!==SUGGEST_CHAIN_IDS\[selected\]/);
+});
 test('typeahead has an isolated responsive overlay and cannot modify unlock modules',()=>{
  assert.match(css,/#search \.home-search-suggest\{/);
  assert.match(css,/position:absolute;z-index:50/);
