@@ -473,20 +473,30 @@ function shortReason(field){
  const raw=simple[code]||field.reason;
  return typeof raw==='string'&&raw.trim()?raw.trim().slice(0,130):'No reliable chain-specific evidence available.';
 }
+function isHistoricalEvidence(field){
+ return field?.status==='HISTORICAL_ONCHAIN_VERIFIED'||field?.freshness?.state==='LAST_VERIFIED';
+}
+function isCurrentEvidence(field){
+ return field?.dataState==='DATA_FOUND'&&field.value!==null&&field.value!==undefined&&!isHistoricalEvidence(field);
+}
 function render(report){
   const root=$('cards');
   root.replaceChildren();
   const withoutEvidence=[];
   const count=$('evidenceCount');count.textContent='20 checks · Sources, risks and evidence';
   if(report&&report.cards){
-   let valid=0,total=0;
+   let valid=0,historical=0,total=0;
    for(const card of Object.values(report.cards)){
     for(const data of Object.values(card.fields||{})){
      total++;
-     if(data?.dataState==='DATA_FOUND'&&data.value!==null&&data.value!==undefined)valid++;
+     if(isCurrentEvidence(data))valid++;
+     else if(data?.dataState==='DATA_FOUND'&&data.value!==null&&data.value!==undefined)historical++;
     }
    }
-   count.textContent=total+' checks · '+valid+' source-backed · Evidence and gaps';
+   const sourceBacked=valid+historical;
+   count.textContent=historical
+    ?total+' checks · '+valid+' current · '+historical+' historical ('+sourceBacked+' source-backed) · Evidence and gaps'
+    :total+' checks · '+valid+' source-backed · Evidence and gaps';
   }
   for(const spec of displayDefinitions){
     const card=report?.cards?.[spec.id];
@@ -559,14 +569,16 @@ function render(report){
     const status=document.createElement('div');
     status.className='meta statusLine';
     const state=document.createElement('span');
-    const proven=card?Object.values(card.fields||{}).filter(f=>f?.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined).length:0;
+    const proven=card?Object.values(card.fields||{}).filter(isCurrentEvidence).length:0;
+    const rawProven=card?Object.values(card.fields||{}).filter(f=>f?.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined).length:0;
+    const historical=rawProven-proven;
     state.textContent=!card?'NOT SCANNED':proven===spec.fields.length?'ALL 4 FIELDS SOURCE-BACKED':
-     proven>0?'PARTIALLY SOURCE-BACKED':'NO SOURCE-BACKED FIELDS';
+     proven>0?'PARTIALLY SOURCE-BACKED':historical>0?'HISTORICAL EVIDENCE ONLY':'NO SOURCE-BACKED FIELDS';
     status.append(state);
     if(card){
      const sources=document.createElement('span');
-     const ok=Object.values(card.fields||{}).filter(x=>x?.dataState==='DATA_FOUND'&&x.value!==null).length;
-     sources.textContent=ok+' / '+spec.fields.length+' sourced';
+     sources.textContent=historical?proven+' current · '+historical+' historical ('+rawProven+'/'+spec.fields.length+' raw)':
+      rawProven+' / '+spec.fields.length+' sourced';
      status.append(sources);
     }
     section.append(status);
@@ -580,8 +592,10 @@ function render(report){
         const header=document.createElement('div');header.className='proof-entry-head';
         const fieldTitle=document.createElement('strong');fieldTitle.textContent=label;
         const stage=document.createElement('span');stage.className='proof-state';
-        stage.textContent=field.dataState==='DATA_FOUND'?'SOURCE BACKED':'NOT VERIFIED';
-        if(field.dataState!=='DATA_FOUND')stage.classList.add('unverified');
+        const historical=isHistoricalEvidence(field);
+        stage.textContent=historical?'HISTORICAL':field.status==='SOURCE_REPORTED_RPC_RECONCILED'?'RPC CHECKED · CANDIDATES':
+         field.dataState==='DATA_FOUND'?'SOURCE BACKED':'NOT VERIFIED';
+        if(historical||field.dataState!=='DATA_FOUND')stage.classList.add('unverified');
         header.append(fieldTitle,stage);block.append(header);
         const source=document.createElement('p');
         const proof=Array.isArray(field.evidence)?field.evidence[0]:null;
@@ -589,6 +603,12 @@ function render(report){
         source.textContent=(field.source||'Source unavailable')+
          (typeof anchor==='string'&&/^0x[0-9a-f]+$/i.test(anchor)?' · Block '+BigInt(anchor).toString():'');
         block.append(source);
+        const limitation=proof?.scope||proof?.limitation;
+        if(typeof limitation==='string'&&limitation){
+         const note=document.createElement('p');note.className='proof-scope';note.textContent=limitation;
+         note.style.cssText='margin:4px 0 8px;font-size:11px;line-height:1.45;color:#9bb2c3';
+         block.append(note);
+        }
         if(field.dataState==='DATA_FOUND'){
          const raw=document.createElement('p');raw.className='proof-value';
          raw.textContent='Full value: '+metricFormat.full(field.value,key,key==='valuation'?field.kind:null);
@@ -954,7 +974,7 @@ function renderQuickFacts(report){
   ['TRACKED PAIRS','liquidity','dexPairCount','dexPairCount']
  ];
  const valid=c=>{const f=report.cards?.[c[1]]?.fields?.[c[2]];
-  return f?.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined&&
+  return isCurrentEvidence(f)&&
    typeof f.source==='string'&&f.source.length>0;
  };
  const prioritized=candidates.filter(valid).slice(0,3);

@@ -5,8 +5,8 @@ const {validateArcMarketCap}=require('../search/server/lib/arc-adapter');
 const holderCount=require('../search/server/lib/arc-holder-count');
 const A='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
 
-const base={totalSupply:'562514535.051482'};
-const price={value:0.999824,dataState:'DATA_FOUND'};
+const base={address:A,totalSupply:'562514535.051482'};
+const price={value:0.999824,dataState:'DATA_FOUND',network:'arc',chainId:5042,evidence:[{address:A,chainId:5042}]};
 const marketCap={value:72718521555.0668,kind:'MARKET_CAP',dataState:'DATA_FOUND'};
 
 test('Arc market cap above exact-contract total supply value is withheld',()=>{
@@ -26,24 +26,69 @@ test('Arc FDV is not relabeled or suppressed by the market-cap sanity check',()=
  assert.equal(validateArcMarketCap(fdv,base,price),fdv);
 });
 
-test('Arc market cap is left unchanged when on-chain cross-check inputs are unavailable',()=>{
- assert.equal(validateArcMarketCap(marketCap,null,price),marketCap);
- assert.equal(validateArcMarketCap(marketCap,base,{value:null}),marketCap);
+test('Arc market cap is withheld when exact on-chain cross-check inputs are unavailable',()=>{
+ assert.equal(validateArcMarketCap(marketCap,null,price).dataState,'NOT_VERIFIED');
+ assert.equal(validateArcMarketCap(marketCap,base,{value:null}).dataState,'NOT_VERIFIED');
+ assert.equal(validateArcMarketCap(marketCap,base,{value:null}).reasonCode,'MARKET_CAP_SCOPE_UNVERIFIED');
 });
 
 test('Arc FDV is derived only from exact on-chain supply and an exact-contract price, never called market cap',()=>{
  const derive=require('../search/server/lib/arc-adapter').deriveArcFullyDilutedValue;
  const derived=derive({value:null,dataState:'NOT_VERIFIED'},
   {address:A,block:'0x100',totalSupply:'1000000',totalSupplyEvidence:[{method:'totalSupply()'}]},
-  {value:2,dataState:'DATA_FOUND',source:'GeckoTerminal',evidence:[{address:A,chainId:5042}]});
+  {value:2,dataState:'DATA_FOUND',source:'GeckoTerminal',network:'arc',chainId:5042,evidence:[{address:A,chainId:5042}]});
  assert.equal(derived.value,2000000);
  assert.equal(derived.kind,'FDV');
  assert.equal(derived.status,'ON_CHAIN_DERIVED');
  assert.match(derived.scope,/not circulating-supply market cap/i);
  assert.equal(derive({value:7,kind:'MARKET_CAP',dataState:'DATA_FOUND'},
-  {totalSupply:'1000000'},{value:2,dataState:'DATA_FOUND'}).value,7);
+  {address:A,totalSupply:'1000000'},{value:2,dataState:'DATA_FOUND',network:'arc',chainId:5042,evidence:[{address:A,chainId:5042}]}).value,2000000);
  assert.equal(derive({value:null,dataState:'NOT_VERIFIED'},
-  {totalSupply:'invalid'},{value:2,dataState:'DATA_FOUND'}).value,null);
+  {address:A,totalSupply:'invalid'},{value:2,dataState:'DATA_FOUND',network:'arc',chainId:5042,evidence:[{address:A,chainId:5042}]}).value,null);
+});
+
+test('Arc FDV uses exact raw totalSupply, token decimals and contract price, rounded to cents',()=>{
+ const derive=require('../search/server/lib/arc-adapter').deriveArcFullyDilutedValue;
+ const result=derive({value:72962718139,kind:'MARKET_CAP',dataState:'DATA_FOUND'},
+  {address:'0x3600000000000000000000000000000000000000',block:'0x100',
+   totalSupplyRaw:'568492538579532',totalSupply:'568492538.579532',token:{decimals:6}},
+  {value:0.999771,dataState:'DATA_FOUND',source:'GeckoTerminal',network:'arc',chainId:5042,
+   evidence:[{address:'0x3600000000000000000000000000000000000000',chainId:5042}]});
+ assert.equal(result.value,568362353.79);
+ assert.equal(result.kind,'FDV');
+ assert.equal(result.evidence[0].totalSupplyRaw,'568492538579532');
+ assert.equal(result.evidence[0].decimals,6);
+ assert.match(result.evidence.at(-1).scope,/not circulating-supply market capitalization/i);
+});
+
+test('Arc current holder adapter uses complete A/X enumeration reconciled at one pinned block',async()=>{
+ const legacy=require('../search/server/lib/arc-legacy-evidence');
+ const publication=require('../search/server/lib/arc-holder-publication');
+ const count=require('../search/server/lib/arc-holder-count');
+ const index=require('../lib/holder-index');
+ const rpc=require('../search/server/lib/arc-rpc');
+ const old=[legacy.callOriginal,publication.load,count.fetchCount,index.explorer,rpc.rpc];
+ const block='0x12345',address='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
+ try{
+  index.explorer=async a=>({status:'ONCHAIN_VERIFIED',dataState:'DATA_FOUND',value:{block,
+   coverage:{complete:true},evidence:[{block,indexerCompletenessNotAssumed:true,totalSupplyRaw:'1000',balanceOfReads:39}],
+   fields:Object.fromEntries([['holderCount',37],['largestWalletPct',83],['top10Pct',92],['top20Pct',96]].map(([key,value])=>[key,
+    {value,status:'ONCHAIN_VERIFIED',dataState:'DATA_FOUND',source:'Arc RPC',evidence:[{block}]}]))}});
+  rpc.rpc=async(method,params)=>{assert.equal(method,'eth_getBlockByNumber');assert.deepEqual(params,[block,false]);return {hash:'0x'+'a'.repeat(64)}};
+  publication.load=async()=>publication.empty('old snapshot must not win over current data');
+  legacy.callOriginal=async()=>{throw Error('historical data must not win over current data')};
+  count.fetchCount=async()=>{throw Error('current complete snapshot should short circuit')};
+  const result=await require('../search/server/lib/arc-adapter').holders({address});
+  assert.equal(result.fields.holderCount.value,37);
+  assert.equal(result.fields.holderCount.source,'A/X Explorer + Arc RPC');
+  assert.equal(result.fields.top20Pct.value,96);
+  assert.equal(result.fields.top20Pct.freshness.state,'FRESH');
+  assert.equal(result.fields.top20Pct.evidence[0].block,block);
+  assert.equal(result.fields.top20Pct.evidence[0].candidateSetComplete,true);
+  assert.equal(result.fields.top20Pct.evidence[0].supplyReconciled,true);
+ }finally{
+  [legacy.callOriginal,publication.load,count.fetchCount,index.explorer,rpc.rpc]=old;
+ }
 });
 
 test('Arc Blockscout counter is reported only as a current holder count, never whale distribution',async()=>{
@@ -110,9 +155,10 @@ test('Arc Search restores exact-contract activity fields from its existing marke
   }});
   market.inspect=async()=>({priceUsd:{value:null,dataState:'NOT_VERIFIED'},valuation:{value:null,dataState:'NOT_VERIFIED'},
    change24h:{value:null,dataState:'NOT_VERIFIED'},volume24h:{value:null,dataState:'NOT_VERIFIED'}});
-  const result=await require('../search/server/lib/arc-adapter').activity({address:A,base:{totalSupply:'6000000000'}},'activity');
+  const result=await require('../search/server/lib/arc-adapter').activity({address:A,base:{address:A,block:'0x100',totalSupply:'6000000000'}},'activity');
   assert.equal(result.fields.priceUsd.source,'GeckoTerminal');
-  assert.equal(result.fields.valuation.kind,'MARKET_CAP');
+  assert.equal(result.fields.valuation.kind,'FDV');
+  assert.equal(result.fields.valuation.value,6000000000);
   assert.equal(result.fields.change24h.value,0.2);
   assert.equal(result.fields.volume24h.source,'DexScreener');
  }finally{legacy.callOriginal=previousCall;market.inspect=previousInspect}

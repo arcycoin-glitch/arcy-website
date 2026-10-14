@@ -7,6 +7,7 @@ const rpcClient=require('./arc-rpc');
 const market=require('./arc-market');
 const original=require('./arc-legacy-evidence');
 const cfg=chain('arc');
+const ARCY='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
 const NO=(reason,reasonCode='INSUFFICIENT_EVIDENCE')=>({
  value:null,status:'NOT_VERIFIED',dataState:'NOT_VERIFIED',
  reason,reasonCode,source:null,evidence:[],chainId:cfg.chainId,network:cfg.id
@@ -45,6 +46,34 @@ async function supply(base){
  }};
 }
 async function holders({address}={}){
+ // Prefer a fresh exact-chain census when the A/X indexer can enumerate the
+ // entire small holder set. The existing reader pins every balance and only
+ // succeeds when those balances reconcile exactly to totalSupply().
+ try{
+  const current=await require('../../../lib/holder-index').explorer(address.toLowerCase());
+  const snapshot=current?.value, proof=snapshot?.evidence?.[0];
+  const valid=current?.dataState==='DATA_FOUND'&&current?.status==='ONCHAIN_VERIFIED'&&
+   snapshot?.coverage?.complete===true&&snapshot?.block&&proof?.block===snapshot.block&&
+   proof?.indexerCompletenessNotAssumed===true&&
+   ['holderCount','largestWalletPct','top10Pct','top20Pct'].every(key=>
+    snapshot.fields?.[key]?.dataState==='DATA_FOUND'&&snapshot.fields[key].status==='ONCHAIN_VERIFIED');
+  if(valid){
+   const anchored=await rpcClient.rpc('eth_getBlockByNumber',[snapshot.block,false]);
+   if(!/^0x[0-9a-f]{64}$/i.test(anchored?.hash||''))throw Error('Pinned Arc holder block hash unavailable');
+   const observedAt=new Date().toISOString();
+   const evidence={...proof,network:cfg.id,chainId:cfg.chainId,address:address.toLowerCase(),
+    block:snapshot.block,anchor:anchored.hash,checkedAt:observedAt,
+    candidateSetComplete:true,supplyReconciled:true,
+    scope:'All A/X Explorer holder candidates were re-read with Arc RPC at this pinned block; their balances sum exactly to totalSupply. Complete positive-holder set for this ERC-20 snapshot.'};
+   return {description:'Current complete Arc holder snapshot: A/X Explorer enumeration reconciled to Arc RPC totalSupply at one pinned block.',
+    snapshot:{block:snapshot.block,completedAt:observedAt,freshness:'FRESH'},
+    fields:Object.fromEntries(['holderCount','largestWalletPct','top10Pct','top20Pct'].map(key=>{
+     const field=snapshot.fields[key];
+     return [key,{...field,source:'A/X Explorer + Arc RPC',chainId:cfg.chainId,network:cfg.id,
+      evidence:[evidence],freshness:{state:'FRESH',observedAt,block:snapshot.block}}];
+    }))};
+  }
+ }catch{} // Fall through to signed/current-count and explicitly historical evidence.
  const signed=await require('./arc-holder-publication').load(address);
  if(signed.fields?.holderCount?.dataState==='DATA_FOUND')return signed;
  // Preserve the original site's durable COMPLETE Arc holder worker/read path.
@@ -72,8 +101,12 @@ async function holders({address}={}){
 function validateArcMarketCap(valuation,base,priceUsd){
  if(valuation?.dataState!=='DATA_FOUND'||valuation.kind!=='MARKET_CAP')return valuation;
  const supply=Number(base?.totalSupply),price=Number(priceUsd?.value),cap=Number(valuation.value);
+ const exactPrice=ADDRESS.test(base?.address||'')&&priceUsd?.chainId===cfg.chainId&&
+  priceUsd?.network===cfg.id&&priceUsd?.evidence?.some(e=>e?.address?.toLowerCase()===base.address.toLowerCase()&&e?.chainId===cfg.chainId);
  if(!Number.isFinite(supply)||supply<=0||!Number.isFinite(price)||price<=0||
-  !Number.isFinite(cap)||cap<0)return valuation;
+  !Number.isFinite(cap)||cap<0||!exactPrice)return NO(
+   'Provider market cap is withheld because exact-contract total supply and USD price could not validate its chain scope.',
+   'MARKET_CAP_SCOPE_UNVERIFIED');
  // A chain-scoped circulating market cap cannot exceed this contract's total
  // on-chain supply multiplied by the exact-token price (allowing small rounding).
  if(cap>supply*price*1.05)return NO(
@@ -82,14 +115,40 @@ function validateArcMarketCap(valuation,base,priceUsd){
  return valuation;
 }
 function deriveArcFullyDilutedValue(valuation,base,priceUsd){
- if(valuation?.dataState==='DATA_FOUND'||priceUsd?.dataState!=='DATA_FOUND')return valuation;
- const supply=Number(base?.totalSupply),price=Number(priceUsd.value),value=supply*price;
- if(!Number.isFinite(supply)||supply<=0||!Number.isFinite(price)||price<=0||!Number.isFinite(value))return valuation;
+ // Never carry a provider's market-cap/FDV through this Arc route: the source
+ // may map a chain contract to a global CoinGecko asset or return FDV based on
+ // a stale supply. Derive only this contract's full-supply value.
+ const price=Number(priceUsd?.value);
+ const exactPrice=ADDRESS.test(base?.address||'')&&priceUsd?.chainId===cfg.chainId&&
+  priceUsd?.network===cfg.id&&priceUsd?.evidence?.some(e=>e?.address?.toLowerCase()===base.address.toLowerCase()&&e?.chainId===cfg.chainId);
+ if(priceUsd?.dataState!=='DATA_FOUND'||!Number.isFinite(price)||price<=0||!exactPrice)
+  return NO('FDV withheld: an exact-contract positive USD price is unavailable.','VALUATION_NOT_VERIFIED');
+ let value=null;
+ const raw=base?.totalSupplyRaw,decimals=base?.token?.decimals;
+ if(typeof raw==='string'&&/^\d+$/.test(raw)&&Number.isInteger(decimals)&&decimals>=0&&decimals<=36){
+  const match=String(priceUsd.value).match(/^(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i);
+  if(match){
+   const digits=(match[2]||'').length,exponent=Number(match[3]||0),scale=digits-exponent;
+   const numerator=BigInt(match[1]+(match[2]||''))*(exponent>digits?10n**BigInt(exponent-digits):1n);
+   const denominator=10n**BigInt(decimals+Math.max(0,scale));
+   const scaled=(BigInt(raw)*numerator*100n+denominator/2n)/denominator;
+   value=Number(scaled)/100;
+  }
+ }
+ if(value===null){
+  const supply=Number(base?.totalSupply),fallback=supply*price;
+  if(Number.isFinite(supply)&&supply>0&&Number.isFinite(fallback))value=Math.round(fallback*100)/100;
+ }
+ if(!Number.isFinite(value)||value<=0)return NO(
+  'FDV withheld: pinned totalSupply and token decimals could not be calculated safely.',
+  'VALUATION_NOT_VERIFIED');
  return {value,kind:'FDV',status:'ON_CHAIN_DERIVED',dataState:'DATA_FOUND',
-  source:'Arc RPC totalSupply × '+(priceUsd.source||'exact-contract price'),network:cfg.id,chainId:cfg.chainId,
-  evidence:[...(base?.totalSupplyEvidence||[]),...(priceUsd.evidence||[]),
+  source:'Arc RPC totalSupply() × '+(priceUsd.source||'exact-contract price'),network:cfg.id,chainId:cfg.chainId,
+  evidence:[{chainId:cfg.chainId,network:cfg.id,address:base?.address,block:base?.block,
+    method:'totalSupply()',totalSupplyRaw:base?.totalSupplyRaw??null,decimals:base?.token?.decimals??null},...(priceUsd.evidence||[]),
    {chainId:cfg.chainId,network:cfg.id,address:base?.address,block:base?.block,
-    method:'totalSupply() × exact-contract USD price',scope:'Fully diluted value from on-chain total supply; not circulating-supply market capitalization.'}],
+    method:'totalSupply() × exact-contract USD price, rounded to USD cents',
+    scope:'Fully diluted value from this contract total supply at the report block; not circulating-supply market capitalization.'}],
   scope:'Calculated using the exact Arc contract total supply and exact-contract USD price. This is FDV, not circulating-supply market cap.'};
 }
 async function activity({address,base},cardId){
@@ -116,6 +175,14 @@ async function activity({address,base},cardId){
  if(cardId==='activity'){
   fields.valuation=validateArcMarketCap(fields.valuation,base,fields.priceUsd);
   fields.valuation=deriveArcFullyDilutedValue(fields.valuation,base,fields.priceUsd);
+ }
+ const checkedAt=new Date().toISOString();
+ for(const key of keys){
+  const field=fields[key];
+  if(field?.dataState==='DATA_FOUND')fields[key]={...field,
+   freshness:{retrievedAt:checkedAt,basis:'Search retrieval time; provider publication timestamp was not supplied.'},
+   evidence:(field.evidence||[]).map(item=>({...item,checkedAt,
+    checkedAtBasis:'Search retrieval time; provider publication timestamp was not supplied.'}))};
  }
  return {description:'Arc Search market fields are restricted to the separately permission-gated provider path; missing market values remain NOT VERIFIED.',fields};
 }
