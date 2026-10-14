@@ -123,6 +123,16 @@ test('DEX search artwork belongs only to base token and never proves authenticit
  assert.equal(result[0].logoUrl,ICON);
  assert.equal(result[0].identityVerified,false);
 });
+test('detail search avatar overlays logos above fallback initials, keeping mobile layout stable',()=>{
+ const root=path.join(__dirname,'..');
+ const css=fs.readFileSync(path.join(root,'search/final-polish.css'),'utf8');
+ const detail=fs.readFileSync(path.join(root,'search/index.html'),'utf8');
+ assert.match(css,/#tokenDetail \.detail-match-avatar\{position:relative/);
+ assert.match(css,/#tokenDetail \.detail-match-avatar img\{position:absolute;inset:0/);
+ assert.match(css,/#tokenDetail \.detail-match-avatar\.has-logo\{color:transparent\}/);
+ assert.match(detail,/image\.addEventListener\('load',\(\)=>avatar\.classList\.add\('has-logo'\)/);
+ assert.match(detail,/image\.addEventListener\('error',\(\)=>\{image\.remove\(\);avatar\.classList\.remove\('has-logo'\)\}/);
+});
 test('both approved UIs include source-validated art and preserve fallback without design replacement',()=>{
  const root=path.join(__dirname,'..'),home=fs.readFileSync(path.join(root,'search-upgrade.js'),'utf8');
  const detail=fs.readFileSync(path.join(root,'search/index.html'),'utf8');
