@@ -6,6 +6,7 @@
  * Market metrics are returned-pool subtotals, NOT complete network totals.
  */
 const {readJson}=require('./http');
+const {safeLogoUrl}=require('./token-image');
 const {chain}=require('./chains');
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
 const PAIR=/^0x(?:[0-9a-f]{40}|[0-9a-f]{64})$/i;
@@ -137,7 +138,7 @@ function parseSearch(payload,network,rawQuery){
    seen.add(address);
    items.push({address,network,chainId:chain(network).chainId,name:name||symbol,symbol,
     source:'DEX Screener pool index (unverified identity)',identityVerified:false,
-    registryMatched:false,logoUrl:null});
+    registryMatched:false,logoUrl:entry===pair.baseToken?safeLogoUrl(pair.info?.imageUrl):null});
    if(items.length===20)return items;
   }
  }
