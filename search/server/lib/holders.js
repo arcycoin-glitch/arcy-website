@@ -30,7 +30,7 @@ function pct(numerator,denominator){
  return Number(scaled)/10000;
 }
 function calculate(addresses,balances,supply,count,block,token){
- if(!Array.isArray(addresses)||!Array.isArray(balances)||addresses.length<20||addresses.length!==balances.length||addresses.length!==count||!Number.isSafeInteger(count)||count>MAX_HOLDERS||typeof supply!=='bigint'||supply<=0n)return blank('The complete holder population was not reconciled.','INCOMPLETE_HOLDER_COVERAGE');
+ if(!Array.isArray(addresses)||!Array.isArray(balances)||addresses.length<1||addresses.length!==balances.length||addresses.length!==count||!Number.isSafeInteger(count)||count>MAX_HOLDERS||typeof supply!=='bigint'||supply<=0n)return blank('The complete holder population was not reconciled.','INCOMPLETE_HOLDER_COVERAGE');
  if(new Set(addresses).size!==addresses.length||addresses.some(a=>!ADDRESS.test(a))||balances.some(n=>typeof n!=='bigint'||n<=0n||n>supply))return blank('Invalid, duplicate, or zero-balance holder entries.','HOLDER_RECONCILIATION_FAILED');
  const total=balances.reduce((s,n)=>s+n,0n);
  if(total!==supply)return blank('Pinned holder balances do not sum to the contract total supply.','HOLDER_SUPPLY_RECONCILIATION_FAILED');
@@ -42,7 +42,7 @@ function calculate(addresses,balances,supply,count,block,token){
    largestWalletPct:found(pct(ranking[0],supply),'Ethereum RPC',proof,'RECONCILED_SNAPSHOT'),
    top10Pct:found(pct(sum(10),supply),'Ethereum RPC',proof,'RECONCILED_SNAPSHOT'),
    top20Pct:found(pct(sum(20),supply),'Ethereum RPC',proof,'RECONCILED_SNAPSHOT')
- },'Full holder candidate population reconciled against supply at the pinned block.');
+ },'All positive-balance holder candidates reconciled to supply at the pinned block; top 10/20 includes all wallets when fewer exist.');
 }
 async function json(url){
  const response=await fetch(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(8000)});
@@ -107,12 +107,8 @@ async function inspect(address,block,rawSupply){
        :'Blockscout-reported holder count only; ranked candidates could not be reconciled.'
      );
    }
-   if(count<20)return card({
-     holderCount:reported,
-     largestWalletPct:unknown('Fewer than 20 holders; complete top-20 convention must be decided.','SMALL_HOLDER_SET'),
-     top10Pct:unknown('Complete historical snapshot has not been reconciled.','SMALL_HOLDER_SET'),
-     top20Pct:unknown('Complete historical snapshot has not been reconciled.','SMALL_HOLDER_SET')
-   },'Explorer count; concentration not asserted.');
+   // Complete small-wallet census is allowed only after every indexed wallet
+   // is re-read at the pinned block and balances equal the total token supply.
    const all=await pages(address.toLowerCase(),count);
    const balances=await balancesAtBlock(address.toLowerCase(),all,block);
    const raw=uint('0x'+BigInt(rawSupply).toString(16).padStart(64,'0')); // rawSupply must be base units, not formatted supply.
