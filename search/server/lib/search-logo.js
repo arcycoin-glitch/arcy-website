@@ -27,6 +27,7 @@ function localLogo(network,address){
  if(typeof network!=='string'||typeof address!=='string'||!/^0x[0-9a-f]{40}$/i.test(address))return null;
  return LOCAL[network]?.[address.toLowerCase()]||null;
 }
+const {safeLogoUrl}=require('./token-image');
 async function enhance(network,items){
  if(!Array.isArray(items))return [];
  return items.slice(0,24).map(item=>{
@@ -37,10 +38,12 @@ async function enhance(network,items){
     require('./robinhood-assets').registryLogo(item.logoUrl):null;
   // Public DEX/explorer images do not prove identity; only the authenticated
   // issuer/chain registry may supply the remote Stock Token logo.
-  const logo=local||registry;
+  const provider=network!=='robinhood'&&item.network===network?safeLogoUrl(item.logoUrl):null;
+  const logo=local||registry||provider;
   return {...item,logoUrl:logo,logoSource:local?
    (local.endsWith('/hero-arcy.png')?'ARCY site-owned mascot':'CC0 cryptocurrency-icons; contract-matched'):
-   registry?'Robinhood official asset registry (chain 4663) · artwork only':null};
+   registry?'Robinhood official asset registry (chain 4663) · artwork only':
+   provider?'Third-party market artwork · NOT identity verification':null};
  });
 }
 module.exports={imageFromPairs:()=>null,contractLogo:async(network,address)=>localLogo(network,address),localLogo,enhance};
