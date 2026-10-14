@@ -107,5 +107,5 @@ test('both approved UIs include source-validated art and preserve fallback witho
  assert.match(home,/home-token-placeholder/);
  assert.match(detail,/return network==='robinhood'\?null:safeCandidateImage\(raw\)/);
  assert.match(detail,/art\.addEventListener\('error',\(\)=>art\.remove\(\)/);
- assert.match(detail,/logo\.addEventListener\('error',\(\)=>image\.remove\(\)/);
+ assert.match(detail,/image\.addEventListener\('error',\(\)=>image\.remove\(\)/);
 });
