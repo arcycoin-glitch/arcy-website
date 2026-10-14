@@ -38,6 +38,9 @@ const OFFICIAL=Object.freeze([
  Object.freeze({network:'ethereum',chainId:1,address:'0xd533a949740bb3306d119cc777fa900ba034cd52',
   name:'Curve DAO Token',symbol:'CRV',issuer:'Curve DAO',
   proofUrl:'https://resources.curve.finance/developer/gauges/xchain-gauges/bridgers'}),
+ Object.freeze({network:'ethereum',chainId:1,address:'0xc00e94cb662c3520282e6f5717214004a7f26888',
+  name:'Compound',symbol:'COMP',issuer:'Compound Governance',
+  proofUrl:'https://compound.finance/governance/comp'}),
  // floki.com itself specifies its Ethereum contract. BNB token has a different
  // address and is deliberately NOT a match on the Ethereum Search network.
  Object.freeze({
