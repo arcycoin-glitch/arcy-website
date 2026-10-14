@@ -2,7 +2,34 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const read=require('../search/server/lib/robinhood-holder-count');
 const adapter=require('../search/server/lib/robinhood-adapter');
+const rhRpc=require('../search/server/lib/robinhood-rpc');
 const ADDRESS='0x'+'a'.repeat(40);
+test('Robinhood runtime identifies only exact EIP-1167 clones',()=>{
+ const implementation='0x'+'b'.repeat(40);
+ const code='0x363d3d373d3d3d363d73'+implementation.slice(2)+'5af43d82803e903d91602b57fd5bf3';
+ assert.equal(rhRpc.minimalProxyImplementation(code),implementation);
+ assert.equal(rhRpc.minimalProxyImplementation(code+'00'),null);
+ assert.equal(rhRpc.minimalProxyImplementation('0x60006000'),null);
+ assert.equal(rhRpc.minimalProxyImplementation('0x363d3d373d3d3d363d73'+'0'.repeat(40)+'5af43d82803e903d91602b57fd5bf3'),null);
+});
+test('Robinhood mechanics adds architecture only after pinned implementation bytecode exists',async()=>{
+ const original=global.fetch,implementation='0x'+'b'.repeat(40),block='0x1234';
+ global.fetch=async(url,options)=>{
+  const body=JSON.parse(options.body);
+  const result=body.method==='eth_getCode'&&body.params[0]===implementation?'0x60016000':
+   body.method==='eth_call'?'0x'+'0'.repeat(64):'0x'+'0'.repeat(64);
+  return new Response(JSON.stringify({jsonrpc:'2.0',id:body.id,result}));
+ };
+ try{
+  const card=await adapter.mechanics({address:ADDRESS,base:{address:ADDRESS,block,proxyImplementation:implementation}});
+  const field=card.fields.contractArchitecture;
+  assert.equal(field.dataState,'DATA_FOUND');
+  assert.equal(field.status,'ON_CHAIN');
+  assert.match(field.value,/EIP-1167 minimal proxy/);
+  assert.equal(field.evidence[0].block,block);
+  assert.equal(field.evidence[0].implementation,implementation);
+ }finally{global.fetch=original}
+});
 test('Robinhood Blockscout holder count has bounded exact contract validation',()=>{
  for(const value of [{token_holders_count:42},{token_holders_count:'42'},{holders_count:42}])
   assert.equal(read.parseCount(value),42);
@@ -123,3 +150,4 @@ test('Search health describes all three deployed networks without claiming upstr
  await route({method:'POST',query:{action:'health'}},rejected);
  assert.equal(rejected.statusCode,405);
 });
+

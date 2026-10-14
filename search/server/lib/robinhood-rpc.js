@@ -75,6 +75,7 @@ async function inspectAt(endpoint,address){
  const bytecode=await callRpc('eth_getCode',[address,block]);
  if(!/^0x[0-9a-f]+$/i.test(bytecode||'')||bytecode==='0x')
   throw Error('No verified token contract');
+ const proxyImplementation=minimalProxyImplementation(bytecode);
  const call=data=>callRpc('eth_call',[{to:address,data},block]);
  const [supplyWord,decimalsWord]=await Promise.all([
   call('0x18160ddd'),call('0x313ce567')
@@ -92,8 +93,17 @@ async function inspectAt(endpoint,address){
   names.slice(2).reduce((a,x)=>a+uint(x.value),0n):null;
  return {chainId:cfg.chainId,network:cfg.id,address,block,token:{name,symbol,decimals},
   totalSupplyRaw:totalSupplyRaw.toString(),totalSupply:units(totalSupplyRaw,decimals),
+  proxyImplementation,
   burnAddressRaw:raw?.toString()??null,
   burnAddressBalance:raw===null?null:units(raw,decimals)};
+}
+// Exact EIP-1167 runtime pattern only. Similar-looking bytecode is not enough.
+function minimalProxyImplementation(code){
+ if(typeof code!=='string'||!/^0x(?:[0-9a-f]{2})+$/i.test(code))return null;
+ const bytes=code.slice(2).toLowerCase();
+ const match=bytes.match(/^363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3$/);
+ if(!match||/^0{40}$/.test(match[1]))return null;
+ return '0x'+match[1];
 }
 async function inspectToken({address}){
  if(!ADDRESS.test(address))throw Error('Invalid contract address');
@@ -111,4 +121,5 @@ async function inspectToken({address}){
  }
  throw last;
 }
-module.exports={rpc,inspectToken,providers,retryable,requestAt,inspectAt};
+module.exports={rpc,inspectToken,providers,retryable,requestAt,inspectAt,minimalProxyImplementation};
+

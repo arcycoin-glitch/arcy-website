@@ -91,6 +91,17 @@ function addressOf(word){
  return typeof word==='string'&&/^0x[0-9a-f]{64}$/i.test(word)&&!/^0+$/.test(word.slice(-40))?'0x'+word.slice(-40).toLowerCase():null;
 }
 async function mechanics({address,base}){
+ let cloneArchitecture=null;
+ if(typeof base.proxyImplementation==='string'){
+  try{
+   const code=await rpc('eth_getCode',[base.proxyImplementation,base.block]);
+   if(typeof code==='string'&&/^0x(?:[0-9a-f]{2})+$/i.test(code)&&code!=='0x')
+    cloneArchitecture=evidence('EIP-1167 minimal proxy → '+base.proxyImplementation,'Robinhood RPC',{
+     address,block:base.block,method:'exact EIP-1167 runtime bytecode + eth_getCode(implementation)',
+     implementation:base.proxyImplementation,scope:'Implementation bytecode exists at the same pinned Robinhood block. This does not establish whether implementation behavior or control can change.'
+    },'ON_CHAIN');
+  }catch{} // A missing implementation read leaves architecture unverified.
+ }
  const result=await Promise.allSettled([
   rpc('eth_call',[{to:address,data:'0x8da5cb5b'},base.block]),
   rpc('eth_getStorageAt',[address,PROXY,base.block]),
@@ -119,6 +130,7 @@ async function mechanics({address,base}){
     NO('No source-confirmed owner/admin model; absence of owner getter does not prove renouncement.'),
    contractArchitecture:implementation?evidence('EIP-1967 implementation: '+implementation,'Robinhood RPC',{
     ...proof,method:'EIP-1967 implementation storage',scope:'Does not prove all upgrade permissions.'},'ON_CHAIN'):
+    cloneArchitecture?cloneArchitecture:
     extra.contractArchitecture?.dataState==='DATA_FOUND'?extra.contractArchitecture:
     observed.contractArchitecture?.dataState==='DATA_FOUND'?observed.contractArchitecture:
     NO('EIP-1967 implementation not established; other proxy designs may exist.')
@@ -145,3 +157,4 @@ async function discover({query}){
  return candidates.filter(x=>{if(seen.has(x.address))return false;seen.add(x.address);return true}).slice(0,12);
 }
 module.exports={inspectToken,inspectCard,inspectStock,discover,officialAssets,supply,holder,mechanics,addressOf,inspectMarket};
+
