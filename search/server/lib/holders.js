@@ -103,7 +103,7 @@ async function inspect(address,block,rawSupply){
        holderCount:reported,
        ...sourceRank.fields
      },sourceRank.rankedEvidence
-       ?'Blockscout-ranked top 20 with RPC-reconciled pinned balances. Ranking completeness remains SOURCE_REPORTED.'
+       ?'Blockscout holder addresses re-ranked using pinned Ethereum RPC balances. Candidate-list completeness remains SOURCE_REPORTED.'
        :'Blockscout-reported holder count only; ranked candidates could not be reconciled.'
      );
    }
@@ -124,3 +124,4 @@ async function inspect(address,block,rawSupply){
  }
 }
 module.exports={MAX_HOLDERS,parseCount,holders,pct,calculate,pages,balancesAtBlock,inspect,blank};
+

@@ -38,11 +38,15 @@ function percentage(raw,total){
 }
 function evaluate(page,chainBalances,totalSupply,block,token,count){
  if(!page?.ok||!Array.isArray(chainBalances)||chainBalances.length<TOP_SIZE||typeof totalSupply!=='bigint'||totalSupply<=0n||!/^0x[0-9a-f]+$/i.test(block||''))return {ok:false,reasonCode:'MISSING_PINNED_RANK_EVIDENCE'};
- const rows=page.rows;
- for(let i=0;i<TOP_SIZE;i++){
-  if(typeof chainBalances[i]!=='bigint'||chainBalances[i]<=0n||chainBalances[i]!==rows[i].balance)return {ok:false,reasonCode:'EXPLORER_RPC_BALANCE_MISMATCH'};
- }
- const twenty=chainBalances.slice(0,20);
+ // Blockscout's holder values are a live indexer snapshot, not block-pinned.
+ // Treat its top-21 addresses as candidates only; use the same pinned RPC
+ // balances for every candidate and locally rank those current values. This
+ // prevents an indexer refresh between eth_blockNumber and /holders from
+ // blanking all three metrics or publishing stale balances.
+ if(chainBalances.length!==page.rows.length||chainBalances.some(value=>
+  typeof value!=='bigint'||value<=0n||value>totalSupply))return {ok:false,reasonCode:'INVALID_PINNED_CANDIDATE_BALANCE'};
+ const ranked=chainBalances.slice().sort((a,b)=>a>b?-1:a<b?1:0);
+ const twenty=ranked.slice(0,20);
  const sum=twenty.reduce((a,b)=>a+b,0n);
  if(sum>totalSupply)return {ok:false,reasonCode:'TOP_BALANCES_EXCEED_SUPPLY'};
  const first=percentage(twenty[0],totalSupply);
@@ -50,18 +54,18 @@ function evaluate(page,chainBalances,totalSupply,block,token,count){
  const top20=percentage(sum,totalSupply);
  if([first,top10,top20].some(x=>x===null||!Number.isFinite(x)))return {ok:false,reasonCode:'INVALID_CONCENTRATION'};
  const proof=[{
-   source:'Blockscout + Ethereum RPC',token,block,
-   providerRank:'Blockscout balance-sorted holder list, positions 1–21',
-   method:'balanceOf(address) for positions 1–21, all at same Ethereum block',
-   rpcMatchesExplorerValues:true,
-   rankBoundary:'Rank 21 is positive and not greater than rank 20',
+   source:'Blockscout candidate addresses + Ethereum RPC',token,block,
+   providerCandidates:'Blockscout current balance-ranked holder list, first 21 addresses',
+   method:'balanceOf(address) for all 21 candidates at the same Ethereum block; candidate balances locally re-ranked',
+   rpcBalancesUsedForPublishedMetrics:true,
+   rankBoundary:'All 21 candidate addresses had positive pinned balances; the 21st candidate is retained as the boundary observation',
    reportedHolderCount:count,
-   limitation:'Rank completeness and holder count remain explorer-reported. RPC verifies candidate balances, not the absence of a larger unlisted wallet; beneficiary control and clustered wallets are not proven.'
+   limitation:'All balances are pinned RPC values, but candidate membership and holder count are explorer-reported. This is not an exhaustive census and cannot prove an unlisted wallet is absent; beneficiary control and clustered wallets are not proven.'
  }];
  return {ok:true,fields:{
-  largestWalletPct:found(first,'Blockscout ranked holders + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED'),
-  top10Pct:found(top10,'Blockscout ranked holders + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED'),
-  top20Pct:found(top20,'Blockscout ranked holders + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED')
+  largestWalletPct:found(first,'Blockscout candidate addresses + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED'),
+  top10Pct:found(top10,'Blockscout candidate addresses + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED'),
+  top20Pct:found(top20,'Blockscout candidate addresses + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED')
  }};
 }
 async function fetchPage(token){
@@ -96,3 +100,4 @@ async function inspect(token,block,supplyRaw,count,{getPage=fetchPage,getBalance
  }
 }
 module.exports={TOP_SIZE,parsePage,percentage,evaluate,fetchPage,readBalances,inspect};
+
