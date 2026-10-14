@@ -141,7 +141,9 @@
    candidate.identity?.status==='REGISTRY_MATCHED'&&
    /^https:\/\/cdn\.robinhood\.com\/ncw_assets\/logos\/0x[0-9a-f]{40}\.png$/i.test(candidate.logoUrl||'')?
    candidate.logoUrl:null;
-  const providerArt=network!=='robinhood'&&candidate.network===network&&
+  const providerArt=candidate.network===network&&
+   candidate.chainId===SUGGEST_CHAIN_IDS[network]&&
+   (network!=='robinhood'||candidate.identity?.status!=='REGISTRY_MATCHED')&&
    /^https:\/\/(?:cdn\.dexscreener\.com\/(?:cms\/images|ds-data\/tokens|token-images|images)\/|dd\.dexscreener\.com\/ds-data\/tokens\/|cdn-icons\.blockscout\.com\/)/i.test(candidate.logoUrl||'')?
    candidate.logoUrl:null;
   const logoHost=network==='arc'&&candidate.address?.toLowerCase()==='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'?
