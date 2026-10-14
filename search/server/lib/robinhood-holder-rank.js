@@ -39,7 +39,7 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
   if(!response.ok)return unavailable('BLOCKSCOUT_HOLDERS_HTTP_'+response.status);
   const ranked=rows(await readJson(response,1024*1024));
   if(!ranked)return unavailable('BLOCKSCOUT_HOLDERS_SCHEMA_INVALID');
-  if(ranked.length<10)return unavailable('BLOCKSCOUT_RANK_BELOW_TEN_ROWS');
+  if(ranked.length===0)return unavailable('BLOCKSCOUT_HOLDERS_EMPTY');
   let reconciled;
   try{reconciled=await Promise.all(ranked.map(async row=>{
    const word=await rpcCall('eth_call',[{to:token,data:'0x70a08231'+row.address.slice(2).padStart(64,'0')},block]);
@@ -48,18 +48,36 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
    if(balance!==row.amount)throw Error('Blockscout balance is not current at the pinned block');
    return {address:row.address,balance};
   }));}catch{return unavailable('BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED')}
-  const largest=percentage(reconciled[0]?.balance, totalSupplyRaw);
-  const top10=reconciled.length>=10?percentage(reconciled.slice(0,10).reduce((sum,row)=>sum+row.balance,0n),totalSupplyRaw):null;
-  const top20=reconciled.length>=20?percentage(reconciled.slice(0,20).reduce((sum,row)=>sum+row.balance,0n),totalSupplyRaw):null;
-  if(largest===null||top10===null)return unavailable('BLOCKSCOUT_RANK_SUPPLY_RECONCILIATION_FAILED');
+  const total=BigInt(totalSupplyRaw);
+  const observed=reconciled.reduce((sum,row)=>sum+row.balance,0n);
+  if(observed>total)return unavailable('BLOCKSCOUT_RANK_SUPPLY_RECONCILIATION_FAILED');
+  // With fewer than 20 indexed holders, a complete census can still be
+  // proven when pinned positive balances sum EXACTLY to totalSupply().
+  // An incomplete list must never be padded into a fictitious top 10/20.
+  const censusComplete=observed===total;
+  if(reconciled.length<10&&!censusComplete)
+   return unavailable('BLOCKSCOUT_RANK_BELOW_TEN_ROWS');
+  const largest=percentage(reconciled[0]?.balance,totalSupplyRaw);
+  const top10=percentage(reconciled.slice(0,10).reduce((sum,row)=>sum+row.balance,0n),totalSupplyRaw);
+  const top20=(reconciled.length>=20||censusComplete)?
+   percentage(reconciled.slice(0,20).reduce((sum,row)=>sum+row.balance,0n),totalSupplyRaw):null;
+  if(largest===null||top10===null||((reconciled.length>=20||censusComplete)&&top20===null))
+   return unavailable('BLOCKSCOUT_RANK_SUPPLY_RECONCILIATION_FAILED');
   const evidence=[{network:'robinhood',chainId:4663,address:token,sourceUrl:url,block,
-   method:'Blockscout balance-sorted top-20 + RPC balanceOf(wallet) reconciliation',
-   matchedWallets:reconciled.length,scope:'Blockscout rank is source-reported; all displayed balances matched Robinhood RPC at the pinned block. Supply denominator is on-chain totalSupply. This is wallet concentration, not beneficial-owner concentration.'}];
-  const found=(value,method)=>({value,status:'ON_CHAIN_DERIVED',dataState:'DATA_FOUND',source:'Robinhood RPC + Blockscout',network:'robinhood',chainId:4663,
+   method:'Blockscout sorted holder candidates + pinned Robinhood RPC balanceOf(wallet) reconciliation',
+   matchedWallets:reconciled.length,censusComplete,verifiedPositiveHolderCount:censusComplete?reconciled.length:null,
+   scope:censusComplete?
+    'Every positive balance candidate matched RPC and together they account for 100% of totalSupply at the same block. For fewer than 10/20 holders, the respective top percentage includes every wallet. Wallets do not imply distinct beneficial owners.':
+    'Top wallet candidates and their balances matched Robinhood RPC at the pinned block; this does NOT prove the candidate list is exhaustive or that unlisted wallets are absent.'}];
+  const found=(value,method)=>({value,status:censusComplete?'ONCHAIN_RECONCILED':'SOURCE_REPORTED_RPC_RECONCILED',
+   dataState:'DATA_FOUND',source:'Robinhood RPC + Blockscout',network:'robinhood',chainId:4663,
    evidence:evidence.map(item=>({...item,method}))});
-  return {largestWalletPct:found(largest,'largest Blockscout-ranked wallet balance / totalSupply()'),
-   top10Pct:found(top10,'sum of first 10 Blockscout-ranked balances / totalSupply()'),
-   ...(top20===null?{}:{top20Pct:found(top20,'sum of first 20 Blockscout-ranked balances / totalSupply()')})};
+  return {
+   ...(censusComplete?{holderCount:found(reconciled.length,'count of reconciled positive-balance token wallets')}:{}),
+   largestWalletPct:found(largest,'largest Blockscout-ranked wallet balance / totalSupply()'),
+   top10Pct:found(top10,'sum of up to 10 pinned wallet balances / totalSupply()'),
+   ...(top20===null?{}:{top20Pct:found(top20,'sum of up to 20 pinned wallet balances / totalSupply()')})
+  };
  }catch{return unavailable('BLOCKSCOUT_HOLDERS_REQUEST_FAILED');}
 }
 module.exports={rows,percentage,fetchRank};
