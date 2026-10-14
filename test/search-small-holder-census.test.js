@@ -46,6 +46,34 @@ test('Ethereum never turns a missing wallet, duplicate, or zero balance into a v
   assert.ok(Object.values(r.fields).every(f=>f.dataState!=='DATA_FOUND'));
  }
 });
+test('Ethereum end-to-end adapter recovers four source-backed fields for fewer than twenty wallets',async()=>{
+ const r=await eth.inspect(TOKEN,BLOCK,'1000',{
+  getCounters:async()=>({token_holders_count:'2'}),
+  getPages:async()=>wallets(2),
+  getBalances:async()=>[600n,400n]
+ });
+ assert.equal(r.fields.holderCount.value,2);
+ assert.equal(r.fields.largestWalletPct.value,60);
+ assert.equal(r.fields.top10Pct.value,100);
+ assert.equal(r.fields.top20Pct.value,100);
+ assert.equal(r.fields.holderCount.status,'RECONCILED_SNAPSHOT');
+});
+test('Ethereum retains only the explorer-reported holder count if pinned balances are incomplete or fail',async()=>{
+ const scenarios=[
+  {getPages:async()=>wallets(2),getBalances:async()=>[600n,300n]},
+  {getPages:async()=>{throw Error('Explorer refused page')},getBalances:async()=>[]},
+  {getPages:async()=>wallets(2),getBalances:async()=>{throw Error('Pinned RPC timeout')}}
+ ];
+ for(const scenario of scenarios){
+  const r=await eth.inspect(TOKEN,BLOCK,'1000',{getCounters:async()=>({token_holders_count:2}),...scenario});
+  assert.equal(r.fields.holderCount.value,2);
+  assert.equal(r.fields.holderCount.status,'SOURCE_REPORTED');
+  for(const key of ['largestWalletPct','top10Pct','top20Pct'])
+   assert.notEqual(r.fields[key].dataState,'DATA_FOUND',key);
+ }
+ const down=await eth.inspect(TOKEN,BLOCK,'1000',{getCounters:async()=>{throw Error('No explorer count')}});
+ assert.equal(down.fields.holderCount.dataState,'SOURCE_API_FAILED');
+});
 test('Robinhood small wallet cohort calculates 100% top 10/20 and exact reconciled count',async()=>{
  for(const balances of [[1000n],[600n,300n,100n],[400n,200n,100n,100n,80n,40n,40n,20n,10n,10n]]){
   const data=source(balances);
