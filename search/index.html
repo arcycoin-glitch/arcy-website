@@ -1162,7 +1162,7 @@ function displayLogo(raw,network,address,identity){
    /^0x[0-9a-f]{40}$/i.test(address)&&typeof raw==='string'&&
    raw.toLowerCase()==='https://cdn.robinhood.com/ncw_assets/logos/'+address.toLowerCase()+'.png')
    return safeCandidateImage(raw);
-  return null;
+  return identity?.status==='REGISTRY_MATCHED'?null:safeCandidateImage(raw);
  }
  return safeCandidateImage(raw);
 }
