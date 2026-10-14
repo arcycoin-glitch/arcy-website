@@ -28,45 +28,88 @@ function localLogo(network,address){
  return LOCAL[network]?.[address.toLowerCase()]||null;
 }
 const {safeLogoUrl}=require('./token-image');
-async function enhance(network,items,{fetchImpl=global.fetch}={}){
+const {readJson}=require('./http');
+const {chain}=require('./chains');
+const CACHE=new Map(), PENDING=new Map();
+const POSITIVE_TTL=15*60*1000, NEGATIVE_TTL=90*1000;
+const ADDRESS=/^0x[0-9a-f]{40}$/i;
+function marketArtwork(pairs,network,addresses){
+ const wanted=new Set(addresses),found=new Map();
+ if(!Array.isArray(pairs))return found;
+ // A DEX image is for the BASE token only. Quotes, other networks, and
+ // same-symbol tokens must never inherit it.
+ const sorted=pairs.slice(0,200).filter(p=>p&&p.chainId===network)
+  .sort((a,b)=>(Number(b.liquidity?.usd)||0)-(Number(a.liquidity?.usd)||0));
+ for(const pair of sorted){
+  const address=String(pair.baseToken?.address||'').toLowerCase();
+  const logo=safeLogoUrl(pair.info?.imageUrl);
+  if(wanted.has(address)&&logo&&!found.has(address))found.set(address,logo);
+ }
+ return found;
+}
+async function marketBatch(network,addresses,{fetchImpl=global.fetch,now=Date.now()}={}){
+ const found=new Map();
+ if(!['arc','ethereum'].includes(network)||!addresses.length)return found;
+ const outstanding=[];
+ for(const address of addresses){
+  const key=network+':'+address, cached=CACHE.get(key);
+  if(cached&&cached.expires>now){if(cached.logo)found.set(address,cached.logo);}
+  else outstanding.push(address);
+ }
+ if(!outstanding.length)return found;
+ // Only one short request per discovery; Vercel's per-process memory cache
+ // prevents repeated lookups for the same contract while typing.
+ const key=network+':'+outstanding.slice().sort().join(',');
+ let task=PENDING.get(key);
+ if(!task){
+  task=(async()=>{
+   let resolved=new Map(),failed=false;
+   try{
+    const url='https://api.dexscreener.com/tokens/v1/'+network+'/'+outstanding.join(',');
+    const response=await fetchImpl(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(2500)});
+    if(!response?.ok)throw Error('token-art HTTP unavailable');
+    const body=await readJson(response,2*1024*1024);
+    resolved=marketArtwork(body,network,outstanding);
+   }catch(_){failed=true;}
+   const expires=Date.now()+(failed?30*1000:NEGATIVE_TTL);
+   for(const address of outstanding){
+    const logo=resolved.get(address)||null;
+    CACHE.set(network+':'+address,{logo,expires:logo?Date.now()+POSITIVE_TTL:expires});
+   }
+   while(CACHE.size>1200)CACHE.delete(CACHE.keys().next().value);
+   return resolved;
+  })();
+  PENDING.set(key,task);
+  task.finally(()=>{if(PENDING.get(key)===task)PENDING.delete(key)}).catch(()=>{});
+ }
+ for(const [address,logo] of await task)found.set(address,logo);
+ return found;
+}
+async function enhance(network,items,{fetchImpl=global.fetch,now=Date.now()}={}){
  if(!Array.isArray(items))return [];
  const scoped=items.slice(0,24);
- const addresses=[...new Set(scoped.filter(x=>x.network===network&&/^0x[0-9a-f]{40}$/i.test(x.address||'')).map(x=>x.address.toLowerCase()))];
- const marketArt=new Map();
- // Optional, one bounded request for exact token contracts, never ticker matching.
- // Third-party images are decoration, never contract verification.
- if((network==='ethereum'||network==='arc')&&addresses.length&&typeof fetchImpl==='function'){
-  const chain=network==='ethereum'?'ethereum':'arc';
-  try{
-   const response=await fetchImpl('https://api.dexscreener.com/tokens/v1/'+chain+'/'+addresses.join(','),{
-    headers:{accept:'application/json'},signal:AbortSignal.timeout(3500)});
-   if(response?.ok){
-    const pairs=await response.json();
-    if(Array.isArray(pairs))for(const pair of pairs.slice(0,120)){
-     if(String(pair.chainId||'').toLowerCase()!==chain)continue;
-     const address=String(pair.baseToken?.address||'').toLowerCase();
-     if(!addresses.includes(address)||marketArt.has(address))continue;
-     const logo=safeLogoUrl(pair.info?.imageUrl);
-     if(logo)marketArt.set(address,logo);
-    }
-   }
-  }catch(_){/* Gracefully retain existing icon or initials. */}
- }
+ const cfg=chain(network);
+ // Local first-party/CC0 art or the Robinhood stock registry always takes precedence.
+ const needs=scoped.filter(item=>item&&item.network===network&&item.chainId===cfg.chainId&&
+  ADDRESS.test(item.address||'')&&!localLogo(network,item.address)&&!safeLogoUrl(item.logoUrl));
+ const addresses=[...new Set(needs.map(item=>item.address.toLowerCase()))];
+ // Unit-test runs do not contact public services implicitly; mocks can be injected.
+ const remote=(fetchImpl!==global.fetch||process.env.VERCEL==='1')?
+  await marketBatch(network,addresses,{fetchImpl,now}):new Map();
  return scoped.map(item=>{
-  const local=localLogo(network,item.address);
-  const registry=network==='robinhood'&&item.network==='robinhood'&&
-   item.chainId===4663&&item.registryMatched===true&&
+  const matched=item&&item.network===network&&item.chainId===cfg.chainId&&ADDRESS.test(item.address||'');
+  const local=matched?localLogo(network,item.address):null;
+  const registry=matched&&network==='robinhood'&&item.registryMatched===true&&
    item.source==='Robinhood official asset registry'?
     require('./robinhood-assets').registryLogo(item.logoUrl):null;
-  // Public DEX/explorer images do not prove identity; only the authenticated
-  // issuer/chain registry may supply the remote Stock Token logo.
-  const provider=network!=='robinhood'&&item.network===network?
-   (marketArt.get(String(item.address||'').toLowerCase())||safeLogoUrl(item.logoUrl)):null;
-  const logo=local||registry||provider;
-  return {...item,logoUrl:logo,logoSource:local?
-   (local.endsWith('/hero-arcy.png')?'ARCY site-owned mascot':'CC0 cryptocurrency-icons; contract-matched'):
-   registry?'Robinhood official asset registry (chain 4663) · artwork only':
-   provider?'Third-party market artwork · NOT identity verification':null};
+  const indexed=matched&&network!=='robinhood'?safeLogoUrl(item.logoUrl):null;
+  const provider=matched&&network!=='robinhood'?(indexed||remote.get(item.address.toLowerCase())):null;
+  const logo=local||registry||provider||null;
+  const logoSource=local?(local.endsWith('/hero-arcy.png')?'ARCY site-owned mascot':'CC0 cryptocurrency-icons; exact contract'):
+   registry?'Robinhood official asset registry (chain 4663); artwork only':
+   provider?'Source-indexed decorative token image; NOT issuer verification':null;
+  return {...item,logoUrl:logo,logoSource};
  });
 }
-module.exports={imageFromPairs:()=>null,contractLogo:async(network,address)=>localLogo(network,address),localLogo,enhance};
+module.exports={imageFromPairs:()=>null,contractLogo:async(network,address)=>localLogo(network,address),
+ localLogo,marketArtwork,marketBatch,enhance};
