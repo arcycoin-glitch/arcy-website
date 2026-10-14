@@ -19,11 +19,14 @@ test('Robinhood exact runtime scan reports the bounded no-DELEGATECALL architect
  const original=global.fetch,block='0x1234';
  global.fetch=async(_url,options)=>{const body=JSON.parse(options.body);const result=body.method==='eth_call'?'0x'+'0'.repeat(64):'0x'+'0'.repeat(64);return new Response(JSON.stringify({jsonrpc:'2.0',id:body.id,result}));};
  try{
-  const card=await adapter.mechanics({address:ADDRESS,base:{address:ADDRESS,block,runtimeDelegatecallDetected:false}});
-  const field=card.fields.contractArchitecture;
-  assert.equal(field.dataState,'DATA_FOUND');assert.equal(field.status,'ON_CHAIN');
-  assert.match(field.value,/No DELEGATECALL opcode/);assert.equal(field.evidence[0].block,block);
-  assert.match(field.evidence[0].scope,/does not rule out/i);
+  for(const [detected,expected] of [[false,/No DELEGATECALL opcode/],[true,/DELEGATECALL opcode present/]]){
+   const card=await adapter.mechanics({address:ADDRESS,base:{address:ADDRESS,block,runtimeDelegatecallDetected:detected}});
+   const field=card.fields.contractArchitecture;
+   assert.equal(field.dataState,'DATA_FOUND');assert.equal(field.status,'ON_CHAIN');
+   assert.match(field.value,expected);assert.equal(field.evidence[0].block,block);
+   if(detected)assert.match(field.evidence[0].scope,/not proof of a reachable call/i);
+   else assert.match(field.evidence[0].scope,/does not rule out/i);
+  }
  }finally{global.fetch=original}
 });
 test('Robinhood mechanics adds architecture only after pinned implementation bytecode exists',async()=>{
