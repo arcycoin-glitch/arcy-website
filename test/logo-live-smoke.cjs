@@ -16,8 +16,12 @@ const probes=[
    const arr=task.kind==='dex'?body:task.kind==='search'?body?.pairs:
     task.kind==='explorer'?body?.items:body?.matches;
    const first=Array.isArray(arr)?arr.slice(0,5):[];
+   const example=first.find(x=>x?.info?.imageUrl||x?.icon_url||x?.logoUrl);
    console.log(JSON.stringify({name:task.name,http:res.status,count:Array.isArray(arr)?arr.length:null,
     logosFound:first.filter(x=>Boolean(x?.info?.imageUrl||x?.icon_url||x?.logoUrl)).length,
+    artworkHost:example?.info?.imageUrl?new URL(example.info.imageUrl).hostname:null,
+    artworkAllowed:Boolean(safeLogoUrl(example?.info?.imageUrl)),
+    exactAddress:task.kind==='search'?example?.baseToken?.address:null,
     chains:[...new Set(first.map(x=>x?.chainId||x?.network||null))]}));
     if(task.kind==='search'&&example?.chainId==='arc'&&/^0x[0-9a-f]{40}$/i.test(example.baseToken?.address||'')){
      const precise=await fetch('https://api.dexscreener.com/tokens/v1/arc/'+example.baseToken.address,{signal:AbortSignal.timeout(5000)});
