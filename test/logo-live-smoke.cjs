@@ -20,6 +20,8 @@ const probes=[
    console.log(JSON.stringify({name:task.name,http:res.status,count:Array.isArray(arr)?arr.length:null,
     logosFound:first.filter(x=>Boolean(x?.info?.imageUrl||x?.icon_url||x?.logoUrl)).length,
     artworkHost:example?.info?.imageUrl?new URL(example.info.imageUrl).hostname:null,
+    artworkPath:example?.info?.imageUrl?new URL(example.info.imageUrl).pathname:null,
+    artworkParams:example?.info?.imageUrl?[...new URL(example.info.imageUrl).searchParams.keys()]:[],
     artworkAllowed:Boolean(safeLogoUrl(example?.info?.imageUrl)),
     exactAddress:task.kind==='search'?example?.baseToken?.address:null,
     chains:[...new Set(first.map(x=>x?.chainId||x?.network||null))]}));
