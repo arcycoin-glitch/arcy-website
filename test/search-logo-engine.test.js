@@ -13,6 +13,8 @@ const response=body=>new Response(JSON.stringify(body),{status:200,headers:{'con
 
 test('decorative URLs accept only tight CDN image paths, not arbitrary hosts or documents',()=>{
  assert.equal(safeLogoUrl(ICON),ICON);
+ const liveShape='https://cdn.dexscreener.com/cms/images/y7ril8c3Y0da5KIP?width=64&height=64&quality=85&format=auto';
+ assert.equal(safeLogoUrl(liveShape),liveShape);
  assert.equal(safeLogoUrl(BSCOUT),BSCOUT);
  for(const bad of [
   'https://cdn.dexscreener.com/a.png','https://assets.geckoterminal.com/tokens/logo.png',
