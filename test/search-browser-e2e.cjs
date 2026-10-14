@@ -1,4 +1,4 @@
-const { chromium } = require('C:/Users/cicek/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { chromium } = require('playwright');
 const { spawn } = require('node:child_process');
 const assert = require('node:assert/strict');
 const path = require('node:path');
@@ -68,7 +68,7 @@ function candidate(network) {
       server.stdout.once('data', () => { clearTimeout(timer); resolve(); });
       server.once('error', reject);
     });
-    browser = await chromium.launch({ headless: true, channel: 'msedge' });
+    browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     const pageErrors = [];
     const seen = [];
