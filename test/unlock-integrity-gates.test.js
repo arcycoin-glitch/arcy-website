@@ -67,6 +67,22 @@ test('Arbitrum date quarantine does not silently suppress project-confirmed evid
  assert.equal(clean.events[0].verification,'project-confirmed');
  assert.equal(clean.coverage.quarantined.length,0);
 });
+test('Capricorn 23 October unlock retains date and tokens but does not claim disputed circulating percentage',()=>{
+ const source='<table><tr><td>1</td><td>Capricorn APR</td><td>23 Oct 2026</td><td>56.33M APR</td><td>$2.76M</td><td>20.28%</td><td>Ecosystem</td></tr></table>';
+ const row=worker.parseRows(source)[0];
+ const m=worker.mergeEvents([row]);
+ assert.equal(m.events.length,1);
+ assert.equal(m.events[0].date,'2026-10-23');
+ assert.equal(m.events[0].amount,'56.33M APR');
+ assert.equal(m.events[0].percent,'');
+ const clean=app().safeCurrentEdition(edition([row]),when);
+ assert.equal(clean.events.length,1);
+ assert.equal(clean.events[0].percent,'');
+ assert.equal(clean.events[0].amount,'56.33M APR');
+ assert.equal(clean.partial,true);
+ assert.equal(clean.coverage.quarantined.length,0);
+ assert.equal(clean.coverage.percentageConflicts[0].symbol,'APR');
+});
 test('6h publisher edition has 2h grace but is always discarded across UTC midnight',()=>{
  const f=app().freshEdition;
  assert.equal(f(edition([], '2026-10-15T03:00:00Z'),when),true);
