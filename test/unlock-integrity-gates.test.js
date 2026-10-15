@@ -49,6 +49,16 @@ test('ARB October 15 published Team row is quarantined across worker and Vercel;
  assert.equal(sanitized.coverage.complete,false);
  assert.ok(sanitized.coverage.reviews.find(review=>review.projectId==='arbitrum'));
 });
+test('dispute filter is date/project scoped, not a permanent ARB ticker ban',()=>{
+ const source=(name,date)=>'<table><tr><td>1</td><td>'+name+' ARB</td><td>'+date+'</td><td>1M ARB</td><td>$1M</td><td>1.00%</td><td>Team</td></tr></table>';
+ const independent=worker.parseRows(source('Arbitrum','16 Oct 2026'))[0];
+ const other=worker.parseRows(source('Other Protocol','15 Oct 2026'))[0];
+ assert.equal(worker.mergeEvents([independent]).events.length,1);
+ assert.equal(worker.mergeEvents([other]).events.length,1);
+ const ctx=app(),checked=ctx.safeCurrentEdition(edition([independent,other]),when);
+ assert.equal(checked.events.length,2);
+ assert.equal(checked.coverage.quarantined.length,0);
+});
 test('Arbitrum date quarantine does not silently suppress project-confirmed evidence if independently reviewed',()=>{
  const ctx=app();
  const official=event('Arbitrum','ARB','2026-10-16','92.65M ARB','project-confirmed');
