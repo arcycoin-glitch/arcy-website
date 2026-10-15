@@ -415,9 +415,9 @@ function renderUnlocks(days){
   if(next)next.disabled=unlockPage>=pages;
 }
 function activeUnlockDays(){return Number(document.querySelector(".tab.active")?.dataset.days||1)}
-async function loadUnlocks(){
+async function loadUnlocks({silent=false}={}){
   const body=document.getElementById("unlockRows");
-  if(body)body.innerHTML='<tr><td colspan="5" class="loading">Loading live unlocks…</td></tr>';
+  if(body&&!silent)body.innerHTML='<tr><td colspan="5" class="loading">Loading live unlocks…</td></tr>';
   try{
     const r=await dataFetch('/api/unlocks',{cache:'no-store'});
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -430,7 +430,8 @@ async function loadUnlocks(){
       const stamp=j.updatedAt?new Date(j.updatedAt).toLocaleString():'';
       note.textContent=`Published schedules${stamp?' • Checked: '+stamp:''} • Source: ${j.source||'public unlock calendar'}. Coverage is limited${j.partial?' • Some sources or records are unavailable':''}. TODAY, NEXT 7 DAYS and DAYS 8–30 are separate UTC windows. Source-published records are not independent onchain confirmations.`;
     }
-    unlockPage=1; renderUnlocks(activeUnlockDays());
+    if(!silent)unlockPage=1;
+    renderUnlocks(activeUnlockDays());
   }catch(e){
     unlockState="error";
     unlockData={1:[],7:[],30:[]};
@@ -452,8 +453,11 @@ loadUnlocks();
 
 
 <script>
-(async function(){
+async function loadArcPrices(){
  if(!document.getElementById("arcyLivePrice"))return;
+ for(const id of ['arcyLivePrice','arcyLiveVolume','arcyLiveFdv','arcyLiveLiquidity']){
+  const el=document.getElementById(id);if(el)el.textContent='Loading…';
+ }
  const token="0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b";
  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
  const compact=n=>"$"+new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(Number(n));
@@ -501,7 +505,8 @@ loadUnlocks();
  ["arcyLivePrice","arcyLiveVolume","arcyLiveFdv","arcyLiveLiquidity"].forEach(id=>{
    const e=document.getElementById(id); if(e && e.textContent==="Loading…") e.textContent="—";
  });
-})();
+}
+loadArcPrices();
 </script>
 
 
@@ -509,7 +514,7 @@ loadUnlocks();
 
 
 <script>
-(async function loadPulse(){
+async function loadPulse(){
   const renderCards=(grid,cards)=>{
     const styles={week:["pulse-week","🔥 THIS WEEK"],new:["pulse-new","🆕 NEW"],watch:["pulse-watch","🔍 WATCH"],reality:["pulse-risk","⚠️ RISK / REALITY CHECK"],unlock:["pulse-unlock","🔓 WHAT'S UNLOCKING"]};
     if(!grid||!Array.isArray(cards))return;
@@ -537,7 +542,8 @@ loadUnlocks();
     const archive=document.getElementById('pulseArchive');
     if(archive&&Number.isSafeInteger(j.number)&&j.number>1){archive.hidden=false;archive.href=archived?'/?#pulse':`/?pulseEdition=${j.number-1}#pulse`;archive.textContent=archived?'CURRENT EDITION':`PREVIOUS EDITION #${String(j.number-1).padStart(3,'0')}`;}
   }catch(error){const grid=document.getElementById("pulseGrid");if(grid)renderCards(grid,Array.from({length:5},(_,i)=>({kind:['week','new','watch','reality','unlock'][i],owner:'SOURCE STATUS',title:'Pulse section unavailable',summary:error.message||'A verified update could not be loaded. No headline has been substituted.'})));const take=document.getElementById('pulseTake');if(take)take.textContent='ARCY Take unavailable: the dated source check did not complete. No stale news was presented as current.';}
-})();
+}
+loadPulse();
 </script>
 
 <script src="/ui-model.js" defer></script><script src="/app.js" defer></script><script src="/unified.js" defer></script>
@@ -545,6 +551,7 @@ loadUnlocks();
 <script src="/regression-fixes.js" defer></script>
 <script src="/hero-video.js" defer></script>
 <script src="/search-upgrade.js" defer></script>
+<script src="/site-refresh.js" defer></script>
 <script src="/analytics.js" defer></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body></html>
