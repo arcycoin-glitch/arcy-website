@@ -88,3 +88,26 @@ test('URL query rejects duplicate action, falls back to local-dev request query'
  r=res();await gateway({method:'GET',url:'/api/search?action=wrong'},r);
  assert.equal(r.statusCode,404);
 });
+
+test('production rewrite query metadata is removed without relaxing address or chain validation',async()=>{
+ const {gateway,calls}=harness(),address='0x'+'a'.repeat(40);
+ const scenarios=[
+  {action:'report',chain:'arc',address},
+  {action:'token',chain:'arc',address},
+  {action:'discover',chain:'robinhood',q:'Pons'},
+  {action:'chart',chain:'ethereum',address,range:'1W'}
+ ];
+ for(const wanted of scenarios){
+  const response=res();
+  const rewrittenUrl='/api/search?'+new URLSearchParams({...wanted,_nextRouteMatch:'/api/search/index'}).toString();
+  await gateway({
+   method:'GET',url:rewrittenUrl,
+   query:{...wanted,_nextRouteMatch:'/api/search/index',slug:'__function',path:'/api/search',search:''}
+  },response);
+  assert.equal(response.statusCode,200);
+  assert.equal(response.body.action,wanted.action);
+  const expected=Object.keys(wanted).filter(k=>k!=='action').sort();
+  assert.equal(Object.keys(response.body.query).sort().join(','),expected.join(','));
+ }
+ assert.equal(calls.length,scenarios.length);
+});
