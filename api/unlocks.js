@@ -35,9 +35,9 @@ async function fetchCmcLogos(events) {
 
 function mergeEvents(rows) {
   const groups = new Map(), conflicts = [];
-  for (const row of rows) { if (COVERAGE_REVIEWS.find(item => item.symbols.includes(row.symbol)) && row.verification !== 'project-confirmed') continue; const key = JSON.stringify([row.name.toLowerCase().trim(), row.symbol, row.tokenVersion || 'calendar-unspecified', row.date, row.allocation.toLowerCase().trim()]); if (!groups.has(key)) groups.set(key, []); groups.get(key).push(row); }
+  for (const row of rows) { if (COVERAGE_REVIEWS.find(item => item.symbols.includes(row.symbol) && (!item.date || (item.date === row.date && item.name.toLowerCase() === row.name.toLowerCase())) && item.status !== 'cross-source-float-percent-conflict') && row.verification !== 'project-confirmed') continue; const key = JSON.stringify([row.name.toLowerCase().trim(), row.symbol, row.tokenVersion || 'calendar-unspecified', row.date, row.allocation.toLowerCase().trim()]); if (!groups.has(key)) groups.set(key, []); groups.get(key).push(row); }
   const events = [];
-  for (const [key, group] of groups) { const amounts = new Set(group.map(row => row.amount.replace(/,/g, '').replace(/\s+/g, ' ').trim())); if (amounts.size !== 1) { conflicts.push({ identity: JSON.parse(key), reason: 'Conflicting published amounts', sources: [...new Set(group.map(row => row.sourceUrl))] }); continue; } const event = { ...group[0], evidence: group.flatMap(row => row.evidence || []) }; if (new Set(group.map(row => row.percent)).size > 1) event.percent = ''; events.push(event); }
+  for (const [key, group] of groups) { const amounts = new Set(group.map(row => row.amount.replace(/,/g, '').replace(/\s+/g, ' ').trim())); if (amounts.size !== 1) { conflicts.push({ identity: JSON.parse(key), reason: 'Conflicting published amounts', sources: [...new Set(group.map(row => row.sourceUrl))] }); continue; } const event = { ...group[0], evidence: group.flatMap(row => row.evidence || []) }; if (new Set(group.map(row => row.percent)).size > 1 || (event.verification !== 'project-confirmed' && COVERAGE_REVIEWS.some(r => r.status === 'cross-source-float-percent-conflict' && r.symbols.includes(event.symbol) && r.date === event.date && r.name.toLowerCase() === event.name.toLowerCase()))) event.percent = ''; events.push(event); }
   return { events, conflicts };
 }
 
@@ -47,19 +47,56 @@ async function collectVerifiedEvents(records) {
   return { events, rejected };
 }
 
+// A signed worker snapshot proves origin, not that yesterday's UTC date
+// windows remain valid today. Source publication is 6-hourly; permit a
+// short 2h grace but never carry yesterday's TODAY events into a new day.
+function freshEdition(value, now = Date.now()) {
+  if (!validEdition(value)) return false;
+  const created = Date.parse(value.generatedAt), refresh = Date.parse(value.refreshAt);
+  if (!Number.isFinite(created) || !Number.isFinite(refresh) || created > now + 5 * 60000 || now - created > SIX_HOURS + 2 * 3600000 || refresh <= created || refresh > created + 7 * 3600000) return false;
+  return new Date(created).toISOString().slice(0, 10) === new Date(now).toISOString().slice(0, 10);
+}
+// Recalculate TODAY / NEXT 7 / DAYS 8-30 at request time, including for a
+// signed publisher result. Suppress disputed third-party events, and make
+// the suppression visible in coverage metadata. This cannot upgrade any row
+// to issuer-confirmed or onchain verification.
+function safeCurrentEdition(raw, now = Date.now()) {
+  const today = new Date(now).toISOString().slice(0, 10), end = new Date(Date.parse(today + 'T00:00:00Z') + 30 * 86400000).toISOString().slice(0, 10);
+  const excluded = [], percentageConflicts = [], seen = new Set(), events = [];
+  for (const e of Array.isArray(raw.events) ? raw.events.slice(0, 1500) : []) {
+    if (!e || typeof e.name !== 'string' || typeof e.symbol !== 'string' || typeof e.date !== 'string' || typeof e.amount !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(e.date) || e.date < today || e.date > end || !['source-published', 'project-confirmed'].includes(e.verification)) continue;
+    const review = COVERAGE_REVIEWS.find(r => r.symbols.includes(e.symbol) && r.status === 'cross-source-date-allocation-conflict' && (!r.date || (r.date === e.date && r.name.toLowerCase() === e.name.toLowerCase())));
+    if (review && e.verification !== 'project-confirmed') {
+      excluded.push({ projectId: review.projectId, symbol: e.symbol, date: e.date, reason: review.reason });
+      continue;
+    }
+    const key = JSON.stringify([e.name.trim().toLowerCase(), e.symbol, e.date, e.amount, e.allocation || '']);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const percentReview = COVERAGE_REVIEWS.find(r => r.status === 'cross-source-float-percent-conflict' && r.symbols.includes(e.symbol) && r.date === e.date && r.name.toLowerCase() === e.name.toLowerCase());
+    if (percentReview && e.verification !== 'project-confirmed') percentageConflicts.push({ projectId: percentReview.projectId, symbol: e.symbol, date: e.date, reason: percentReview.reason });
+    events.push({ ...e, percent: percentReview && e.verification !== 'project-confirmed' ? '' : e.percent, daysFromToday: dayDiff(e.date, today) });
+  }
+  events.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name) || String(a.allocation || '').localeCompare(String(b.allocation || '')));
+  return { ...raw, events, windows: {
+    today: events.filter(e => e.daysFromToday === 0),
+    next7: events.filter(e => e.daysFromToday >= 1 && e.daysFromToday <= 7),
+    days8to30: events.filter(e => e.daysFromToday >= 8 && e.daysFromToday <= 30)
+  }, partial: Boolean(raw.partial || excluded.length || percentageConflicts.length), coverage: { ...(raw.coverage || {}), complete: false, reviews: COVERAGE_REVIEWS, quarantined: excluded, percentageConflicts } };
+}
 function validEdition(value) { return !!(value && value.schemaVersion === 1 && value.success === true && Array.isArray(value.events) && value.windows && ['today', 'next7', 'days8to30'].every(name => Array.isArray(value.windows[name]))); }
 function base64(value) { return Uint8Array.from(atob(value), char => char.charCodeAt(0)); }
 function pem(value) { return Uint8Array.from(atob(String(value).replace(/-----[^-]+-----|\s/g, '')), char => char.charCodeAt(0)); }
 async function savedEdition() {
   const base = process.env.ARC_UNLOCK_PUBLISHED_URL || process.env.ARC_HOLDER_PUBLISHED_URL || process.env.ARC_HOLDER_QUEUE_URL, key = process.env.ARC_UNLOCK_PUBLIC_KEY || process.env.ARC_HOLDER_PUBLIC_KEY;
   if (!base || !key || !globalThis.crypto?.subtle) return null;
-  try { const response = await fetch(new URL('/unlocks/latest', base), { cache: 'no-store', signal: AbortSignal.timeout(5000) }); if (!response.ok) return null; const envelope = await response.json(), payload = new TextEncoder().encode(envelope.payload), imported = await crypto.subtle.importKey('spki', pem(key), { name: 'Ed25519' }, false, ['verify']); if (!envelope.signature || !await crypto.subtle.verify('Ed25519', imported, base64(envelope.signature), payload)) return null; const edition = JSON.parse(envelope.payload); return validEdition(edition) ? edition : null; } catch { return null; }
+  try { const response = await fetch(new URL('/unlocks/latest', base), { cache: 'no-store', signal: AbortSignal.timeout(5000) }); if (!response.ok) return null; const envelope = await response.json(), payload = new TextEncoder().encode(envelope.payload), imported = await crypto.subtle.importKey('spki', pem(key), { name: 'Ed25519' }, false, ['verify']); if (!envelope.signature || !await crypto.subtle.verify('Ed25519', imported, base64(envelope.signature), payload)) return null; const edition = JSON.parse(envelope.payload); return freshEdition(edition) ? edition : null; } catch { return null; }
 }
 
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   const saved = await savedEdition();
-  if (saved) { res.setHeader('Cache-Control', 'no-store'); return res.status(200).json({ ok: true, ...saved, audit: { lastSuccessful: { generatedAt: saved.generatedAt, trigger: saved.trigger, eventCount: saved.events.length }, nextScheduledAt: saved.refreshAt } }); }
+  if (saved) { res.setHeader('Cache-Control', 'no-store'); return res.status(200).json({ ok: true, ...safeCurrentEdition(saved), audit: { lastSuccessful: { generatedAt: saved.generatedAt, trigger: saved.trigger, eventCount: saved.events.length }, nextScheduledAt: saved.refreshAt } }); }
   const secondsToMidnight = Math.max(1, Math.floor((Date.parse(utcToday() + 'T00:00:00Z') + 86400000 - Date.now()) / 1000));
   res.setHeader('Cache-Control', `public, s-maxage=${Math.min(21600, secondsToMidnight)}, must-revalidate`);
   try {
@@ -70,6 +107,9 @@ export default async function handler(req, res) {
     if (partial) res.setHeader('Cache-Control', 'no-store');
     let logos = {}; try { logos = await fetchCmcLogos(events); } catch {}
     const enriched = events.map(event => ({ ...event, logo: logos[event.symbol] || '' }));
-    return res.status(200).json({ ok: true, live: true, source: 'CoinBell published calendar (DefiLlama attribution); project-confirmed supplements when available', partial, coverage: { complete: false, sources: collected.map(({ url, status, rows }) => ({ url, status, rowCount: rows.length })), reviews: COVERAGE_REVIEWS, conflicts: merged.conflicts, rejectedSupplements: supplemental.rejected }, sourceUrl: SOURCE_URL, updatedAt: new Date().toISOString(), windowTimeZone: 'UTC', refreshAt: new Date(Date.parse(utcToday() + 'T00:00:00Z') + 86400000).toISOString(), windows: { today: enriched.filter(event => event.daysFromToday === 0), next7: enriched.filter(event => event.daysFromToday >= 1 && event.daysFromToday <= 7), days8to30: enriched.filter(event => event.daysFromToday >= 8 && event.daysFromToday <= 30) }, events: enriched });
+    const responseBody = { ok: true, live: true, source: 'CoinBell published calendar (DefiLlama attribution); project-confirmed supplements when available', partial, coverage: { complete: false, sources: collected.map(({ url, status, rows }) => ({ url, status, rowCount: rows.length })), reviews: COVERAGE_REVIEWS, conflicts: merged.conflicts, rejectedSupplements: supplemental.rejected }, sourceUrl: SOURCE_URL, updatedAt: new Date().toISOString(), windowTimeZone: 'UTC', refreshAt: new Date(Date.parse(utcToday() + 'T00:00:00Z') + 86400000).toISOString(), windows: { today: enriched.filter(event => event.daysFromToday === 0), next7: enriched.filter(event => event.daysFromToday >= 1 && event.daysFromToday <= 7), days8to30: enriched.filter(event => event.daysFromToday >= 8 && event.daysFromToday <= 30) }, events: enriched };
+    const checked = safeCurrentEdition(responseBody);
+    if (checked.partial) res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json(checked);
   } catch { res.setHeader('Cache-Control', 'no-store'); return res.status(503).json({ ok: false, live: false, updatedAt: new Date().toISOString(), message: 'Live unlock feed temporarily unavailable. ARCY will not display guessed or stale unlock data.', events: [], windows: { today: [], next7: [], days8to30: [] } }); }
 }

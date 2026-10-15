@@ -49,3 +49,18 @@ produce 503. Partial/error responses are not CDN cached. Normal cache expires no
 than UTC midnight so events cannot remain in yesterday's window.
 
 Run `node --test tests/data-flows.test.mjs` and `node --check api/unlocks.js` after changes.
+
+## October 2026 source-integrity review
+
+Three CoinBell calendar sorts improve *discovery coverage*, but they are three views of a **single publisher**, not three independent attestations. Even a record present in all three sorts remains `source-published`, never `project-confirmed` or on-chain verified.
+
+**Arbitrum (ARB), 15 October 2026, 92.65M ARB / Team:** the source row conflicts with independent Tokenomist's 16 October next unlock and Arbitrum DAO's documented monthly team/investor releases beginning on the 16th. This one dated **Arbitrum** row is quarantined; ARB dates on other days and unrelated projects sharing the ticker are not automatically suppressed. A different date/amount is **not** invented to replace it. Relevant reviews:
+- https://api.coinbell.in/token-unlocks?sort=soonest&window=30
+- https://tokenomist.ai/arbitrum
+- https://docs.arbitrum.foundation/token-supply
+
+**Capricorn (APR), 23 October 2026:** CoinBell reports **56.33M APR / 20.28% of circulating float**, while DefiLlama's dated calendar says approximately **33.6% of float**. Preserve the published date and token amount as source-reported, but suppress the unsupported exact circulating-percentage cell until denominator/source timing is reconciled. Sources: https://api.coinbell.in/token-unlocks?sort=impact&window=30 and https://defillama.com/calendar. This is a percentage disagreement, not proof that the unlock itself is false.
+
+A cryptographically signed worker edition attests the publisher, not that its time windows remain current. The public endpoint accepts signed releases only if their generation date is **today in UTC**, they are no more than **8 hours old** (6h cadence plus 2h grace), and their refresh timestamp follows generation within 7h. Older snapshots are rejected and a fresh collection is attempted; all-source failure returns 503 rather than a falsely current calendar. Both accepted worker snapshots and live fallback are re-windowed for the request's current UTC date, with disputed source records quarantined.
+
+Daily labels are schedule dates, **not evidence that an intra-day unlock has already executed or that the recipient sold tokens**. The percentages and USD values remain source-reported estimates and can drift with float/price. CoinBell's 60-row-per-sort result cap means the 30-day union is not a complete universe of unlocks.
