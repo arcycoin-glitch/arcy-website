@@ -35,7 +35,7 @@ async function fetchCmcLogos(events) {
 
 function mergeEvents(rows) {
   const groups = new Map(), conflicts = [];
-  for (const row of rows) { if (COVERAGE_REVIEWS.find(item => item.symbols.includes(row.symbol)) && row.verification !== 'project-confirmed') continue; const key = JSON.stringify([row.name.toLowerCase().trim(), row.symbol, row.tokenVersion || 'calendar-unspecified', row.date, row.allocation.toLowerCase().trim()]); if (!groups.has(key)) groups.set(key, []); groups.get(key).push(row); }
+  for (const row of rows) { if (COVERAGE_REVIEWS.find(item => item.symbols.includes(row.symbol) && (!item.date || (item.date === row.date && item.name.toLowerCase() === row.name.toLowerCase()))) && row.verification !== 'project-confirmed') continue; const key = JSON.stringify([row.name.toLowerCase().trim(), row.symbol, row.tokenVersion || 'calendar-unspecified', row.date, row.allocation.toLowerCase().trim()]); if (!groups.has(key)) groups.set(key, []); groups.get(key).push(row); }
   const events = [];
   for (const [key, group] of groups) { const amounts = new Set(group.map(row => row.amount.replace(/,/g, '').replace(/\s+/g, ' ').trim())); if (amounts.size !== 1) { conflicts.push({ identity: JSON.parse(key), reason: 'Conflicting published amounts', sources: [...new Set(group.map(row => row.sourceUrl))] }); continue; } const event = { ...group[0], evidence: group.flatMap(row => row.evidence || []) }; if (new Set(group.map(row => row.percent)).size > 1) event.percent = ''; events.push(event); }
   return { events, conflicts };
@@ -65,7 +65,7 @@ function safeCurrentEdition(raw, now = Date.now()) {
   const excluded = [], seen = new Set(), events = [];
   for (const e of Array.isArray(raw.events) ? raw.events.slice(0, 1500) : []) {
     if (!e || typeof e.name !== 'string' || typeof e.symbol !== 'string' || typeof e.date !== 'string' || typeof e.amount !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(e.date) || e.date < today || e.date > end || !['source-published', 'project-confirmed'].includes(e.verification)) continue;
-    const review = COVERAGE_REVIEWS.find(r => r.symbols.includes(e.symbol) && r.status === 'cross-source-date-allocation-conflict');
+    const review = COVERAGE_REVIEWS.find(r => r.symbols.includes(e.symbol) && r.status === 'cross-source-date-allocation-conflict' && (!r.date || (r.date === e.date && r.name.toLowerCase() === e.name.toLowerCase())));
     if (review && e.verification !== 'project-confirmed') {
       excluded.push({ projectId: review.projectId, symbol: e.symbol, date: e.date, reason: review.reason });
       continue;
