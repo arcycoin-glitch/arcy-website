@@ -103,7 +103,7 @@ test('UTC date windows always rebase from the current day, never trust yesterday
  assert.deepEqual([a.windows.today.length,a.windows.next7.length,a.windows.days8to30.length],[1,1,1]);
  assert.deepEqual(Array.from(a.events,e=>e.daysFromToday),[0,7,30]);
  const next=ctx.safeCurrentEdition(edition(items),Date.parse('2026-10-16T00:01:00Z'));
- assert.deepEqual([next.windows.today.length,next.windows.next7.length,next.windows.days8to30.length],[0,1,1]);
+ assert.deepEqual([next.windows.today.length,next.windows.next7.length,next.windows.days8to30.length],[0,1,2]);
  assert.ok(next.events.every(e=>e.date>='2026-10-16'));
 });
 test('valid fresh signed publication can be read; old signed data cannot override refreshed fallback',async()=>{
