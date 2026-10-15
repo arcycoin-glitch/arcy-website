@@ -88,7 +88,7 @@ async function activity({address},cardId){
 }
 const PROXY='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
 function addressOf(word){
- return typeof word==='string'&&/^0x[0-9a-f]{64}$/i.test(word)&&!/^0+$/.test(word.slice(-40))?'0x'+word.slice(-40).toLowerCase():null;
+ return typeof word==='string'&&/^0x0{24}[0-9a-f]{40}$/i.test(word)&&!/^0+$/.test(word.slice(-40))?'0x'+word.slice(-40).toLowerCase():null;
 }
 async function mechanics({address,base}){
  const result=await Promise.allSettled([
@@ -106,6 +106,12 @@ async function mechanics({address,base}){
    network:'robinhood',address,block:base.block,rpc,
    needAdmin:!owner,needImplementation:!implementation
   })}catch{} // Optional fallback never replaces known on-chain evidence.
+ }
+ if(!implementation&&!extra.contractArchitecture||!owner&&!extra.ownerAdmin){
+  try{const runtime=await require('./runtime-evidence').inspect({network:'robinhood',address,block:base.block,rpc,
+   needAdmin:!owner&&!extra.ownerAdmin,needArchitecture:!implementation&&!extra.contractArchitecture});
+   for(const k of ['ownerAdmin','contractArchitecture'])if(!extra[k]&&runtime[k])extra[k]=runtime[k];
+  }catch{}
  }
  return {description:'On-chain getters and chain-specific GoPlus security observations; not a complete privilege or upgradeability audit.',
   fields:{

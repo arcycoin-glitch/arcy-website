@@ -4,10 +4,13 @@
 // Source: spothq/cryptocurrency-icons (CC0-1.0).
 const LOCAL=Object.freeze({
  arc:Object.freeze({
+  '0x76a443768a5e3b8d1aed0105fc250877841deb40':'/search/assets/token-icons/link.svg',
   '0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b':'/assets/hero-arcy.png',
   '0x3600000000000000000000000000000000000000':'/search/assets/token-icons/usdc.svg'
  }),
  ethereum:Object.freeze({
+  '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9':'/search/assets/token-icons/aave.svg',
+  '0xc944e90c64b2c07662a292be6244bdf05cda44a7':'/search/assets/token-icons/grt.svg',
   '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48':'/search/assets/token-icons/usdc.svg',
   '0xdac17f958d2ee523a2206206994597c13d831ec7':'/search/assets/token-icons/usdt.svg',
   '0x514910771af9ca656af840dff83e8264ecf986ca':'/search/assets/token-icons/link.svg',
@@ -16,7 +19,7 @@ const LOCAL=Object.freeze({
   '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599':'/search/assets/token-icons/wbtc.svg',
   '0x45804880de22913dafe09f4980848ece6ecbaf78':'/search/assets/token-icons/paxg.svg'
  }),
- robinhood:Object.freeze({})
+ robinhood:Object.freeze({'0x492641f648a4986844848e0befe66d14817bce34':'/search/assets/token-icons/link.svg'})
 });
 function localLogo(network,address){
  if(typeof network!=='string'||typeof address!=='string'||!/^0x[0-9a-f]{40}$/i.test(address))return null;
@@ -29,7 +32,7 @@ async function enhance(network,items){
   const registry=network==='robinhood'&&item.network==='robinhood'&&
    item.chainId===4663&&item.registryMatched===true&&
    item.source==='Robinhood official asset registry'?
-    require('./robinhood-assets').registryLogo(item.logoUrl):null;
+    require('./robinhood-assets').registryLogo(item.logoUrl,item.address):null;
   // Public DEX/explorer images do not prove identity; only the authenticated
   // issuer/chain registry may supply the remote Stock Token logo.
   const logo=local||registry;

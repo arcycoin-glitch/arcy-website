@@ -96,7 +96,7 @@ async function activity({address},cardId){
 
 const IMPLEMENTATION='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
 function addressWord(raw){
- return typeof raw==='string'&&/^0x[0-9a-f]{64}$/i.test(raw)&&
+ return typeof raw==='string'&&/^0x0{24}[0-9a-f]{40}$/i.test(raw)&&
   !/^0{40}$/.test(raw.slice(-40))?'0x'+raw.slice(-40).toLowerCase():null;
 }
 async function mechanics({address,base}){
@@ -136,6 +136,12 @@ async function mechanics({address,base}){
     isARCY&&key==='tradingTaxes'?existing:
     detected[key]?.dataState==='DATA_FOUND'?detected[key]:existing
   ]));
+ }
+ if(['ownerAdmin','contractArchitecture'].some(k=>fields[k].dataState!=='DATA_FOUND')){
+  try{const runtime=await require('./runtime-evidence').inspect({network:'arc',address,block:base.block,rpc:rpcClient.rpc,
+   needAdmin:fields.ownerAdmin.dataState!=='DATA_FOUND',needArchitecture:fields.contractArchitecture.dataState!=='DATA_FOUND'});
+   for(const k of ['ownerAdmin','contractArchitecture'])if(fields[k].dataState!=='DATA_FOUND'&&runtime[k]?.dataState==='DATA_FOUND')fields[k]=runtime[k];
+  }catch{}
  }
  return {description:'Verified Arc contract mechanics with pinned-RPC/GoPlus-source fallback; external detection never overrides stronger first-party evidence.',fields};
 }

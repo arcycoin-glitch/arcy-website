@@ -4,7 +4,7 @@ const {found,unknown,card,error}=require('./evidence');
 const PROXY_IMPLEMENTATION='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
 const ZERO='0x0000000000000000000000000000000000000000';
 const addrWord=word=>{
-  if(typeof word!=='string'||!/^0x[0-9a-f]{64}$/i.test(word))return null;
+  if(typeof word!=='string'||!/^0x0{24}[0-9a-f]{40}$/i.test(word))return null;
   const a='0x'+word.slice(-40).toLowerCase();
   return a===ZERO?null:a;
 };

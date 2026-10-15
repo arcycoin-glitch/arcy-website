@@ -1,0 +1,22 @@
+{
+  "purpose": "Search decorative artwork only; identity requires exact chain and contract. No endorsement is implied.",
+  "artworkLicense": "CC0-1.0",
+  "licenseUrl": "https://github.com/spothq/cryptocurrency-icons/blob/1a63530be6e374711a8554f31b17e4cb92c25fa5/LICENSE.md",
+  "revision": "1a63530be6e374711a8554f31b17e4cb92c25fa5",
+  "addedAssets": {
+    "aave.svg": {
+      "source": "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/aave.svg",
+      "sha256": "0884e64b1b44256a2c1dd4e2a195e7c929bf5b516c09d3f847f334b25ef6f878"
+    },
+    "grt.svg": {
+      "source": "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/grt.svg",
+      "sha256": "facbee95a50a2a175193787656201f5d745ca00ee72e8592f4b26a73a542a336"
+    }
+  },
+  "additionalContractMappings": [
+    {"chainId": 5042, "address": "0x76a443768a5e3b8d1aed0105fc250877841deb40", "existingAsset": "link.svg", "identitySource": "https://docs.chain.link/resources/link-token-contracts"},
+    {"chainId": 4663, "address": "0x492641f648a4986844848e0befe66d14817bce34", "existingAsset": "link.svg", "identitySource": "https://docs.chain.link/resources/link-token-contracts"},
+    {"chainId": 1, "address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", "asset": "aave.svg", "identitySource": "https://www.aave.com/docs/ecosystem/aave"},
+    {"chainId": 1, "address": "0xc944e90c64b2c07662a292be6244bdf05cda44a7", "asset": "grt.svg", "identitySource": "https://thegraph.com/docs/en/resources/tokenomics/"}
+  ]
+}
