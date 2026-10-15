@@ -111,8 +111,11 @@
 // Display-only issuer artwork: each entry is scoped to an issuer-confirmed chain + contract.
  // These files are already bundled with ARCY SEARCH; ticker similarity proves nothing.
  const VERIFIED_TOKEN_ART=Object.freeze({
-  arc:Object.freeze({'0x3600000000000000000000000000000000000000':'usdc'}),
+  arc:Object.freeze({'0x3600000000000000000000000000000000000000':'usdc','0x76a443768a5e3b8d1aed0105fc250877841deb40':'link'}),
+  robinhood:Object.freeze({'0x492641f648a4986844848e0befe66d14817bce34':'link'}),
   ethereum:Object.freeze({
+   '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9':'aave',
+   '0xc944e90c64b2c07662a292be6244bdf05cda44a7':'grt',
    '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48':'usdc',
    '0xdac17f958d2ee523a2206206994597c13d831ec7':'usdt',
    '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984':'uni',
@@ -182,6 +185,10 @@
  // Live results stay scoped to the selected network; neither type-ahead nor
  // artwork is allowed to claim that an arbitrary ticker match is official.
  const OFFICIAL_SUGGESTIONS=Object.freeze([
+  ['arc','0x76a443768a5e3b8d1aed0105fc250877841deb40','Chainlink','LINK'],
+  ['robinhood','0x492641f648a4986844848e0befe66d14817bce34','Chainlink','LINK'],
+  ['ethereum','0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9','Aave Token','AAVE'],
+  ['ethereum','0xc944e90c64b2c07662a292be6244bdf05cda44a7','Graph Token','GRT'],
   ['arc','0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b','ARCY','ARCY'],
   ['arc','0x3600000000000000000000000000000000000000','USD Coin','USDC'],
   ['ethereum','0xcf0c122c6b73ff809c693db761e7baebe62b6a2e','Floki','FLOKI'],

@@ -85,6 +85,12 @@ async function build(address){
   })}catch{} // A failing optional getter never removes existing evidence.
  }
  const mechanics=mechanicsCard(c,sec,extra);
+ if(['ownerAdmin','contractArchitecture'].some(k=>mechanics.fields[k].dataState!=='DATA_FOUND')){
+  try{const observed=await require('./runtime-evidence').inspect({network:'ethereum',address:t.address,block:t.block,rpc:require('./eth').rpc,
+   needAdmin:mechanics.fields.ownerAdmin.dataState!=='DATA_FOUND',needArchitecture:mechanics.fields.contractArchitecture.dataState!=='DATA_FOUND'});
+   for(const key of ['ownerAdmin','contractArchitecture'])if(mechanics.fields[key].dataState!=='DATA_FOUND'&&observed[key]?.dataState==='DATA_FOUND')mechanics.fields[key]=observed[key];
+  }catch{} // Optional runtime evidence never erases established source facts.
+ }
  const cards={supply,holders,liquidity,activity,mechanics};
  for(const d of schema){
    if(!cards[d.id])throw Error('Missing required card '+d.id);

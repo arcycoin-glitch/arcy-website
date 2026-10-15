@@ -7,7 +7,8 @@ const QUERY=/^[\p{L}\p{N}\s.$_+\-&]{2,48}$/u;
 // Only issuer-registry-provided Robinhood Stock Token artwork. A logo is
 // decorative; the registry still needs an exact chain 4663 contract match.
 const OFFICIAL_CDN=/^https:\/\/cdn\.robinhood\.com\/ncw_assets\/logos\/0x[0-9a-f]{40}\.png$/i;
-function registryLogo(raw){return typeof raw==='string'&&OFFICIAL_CDN.test(raw)?raw:null;}
+function registryLogo(raw,address){return typeof raw==='string'&&OFFICIAL_CDN.test(raw)&&
+ (!address||ADDRESS.test(address)&&new URL(raw).pathname.toLowerCase()==='/ncw_assets/logos/'+address.toLowerCase()+'.png')?raw:null;}
 function parseAssets(body){
  if(!body||typeof body!=='object'||!Array.isArray(body.assets))throw Error('Invalid Robinhood asset registry');
  const byAddress=new Map();
@@ -22,7 +23,7 @@ function parseAssets(body){
    if(!ADDRESS.test(address))continue;
    const record={address,symbol,name,chainId:MAINNET,network:'Robinhood Chain',
     source:'Robinhood official asset registry',registryMatched:true,
-    logoUrl:registryLogo(item.logoUrl),
+    logoUrl:registryLogo(item.logoUrl,address),
     assetStatus:typeof item.status==='string'?item.status:null,
     multiplier:typeof item.currentMultiplier==='string'&&/^(?:0|[1-9]\d*)(?:\.\d{1,18})?$/.test(item.currentMultiplier)?item.currentMultiplier:null};
    const previous=byAddress.get(address);
