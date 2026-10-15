@@ -75,7 +75,7 @@ test('UTC date windows always rebase from the current day, never trust yesterday
  const a=ctx.safeCurrentEdition(edition(items),when);
  assert.equal(a.events.length,3);
  assert.deepEqual([a.windows.today.length,a.windows.next7.length,a.windows.days8to30.length],[1,1,1]);
- assert.deepEqual(a.events.map(e=>e.daysFromToday),[0,7,30]);
+ assert.deepEqual(Array.from(a.events,e=>e.daysFromToday),[0,7,30]);
  const next=ctx.safeCurrentEdition(edition(items),Date.parse('2026-10-16T00:01:00Z'));
  assert.deepEqual([next.windows.today.length,next.windows.next7.length,next.windows.days8to30.length],[0,1,1]);
  assert.ok(next.events.every(e=>e.date>='2026-10-16'));
