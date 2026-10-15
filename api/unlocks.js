@@ -35,9 +35,9 @@ async function fetchCmcLogos(events) {
 
 function mergeEvents(rows) {
   const groups = new Map(), conflicts = [];
-  for (const row of rows) { if (COVERAGE_REVIEWS.find(item => item.symbols.includes(row.symbol) && (!item.date || (item.date === row.date && item.name.toLowerCase() === row.name.toLowerCase()))) && row.verification !== 'project-confirmed') continue; const key = JSON.stringify([row.name.toLowerCase().trim(), row.symbol, row.tokenVersion || 'calendar-unspecified', row.date, row.allocation.toLowerCase().trim()]); if (!groups.has(key)) groups.set(key, []); groups.get(key).push(row); }
+  for (const row of rows) { if (COVERAGE_REVIEWS.find(item => item.symbols.includes(row.symbol) && (!item.date || (item.date === row.date && item.name.toLowerCase() === row.name.toLowerCase())) && item.status !== 'cross-source-float-percent-conflict') && row.verification !== 'project-confirmed') continue; const key = JSON.stringify([row.name.toLowerCase().trim(), row.symbol, row.tokenVersion || 'calendar-unspecified', row.date, row.allocation.toLowerCase().trim()]); if (!groups.has(key)) groups.set(key, []); groups.get(key).push(row); }
   const events = [];
-  for (const [key, group] of groups) { const amounts = new Set(group.map(row => row.amount.replace(/,/g, '').replace(/\s+/g, ' ').trim())); if (amounts.size !== 1) { conflicts.push({ identity: JSON.parse(key), reason: 'Conflicting published amounts', sources: [...new Set(group.map(row => row.sourceUrl))] }); continue; } const event = { ...group[0], evidence: group.flatMap(row => row.evidence || []) }; if (new Set(group.map(row => row.percent)).size > 1) event.percent = ''; events.push(event); }
+  for (const [key, group] of groups) { const amounts = new Set(group.map(row => row.amount.replace(/,/g, '').replace(/\s+/g, ' ').trim())); if (amounts.size !== 1) { conflicts.push({ identity: JSON.parse(key), reason: 'Conflicting published amounts', sources: [...new Set(group.map(row => row.sourceUrl))] }); continue; } const event = { ...group[0], evidence: group.flatMap(row => row.evidence || []) }; if (new Set(group.map(row => row.percent)).size > 1 || (event.verification !== 'project-confirmed' && COVERAGE_REVIEWS.some(r => r.status === 'cross-source-float-percent-conflict' && r.symbols.includes(event.symbol) && r.date === event.date && r.name.toLowerCase() === event.name.toLowerCase()))) event.percent = ''; events.push(event); }
   return { events, conflicts };
 }
 
@@ -62,7 +62,7 @@ function freshEdition(value, now = Date.now()) {
 // to issuer-confirmed or onchain verification.
 function safeCurrentEdition(raw, now = Date.now()) {
   const today = new Date(now).toISOString().slice(0, 10), end = new Date(Date.parse(today + 'T00:00:00Z') + 30 * 86400000).toISOString().slice(0, 10);
-  const excluded = [], seen = new Set(), events = [];
+  const excluded = [], percentageConflicts = [], seen = new Set(), events = [];
   for (const e of Array.isArray(raw.events) ? raw.events.slice(0, 1500) : []) {
     if (!e || typeof e.name !== 'string' || typeof e.symbol !== 'string' || typeof e.date !== 'string' || typeof e.amount !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(e.date) || e.date < today || e.date > end || !['source-published', 'project-confirmed'].includes(e.verification)) continue;
     const review = COVERAGE_REVIEWS.find(r => r.symbols.includes(e.symbol) && r.status === 'cross-source-date-allocation-conflict' && (!r.date || (r.date === e.date && r.name.toLowerCase() === e.name.toLowerCase())));
@@ -73,14 +73,16 @@ function safeCurrentEdition(raw, now = Date.now()) {
     const key = JSON.stringify([e.name.trim().toLowerCase(), e.symbol, e.date, e.amount, e.allocation || '']);
     if (seen.has(key)) continue;
     seen.add(key);
-    events.push({ ...e, daysFromToday: dayDiff(e.date, today) });
+    const percentReview = COVERAGE_REVIEWS.find(r => r.status === 'cross-source-float-percent-conflict' && r.symbols.includes(e.symbol) && r.date === e.date && r.name.toLowerCase() === e.name.toLowerCase());
+    if (percentReview && e.verification !== 'project-confirmed') percentageConflicts.push({ projectId: percentReview.projectId, symbol: e.symbol, date: e.date, reason: percentReview.reason });
+    events.push({ ...e, percent: percentReview && e.verification !== 'project-confirmed' ? '' : e.percent, daysFromToday: dayDiff(e.date, today) });
   }
   events.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name) || String(a.allocation || '').localeCompare(String(b.allocation || '')));
   return { ...raw, events, windows: {
     today: events.filter(e => e.daysFromToday === 0),
     next7: events.filter(e => e.daysFromToday >= 1 && e.daysFromToday <= 7),
     days8to30: events.filter(e => e.daysFromToday >= 8 && e.daysFromToday <= 30)
-  }, partial: Boolean(raw.partial || excluded.length), coverage: { ...(raw.coverage || {}), complete: false, reviews: COVERAGE_REVIEWS, quarantined: excluded } };
+  }, partial: Boolean(raw.partial || excluded.length || percentageConflicts.length), coverage: { ...(raw.coverage || {}), complete: false, reviews: COVERAGE_REVIEWS, quarantined: excluded, percentageConflicts } };
 }
 function validEdition(value) { return !!(value && value.schemaVersion === 1 && value.success === true && Array.isArray(value.events) && value.windows && ['today', 'next7', 'days8to30'].every(name => Array.isArray(value.windows[name]))); }
 function base64(value) { return Uint8Array.from(atob(value), char => char.charCodeAt(0)); }
