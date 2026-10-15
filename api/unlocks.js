@@ -64,7 +64,7 @@ function safeCurrentEdition(raw, now = Date.now()) {
   const today = new Date(now).toISOString().slice(0, 10), end = new Date(Date.parse(today + 'T00:00:00Z') + 30 * 86400000).toISOString().slice(0, 10);
   const excluded = [], seen = new Set(), events = [];
   for (const e of Array.isArray(raw.events) ? raw.events.slice(0, 1500) : []) {
-    if (!e || typeof e.name !== 'string' || typeof e.symbol !== 'string' || typeof e.date !== 'string' || typeof e.amount !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}$/.test(e.date) || e.date < today || e.date > end || !['source-published', 'project-confirmed'].includes(e.verification)) continue;
+    if (!e || typeof e.name !== 'string' || typeof e.symbol !== 'string' || typeof e.date !== 'string' || typeof e.amount !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(e.date) || e.date < today || e.date > end || !['source-published', 'project-confirmed'].includes(e.verification)) continue;
     const review = COVERAGE_REVIEWS.find(r => r.symbols.includes(e.symbol) && r.status === 'cross-source-date-allocation-conflict');
     if (review && e.verification !== 'project-confirmed') {
       excluded.push({ projectId: review.projectId, symbol: e.symbol, date: e.date, reason: review.reason });
