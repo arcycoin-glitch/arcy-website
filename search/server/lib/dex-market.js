@@ -5,7 +5,7 @@
  * Source/terms: https://docs.dexscreener.com/api/api-terms-and-conditions
  * Market metrics are returned-pool subtotals, NOT complete network totals.
  */
-const {readJson}=require('./http');
+const {createReader}=require('./source-request');
 const {safeLogoUrl}=require('./token-image');
 const {chain}=require('./chains');
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
@@ -13,10 +13,10 @@ const PAIR=/^0x(?:[0-9a-f]{40}|[0-9a-f]{64})$/i;
 const NETWORKS=Object.freeze({arc:'arc',ethereum:'ethereum',robinhood:'robinhood'});
 const ORIGIN='https://api.dexscreener.com';
 const TTL=60000;
-const cache=new Map(),inflight=new Map();
+const sourceReader=createReader({ttlMs:TTL,maxEntries:100});
 function finite(value,{positive=false}={}){
  if(typeof value!=='number'&&typeof value!=='string')return null;
- if(typeof value==='string'&&!/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value))return null;
+ if(typeof value==='string'&&!/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:e[+-]?\d{1,3})?$/i.test(value))return null;
  const n=Number(value);
  return Number.isFinite(n)&&(positive?n>0:n>=0)&&n<=1e18?n:null;
 }
@@ -39,14 +39,14 @@ function asField(value,network,address,selected,method,scope,kind){
 function validPools(payload,network,address){
  if(!Object.hasOwn(NETWORKS,network)||!ADDRESS.test(address))throw Error('Invalid network and token contract');
  if(!Array.isArray(payload))throw Error('Invalid DEX Screener response');
- const expected=NETWORKS[network],seen=new Set(),out=[];
+ const expected=NETWORKS[network],seen=new Map(),conflicts=new Set();
  for(const pair of payload.slice(0,60)){
   const p=typeof pair?.pairAddress==='string'?pair.pairAddress.toLowerCase():'';
   const base=typeof pair?.baseToken?.address==='string'?pair.baseToken.address.toLowerCase():'';
   const quote=typeof pair?.quoteToken?.address==='string'?pair.quoteToken.address.toLowerCase():'';
   if(pair?.chainId!==expected||!PAIR.test(p)||!ADDRESS.test(base)||!ADDRESS.test(quote)||
-    base===quote||![base,quote].includes(address)||seen.has(p))continue;
-  seen.add(p);out.push({pair:p,base,quote,dex:String(pair.dexId||'').slice(0,80),
+    base===quote||![base,quote].includes(address)||conflicts.has(p))continue;
+  const row={pair:p,base,quote,dex:String(pair.dexId||'').slice(0,80),
    price:finite(pair.priceUsd,{positive:true}),
    liquidity:finite(pair.liquidity?.usd),
    volume24h:finite(pair.volume?.h24),
@@ -55,9 +55,11 @@ function validPools(payload,network,address){
    marketCap:finite(pair.marketCap,{positive:true}),
    fdv:finite(pair.fdv,{positive:true}),
    // These are first-party response values, not ARCY calculations.
-  });
+  };
+  if(seen.has(p)){if(JSON.stringify(seen.get(p))!==JSON.stringify(row)){conflicts.add(p);seen.delete(p);}continue;}
+  seen.set(p,row);
  }
- return out.slice(0,30);
+ return [...seen.values()].slice(0,30);
 }
 function parseMarket(payload,network,address){
  const token=address.toLowerCase(),rows=validPools(payload,network,token);
@@ -94,19 +96,8 @@ function productionDisplayAllowed(){
  return process.env.VERCEL!=='1'||process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED==='true';
 }
 async function json(url,{fetcher=global.fetch,now=Date.now()}={}){
- const cached=cache.get(url);
- if(fetcher===global.fetch&&cached&&cached.expires>now)return structuredClone(cached.body);
- if(fetcher===global.fetch&&inflight.has(url))return structuredClone(await inflight.get(url));
- const request=(async()=>{
-  const response=await fetcher(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(9000)});
-  if(!response?.ok)throw Error('DEX Screener HTTP '+String(response?.status||'UNKNOWN'));
-  const body=await readJson(response,2*1024*1024);
-  if(fetcher===global.fetch){cache.set(url,{body,expires:Date.now()+TTL});if(cache.size>100)cache.delete(cache.keys().next().value)}
-  return body;
- })();
- if(fetcher!==global.fetch)return request;
- inflight.set(url,request);
- try{return structuredClone(await request)}finally{if(inflight.get(url)===request)inflight.delete(url)}
+ return (fetcher===global.fetch?sourceReader:createReader()).json(url,{
+  fetcher,timeoutMs:5000,maxBytes:2*1024*1024,validate:d=>Array.isArray(d)||Boolean(d&&Array.isArray(d.pairs))});
 }
 async function inspect(network,address,{fetcher=global.fetch,now=Date.now()}={}){
  if(!Object.hasOwn(NETWORKS,network)||typeof address!=='string'||!ADDRESS.test(address))
@@ -116,7 +107,13 @@ async function inspect(network,address,{fetcher=global.fetch,now=Date.now()}={})
  const url=ORIGIN+'/token-pairs/v1/'+NETWORKS[network]+'/'+token;
  try{
   const data=await json(url,{fetcher,now});
-  return parseMarket(data,network,token).fields;
+  const fields=parseMarket(data,network,token).fields;
+  const observed=sourceReader.observedAt(url)||now,stamp=new Date(observed).toISOString();
+  for(const field of Object.values(fields))if(field.dataState==='DATA_FOUND'){
+   field.freshness={retrievedAt:stamp,ageMs:Math.max(0,Date.now()-observed),basis:'Provider response retrieval time; upstream publication time unavailable.'};
+   field.evidence=field.evidence.map(e=>({...e,checkedAt:stamp}));
+  }
+  return fields;
  }catch(error){
   return unavailable('DEX Screener exact-contract market provider unavailable ('+
    String(error?.message||'unknown').slice(0,70)+').');

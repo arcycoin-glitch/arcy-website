@@ -5,6 +5,9 @@
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
 const {safeLogoUrl}=require('./token-image');
 const OFFICIAL=Object.freeze([
+ Object.freeze({network:'arc',chainId:5042,address:'0x76a443768a5e3b8d1aed0105fc250877841deb40',name:'Chainlink',symbol:'LINK',issuer:'Chainlink',proofUrl:'https://docs.chain.link/resources/link-token-contracts'}),
+ Object.freeze({network:'robinhood',chainId:4663,address:'0x492641f648a4986844848e0befe66d14817bce34',name:'Chainlink',symbol:'LINK',issuer:'Chainlink',proofUrl:'https://docs.chain.link/resources/link-token-contracts'}),
+ Object.freeze({network:'ethereum',chainId:1,address:'0xc944e90c64b2c07662a292be6244bdf05cda44a7',name:'Graph Token',symbol:'GRT',issuer:'The Graph',proofUrl:'https://thegraph.com/docs/en/resources/tokenomics/'}),
  // First-party ARCY contract from the existing official website repository.
  // Do not apply this identity to other Arc lookalikes or other EVM chains.
  Object.freeze({
@@ -135,7 +138,7 @@ function rank(network,query,candidates){
   }
   const official=verified(network,address);
   const stock=trustedStock(item);
-  const stockArt=stock?require('./robinhood-assets').registryLogo(item.logoUrl):null;
+  const stockArt=stock?require('./robinhood-assets').registryLogo(item.logoUrl,address):null;
   const identity=official||(stock?{
    status:'REGISTRY_MATCHED',type:'STOCK_TOKEN',chainId:4663,address,
    issuer:'Robinhood Chain official asset registry',

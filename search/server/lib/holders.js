@@ -1,7 +1,7 @@
 'use strict';
 const {found,unknown,error,card}=require('./evidence');
 const {rpc,ADDRESS,uint}=require('./eth');
-const {readJson}=require('./http');
+const source=require('./source-request').createReader({ttlMs:10000});
 const API='https://eth.blockscout.com/api/v2/tokens/';
 const MAX_HOLDERS=30;
 const blank=(reason,code='HOLDER_SNAPSHOT_NOT_VERIFIED')=>card(Object.fromEntries(['holderCount','largestWalletPct','top10Pct','top20Pct'].map(k=>[k,unknown(reason,code)])),'Ethereum holder snapshot; no partial concentration is represented as verified.');
@@ -31,7 +31,7 @@ function pct(numerator,denominator){
 }
 function calculate(addresses,balances,supply,count,block,token){
  if(!Array.isArray(addresses)||!Array.isArray(balances)||addresses.length<1||addresses.length!==balances.length||addresses.length!==count||!Number.isSafeInteger(count)||count>MAX_HOLDERS||typeof supply!=='bigint'||supply<=0n)return blank('The complete holder population was not reconciled.','INCOMPLETE_HOLDER_COVERAGE');
- if(new Set(addresses).size!==addresses.length||addresses.some(a=>!ADDRESS.test(a))||balances.some(n=>typeof n!=='bigint'||n<=0n||n>supply))return blank('Invalid, duplicate, or zero-balance holder entries.','HOLDER_RECONCILIATION_FAILED');
+ if(new Set(addresses.map(a=>String(a).toLowerCase())).size!==addresses.length||addresses.some(a=>!ADDRESS.test(a))||balances.some(n=>typeof n!=='bigint'||n<=0n||n>supply))return blank('Invalid, duplicate, or zero-balance holder entries.','HOLDER_RECONCILIATION_FAILED');
  const total=balances.reduce((s,n)=>s+n,0n);
  if(total!==supply)return blank('Pinned holder balances do not sum to the contract total supply.','HOLDER_SUPPLY_RECONCILIATION_FAILED');
  const ranking=balances.slice().sort((a,b)=>a>b?-1:a<b?1:0);
@@ -45,11 +45,8 @@ function calculate(addresses,balances,supply,count,block,token){
  },'All positive-balance holder candidates reconciled to supply at the pinned block; top 10/20 includes all wallets when fewer exist.');
 }
 async function json(url){
- const response=await fetch(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(8000)});
- if(!response.ok)throw Error('Explorer HTTP '+response.status);
- const body=await readJson(response,512*1024);
- if(!body||typeof body!=='object'||Array.isArray(body))throw Error('Malformed explorer response');
- return body;
+ return source.json(url,{maxBytes:512*1024,timeoutMs:5000,validate:body=>Boolean(body&&typeof body==='object'&&!Array.isArray(body)&&
+  (url.endsWith('/counters')?parseCount(body)!==null:Array.isArray(body.items)))});
 }
 async function pages(address,count){
  const addresses=[],seenPages=new Set();
@@ -97,7 +94,7 @@ async function inspect(address,block,rawSupply,{getCounters=json,getPages=pages,
    const info=await getCounters(API+address.toLowerCase()+'/counters');
    const count=parseCount(info);
    if(!count)return blank('A positive explorer holder count was not established.','COUNT_NOT_VERIFIED');
-   reported=found(count,'Blockscout',[{provider:'Blockscout',address,scope:'Source-reported current holder count; may not match an earlier pinned block.'}],'SOURCE_REPORTED');
+   reported=found(count,'Blockscout',[{provider:'Blockscout',address,scope:'Source-reported current holder count; may not match an earlier pinned block.'}],'SOURCE_REPORTED',source.observedAt(API+address.toLowerCase()+'/counters'));
    if(count>MAX_HOLDERS){
      const sourceRank=await require('./large-holders').inspect(address.toLowerCase(),block,rawSupply,count);
      return card({

@@ -66,11 +66,15 @@ async function inspect(address,block,{rpcCall=rpc,now=Date.now()}={}){
   rpcCall('eth_getBlockByNumber',[block,false])
  ]);
  if(Number(uint(decimalsWord))!==asset.decimals)throw Error('Unexpected Chainlink feed precision');
- const answer=BigInt(word(round,1));
+ const unsigned=BigInt(word(round,1));
+ const answer=unsigned>=(1n<<255n)?unsigned-(1n<<256n):unsigned;
  const updatedAt=Number(BigInt(word(round,3)));
- const roundId=BigInt(word(round,0)).toString();
+ const id=BigInt(word(round,0)),answered=BigInt(word(round,4)),startedAt=Number(BigInt(word(round,2)));
+ const roundId=id.toString();
  const blockTimestamp=Number(BigInt(blockData?.timestamp||'0x0'));
- if(answer<=0n||!Number.isSafeInteger(updatedAt)||updatedAt<=0||
+ if(answer<=0n||id<=0n||id>=(1n<<80n)||answered<id||answered>=(1n<<80n)||
+   !Number.isSafeInteger(startedAt)||startedAt<=0||startedAt>updatedAt||
+   !Number.isSafeInteger(updatedAt)||updatedAt<=0||
    !Number.isSafeInteger(blockTimestamp)||updatedAt>blockTimestamp)
   return failure('Oracle answer or timestamp is not valid at the pinned Ethereum block.','INVALID_ORACLE_ANSWER');
  const ageSeconds=Math.floor(now/1000)-updatedAt;

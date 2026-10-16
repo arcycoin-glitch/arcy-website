@@ -94,8 +94,9 @@ async function holder({address,base}){
   'GoPlus source-reported top-wallet sample, not a complete pinned-chain ranking. Contract-matched holder counts may come from Blockscout or GoPlus. Top 20 remains NOT VERIFIED.':
   'Holder count is source-reported where available; complete whale concentration is NOT VERIFIED.',fields};
 }
-async function activity({address},cardId){
+async function activity({address,base},cardId){
  const fields=await inspectMarket(address);
+ if(cardId==='activity')fields.valuation=require('./valuation').normalize(fields.valuation,fields.priceUsd,base,'robinhood');
  const keys=cardId==='liquidity'?['liquidityUsd','volume24h','dexPairCount','lpStatus']:
   ['priceUsd','valuation','change24h','volume24h'];
  return {description:'Market observations are source-reported from exact-contract Robinhood Chain pools and may cover only a subset of pools. They do not represent the underlying company share price; unsupported fields remain NOT VERIFIED.',

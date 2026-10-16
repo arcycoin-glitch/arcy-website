@@ -76,6 +76,7 @@ async function build(address){
   holders.status='PARTIAL_EVIDENCE';
  const liquidity=copyFields(m,['liquidityUsd','volume24h','dexPairCount','lpStatus'],'Exact-matched source-reported market data. LP permissions remain unverified.');
  const activity=copyFields(m,['priceUsd','valuation','change24h','volume24h'],'Primary base-token market values from exact Ethereum pairs; source-reported.');
+ activity.fields.valuation=require('./valuation').normalize(activity.fields.valuation,activity.fields.priceUsd,t,'ethereum');
  let extra={};
  if(c.fields?.owner?.dataState!=='DATA_FOUND'||c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'){
   try{extra=await require('./admin-getters').inspect({

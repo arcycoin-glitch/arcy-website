@@ -2,7 +2,8 @@
 const SEARCH=/^[\p{L}\p{N}\s.$_+\-&]{2,48}$/u;
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
 const {chain}=require('./chains');
-const {readJson}=require('./http');
+const {createReader}=require('./source-request');
+const source=createReader({ttlMs:30000});
 const {safeLogoUrl}=require('./token-image');
 function normalizeQuery(raw){
  if(typeof raw!=='string')return null;
@@ -21,9 +22,8 @@ async function searchExplorer(network,rawQuery,{fetchImpl=global.fetch}={}){
  const base=new URL(cfg.explorer);
  const endpoint=new URL('/api/v2/search',base);
  endpoint.searchParams.set('q',query);
- const response=await fetchImpl(endpoint,{headers:{accept:'application/json'},signal:AbortSignal.timeout(9000)});
- if(!response?.ok){const error=Error('Explorer search unavailable');error.code='EXPLORER_HTTP_'+String(response?.status||'UNKNOWN');throw error}
- const body=await readJson(response,1024*1024);
+ const reader=fetchImpl===global.fetch?source:createReader();
+ const body=await reader.json(endpoint.href,{fetcher:fetchImpl,timeoutMs:5000,validate:d=>Boolean(d&&Array.isArray(d.items))});
  if(!body||!Array.isArray(body.items))throw Error('Explorer search response invalid');
  const normalized=query.normalize('NFKC').toLocaleLowerCase('en-US');
  const matches=[];

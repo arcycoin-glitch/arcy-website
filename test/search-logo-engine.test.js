@@ -10,6 +10,13 @@ const ARC='0x'+'a'.repeat(40), ETH='0x'+'b'.repeat(40), COPY='0x'+'c'.repeat(40)
 const ICON='https://cdn.dexscreener.com/cms/images/logo-example.webp';
 const BSCOUT='https://cdn-icons.blockscout.com/token-icons/example.png';
 const response=body=>new Response(JSON.stringify(body),{status:200,headers:{'content-type':'application/json'}});
+const zlib=require('node:zlib');
+function imageResponse(){
+ const chunk=(name,data)=>{const n=Buffer.from(name),len=Buffer.alloc(4),crc=Buffer.alloc(4);len.writeUInt32BE(data.length);crc.writeUInt32BE(zlib.crc32(Buffer.concat([n,data])));return Buffer.concat([len,n,data,crc]);};
+ const h=Buffer.alloc(13);h.writeUInt32BE(8);h.writeUInt32BE(8,4);h[8]=8;h[9]=6;
+ const body=Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',h),chunk('IDAT',zlib.deflateSync(Buffer.alloc(8*33))),chunk('IEND',Buffer.alloc(0))]);
+ return new Response(body,{headers:{'content-type':'image/png'}});
+}
 
 test('decorative URLs accept only tight CDN image paths, not arbitrary hosts or documents',()=>{
  assert.equal(safeLogoUrl(ICON),ICON);
@@ -42,6 +49,7 @@ test('a token logo is bound to EXACT base contract and chain, not the quoted tok
 test('batch logo enrichment fetches once, caches by chain/contract, and remains unverified',async()=>{
  let requests=0;
  const fetchImpl=async(url)=>{
+  if(url===ICON)return imageResponse();
   requests++;
   assert.match(url,/tokens\/v1\/ethereum\/0x[b]+/);
   return response([{chainId:'ethereum',baseToken:{address:ETH},info:{imageUrl:ICON},liquidity:{usd:99}}]);
@@ -63,7 +71,7 @@ test('wrong-chain artwork never bleeds across Arc, Ethereum and Robinhood',async
  const wrong=await logos.enhance('ethereum',[{network:'arc',chainId:5042,address:ETH,logoUrl:ICON}],{fetchImpl:remote});
  assert.equal(wrong[0].logoUrl,null);
  const community=await logos.enhance('robinhood',[{network:'robinhood',chainId:4663,address:ARC,
-  registryMatched:false,logoUrl:ICON,identity:{status:'NOT_VERIFIED'}}],{fetchImpl:()=>{throw Error('Already indexed icon must avoid DEX fetch')}});
+  registryMatched:false,logoUrl:ICON,identity:{status:'NOT_VERIFIED'}}],{fetchImpl:url=>{assert.equal(url,ICON,'Already indexed icon must avoid DEX fetch');return imageResponse();}});
  assert.equal(community[0].logoUrl,ICON);
  assert.equal(community[0].identity.status,'NOT_VERIFIED');
  const stock=await logos.enhance('robinhood',[{network:'robinhood',chainId:4663,address:ARC,
@@ -75,6 +83,7 @@ test('Robinhood non-stock PONS resolves artwork only from exact chain and BASE t
  const rows=[{network:'robinhood',chainId:4663,address,logoUrl:null,
   identity:{status:'NOT_VERIFIED'},registryMatched:false}];
  const fetchImpl=async url=>{
+  if(url===ICON)return imageResponse();
   assert.match(url,/tokens\/v1\/robinhood\/0x39dbed3a/);
   return response([
    {chainId:'ethereum',baseToken:{address},info:{imageUrl:'https://cdn.dexscreener.com/cms/images/evil.png'},liquidity:{usd:100000}},

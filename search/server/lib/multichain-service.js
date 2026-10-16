@@ -38,7 +38,8 @@ async function report({network='ethereum',address}){
   // a Stock Token logo from a ticker, DEX pair or unrelated token address.
   const issuer=await robinhood.inspectStock({address:result.address});
   logoUrl=issuer?.registryMatched===true&&issuer.address===result.address?
-   require('./robinhood-assets').registryLogo(issuer.logoUrl):null;
+   require('./robinhood-assets').registryLogo(issuer.logoUrl,result.address):null;
+  if(logoUrl)logoUrl=(await require('./logo-validation').validate(logoUrl,{registry:true,address:result.address}))?.url||null;
  }
  if(!logoUrl&&(network!=='robinhood'||result.tokenIdentity?.status!=='REGISTRY_MATCHED')){
   const [decorated]=await logos.enhance(network,[{network,chainId:chains.chain(network).chainId,
