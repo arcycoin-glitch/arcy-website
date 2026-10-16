@@ -15,25 +15,27 @@ test('Robinhood runtime identifies only exact EIP-1167 clones',()=>{
  assert.equal(rhRpc.containsOpcode('0x60f4',0xf4),false);
  assert.equal(rhRpc.containsOpcode('0x60006000f4',0xf4),true);
 });
-test('Robinhood exact runtime scan reports the bounded no-DELEGATECALL architecture observation',async()=>{
+test('Robinhood mechanics rechecks actual runtime instead of trusting opcode hints',async()=>{
  const original=global.fetch,block='0x1234';
- global.fetch=async(_url,options)=>{const body=JSON.parse(options.body);const result=body.method==='eth_call'?'0x'+'0'.repeat(64):'0x'+'0'.repeat(64);return new Response(JSON.stringify({jsonrpc:'2.0',id:body.id,result}));};
+ let actualCode='0x600160005500';
+ global.fetch=async(_url,options)=>{if(!options?.body)return new Response('{}',{status:404});const body=JSON.parse(options.body);const result=body.method==='eth_getCode'?actualCode:'0x'+'0'.repeat(64);return new Response(JSON.stringify({jsonrpc:'2.0',id:body.id,result}));};
  try{
-  for(const [detected,expected] of [[false,/No DELEGATECALL opcode/],[true,/DELEGATECALL opcode present/]]){
+  for(const detected of [false,true]){
+   actualCode=detected?'0x60006000f400':'0x600160005500';
    const card=await adapter.mechanics({address:ADDRESS,base:{address:ADDRESS,block,runtimeDelegatecallDetected:detected}});
    const field=card.fields.contractArchitecture;
-   assert.equal(field.dataState,'DATA_FOUND');assert.equal(field.status,'ON_CHAIN');
-   assert.match(field.value,expected);assert.equal(field.evidence[0].block,block);
-   if(detected)assert.match(field.evidence[0].scope,/not proof of a reachable call/i);
-   else assert.match(field.evidence[0].scope,/does not rule out/i);
+   if(detected){assert.equal(field.dataState,'NOT_VERIFIED');assert.equal(field.value,null);}
+   else{assert.equal(field.dataState,'DATA_FOUND');assert.equal(field.status,'ON_CHAIN');assert.match(field.value,/NON-PROXY/);assert.equal(field.evidence[0].block,block);}
   }
  }finally{global.fetch=original}
 });
 test('Robinhood mechanics adds architecture only after pinned implementation bytecode exists',async()=>{
  const original=global.fetch,implementation='0x'+'b'.repeat(40),block='0x1234';
  global.fetch=async(url,options)=>{
+  if(!options?.body)return new Response('{}',{status:404});
   const body=JSON.parse(options.body);
   const result=body.method==='eth_getCode'&&body.params[0]===implementation?'0x60016000':
+   body.method==='eth_getCode'&&body.params[0]===ADDRESS?'0x363d3d373d3d3d363d73'+implementation.slice(2)+'5af43d82803e903d91602b57fd5bf3':
    body.method==='eth_call'?'0x'+'0'.repeat(64):'0x'+'0'.repeat(64);
   return new Response(JSON.stringify({jsonrpc:'2.0',id:body.id,result}));
  };

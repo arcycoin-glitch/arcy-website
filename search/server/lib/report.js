@@ -84,7 +84,8 @@ async function build(address){
    needImplementation:c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'
   })}catch{} // A failing optional getter never removes existing evidence.
  }
- const mechanics=mechanicsCard(c,sec,extra);
+ const mechanics=await require('./mechanics-deep').enrich({network:'ethereum',address:t.address,
+  block:t.block,rpc:require('./eth').rpc,card:mechanicsCard(c,sec,extra)});
  const cards={supply,holders,liquidity,activity,mechanics};
  for(const d of schema){
    if(!cards[d.id])throw Error('Missing required card '+d.id);

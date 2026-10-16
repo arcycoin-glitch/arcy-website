@@ -210,7 +210,7 @@ test('Arc mechanics restores exact-contract reviewed fields while unapproved GoP
   rpc.rpc=async()=> '0x'+'0'.repeat(64);
   global.fetch=async url=>{if(String(url).includes('gopluslabs.io'))goPlusCalls++;throw Error('unexpected provider request')};
   const result=await require('../search/server/lib/arc-adapter').mechanics({address:A,base:{block:'0x100'}});
-  assert.equal(result.fields.tradingTaxes.value,'Buy 3% · Sell 3%');
+  assert.equal(result.fields.tradingTaxes.value,'Buy 3% · Sell 3% · Transfer NOT VERIFIED');
   assert.equal(result.fields.mintCapability.value,false);
   assert.equal(result.fields.contractArchitecture.dataState,'DATA_FOUND');
   assert.equal(goPlusCalls,0);

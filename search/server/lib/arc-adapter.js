@@ -189,7 +189,7 @@ async function activity({address,base},cardId){
 
 const IMPLEMENTATION='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
 function addressWord(raw){
- return typeof raw==='string'&&/^0x[0-9a-f]{64}$/i.test(raw)&&
+ return typeof raw==='string'&&/^0x0{24}[0-9a-f]{40}$/i.test(raw)&&
   !/^0{40}$/.test(raw.slice(-40))?'0x'+raw.slice(-40).toLowerCase():null;
 }
 async function mechanics({address,base}){
@@ -235,7 +235,8 @@ async function mechanics({address,base}){
     detected[key]?.dataState==='DATA_FOUND'?detected[key]:existing
   ]));
  }
- return {description:'Verified Arc contract mechanics with pinned-RPC/GoPlus-source fallback; external detection never overrides stronger first-party evidence.',fields};
+ return require('./mechanics-deep').enrich({network:'arc',address,block:base.block,rpc:rpcClient.rpc,
+  card:{description:'Verified Arc contract mechanics with pinned-RPC/source fallback; external detection never overrides stronger first-party evidence.',fields}});
 }
 async function inspectCard({base,address,cardId}){
  switch(cardId){

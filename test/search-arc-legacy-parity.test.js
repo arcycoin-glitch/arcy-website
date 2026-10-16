@@ -11,7 +11,7 @@ test('Original Arc contract authority and taxes map into exact-chain new cards',
   mint:field(true),ownerAdmin:field(true),
   proxyUpgradeable:{...field('0x'+'a'.repeat(40)),upgradeable:field(true)}
  }},ADDRESS);
- assert.equal(result.tradingTaxes.value,'Buy 3% · Sell 3%');
+ assert.equal(result.tradingTaxes.value,'Buy 3% · Sell 3% · Transfer NOT VERIFIED');
  assert.equal(result.tradingTaxes.chainId,5042);
  assert.equal(result.mintCapability.value,true);
  assert.equal(result.ownerAdmin.value,true);
