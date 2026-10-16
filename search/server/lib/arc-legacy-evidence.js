@@ -60,12 +60,15 @@ function contract(result,address){
  const legacy=result.contractFields;
  const taxBuy=sourceField(legacy.buyTax,address,'Reviewed onchain or independently verified buy tax');
  const taxSell=sourceField(legacy.sellTax,address,'Reviewed onchain or independently verified sell tax');
+ const taxTransfer=sourceField(legacy.transferTax,address,'Reviewed token transfer tax; pool/hook fees remain separate');
  const taxes=taxBuy.dataState==='DATA_FOUND'&&taxSell.dataState==='DATA_FOUND'&&
   [taxBuy.value,taxSell.value].every(n=>typeof n==='number'&&n>=0&&n<=100)?
-  {value:'Buy '+taxBuy.value+'% · Sell '+taxSell.value+'%',status:'SOURCE_REPORTED',
+  {value:'Buy '+taxBuy.value+'% · Sell '+taxSell.value+'%'+
+   (taxTransfer.dataState==='DATA_FOUND'&&typeof taxTransfer.value==='number'&&taxTransfer.value>=0&&taxTransfer.value<=100?
+    ' · Transfer '+taxTransfer.value+'%':' · Transfer NOT VERIFIED'),status:'SOURCE_REPORTED',
    dataState:'DATA_FOUND',source:taxBuy.source===taxSell.source?taxBuy.source:
     taxBuy.source+' / '+taxSell.source,network:NETWORK,chainId:CHAIN,
-   evidence:[...taxBuy.evidence,...taxSell.evidence],
+   evidence:[...taxBuy.evidence,...taxSell.evidence,...(taxTransfer.dataState==='DATA_FOUND'?taxTransfer.evidence:[])],
    scope:'Token-level/source-reported trade taxes; pool and hook fees may be additional.'}:
   NO('Both buy and sell tax rates require valid explicit source evidence.','TRADE_TAX_PAIR_UNVERIFIED');
  const mint=selectedBoolOrText(legacy.mint,address,

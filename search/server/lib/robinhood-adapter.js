@@ -103,7 +103,7 @@ async function activity({address},cardId){
 }
 const PROXY='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
 function addressOf(word){
- return typeof word==='string'&&/^0x[0-9a-f]{64}$/i.test(word)&&!/^0+$/.test(word.slice(-40))?'0x'+word.slice(-40).toLowerCase():null;
+ return typeof word==='string'&&/^0x0{24}[0-9a-f]{40}$/i.test(word)&&!/^0+$/.test(word.slice(-40))?'0x'+word.slice(-40).toLowerCase():null;
 }
 async function mechanics({address,base}){
  let cloneArchitecture=null;
@@ -140,7 +140,7 @@ async function mechanics({address,base}){
    needAdmin:!owner,needImplementation:!implementation
   })}catch{} // Optional fallback never replaces known on-chain evidence.
  }
- return {description:'On-chain getters and chain-specific GoPlus security observations; not a complete privilege or upgradeability audit.',
+ return require('./mechanics-deep').enrich({network:'robinhood',address,block:base.block,rpc,card:{description:'On-chain getters and chain-specific GoPlus security observations; not a complete privilege or upgradeability audit.',
   fields:{
    tradingTaxes:observed.tradingTaxes?.dataState==='DATA_FOUND'?observed.tradingTaxes:
     NO('No contract-matched trading-tax report.'),
@@ -156,7 +156,7 @@ async function mechanics({address,base}){
     extra.contractArchitecture?.dataState==='DATA_FOUND'?extra.contractArchitecture:
     observed.contractArchitecture?.dataState==='DATA_FOUND'?observed.contractArchitecture:
     NO('EIP-1967 implementation not established; other proxy designs may exist.')
-  }};
+  }}});
 }
 async function inspectCard({base,cardId,address}){
  switch(cardId){
