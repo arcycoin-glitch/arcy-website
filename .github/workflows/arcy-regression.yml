@@ -4,6 +4,7 @@ on:
     branches:
       - fix/restore-new-ui-old-data-20261012
       - release/arcy-search-ultimate-20261013
+      - qa/search-v3-independent-validation-20261016
       - main
   pull_request:
     branches:
@@ -18,4 +19,9 @@ jobs:
         with:
           node-version: '22'
       - name: Static code and regression tests
-        run: npm test
+        run: |
+          node --check search-upgrade.js
+          node --check api/search/index.js
+          node --check search/server/lib/logo-validation.js
+          node --check search/server/lib/report.js
+          node --test --test-concurrency=1 test/*.test.js tests/*.test.mjs
