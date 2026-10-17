@@ -45,7 +45,9 @@ function evaluate(page,chainBalances,totalSupply,block,token,count){
  // blanking all three metrics or publishing stale balances.
  if(chainBalances.length!==page.rows.length||chainBalances.some(value=>
   typeof value!=='bigint'||value<=0n||value>totalSupply))return {ok:false,reasonCode:'INVALID_PINNED_CANDIDATE_BALANCE'};
- const ranked=chainBalances.slice().sort((a,b)=>a>b?-1:a<b?1:0);
+ const rankedRows=page.rows.map((row,i)=>({address:row.address,balance:chainBalances[i]}))
+  .sort((a,b)=>a.balance>b.balance?-1:a.balance<b.balance?1:a.address.localeCompare(b.address));
+ const ranked=rankedRows.map(row=>row.balance);
  const twenty=ranked.slice(0,20);
  const sum=twenty.reduce((a,b)=>a+b,0n);
  if(sum>totalSupply)return {ok:false,reasonCode:'TOP_BALANCES_EXCEED_SUPPLY'};
@@ -62,7 +64,13 @@ function evaluate(page,chainBalances,totalSupply,block,token,count){
    reportedHolderCount:count,
    limitation:'All balances are pinned RPC values, but candidate membership and holder count are explorer-reported. This is not an exhaustive census and cannot prove an unlisted wallet is absent; beneficiary control and clustered wallets are not proven.'
  }];
- return {ok:true,fields:{
+ const holderCandidates=rankedRows.slice(0,20).map((row,index)=>({
+  address:row.address,rank:index+1,sharePct:percentage(row.balance,totalSupply),
+  role:require('./holder-attribution').classify({network:'ethereum',chainId:1,address:row.address}).role,
+  block,source:'Blockscout candidate address + pinned Ethereum balanceOf',
+  scope:'Source-ranked candidate, not proof of global rank or beneficial ownership.'
+ }));
+ return {ok:true,holderCandidates,fields:{
   largestWalletPct:found(first,'Blockscout candidate addresses + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED'),
   top10Pct:found(top10,'Blockscout candidate addresses + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED'),
   top20Pct:found(top20,'Blockscout candidate addresses + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED')
@@ -94,7 +102,8 @@ async function inspect(token,block,supplyRaw,count,{getPage=fetchPage,getBalance
   const chainBalances=await getBalances(token.toLowerCase(),page.rows,block);
   const result=evaluate(page,chainBalances,BigInt(supplyRaw),block,token.toLowerCase(),count);
   if(!result.ok)return missing(result.reasonCode,'Ranked holder candidates failed pinned Ethereum RPC reconciliation.');
-  return {...card(result.fields,'Source-ranked top-20 balances reconciled with pinned Ethereum RPC; ranked completeness remains explorer-reported.'),rankedEvidence:'SOURCE_REPORTED_RPC_RECONCILED'};
+  return {...card(result.fields,'Source-ranked top-20 balances reconciled with pinned Ethereum RPC; ranked completeness remains explorer-reported.'),
+   holderCandidates:result.holderCandidates,rankedEvidence:'SOURCE_REPORTED_RPC_RECONCILED'};
  }catch(e){
   return missing('RANKED_SOURCE_API_FAILED','Blockscout or Ethereum RPC failed during source-ranked holder checks.');
  }

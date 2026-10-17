@@ -35,7 +35,25 @@ function formatCard(cardId,raw,cfg){
  const fields=Object.fromEntries(keys.map(key=>[key,validateField(source[key],cfg)]));
  const statuses=Object.values(fields).map(x=>x.dataState);
  const count=statuses.filter(s=>s==='DATA_FOUND').length;
- return {fields,status:count===keys.length?'SOURCE_BACKED':
+ const holderCandidates=[];
+ if(cardId==='holders'&&cfg.id==='ethereum'&&Array.isArray(raw?.holderCandidates)&&
+    raw.holderCandidates.length>0&&raw.holderCandidates.length<=20&&
+    fields.largestWalletPct.dataState==='DATA_FOUND'){
+  const seen=new Set();
+  for(const row of raw.holderCandidates){
+   const address=typeof row?.address==='string'?row.address.toLowerCase():'';
+   if(!ADDRESS.test(address)||seen.has(address)||row.rank!==holderCandidates.length+1||
+      typeof row.sharePct!=='number'||!Number.isFinite(row.sharePct)||
+      row.sharePct<0||row.sharePct>100||!/^0x[0-9a-f]+$/i.test(row.block||'')||
+      (row.role!=='UNKNOWN'&&row.role!=='BURN_ADDRESS')||
+      row.block!==fields.largestWalletPct.evidence?.[0]?.block){
+    holderCandidates.length=0;break;
+   }
+   seen.add(address);holderCandidates.push({address,rank:row.rank,sharePct:row.sharePct,
+    role:row.role,block:row.block});
+  }
+ }
+ return {...(holderCandidates.length?{holderCandidates}:{}),fields,status:count===keys.length?'SOURCE_BACKED':
   count>0?'PARTIAL_EVIDENCE':
   statuses.includes('SOURCE_API_FAILED')?'SOURCE_API_FAILED':'NOT_VERIFIED',
   description:typeof raw?.description==='string'?raw.description.slice(0,250):'Only chain-matched evidence is displayed.'};

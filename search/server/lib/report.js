@@ -72,6 +72,7 @@ async function build(address){
   if(holders.fields[key]?.dataState!=='DATA_FOUND'&&goPlusHolders[key]?.dataState==='DATA_FOUND')
    holders.fields[key]=goPlusHolders[key];
  }
+ if(Array.isArray(h.holderCandidates)&&h.holderCandidates.length)holders.holderCandidates=h.holderCandidates;
  if(Object.values(holders.fields).some(f=>f.dataState==='DATA_FOUND'))
   holders.status='PARTIAL_EVIDENCE';
  const liquidity=copyFields(m,['liquidityUsd','volume24h','dexPairCount','lpStatus'],'Exact-matched source-reported market data. LP permissions remain unverified.');

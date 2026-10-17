@@ -629,6 +629,23 @@ function render(report){
         }
         proofList.append(block);
       }
+      if(spec.id==='holders'&&Array.isArray(card.holderCandidates)&&card.holderCandidates.length){
+       const ranked=document.createElement('details');ranked.className='advanced-proof';
+       const heading=document.createElement('summary');
+       heading.textContent='Inspect source-ranked holder addresses ('+card.holderCandidates.length+' candidates)';
+       const explanation=document.createElement('p');
+       explanation.textContent='Pinned balances for explorer-provided candidates. UNKNOWN means no confirmed address role. These are not proven global ranks or beneficial owners.';
+       ranked.append(heading,explanation);
+       for(const item of card.holderCandidates){
+        if(!/^0x[0-9a-f]{40}$/i.test(item.address)||!Number.isFinite(item.sharePct))continue;
+        const line=document.createElement('p');line.className='proof-entry';
+        const anchor=document.createElement('a');anchor.href='https://eth.blockscout.com/address/'+item.address;
+        anchor.rel='noopener noreferrer';anchor.target='_blank';anchor.textContent=item.address;
+        line.append(document.createTextNode('#'+item.rank+' · '+item.sharePct.toFixed(4)+'% · '+item.role+' · '),anchor);
+        ranked.append(line);
+       }
+       proofList.append(ranked);
+      }
       details.append(summary,proofList);
       const advanced=document.createElement('details');advanced.className='advanced-proof';
       const more=document.createElement('summary');more.textContent='Technical evidence JSON';
