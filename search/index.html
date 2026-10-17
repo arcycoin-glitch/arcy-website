@@ -488,7 +488,6 @@ function displayBurnShare(value){
 function render(report){
   const root=$('cards');
   root.replaceChildren();
-  const withoutEvidence=[];
   const count=$('evidenceCount');count.textContent='20 checks · Sources, risks and evidence';
   if(report&&report.cards){
    let valid=0,historical=0,total=0;
@@ -523,7 +522,6 @@ function render(report){
      'Current holdings at standard zero/dead addresses; not proof of an official burn event, buyback or lifetime burned supply.':
      (card?.description||'Awaiting verified evidence');
     section.append(description);
-    const missingRows=[];
     let knownCount=0;
     for(const [key,label] of spec.fields){
       const data=card?.fields?.[key];
@@ -561,20 +559,12 @@ function render(report){
        result.append(why);
       }
       row.append(name,result);
-      if(report&&missing&&spec.id!=='mechanics')missingRows.push(row);
-      else{section.append(row);if(report&&!missing)knownCount++}
+      section.append(row);if(report&&!missing)knownCount++;
     }
     if(report&&knownCount===0&&spec.id!=='mechanics'){
       const notice=document.createElement('p');notice.className='noSource';
       notice.textContent='No independently supported figures for this category yet.';
       section.append(notice);
-    }
-    if(report&&missingRows.length){
-      const hidden=document.createElement('details');hidden.className='missingGroup';
-      const toggle=document.createElement('summary');
-      toggle.textContent='Show '+missingRows.length+' unverified checks and reasons';
-      hidden.append(toggle,...missingRows);
-      section.append(hidden);
     }
     const status=document.createElement('div');
     status.className='meta statusLine';
@@ -646,22 +636,11 @@ function render(report){
       advanced.append(more,pre);details.append(advanced);
       section.append(details);
     }
-    if(card&&present===0&&spec.id!=='mechanics')withoutEvidence.push(section);
-    else root.append(section);
-  }
-  // Zero-data categories remain inspectable but do not dominate the page.
-  if(report&&withoutEvidence.length){
-   const groups=document.createElement('details');
-   groups.className='unverifiedModules';
-   const label=document.createElement('summary');
-   label.textContent=withoutEvidence.length+' research '+(withoutEvidence.length===1?'category':'categories')+
-    ' without source-backed metrics · Review reasons';
-   const nested=document.createElement('div');nested.className='grid';
-   nested.append(...withoutEvidence);
-   groups.append(label,nested);root.append(groups);
+    root.append(section);
   }
 }
 render(null);
+$('deepResearch').open=true;
 
 const EVM_ADDRESS=/^0x[0-9a-fA-F]{40}$/;
 const NETWORKS={arc:{id:5042,label:'Arc',explorer:'https://explorer.arc.io'},ethereum:{id:1,label:'Ethereum',explorer:'https://eth.blockscout.com'},robinhood:{id:4663,label:'Robinhood Chain',explorer:'https://robinhoodchain.blockscout.com'}};
@@ -748,7 +727,7 @@ function activateHome({push=false}={}){
  if(location.pathname.startsWith('/search/')){location.assign('/#search');return}
  cancelPending();
  $('tokenDetail').hidden=true;$('discovery').hidden=false;
- $('deepResearch').open=false;
+ $('deepResearch').open=true;
  $('asset').replaceChildren();clearIdentity();render(null);
  $('quickFacts').replaceChildren();$('detailState').textContent='';
  $('address').value='';clearMatches();
@@ -766,7 +745,7 @@ function activateDetail(address,network,{push=true,identity=null,logoUrl=null}={
  $('detailSearchQuery').value='';$('detailMatches').replaceChildren();$('detailMatches').hidden=true;
  $('detailSearchStatus').textContent='Search without leaving this analysis.';
  $('discovery').hidden=true;$('tokenDetail').hidden=false;
- $('deepResearch').open=false;
+ $('deepResearch').open=true;
  setChartRange('30D');
  $('asset').replaceChildren();clearIdentity();render(null);
  $('quickFacts').replaceChildren();

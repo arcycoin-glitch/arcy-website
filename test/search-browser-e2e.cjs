@@ -146,9 +146,10 @@ function candidate(network) {
         await page.waitForURL(`**/search/token/${network}/${addresses[network]}`);
         await page.waitForFunction(() => document.querySelector('#detailState')?.textContent.includes('Snapshot complete'));
         assert.equal(await page.locator('#cards > .card').count(), 5);
-        await page.locator('#deepResearch').evaluate(node => { node.open = true; });
-        assert.equal(await page.locator('#cards > .card > .metric').count(), 19, '19 sourced rows render; valuation remains withheld in the missing group');
-        assert.equal(await page.locator('#cards > .card .missingGroup').count(), 1);
+        assert.equal(await page.locator('#deepResearch').getAttribute('open'),'');
+        assert.equal(await page.locator('#cards > .card > .metric').count(), 20, 'all rows remain directly visible, including unresolved valuation');
+        assert.equal(await page.locator('#cards > .card .missingGroup').count(), 0);
+        for(const row of await page.locator('#cards > .card > .metric').all())assert.ok(await row.isVisible());
         assert.match(await page.locator('#evidenceCount').innerText(), /20 checks/);
         const detailLogo = page.locator('#tokenDetail img.token-title-logo');
         assert.equal(await detailLogo.count(), network === 'robinhood' ? 0 : 1, 'site-owned and permitted provider artwork appear on detail while missing stock art stays absent');

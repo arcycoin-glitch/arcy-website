@@ -44,8 +44,11 @@ function report(network,mode){
     await page.goto(origin+'/search/token/'+network+'/'+address,{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>document.querySelector('#detailState').textContent.includes('Snapshot complete'));
     if(mode.startsWith('missing-'))await page.evaluate(data=>render(data),fixture);
-    await page.locator('#deepResearch').evaluate(el=>{el.open=true;});
+    assert.ok(await page.locator('#deepResearch').evaluate(el=>el.open));
     assert.equal(await page.locator('#cards .card').count(),5);assert.equal(await page.locator('#cards .metric').count(),20);
+    assert.equal(await page.locator('#cards > .card > .metric').count(),20);
+    assert.equal(await page.locator('#cards .unverifiedModules').count(),0);
+    for(const row of await page.locator('#cards > .card > .metric').all())assert.ok(await row.isVisible());
     const card=page.locator('#cards > .card').filter({has:page.locator('h2',{hasText:'Contract & Mechanics'})});
     assert.equal(await card.count(),1,'Mechanics must not be nested inside the no-source category disclosure');
     const rows=card.locator(':scope > .metric');assert.equal(await rows.count(),4);
