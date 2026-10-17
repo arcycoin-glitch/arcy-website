@@ -479,6 +479,12 @@ function isHistoricalEvidence(field){
 function isCurrentEvidence(field){
  return field?.dataState==='DATA_FOUND'&&field.value!==null&&field.value!==undefined&&!isHistoricalEvidence(field);
 }
+function displayBurnShare(value){
+ const percentage=Number(value);
+ if(typeof value!=='number'||!Number.isFinite(percentage)||percentage<0||percentage>100)return 'NOT VERIFIED';
+ if(percentage>0&&percentage<0.000000000001)return '<0.000000000001%';
+ return percentage.toFixed(12).replace(/0+$/,'').replace(/\.$/,'')+'%';
+}
 function render(report){
   const root=$('cards');
   root.replaceChildren();
@@ -513,7 +519,9 @@ function render(report){
     section.append(title);
     const description=document.createElement('div');
     description.className='description';
-    description.textContent=card?.description||'Awaiting verified evidence';
+    description.textContent=spec.id==='supply'&&card?
+     'Current holdings at standard zero/dead addresses; not proof of an official burn event, buyback or lifetime burned supply.':
+     (card?.description||'Awaiting verified evidence');
     section.append(description);
     const missingRows=[];
     let knownCount=0;
@@ -522,13 +530,15 @@ function render(report){
       const row=document.createElement('div');
       row.className='metric';
       const name=document.createElement('span');
-      name.textContent=key==='valuation'?(data?.kind==='MARKET_CAP'?'Market Cap':data?.kind==='FDV'?'FDV':'Valuation'):label;
+      name.textContent=key==='valuation'?(data?.kind==='MARKET_CAP'?'Market Cap':data?.kind==='FDV'?'FDV':'Valuation'):
+       key==='burnAddressBalance'?'Burn-Address Balance':key==='burnAddressPct'?'Burn-Address Share':label;
       const result=document.createElement('div');result.className='result';
       const value=document.createElement('b');
       const missing=!data||data.value===null||data.value===undefined;
       value.className=missing?'no':'';
       const kind=key==='valuation'?data?.kind:null;
-      const displayed=!report?'—':missing?'NOT VERIFIED':metricFormat.display(data.value,key,key==='valuation'?null:kind);
+      const displayed=!report?'—':missing?'NOT VERIFIED':key==='burnAddressPct'&&typeof data.value==='number'?
+       displayBurnShare(data.value):metricFormat.display(data.value,key,key==='valuation'?null:kind);
       value.textContent=displayed;
       value.title=data?.reason||data?.source||'';
       result.append(value);
@@ -967,8 +977,8 @@ function renderQuickFacts(report){
   ['TRACKED LIQUIDITY','liquidity','liquidityUsd','liquidityUsd'],
   ['HOLDER COUNT','holders','holderCount','holderCount'],
   ['TOTAL SUPPLY','supply','totalSupply','totalSupply'],
-  ['DEAD-ADDRESS BALANCE','supply','burnAddressBalance','burnAddressBalance'],
-  ['DEAD-ADDRESS %','supply','burnAddressPct','burnAddressPct'],
+  ['BURN-ADDRESS BALANCE','supply','burnAddressBalance','burnAddressBalance'],
+  ['BURN-ADDRESS SHARE','supply','burnAddressPct','burnAddressPct'],
   ['24H VOLUME','activity','volume24h','volume24h'],
   ['24H CHANGE','activity','change24h','change24h'],
   ['TRACKED PAIRS','liquidity','dexPairCount','dexPairCount']
@@ -1004,7 +1014,7 @@ function renderQuickFacts(report){
    const b=document.createElement('div');b.className='quick-value';
    const backed=valid([label,card,key,formatKey]);
    // MARKET CAP / FDV is the label, not part of the numeric value.
-   b.textContent=backed?metricFormat.display(field.value,formatKey):'NOT VERIFIED';
+   b.textContent=backed?(formatKey==='burnAddressPct'?displayBurnShare(field.value):metricFormat.display(field.value,formatKey)):'NOT VERIFIED';
    if(!backed)box.classList.add('quick-unverified');
    const note=document.createElement('small');
    note.textContent=backed?

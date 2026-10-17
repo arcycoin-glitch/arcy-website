@@ -2,6 +2,10 @@
 // Bounded raster validation, not an image proxy. Never inline remote SVG.
 const {safeLogoUrl}=require('./token-image'),{registryLogo}=require('./robinhood-assets');
 const MAX=256*1024,cache=new Map(),pending=new Map();
+function cached(raw,{address,registry=false,now=Date.now()}={}){
+ const url=registry?registryLogo(raw,address):safeLogoUrl(raw);if(!url)return null;
+ const hit=cache.get(url);return hit&&hit.until>now?hit.value:undefined;
+}
 function dimensions(b){
  if(b.length>=24&&b.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))&&b.toString('ascii',12,16)==='IHDR')return {type:'image/png',width:b.readUInt32BE(16),height:b.readUInt32BE(20)};
  if(b.length>=30&&b.toString('ascii',0,4)==='RIFF'&&b.toString('ascii',8,12)==='WEBP'){
@@ -37,4 +41,4 @@ async function validate(raw,{address,registry=false,fetcher=global.fetch,now=Dat
  })();
  if(fetcher!==global.fetch)return work;pending.set(url,work);try{return await work;}finally{pending.delete(url);}
 }
-module.exports={validate,dimensions,MAX};
+module.exports={validate,cached,dimensions,MAX};

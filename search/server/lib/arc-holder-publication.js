@@ -10,6 +10,9 @@ const ADDRESS=/^0x[0-9a-f]{40}$/;
 const HASH=/^0x[0-9a-f]{64}$/;
 const BLOCK=/^0x[0-9a-f]+$/;
 const KEYS=['holderCount','largestWalletPct','top10Pct','top20Pct'];
+// Only authenticated COMPLETE publications; exact feed/key/contract isolation.
+// Process-local outage protection supplements the existing durable worker.
+const lastVerified=new Map();
 function parseConfiguration(env=process.env){
  const raw=env.ARC_HOLDER_PUBLISHED_URL,publicKey=env.ARC_HOLDER_PUBLIC_KEY;
  if(!raw||!publicKey)return null;
@@ -42,11 +45,14 @@ function verifyDocument(document,address,key,now=Date.now()){
  if(!KEYS.slice(1).every(k=>typeof x[k]==='number'&&Number.isFinite(x[k])&&
     x[k]>=0&&x[k]<=100))return null;
  if(x.largestWalletPct>x.top10Pct||x.top10Pct>x.top20Pct)return null;
+ const anchors=new Set(x.evidence.filter(e=>e?.block===x.block&&HASH.test(e.anchor||'')).map(e=>e.anchor.toLowerCase()));
+ if(anchors.size!==1)return null;
+ const anchor=[...anchors][0];
  for(const name of KEYS){
   const field=x.fields?.[name];
   if(field?.value!==x[name]||field?.dataState!=='DATA_FOUND'||
    field?.status!=='ONCHAIN_VERIFIED'||!Array.isArray(field.evidence)||
-   !field.evidence.some(e=>e?.block===x.block&&HASH.test(e.anchor||'')))return null;
+   !field.evidence.some(e=>e?.block===x.block&&HASH.test(e.anchor||'')&&e.anchor.toLowerCase()===anchor))return null;
  }
  return x;
 }
@@ -62,6 +68,7 @@ function toCard(snapshot,address){
   snapshot:{block:snapshot.block,completedAt:observedAt,freshness:'LAST_VERIFIED'},
   fields:Object.fromEntries(KEYS.map(k=>[k,{
    value:snapshot[k],status:'SIGNED_ONCHAIN_SNAPSHOT',dataState:'DATA_FOUND',
+   freshness:{state:'LAST_VERIFIED',observedAt,block:snapshot.block},
    chainId:cfg.chainId,network:cfg.id,
    source:'Arc signed COMPLETE holder publication',
    evidence:[{network:cfg.id,chainId:cfg.chainId,address,
@@ -77,20 +84,27 @@ async function load(address,{env=process.env,fetcher=fetch,now=Date.now()}={}){
  if(!configuration)return empty('A secure signed holder publication feed is not configured.');
  const url=new URL(address+'.json',configuration.url);
  if(url.origin!==configuration.url.origin)return empty('Invalid publication URL.');
+ const cacheKey=url.href+'#'+configuration.key.export({format:'der',type:'spki'}).toString('base64');
+ const unavailable=reason=>{
+  const previous=lastVerified.get(cacheKey);
+  if(!previous)return empty(reason);
+  const card=toCard(structuredClone(previous),address);
+  card.description+=' Publication refresh unavailable; previous verified snapshot retained.';
+  return card;
+ };
  try{
   const response=await fetcher(url.href,{signal:AbortSignal.timeout(5500),
    headers:{accept:'application/json'},cache:'no-store'});
-  if(!response.ok)return empty(response.status===404?'No COMPLETE snapshot published yet.':
+  if(!response.ok)return unavailable(response.status===404?'No COMPLETE snapshot published yet.':
    'Arc signed publication source unavailable.');
   const body=await readJson(response,512*1024);
   const snapshot=verifyDocument(body,address,configuration.key,now);
-  if(!snapshot)return empty('Signature, source chain or COMPLETE snapshot proof invalid.');
-  const timestamp=Date.parse(snapshot.snapshot.completedAt);
-  if(timestamp<now-48*60*60*1000)
-   return empty('Last signed COMPLETE holder snapshot is from '+
-    new Date(timestamp).toISOString()+
-    '; older than 48 hours. Historical balances cannot verify current holder and whale percentages.');
-  return toCard(snapshot,address);
- }catch{return empty('Arc signed publication request failed or timed out.')}
+  if(!snapshot)return unavailable('Signature, source chain or COMPLETE snapshot proof invalid.');
+  const previous=lastVerified.get(cacheKey);
+  const selected=previous&&Date.parse(previous.snapshot.completedAt)>Date.parse(snapshot.snapshot.completedAt)?previous:snapshot;
+  lastVerified.delete(cacheKey);lastVerified.set(cacheKey,structuredClone(selected));
+  while(lastVerified.size>32)lastVerified.delete(lastVerified.keys().next().value);
+  return toCard(structuredClone(selected),address);
+ }catch{return unavailable('Arc signed publication request failed or timed out.')}
 }
 module.exports={KEYS,load,empty,toCard,parseConfiguration,verifyDocument};

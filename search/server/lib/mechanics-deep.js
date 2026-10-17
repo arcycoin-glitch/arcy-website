@@ -21,7 +21,8 @@ const PROFILES=Object.freeze({
  '292fad46b97e1b50bd191dfd857de081abfb199ad96ff02a055124da4a708cf2':'TIMED_CAPPED_MINTER',
  '3424b81acc01fc833b18f1e2341511fe1bffdd065376112ef979243834e13ba4':'WARD_AUTH_TOKEN',
  '5f75f27c6b98783b82c28164831948668e502ee20bd302aaaeff35c74dbda664':'ALLOWANCE_MINTER_TOKEN',
- '82f4da21cdb0464ca580be2847548393fa678d7e06310fc169d74663ede571fd':'REGISTRY_AUTH_TOKEN'
+ '82f4da21cdb0464ca580be2847548393fa678d7e06310fc169d74663ede571fd':'REGISTRY_AUTH_TOKEN',
+ ...require('./mechanics-reviewed-v4').PROFILES
 });
 const REVIEWED_LEGACY_PROXY='b49bec6077f927208196e052c2a55e5a37fe21fd8e9e1dc8e90f6f1116cf8c7e';
 const REVIEWED_BEACON_PROXY='922425867904c46fb129080ebcd685ba70e0afb5aaa9fdc47b5f9327cee41196';
@@ -79,11 +80,24 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
  const outer=await sourcePromise;if(outer)details.sources.push({address,digest:outer.digest,url:outer.url,retrievedAt:outer.retrievedAt});
  if(outer?.digest===REVIEWED_LEGACY_PROXY&&kind==='Legacy implementation slot')admin=addressWord(await safe('eth_getStorageAt',[address,SLOTS.legacyAdmin,block]));
  let beaconBinding=false;
- if(outer?.digest===REVIEWED_BEACON_PROXY){
-  const refs=Object.values(outer.immutableReferences||{}).flat();
+ const template=require('./mechanics-reviewed-v4').immutableBeacon(code);
+ if(outer?.digest===REVIEWED_BEACON_PROXY||template){
+  if(template)details.runtimeTemplate=template;
+  const refs=outer?.digest===REVIEWED_BEACON_PROXY?Object.values(outer.immutableReferences||{}).flat():[template];
   if(refs.length===1&&refs[0].length===32&&Number.isInteger(refs[0].start)&&refs[0].start>=0&&refs[0].start*2+64<=code.length-2){
    const actual=addressWord('0x'+code.slice(2+refs[0].start*2,2+refs[0].start*2+64));
-   if(actual&&await deployed(actual)){if(beacon!==actual)diagnostics.push({reason:'BEACON_SLOT_IMMUTABLE_MISMATCH'});beacon=actual;const impl=addressWord(await call(beacon,'implementation()'));const c=await deployed(impl);if(c){target=impl;targetCode=c;kind='Reviewed immutable beacon proxy';beaconBinding=true;}}
+   const beaconCode=await deployed(actual);
+   if(actual&&beaconCode){
+    const beaconSource=await sourceLoader(cfg,actual,beaconCode,diagnostics);
+    if(beaconSource&&Object.hasOwn(require('./mechanics-reviewed-v4').BEACON_SOURCES,beaconSource.digest)){
+     details.sources.push({address:actual,digest:beaconSource.digest,url:beaconSource.url,retrievedAt:beaconSource.retrievedAt});
+     if(beacon!==actual)diagnostics.push({reason:'BEACON_SLOT_IMMUTABLE_MISMATCH'});
+     beacon=actual;
+     const raw=await safe('eth_call',[{from:address,to:beacon,data:selector('implementation()')},block]);
+     const impl=addressWord(raw),c=await deployed(impl);
+     if(c){target=impl;targetCode=c;kind='Reviewed immutable beacon proxy';beaconBinding=true;}
+    }else diagnostics.push({reason:'BEACON_EXECUTION_SOURCE_UNREVIEWED',beacon:actual});
+   }
   }
  }
  if(kind&&targetCode){
@@ -96,7 +110,8 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
  const implementationSource=target!==address&&targetCode?await sourceLoader(cfg,target,targetCode,diagnostics):outer;
  if(implementationSource&&target!==address)details.sources.push({address:target,digest:implementationSource.digest,url:implementationSource.url,retrievedAt:implementationSource.retrievedAt});
  // Unknown delegated target cannot inherit an outer ABI as token implementation evidence.
- const boundTarget=target===address||Boolean(clone)||outer?.digest===REVIEWED_LEGACY_PROXY&&kind==='Legacy implementation slot'||beaconBinding;
+ const reviewedSlotProxy=outer&&Object.hasOwn(require('./mechanics-reviewed-v4').PROXY_SOURCES,outer.digest)&&kind==='EIP-1967 implementation';
+ const boundTarget=target===address||Boolean(clone)||outer?.digest===REVIEWED_LEGACY_PROXY&&kind==='Legacy implementation slot'||beaconBinding||reviewedSlotProxy;
  const reviewedImplementation=implementationSource&&Object.hasOwn(PROFILES,implementationSource.digest);
  const resolved=boundTarget&&(target===address?nonDelegating(code):targetCode&&(nonDelegating(targetCode)||reviewedImplementation));
  const source=resolved?implementationSource:null;
@@ -160,6 +175,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
     else diagnostics.push({reason:deprecated&&BigInt(deprecated)===1n?'LEGACY_FORWARDING_ACTIVE':'FEE_STATE_UNAVAILABLE'});
     if(authority)fields.mintCapability=fact('Owner-authorized issuance','Reviewed issue(uint256) + pinned owner',{...proof,owner:authority,scope:'Source issue() increases balances/supply under onlyOwner; no claim of successful execution now.'},'VERIFIED_SOURCE_AND_STATE');
    }
+   await require('./mechanics-reviewed-v4').apply({profile,fields,details,proof,fact,word,call,address,block,keccak,admin,direct:target===address&&nonDelegating(code)});
   }
  }
  // Optional read-only authority evidence. No Safe/timelock identity from a
