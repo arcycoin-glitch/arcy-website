@@ -50,3 +50,21 @@ test('invalid pinned balances never yield published candidate roles',()=>{
  assert.equal(result.ok,false);
  assert.equal(result.holderCandidates,undefined);
 });
+
+test('report formatter forwards only block-matched Ethereum candidate metadata',()=>{
+ const {formatCard}=require('../search/server/lib/data-engine');
+ const cfg={id:'ethereum',chainId:1};
+ const proof=[{block:'0x123',method:'balanceOf',address:'0x'+'a'.repeat(40)}];
+ const value=n=>({dataState:'DATA_FOUND',value:n,status:'SOURCE_REPORTED_RPC_RECONCILED',
+   source:'Blockscout candidate addresses + Ethereum RPC',evidence:proof,chainId:1,network:'ethereum'});
+ const fields={holderCount:value(500),largestWalletPct:value(10),top10Pct:value(30),top20Pct:value(60)};
+ const row={address:'0x'+'a'.repeat(40),rank:1,sharePct:10,role:'UNKNOWN',block:'0x123'};
+ const good=formatCard('holders',{fields,holderCandidates:[row]},cfg);
+ assert.equal(good.holderCandidates?.[0]?.address,row.address);
+ const wrongBlock=formatCard('holders',{fields,holderCandidates:[{...row,block:'0x124'}]},cfg);
+ assert.equal(wrongBlock.holderCandidates,undefined);
+ const wrongChain=formatCard('holders',{fields,holderCandidates:[row]},{id:'arc',chainId:5042});
+ assert.equal(wrongChain.holderCandidates,undefined);
+ const impersonation=formatCard('holders',{fields,holderCandidates:[{...row,role:'ISSUER_TREASURY'}]},cfg);
+ assert.equal(impersonation.holderCandidates,undefined);
+});
