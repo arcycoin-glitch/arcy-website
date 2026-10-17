@@ -65,7 +65,7 @@ function percentage(balance,total){
 function reconcile(addresses,balances,expected,totalRaw,contract,block){
  if(!ADDRESS.test(contract||'')||!/^0x[0-9a-f]+$/i.test(block||''))throw Error('Invalid snapshot identity');
  if(!Array.isArray(addresses)||!Array.isArray(balances)||addresses.length!==expected||balances.length!==expected)throw Error('Incomplete pinned balance coverage');
- if(new Set(addresses).size!==expected||addresses.some(a=>!ADDRESS.test(a)))throw Error('Invalid holder address inventory');
+ if(new Set(addresses.map(a=>String(a).toLowerCase())).size!==expected||addresses.some(a=>!ADDRESS.test(a)))throw Error('Invalid holder address inventory');
  const total=BigInt(totalRaw);
  if(total<=0n)throw Error('No positive total supply');
  if(balances.some(b=>typeof b!=='bigint'||b<=0n||b>total))throw Error('Nonpositive or invalid indexed holder balance');

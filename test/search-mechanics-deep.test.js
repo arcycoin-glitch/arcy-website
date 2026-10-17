@@ -77,7 +77,8 @@ test('reviewed immutable beacon binding outranks a stale writable beacon slot',a
  const outer={digest:'922425867904c46fb129080ebcd685ba70e0afb5aaa9fdc47b5f9327cee41196',abi:[],immutableReferences:{beacon:[{start:1,length:32}]}};
  const implementation={digest:profile('REGISTRY_AUTH_TOKEN'),abi:[]};
  const x=fixture({code,slots:{[m.SLOTS.beacon]:addr(registry)},targets:{[B]:basic,[C]:basic,[registry]:basic},calls:{[B+':'+m.selector('implementation()')]:addr(C),[m.selector('ACCESS_CONTROLLED_REGISTRY()')]:addr(registry)}});
- x.options.sourceLoader=async(_,address)=>address===A?outer:implementation;
+ x.options.sourceLoader=async(_,address)=>address===A?outer:address===B?
+  {digest:'b80e9ea9116556c182e12f8e786950a32985026edff7b62c73130ca3661eccdf',abi:[]}:implementation;
  const r=await m.inspect(x.options);assert.equal(r.fields.contractArchitecture.evidence[0].implementation,C);assert.match(r.fields.contractArchitecture.value,/immutable beacon/);assert.equal(r.fields.mintCapability.evidence[0].registry,registry);assert.ok(r.details.failures.some(x=>x.reason==='BEACON_SLOT_IMMUTABLE_MISMATCH'));
 });
 test('source body timeout and invalid schema never enter evidence cache',async()=>{

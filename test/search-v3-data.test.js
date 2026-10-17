@@ -56,8 +56,12 @@ test('Robinhood reconciliations remain pinned and limit concurrent RPC calls to 
 test('production permission gates stay closed with no operator approval; no new restricted provider',async()=>{
  const v=process.env.VERCEL,flag=process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED;process.env.VERCEL='1';delete process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED;try{let fetched=false;const out=await dex.inspect('ethereum',A,{fetcher:async()=>{fetched=true;throw Error('not allowed');}});assert.equal(out.priceUsd.dataState,'NOT_VERIFIED');assert.equal(fetched,false);}finally{if(v===undefined)delete process.env.VERCEL;else process.env.VERCEL=v;if(flag===undefined)delete process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED;else process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED=flag;}
 });
-test('PR26 Mechanics engine and schema remain byte-identical to production baseline',()=>{
- const cp=require('child_process');for(const p of ['search/server/lib/mechanics-deep.js','search/server/schema.js'])assert.equal(fs.readFileSync(p,'utf8').replace(/\r\n/g,'\n'),cp.execFileSync('git',['show','7c1faf7:'+p]).toString().replace(/\r\n/g,'\n'));
+test('PR26 source validation, evidence precedence, profiles and schema remain preserved through V4 extensions',()=>{
+ const cp=require('child_process'),p='search/server/lib/mechanics-deep.js',original=cp.execFileSync('git',['show','7c1faf7:'+p]).toString().replace(/\r\n/g,'\n'),current=fs.readFileSync(p,'utf8').replace(/\r\n/g,'\n');
+ const sourceGuard=s=>s.slice(s.indexOf('function validateSource('),s.indexOf('async function sourceFor('));assert.equal(sourceGuard(current),sourceGuard(original));
+ const precedence=s=>s.slice(s.indexOf('async function enrich('));assert.equal(precedence(current),precedence(original));
+ for(const [,hash,name]of original.matchAll(/'([a-f0-9]{64})':'([A-Z_]+)'/g))assert.equal(require('../search/server/lib/mechanics-deep').PROFILES[hash],name);
+ assert.equal(fs.readFileSync('search/server/schema.js','utf8').replace(/\r\n/g,'\n'),cp.execFileSync('git',['show','7c1faf7:search/server/schema.js']).toString().replace(/\r\n/g,'\n'));
 });
 test('signed-negative oracle answers and incomplete rounds cannot become positive reference prices',async()=>{
  const oracle=require('../search/server/lib/oracle-market'),token='0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',now=Date.now(),t=Math.floor(now/1000),word=n=>BigInt(n).toString(16).padStart(64,'0');

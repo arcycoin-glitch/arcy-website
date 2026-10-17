@@ -120,10 +120,14 @@ async function enhance(network,items,{fetchImpl=global.fetch,now=Date.now()}={})
  await Promise.all(Array.from({length:Math.min(3,decorated.length)},async()=>{
   for(;;){const i=cursor++;if(i>=decorated.length)return;const item=decorated[i];
    if(!item.logoUrl||item.logoUrl.startsWith('/'))continue;
+   const images=require('./logo-validation'),options={address:item.address,
+    registry:item.logoSource?.startsWith('Robinhood official')===true,now};
+   // A slow earlier thumbnail must not discard an already validated warm hit.
+   // Expired/unknown images still require validation within the original budget.
+   const warm=fetchImpl===global.fetch?images.cached(item.logoUrl,options):undefined;
    const remaining=deadline-Date.now();
-   const valid=remaining>0?await require('./logo-validation').validate(item.logoUrl,{
-    address:item.address,registry:item.logoSource?.startsWith('Robinhood official')===true,
-    fetcher:fetchImpl,now,timeoutMs:remaining}):null;
+   const valid=warm!==undefined?warm:remaining>0?await images.validate(item.logoUrl,{
+    ...options,fetcher:fetchImpl,timeoutMs:remaining}):null;
    if(!valid){item.logoUrl=null;item.logoSource=null;}
   }
  }));
