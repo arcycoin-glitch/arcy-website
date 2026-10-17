@@ -20,3 +20,31 @@ claims of beneficial ownership. Unknown addresses remain UNKNOWN.
 
 **This initial stage does not alter production reports, visible design, API
 schema, holders ranking, provider permissions, railway worker, or deployment.**
+
+## First read-only integration (review branch)
+- For Ethereum tokens with at least 21 well-formed Blockscout holder candidates,
+  each candidate receives a pinned RPC balance, and the 20 largest candidates
+  are reported with exact public addresses, candidate-relative ranks, and
+  percentages of pinned total supply. This **does not prove global rank**.
+- Each address receives only deterministic zero/dead custody attribution or
+  UNKNOWN. No issuer treasury, exchange, LP, bridge or vesting label is
+  assigned without an independently reviewed source record.
+- The holder report keeps its original four metric identifiers. The optional
+  `holderCandidates` array is shown **only within the existing evidence panel**
+  with Blockscout address links and explicit candidate-scope limitations.
+- Arc historical COMPLETE publications and Robinhood holder metrics remain
+  intact and unchanged. No new addresses are invented when explorer feeds
+  return 403 or source coverage is absent.
+- A failed pinned RPC reconciliation yields no address candidates.
+
+## Validation and release status
+- Added seven focused Node test scenarios (five classifier and two candidate tests).
+- Code committed to GitHub, but test execution **has not been confirmed**:
+  the isolated runner cannot access the repository over the network.
+- Do not merge or deploy until CI/Node suite, API responses for ONDO and other
+  Ethereum tokens, UI acceptance at 320/390/768/1440px, and security review
+  have completed. In particular, the optional candidate field must not change
+  the existing count, concentration metrics or evidence semantics.
+- Source-backed roles beyond deterministic zero/dead **are not yet populated**;
+  achieving that requires an independently reviewed issuer/explorer registry,
+  provenance controls, and reviewed claim expiry/revocation.
