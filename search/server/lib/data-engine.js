@@ -45,7 +45,8 @@ function formatCard(cardId,raw,cfg){
    if(!ADDRESS.test(address)||seen.has(address)||row.rank!==holderCandidates.length+1||
       typeof row.sharePct!=='number'||!Number.isFinite(row.sharePct)||
       row.sharePct<0||row.sharePct>100||!/^0x[0-9a-f]+$/i.test(row.block||'')||
-      row.role!=='UNKNOWN'&&row.role!=='BURN_ADDRESS'){
+      (row.role!=='UNKNOWN'&&row.role!=='BURN_ADDRESS')||
+      row.block!==fields.largestWalletPct.evidence?.[0]?.block){
     holderCandidates.length=0;break;
    }
    seen.add(address);holderCandidates.push({address,rank:row.rank,sharePct:row.sharePct,
