@@ -48,3 +48,16 @@ schema, holders ranking, provider permissions, railway worker, or deployment.**
 - Source-backed roles beyond deterministic zero/dead **are not yet populated**;
   achieving that requires an independently reviewed issuer/explorer registry,
   provenance controls, and reviewed claim expiry/revocation.
+
+## Report engine and browser acceptance gates
+- The schema-preserving report formatter now retains up to twenty candidate
+  addresses **only for Ethereum**, when the holder RPC evidence and candidate
+  block match. Non-Ethereum reports and invalid evidence receive no candidates.
+- Public Ethereum explorer links appear only inside the pre-existing holder
+  sources/evidence disclosure. No new core card or metric is introduced.
+- Tests now additionally cover fail-closed candidate ranks, invalid balances,
+  wrong-chain metadata, mismatched evidence blocks, and attempted unreviewed
+  role promotion.
+- Vercel preview for current commit was READY, indicating deployment build
+  success, but this alone does **not** establish Node test passing or live
+  holder result correctness. Production must remain unchanged.
