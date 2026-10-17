@@ -551,10 +551,10 @@ function render(report){
        result.append(why);
       }
       row.append(name,result);
-      if(report&&missing)missingRows.push(row);
-      else{section.append(row);if(report)knownCount++}
+      if(report&&missing&&spec.id!=='mechanics')missingRows.push(row);
+      else{section.append(row);if(report&&!missing)knownCount++}
     }
-    if(report&&knownCount===0){
+    if(report&&knownCount===0&&spec.id!=='mechanics'){
       const notice=document.createElement('p');notice.className='noSource';
       notice.textContent='No independently supported figures for this category yet.';
       section.append(notice);
@@ -636,7 +636,7 @@ function render(report){
       advanced.append(more,pre);details.append(advanced);
       section.append(details);
     }
-    if(card&&present===0)withoutEvidence.push(section);
+    if(card&&present===0&&spec.id!=='mechanics')withoutEvidence.push(section);
     else root.append(section);
   }
   // Zero-data categories remain inspectable but do not dominate the page.

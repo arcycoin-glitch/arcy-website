@@ -1,5 +1,7 @@
 # ARCY Search V3 — data and logo audit
 
+> Review follow-up (2026-10-17): owner additionally authorized the narrow Mechanics row-visibility correction described below. Original data/logo findings are retained; no broader redesign is included.
+
 Audit date: 2026-10-16 UTC. Review-only branch: `data/search-v3-data-logos`. No production deployment, provider-flag change, environment-file change, or merge.
 
 ## Baseline and scope
@@ -223,3 +225,44 @@ Contracts are given in the table above. Codes below come from the measured respo
 - Existing general browser regression: **PASS** at320/390/1440px, source429/report503 isolation and unchanged5 cards/20 metrics.
 - Both were rerun alone without modifying either test. Initial simultaneous runs observed one extra debounced discovery request (25 vs24;19 vs18); this timing sensitivity is disclosed, not “fixed” by weakening assertions or changing UI behavior.
 - Production remains READY at7c1faf7. This branch is for DRAFT review only; production is not deployed from it.
+
+
+## Review follow-up — TSLA deterministic tests and Mechanics row visibility
+
+### TSLA regression diagnosis
+
+The previous392/393 failure expected the exact official TSLA PNG URL but received null after roughly1017ms. The registry itself was mocked; the subsequent binary artwork fetch was not. This made a unit assertion depend on live CDN/network availability within the existing1s image budget. Original failure logs did not record the HTTP outcome, so an exact historical403/429 versus timeout cannot be retroactively asserted.
+
+Three unmodified single-test retries all passed (process totals1246/498/496ms). Three fresh Node-runtime live validation probes returned HTTP200 image/png,180×180, no redirect: cold360/204/198ms; warm0ms with no second HTTP request. Production discovery returned the exact4663 TSLA contract and official PNG in1404ms. The existing5dfacb1 preview was protected for raw fetch; Vercel authenticated fetch confirmed the same exact contract, chain and registry logo without changing protection or exposing credentials. These results support the owner's independent observation: contract identity mapping is correct.
+
+The proven defect fixed here is **nondeterministic unit-test I/O**, not an invented production identity defect. The original assertions are retained. An injected complete32×32 PNG fixture replaces live image I/O in that one existing logo test; unmatched contract artwork receives an empty mocked market response. A new test explicitly rejects accidental global fetch use. No production image-validator, timeout, cache TTL or identity/security logic was changed.
+
+Seven added unit cases cover exact TSLA identity, the existing1s timeout, body stall after headers, HTTP403/429/503/network outages, negative-cache expiry/recovery, concurrent validation/warm cache, wrong chain/contract, redirects and executable SVG rejection. The timeout test deterministically produces null without any concurrency, proving that concurrency is not necessary for this outcome. Negative results remain cached30s; valid art15min. The current conservative fallback is intentional: an upstream image exceeding1s or failing security validation may still produce initials. It does not erase issuer identity or metrics and is not a permanent poisoned cache.
+
+The separate live browser test uses real production API responses and actual180×180 PNG decode at1440px and390×844. It tests title art, detail re-search and homepage suggestions. Simulated browser-only CDN503 restores TS initials on both discovery surfaces. Fault cases use fresh browser contexts: reusing already-decoded browser memory would otherwise hide the simulated outage. No production API, provider flag or application cache is altered by this test.
+
+### Owner-requested Mechanics visibility correction
+
+The renderer previously moved unresolved rows into missingGroup, and moved a wholly unresolved card into unverifiedModules. The narrowly scoped correction in search/index.html exempts only mechanics from both hide rules. The existing four row labels, metric identifiers, formatters, verified values, NOT VERIFIED fallback, short reasons and View sources & evidence remain unchanged. Unknown rows do not increase verified/source-backed counts. The redundant zero-source notice is omitted for Mechanics because its four visible reasons already explain the state. No rows are duplicated in the disclosure.
+
+No CSS, static HTML skeleton, card order, typography, spacing, colors, backend/data semantics, other cards, PR26 engine, workers, licensing flags or unrelated sections changed. This is the explicitly requested visibility exception to the original visual freeze. The existing full-report disclosure remains unchanged.
+
+Focused browser fixtures passed30/30 combinations: three networks ×1440/390px ×architecture-only/all-unverified/missing-fields/missing-card/all-verified. Missing-schema resilience is tested by directly invoking the renderer after loading a valid report; the API's strict schema validation is not weakened. All four Mechanics rows are direct children, visible; total structure stays5 cards/20 metric rows. Evidence access and document/card overflow checks pass. Screenshots were inspected at both widths.
+
+Real-source local browser acceptance passed ARCY(Arc), GRT(Ethereum), TSLA(Robinhood) at both1440px and390×844. Each returned its exact-chain contract, five cards and twenty fields, with four visible Mechanics rows. Missing data remains NOT VERIFIED. Provider approval flags stayed disabled in the conservative local profile; no new provider was enabled. This focused follow-up does not claim a new29-token data-coverage increase.
+
+### Follow-up regression results
+
+- Full Node suite:400/400 PASS (default parallel,18.06s).
+- Full Node suite repeat:400/400 PASS (serial file scheduling,74.04s).
+- Existing Search browser regression: PASS unchanged,320/390/768/1440px, three networks, chart presets and logo rendering.
+- Existing general browser regression: PASS unchanged,320/390/1440px, error isolation,5 cards/20 metrics.
+- Focused Mechanics visibility:30/30 PASS.
+- Live TSLA production browser and browser-only image outage fallback: desktop/mobile PASS.
+- Real-source ARCY/GRT/TSLA visibility: desktop/mobile PASS.
+- PR26 engine/schema and unchanged unrelated site files remain protected by the full regression. No application/backend source changes were required for TSLA.
+
+Follow-up files: search/index.html; test/search-pulse-original-logos.test.js (TSLA test only, existing Pulse assertions untouched); test/helpers/logo-artwork.cjs; test/search-logo-reliability.test.js; test/search-mechanics-visibility.cjs; test/search-tsla-logo-live.cjs; test/search-v3-live.cjs (direct-row assertions and explicit sample-filter handling); this report.
+
+Review only. No merge, manual deployment, production promotion or provider/security configuration change.
+- Final full-suite repeat on the completed changes: **400/400 PASS**, serial file scheduling,79.00s. Total:three full successful runs. No test assertion or production security limit was weakened.

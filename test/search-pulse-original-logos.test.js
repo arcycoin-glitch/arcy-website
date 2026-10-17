@@ -9,6 +9,7 @@ const logos=require('../search/server/lib/search-logo');
 const identities=require('../search/server/lib/token-identity');
 const fs=require('node:fs');
 const A='0x322f0929c4625ed5bad873c95208d54e1c003b2d';
+const artwork=require('./helpers/logo-artwork.cjs');
 function response(){return {code:200,setHeader(){return this},status(n){this.code=n;return this},json(x){this.body=x;return x}}}
 test('three distinct Pulse source panels plus ARCY Take never present archived headlines as current',()=>{
  const v=fallback.fallback(Date.parse('2026-10-13T10:00:00Z'));
@@ -94,12 +95,19 @@ test('official Robinhood Stock Token artwork matches signed chain-4663 registry,
  const ok=ranked.find(x=>x.address===A);
  assert.equal(ok.identity.status,'REGISTRY_MATCHED');
  assert.equal(ok.logoUrl,logo);
- const shown=await logos.enhance('robinhood',ranked);
+ let imageReads=0;
+ const fetchImpl=async(url,options)=>{
+  if(url===logo){imageReads++;assert.equal(options.redirect,'error');assert.equal(options.credentials,'omit');return artwork.response();}
+  assert.equal(url,'https://api.dexscreener.com/tokens/v1/robinhood/'+A);
+  return Response.json([]); // Unmatched token art stays unavailable; no network use.
+ };
+ const shown=await logos.enhance('robinhood',ranked,{fetchImpl});
  assert.equal(shown.find(x=>x.address===A).logoUrl,logo);
+ assert.equal(imageReads,1);
  const fake=await logos.enhance('robinhood',[{...rows[0],network:'robinhood',
-   registryMatched:false,logoUrl:logo}]);
+   registryMatched:false,logoUrl:logo}],{fetchImpl});
  assert.equal(fake[0].logoUrl,null);
- const eth=await logos.enhance('ethereum',[{...rows[0],network:'ethereum',logoUrl:logo}]);
+ const eth=await logos.enhance('ethereum',[{...rows[0],network:'ethereum',logoUrl:logo}],{fetchImpl});
  assert.equal(eth[0].logoUrl,null);
 });
 test('landing page has no empty Arc chain mark and Pulse guarantees a three-card source-led backup',()=>{
