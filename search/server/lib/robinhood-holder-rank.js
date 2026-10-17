@@ -41,13 +41,15 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
   if(!ranked)return unavailable('BLOCKSCOUT_HOLDERS_SCHEMA_INVALID');
   if(ranked.length===0)return unavailable('BLOCKSCOUT_HOLDERS_EMPTY');
   let reconciled;
-  try{reconciled=await Promise.all(ranked.map(async row=>{
+  try{reconciled=Array(ranked.length);let cursor=0;
+   await Promise.all(Array.from({length:Math.min(4,ranked.length)},async()=>{for(;;){
+   const i=cursor++;if(i>=ranked.length)return;const row=ranked[i];
    const word=await rpcCall('eth_call',[{to:token,data:'0x70a08231'+row.address.slice(2).padStart(64,'0')},block]);
    if(typeof word!=='string'||!/^0x[0-9a-f]{64}$/i.test(word))throw Error('Invalid pinned balance');
    const balance=BigInt(word);
    if(balance!==row.amount)throw Error('Blockscout balance is not current at the pinned block');
-   return {address:row.address,balance};
-  }));}catch{return unavailable('BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED')}
+   reconciled[i]={address:row.address,balance};
+  }}));}catch{return unavailable('BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED')}
   const total=BigInt(totalSupplyRaw);
   const observed=reconciled.reduce((sum,row)=>sum+row.balance,0n);
   if(observed>total)return unavailable('BLOCKSCOUT_RANK_SUPPLY_RECONCILIATION_FAILED');
