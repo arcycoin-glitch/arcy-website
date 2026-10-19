@@ -27,6 +27,7 @@ test('neither source available returns only nonverified defaults',async()=>{
 test('both sources are started before either resolves',async()=>{
  let resolveDex,resolveOracle,started=0;
  const task=inspect(token,block,{dexInspect:()=>{started++;return new Promise(r=>resolveDex=r)},oracleInspect:()=>{started++;return new Promise(r=>resolveOracle=r)}});
+ await Promise.resolve();
  assert.equal(started,2);
  resolveDex({});resolveOracle({priceUsd:verified});
  assert.equal((await task).fields.priceUsd.value,5);
