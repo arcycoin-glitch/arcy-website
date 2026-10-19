@@ -54,6 +54,27 @@ function currentCensus(address){
  }
  return require('./timeout').withTimeout(censusPending.get(address),6000,'Optional Arc census deadline');
 }
+const holderRefreshAttempts=new Map();
+async function requestStaleHolderRefresh(address,completedAt){
+ const stamp=Date.parse(completedAt||'');
+ if(!Number.isFinite(stamp)||Date.now()-stamp<24*3600000||
+    !process.env.ARC_HOLDER_QUEUE_URL||!process.env.ARC_HOLDER_QUEUE_TOKEN)return false;
+ const now=Date.now();
+ if((holderRefreshAttempts.get(address)||0)>now)return false;
+ holderRefreshAttempts.set(address,now+10*60000);
+ while(holderRefreshAttempts.size>64)holderRefreshAttempts.delete(holderRefreshAttempts.keys().next().value);
+ try{
+  const result=await Promise.race([
+   require('../../../lib/holder-queue-client').enqueue(address),
+   new Promise(resolve=>setTimeout(()=>resolve({queued:false}),1500))
+  ]);
+  if(result?.queued===true){
+   holderRefreshAttempts.set(address,Date.now()+6*3600000);
+   return true;
+  }
+ }catch{}
+ return false;
+}
 async function holders({address}={}){
  const reportedWork=require('./arc-holder-count').fetchCount(address).catch(()=>null);
 
@@ -87,8 +108,12 @@ async function holders({address}={}){
  }catch{} // Fall through to signed/current-count and explicitly historical evidence.
  const signed=await require('./arc-holder-publication').load(address);
  if(signed.fields?.holderCount?.dataState==='DATA_FOUND'){
-  const currentCount=await reportedWork;
-  return currentCount?{...signed,fields:{...signed.fields,holderCount:currentCount}}:signed;
+  const [currentCount,refreshRequested]=await Promise.all([
+   reportedWork,requestStaleHolderRefresh(address,signed.snapshot?.completedAt)
+  ]);
+  const retained=currentCount?{...signed,fields:{...signed.fields,holderCount:currentCount}}:signed;
+  return refreshRequested?{...retained,
+   description:retained.description+' A background refresh has been requested; historical whale percentages remain historical until a new signed COMPLETE snapshot is verified.'}:retained;
  }
  // Preserve the original site's durable COMPLETE Arc holder worker/read path.
  const prior=await original.callOriginal('holders',address,{action:'published'}).then(data=>({
