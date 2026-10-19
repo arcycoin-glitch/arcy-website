@@ -87,8 +87,11 @@ async function discover({network='ethereum',query}){
   {name:'DEX Screener exact-chain pair index',response:dexSearch}
  ];
  const errors=providers.filter(p=>p.response.status==='rejected').map(p=>p.name);
- const candidates=providers.flatMap(p=>p.response.status==='fulfilled'&&Array.isArray(p.response.value)?
-  p.response.value:[]);
+ const candidates=[
+  ...providers.flatMap(p=>p.response.status==='fulfilled'&&Array.isArray(p.response.value)?
+   p.response.value:[]),
+  ...require('./prefix-catalog').discover(network,query)
+ ];
  const ranked=identities.rank(network,query,candidates);
  let matches;
  try{matches=await require('./timeout').withTimeout(logos.enhance(network,ranked),350,'Optional discovery artwork deadline')}
