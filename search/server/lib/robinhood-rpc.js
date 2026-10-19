@@ -38,6 +38,7 @@ async function rawRequestAt(endpoint,method,params,{timeoutMs=11000}={}){
   });
   if(!response.ok){
    const error=new Error('Robinhood RPC HTTP '+response.status);
+   error.httpStatus=response.status;
    error.retryable=response.status===403||response.status===429||response.status>=500;
    throw error;
   }
@@ -81,16 +82,15 @@ async function inspectAt(endpoint,address){
  const proxyImplementation=minimalProxyImplementation(bytecode);
  const runtimeDelegatecallDetected=containsOpcode(bytecode,0xf4);
  const call=data=>callRpc('eth_call',[{to:address,data},block]);
- const [supplyWord,decimalsWord]=await Promise.all([
-  call('0x18160ddd'),call('0x313ce567')
+ // Independent getters share the already validated chain/code/block anchor.
+ const [supplyWord,decimalsWord,names]=await Promise.all([
+  call('0x18160ddd'),call('0x313ce567'),
+  Promise.allSettled([call('0x06fdde03'),call('0x95d89b41'),
+   ...BURN.map(a=>call('0x70a08231'+a.slice(2).padStart(64,'0')))])
  ]);
  const totalSupplyRaw=uint(supplyWord),decimals=Number(uint(decimalsWord));
  if(!Number.isInteger(decimals)||decimals<0||decimals>36)
   throw Error('Unsupported token precision');
- const names=await Promise.allSettled([
-  call('0x06fdde03'),call('0x95d89b41'),
-  ...BURN.map(a=>call('0x70a08231'+a.slice(2).padStart(64,'0')))
- ]);
  const name=names[0].status==='fulfilled'?abiString(names[0].value):null;
  const symbol=names[1].status==='fulfilled'?abiString(names[1].value):null;
  const raw=names.slice(2).every(x=>x.status==='fulfilled')?

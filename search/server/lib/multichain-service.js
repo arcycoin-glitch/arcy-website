@@ -54,7 +54,9 @@ function report({network='ethereum',address,onProgress}){
  if(typeof address!=='string'||!/^0x[0-9a-f]{40}$/i.test(address))return Promise.reject(Error('Invalid token address'));
  const policy=['VERCEL','DEXSCREENER_PUBLIC_DISPLAY_APPROVED','GOPLUS_PUBLIC_DISPLAY_APPROVED','ETH_RPC_URL','ARC_RPC_URL','ARC_RPC_FALLBACK_URL','ROBINHOOD_RPC_URL','ROBINHOOD_RPC_FALLBACK_URL'].map(k=>process.env[k]||'');
  const key=JSON.stringify([network,address.toLowerCase(),policy]);
- return require('./analysis-scope').report(key,()=>require('./progress').run(()=>buildReport({network,address})),onProgress);
+ return require('./analysis-scope').report(key,()=>require('./progress').run(async()=>{
+  const start=Date.now(),d=require('./diagnostics');try{const result=await buildReport({network,address});d.record('report',network,'ok',Date.now()-start,Object.values(result.cards).flatMap(c=>Object.values(c.fields)).filter(f=>f.dataState==='DATA_FOUND').length);return result}catch(error){d.record('report',network,d.category(error),Date.now()-start);throw error}
+ }),onProgress);
 }
 async function token({network='ethereum',address}){
  if(network==='ethereum')return ethereumToken.inspect(address);

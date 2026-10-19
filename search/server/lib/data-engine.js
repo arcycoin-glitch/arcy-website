@@ -28,14 +28,46 @@ function validateField(input,cfg){
  return {...input,value:null,status:'NOT_VERIFIED',network:cfg.id,
   chainId:cfg.chainId,evidence:[],reasonCode:input.reasonCode||'INSUFFICIENT_EVIDENCE'};
 }
-function formatCard(cardId,raw,cfg){
+function formatCard(cardId,raw,cfg,context){
  const keys=SCHEMA_KEYS.get(cardId);
  if(!keys)throw Error('Invalid card');
  const source=raw&&typeof raw==='object'&&raw.fields&&typeof raw.fields==='object'?raw.fields:{};
- const fields=Object.fromEntries(keys.map(key=>[key,validateField(source[key],cfg)]));
+ const fields=Object.fromEntries(keys.map(key=>{
+  const field=validateField(source[key],cfg),proof=field.evidence?.[0];
+  // Auxiliary implementation/authority observations may name other addresses;
+  // the primary metric proof must never explicitly name a different token.
+  const identity=proof?.address||proof?.token||proof?.contract;
+  if(context&&field.dataState==='DATA_FOUND'&&typeof identity==='string'&&ADDRESS.test(identity)&&identity.toLowerCase()!==context.address.toLowerCase())
+   return [key,missing('Primary evidence belongs to another token contract.','SOURCE_CONTRACT_MISMATCH',cfg.id)];
+  const historical=field.status==='HISTORICAL_ONCHAIN_VERIFIED'||field.freshness?.state==='LAST_VERIFIED';
+  if(context&&!historical&&/^(ON_CHAIN|ONCHAIN_VERIFIED|VERIFIED_SOURCE_AND_STATE)/.test(field.status||'')&&proof?.block&&proof.block!==context.block)
+   return [key,missing('Current on-chain evidence does not match this analysis block.','SOURCE_BLOCK_MISMATCH',cfg.id)];
+  return [key,field];
+ }));
  const statuses=Object.values(fields).map(x=>x.dataState);
  const count=statuses.filter(s=>s==='DATA_FOUND').length;
- return {fields,status:count===keys.length?'SOURCE_BACKED':
+ const holderCandidates=[];
+ if(cardId==='holders'&&cfg.id==='ethereum'&&Array.isArray(raw?.holderCandidates)&&
+    raw.holderCandidates.length>0&&raw.holderCandidates.length<=20&&
+    fields.largestWalletPct.dataState==='DATA_FOUND'){
+  const seen=new Set();
+  for(const row of raw.holderCandidates){
+   const address=typeof row?.address==='string'?row.address.toLowerCase():'';
+   if(!ADDRESS.test(address)||seen.has(address)||row.rank!==holderCandidates.length+1||
+      typeof row.sharePct!=='number'||!Number.isFinite(row.sharePct)||
+      row.sharePct<0||row.sharePct>100||!/^0x[0-9a-f]+$/i.test(row.block||'')||
+      (row.role!=='UNKNOWN'&&row.role!=='BURN_ADDRESS')||
+      (row.role==='BURN_ADDRESS'&&require('./holder-attribution').classify({network:cfg.id,chainId:cfg.chainId,address}).role!=='BURN_ADDRESS')||
+      (holderCandidates.length&&row.sharePct>holderCandidates.at(-1).sharePct)||
+      holderCandidates.reduce((sum,r)=>sum+r.sharePct,0)+row.sharePct>100.000001||
+      row.block!==fields.largestWalletPct.evidence?.[0]?.block){
+    holderCandidates.length=0;break;
+   }
+   seen.add(address);holderCandidates.push({address,rank:row.rank,sharePct:row.sharePct,
+    role:row.role,block:row.block});
+  }
+ }
+ return {...(holderCandidates.length?{holderCandidates}:{}),researchNotes:require('./research-notes').notes(cardId,fields),fields,status:count===keys.length?'SOURCE_BACKED':
   count>0?'PARTIAL_EVIDENCE':
   statuses.includes('SOURCE_API_FAILED')?'SOURCE_API_FAILED':'NOT_VERIFIED',
   description:typeof raw?.description==='string'?raw.description.slice(0,250):'Only chain-matched evidence is displayed.'};
@@ -76,7 +108,7 @@ function createEngine(adapters){
    const cards={};
    schema.forEach((card,i)=>{
     const response=responses[i];
-    cards[card.id]=formatCard(card.id,response.status==='fulfilled'?response.value:null,cfg);
+    cards[card.id]=formatCard(card.id,response.status==='fulfilled'?response.value:null,cfg,base);
    });
    const tokenIdentity=classifyStock(stock.status==='fulfilled'?stock.value:null,cfg,normalized);
    return {ok:true,schemaVersion:1,cardCount:schema.length,network:cfg.id,chainId:cfg.chainId,

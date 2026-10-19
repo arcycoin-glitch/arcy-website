@@ -65,9 +65,13 @@ async function build(address){
   }
   return require('./mechanics-deep').enrich({network:'ethereum',address:t.address,block:t.block,rpc:require('./eth').rpc,card:mechanicsCard(c,sec,extra)});
  })();
+ // Independent verified cards must not wait for a slow holder/market provider.
+ mechanicsWork.then(card=>require('./progress').card('ethereum',t,'mechanics',card)).catch(()=>{});
+ const holderWork=holdersSource.inspect(t.address,t.block,t.totalSupplyRaw);
+ holderWork.then(card=>require('./progress').card('ethereum',t,'holders',card)).catch(()=>{});
  const [marketResult,controlResult,holderResult,circulatingResult,securityResult,goPlusHolderResult]=await Promise.allSettled([
   marketWork,controls,
-  holdersSource.inspect(t.address,t.block,t.totalSupplyRaw),
+  holderWork,
   circulation.inspect(t.address,t.fields.totalSupply.value),
   securityWork,
   security.inspectHolders('ethereum',t.address)
@@ -91,6 +95,7 @@ async function build(address){
   if(holders.fields[key]?.dataState!=='DATA_FOUND'&&goPlusHolders[key]?.dataState==='DATA_FOUND')
    holders.fields[key]=goPlusHolders[key];
  }
+ if(Array.isArray(h.holderCandidates)&&h.holderCandidates.length)holders.holderCandidates=h.holderCandidates;
  if(Object.values(holders.fields).some(f=>f.dataState==='DATA_FOUND'))
   holders.status='PARTIAL_EVIDENCE';
  const liquidity=copyFields(m,['liquidityUsd','volume24h','dexPairCount','lpStatus'],'Exact-matched source-reported market data. LP permissions remain unverified.');

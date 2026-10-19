@@ -19,7 +19,7 @@ function card(network,base,id,value){
  const state=scope.getStore();if(!state?.snapshot)return;
  const snapshot=state.snapshot;
  if(snapshot.network!==network||snapshot.address!==base.address||snapshot.block!==base.block)throw Error('Progress block/contract mismatch');
- snapshot.cards[id]=require('./data-engine').formatCard(id,value,chain(network));
+ snapshot.cards[id]=require('./data-engine').formatCard(id,value,chain(network),base);
  require('./analysis-scope').emit(id,structuredClone(snapshot));
 }
 module.exports={run,identity,card};
