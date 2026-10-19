@@ -29,6 +29,10 @@ function response(value,audit,{archive=false}={}){
  const display=archive?value.cards:threeSections(value.cards,{status:value.status,cycle:value.cycle});
  const neutralTake=fallback.fallback().take;
  return {ok:true,number:value.number,status:value.status,generatedAt:value.generatedAt,
+  isCurrentWeekResearch:display.some(card=>card.verifiedCurrentWeek===true),
+  contentNotice:display.some(card=>card.verifiedCurrentWeek===true)?
+   'Current-week articles have dated source evidence; remaining cards may be source guides.':
+   'No dated current-week research is verified. Source guides are not news or evidence of activity.',
   cycle:value.cycle,cards:display,
   take:archive?value.take:(value.status==='updated'&&display.some(c=>c.verifiedCurrentWeek===true)?value.take||neutralTake:neutralTake),
   sources:value.sources,
