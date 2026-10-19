@@ -26,15 +26,43 @@ function threeSections(raw,{status='updated',cycle=null}={}){
  return [choose(['week'],0),choose(['new','watch'],1),choose(['unlock','reality'],2)];
 }
 function response(value,audit,{archive=false}={}){
- const display=archive?value.cards:threeSections(value.cards,{status:value.status,cycle:value.cycle});
+ const previousWeek=Array.isArray(value.recentCards)?value.recentCards.filter(item=>item?.contentType==='RECENT_VERIFIED'&&item?.verifiedCurrentWeek===false&&typeof item.url==='string'&&item.url.startsWith('https://')&&Number.isFinite(Date.parse(item.publishedAt))&&Date.parse(item.publishedAt)>=Date.parse(value.cycle?.start||'')-604800000&&Date.parse(item.publishedAt)<Date.parse(value.cycle?.start||'')):[];
+ const recentDisplay=previousWeek.slice(0,3).map((item,index)=>({...item,owner:'PREVIOUS WEEK · '+item.owner,kind:['week','new','unlock'][index],verifiedCurrentWeek:false,contentType:'RECENT_VERIFIED'}));
+ const display=archive?value.cards:recentDisplay.length&&value.status==='quiet_week'?recentDisplay:threeSections(value.cards,{status:value.status,cycle:value.cycle});
  const neutralTake=fallback.fallback().take;
  return {ok:true,number:value.number,status:value.status,generatedAt:value.generatedAt,
+  isCurrentWeekResearch:display.some(card=>card.verifiedCurrentWeek===true),
+  hasRecentVerifiedResearch:display.some(card=>card.contentType==='RECENT_VERIFIED'),
+  contentNotice:display.some(card=>card.verifiedCurrentWeek===true)?
+   'Current-week articles have dated source evidence; remaining cards may be source guides.':
+   display.some(card=>card.contentType==='RECENT_VERIFIED')?'No current-week developments verified yet. These are dated reports from the previous week, not new announcements.':
+   'No dated current-week research is verified. Source guides are not news or evidence of activity.',
   cycle:value.cycle,cards:display,
   take:archive?value.take:(value.status==='updated'&&display.some(c=>c.verifiedCurrentWeek===true)?value.take||neutralTake:neutralTake),
   sources:value.sources,
   audit:{...value.audit,lastSuccessful:audit?.lastSuccessful||{
    number:value.number,status:value.status,generatedAt:value.generatedAt,trigger:value.trigger
   },lastFailure:audit?.lastFailure||null,nextScheduledAt:edition.nextRun()}};
+}
+let transientCache=null;
+let transientPromise=null;
+async function currentTransient(now){
+ const cycle=edition.cycle(now);
+ if(transientCache&&transientCache.week===cycle.start&&transientCache.expiresAt>now)return transientCache.value;
+ if(!transientPromise){
+  transientPromise=(async()=>{
+   try{
+    const value=await Promise.race([
+     edition.generate({now,fetcher:fetch,trigger:'transient'}),
+     new Promise((_,reject)=>setTimeout(()=>reject(Object.assign(Error('timeout'),{code:'PULSE_TRANSIENT_TIMEOUT'})),8500))
+    ]);
+    return value;
+   }catch(error){return fallback.fallback(now,{reasonCode:error.code||'PULSE_SOURCE_CHECK_UNAVAILABLE'});}
+  })().finally(()=>{transientPromise=null});
+ }
+ const value=await transientPromise;
+ transientCache={week:cycle.start,expiresAt:Date.now()+(value.status==='updated'?900000:180000),value};
+ return value;
 }
 async function handler(req,res){
  res.setHeader('Cache-Control','no-store');const scheduled=cronRequest(req),manual=req.method==='POST'||req.query?.action==='refresh',auditOnly=req.query?.action==='audit';
@@ -50,13 +78,18 @@ async function handler(req,res){
   // production. Preserve the historical saved-read contract for older mocks
   // and legacy signed documents that did not publish cycle.start.
   if(!saved.cycle?.start||start===week.start)
-   return res.status(200).json(response(saved,await client.audit()));
-  return res.status(200).json(fallback.fallback(now,{reasonCode:'LAST_VERIFIED_EDITION_OUTDATED',lastEdition:saved}));
+   {if(saved.status==='quiet_week'){
+    const checked=await currentTransient(now);
+    if(checked.status==='updated'||checked.recentCards?.length)return res.status(200).json(response(checked,null));
+   }
+   return res.status(200).json(response(saved,await client.audit()));}
+  const latest=await currentTransient(now);
+  return res.status(200).json(latest.status==='updated'||latest.recentCards?.length?response(latest,null):latest);
  }
  // Even with provider outages, visitors receive three useful source-led
  // sections and ARCY Take; no headlines are forged or recycled as current.
- try{return res.status(200).json(response(await edition.generate({now,fetcher:fetch,trigger:'transient'}),null));}
- catch(error){return res.status(200).json(fallback.fallback(now,{reasonCode:error.code||'PULSE_SOURCE_CHECK_UNAVAILABLE'}));}
+ const current=await currentTransient(now);
+ return res.status(200).json(current.status==='updated'||current.recentCards?.length?response(current,null):current);
 }
 module.exports=handler;
 module.exports.threeSections=threeSections;

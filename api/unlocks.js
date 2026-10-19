@@ -75,7 +75,9 @@ function safeCurrentEdition(raw, now = Date.now()) {
     seen.add(key);
     const percentReview = COVERAGE_REVIEWS.find(r => r.status === 'cross-source-float-percent-conflict' && r.symbols.includes(e.symbol) && r.date === e.date && r.name.toLowerCase() === e.name.toLowerCase());
     if (percentReview && e.verification !== 'project-confirmed') percentageConflicts.push({ projectId: percentReview.projectId, symbol: e.symbol, date: e.date, reason: percentReview.reason });
-    events.push({ ...e, percent: percentReview && e.verification !== 'project-confirmed' ? '' : e.percent, daysFromToday: dayDiff(e.date, today) });
+    const percentText = String(e.percent || '').trim();
+    const roundedZero = /^%?0(?:[.,]0+)?%?$/.test(percentText);
+    events.push({ ...e, percent: (percentReview && e.verification !== 'project-confirmed') || roundedZero ? '' : e.percent, percentStatus: roundedZero ? 'ROUNDED_ZERO_UNDISCLOSED' : 'SOURCE_PUBLISHED_UNVERIFIED', daysFromToday: dayDiff(e.date, today) });
   }
   events.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name) || String(a.allocation || '').localeCompare(String(b.allocation || '')));
   return { ...raw, events, windows: {
