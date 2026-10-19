@@ -27,7 +27,7 @@ function threeSections(raw,{status='updated',cycle=null}={}){
 }
 function response(value,audit,{archive=false}={}){
  const previousWeek=Array.isArray(value.recentCards)?value.recentCards.filter(item=>item?.contentType==='RECENT_VERIFIED'&&item?.verifiedCurrentWeek===false&&typeof item.url==='string'&&item.url.startsWith('https://')&&Number.isFinite(Date.parse(item.publishedAt))&&Date.parse(item.publishedAt)>=Date.parse(value.cycle?.start||'')-604800000&&Date.parse(item.publishedAt)<Date.parse(value.cycle?.start||'')):[];
- const recentDisplay=previousWeek.slice(0,3).map((item,index)=>({...item,kind:['week','new','unlock'][index],verifiedCurrentWeek:false,contentType:'RECENT_VERIFIED'}));
+ const recentDisplay=previousWeek.slice(0,3).map((item,index)=>({...item,owner:'PREVIOUS WEEK · '+item.owner,kind:['week','new','unlock'][index],verifiedCurrentWeek:false,contentType:'RECENT_VERIFIED'}));
  const display=archive?value.cards:recentDisplay.length&&value.status==='quiet_week'?recentDisplay:threeSections(value.cards,{status:value.status,cycle:value.cycle});
  const neutralTake=fallback.fallback().take;
  return {ok:true,number:value.number,status:value.status,generatedAt:value.generatedAt,
