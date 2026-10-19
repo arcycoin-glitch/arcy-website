@@ -66,11 +66,12 @@ function createEngine(adapters){
    const adapter=adapters[cfg.id];
    if(!adapter||typeof adapter.inspectToken!=='function')throw Error('Chain adapter unavailable');
    const base=validateBase(await adapter.inspectToken({cfg,address:normalized}),cfg,normalized);
+   require('./progress').identity(cfg.id,base);
    const [stock,...responses]=await Promise.allSettled([
     typeof adapter.inspectStock==='function'?
      adapter.inspectStock({cfg,address:normalized,base}):Promise.resolve(null),
     ...schema.map(card=>typeof adapter.inspectCard==='function'?
-     adapter.inspectCard({cfg,address:normalized,base,cardId:card.id}):Promise.resolve(null))
+     Promise.resolve(adapter.inspectCard({cfg,address:normalized,base,cardId:card.id})).then(value=>{require('./progress').card(cfg.id,base,card.id,value);return value}):Promise.resolve(null))
    ]);
    const cards={};
    schema.forEach((card,i)=>{

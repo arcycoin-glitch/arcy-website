@@ -15,7 +15,7 @@ module.exports=async function handler(req,res){
  let network;
  try{network=service.parseChain(p.chain)}catch{return res.status(400).json({ok:false,error:'UNSUPPORTED_CHAIN'})}
  if(!enforce(req,res))return;
- try{return res.status(200).json(await service.report({network,address}))}
+ try{return res.status(200).json(await service.report({network,address,onProgress:req.onSearchProgress}))}
  catch{return res.status(502).json({ok:false,chainId:require('../lib/chains').chain(network).chainId,network,
   address:address.toLowerCase(),error:'CHAIN_SCAN_UNAVAILABLE',
   reason:'Mainnet RPC or required contract evidence could not be verified.'})}

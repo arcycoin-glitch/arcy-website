@@ -22,7 +22,7 @@ function providers(env=process.env){
 function retryable(error){
  return Boolean(error?.retryable)||['AbortError','TimeoutError','TypeError'].includes(error?.name);
 }
-async function requestAt(endpoint,method,params,{timeoutMs=11000}={}){
+async function rawRequestAt(endpoint,method,params,{timeoutMs=11000}={}){
  if(!READ_ONLY.has(method))throw Error('Robinhood RPC method not allowed in read-only lab');
  const id=++nextId;
  // A ref-counted watchdog is essential: AbortSignal.timeout() is unref'd
@@ -47,6 +47,9 @@ async function requestAt(endpoint,method,params,{timeoutMs=11000}={}){
   body.id!==id||body.error||!Object.hasOwn(body,'result'))
   throw Error('Robinhood RPC invalid response');
  return body.result;
+}
+function requestAt(endpoint,method,params,options={}){
+ return require('./analysis-scope').read('robinhood',endpoint,method,params,options,()=>rawRequestAt(endpoint,method,params,options));
 }
 // Standalone read-only RPC calls also fail over, but pin-sensitive token scans
 // use inspectAt() below to avoid combining two providers in one snapshot.

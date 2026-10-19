@@ -45,12 +45,23 @@ async function supply(base){
    proof(pct,'Arc RPC',{...details,method:'burn balance / totalSupply()',scope:'Current address custody only, not total historical burn.'},'ON_CHAIN_DERIVED')
  }};
 }
+const censusPending=new Map();
+const censusReader=require('./source-request').createReader({ttlMs:15000,maxEntries:128});
+function currentCensus(address){
+ if(!censusPending.has(address)){
+  const task=require('../../../lib/holder-index').explorer(address.toLowerCase(),{getJson:url=>censusReader.json(url,{timeoutMs:1800,maxBytes:1024*1024})});
+  censusPending.set(address,task);const done=()=>{if(censusPending.get(address)===task)censusPending.delete(address)};task.then(done,done);
+ }
+ return require('./timeout').withTimeout(censusPending.get(address),6000,'Optional Arc census deadline');
+}
 async function holders({address}={}){
+ const reportedWork=require('./arc-holder-count').fetchCount(address).catch(()=>null);
+
  // Prefer a fresh exact-chain census when the A/X indexer can enumerate the
  // entire small holder set. The existing reader pins every balance and only
  // succeeds when those balances reconcile exactly to totalSupply().
  try{
-  const current=await require('../../../lib/holder-index').explorer(address.toLowerCase());
+  const current=await currentCensus(address);
   const snapshot=current?.value, proof=snapshot?.evidence?.[0];
   const valid=current?.dataState==='DATA_FOUND'&&current?.status==='ONCHAIN_VERIFIED'&&
    snapshot?.coverage?.complete===true&&snapshot?.block&&proof?.block===snapshot.block&&
@@ -75,17 +86,21 @@ async function holders({address}={}){
   }
  }catch{} // Fall through to signed/current-count and explicitly historical evidence.
  const signed=await require('./arc-holder-publication').load(address);
- if(signed.fields?.holderCount?.dataState==='DATA_FOUND')return signed;
+ if(signed.fields?.holderCount?.dataState==='DATA_FOUND'){
+  const currentCount=await reportedWork;
+  return currentCount?{...signed,fields:{...signed.fields,holderCount:currentCount}}:signed;
+ }
  // Preserve the original site's durable COMPLETE Arc holder worker/read path.
  const prior=await original.callOriginal('holders',address,{action:'published'}).then(data=>({
   fields:original.holders(data,address),completedAt:data.snapshot?.completedAt||null
  })).catch(()=>null);
+ const reported=await reportedWork;
  if(prior&&Object.values(prior.fields).some(v=>v.dataState==='DATA_FOUND'))
   return {description:'Original Arc reconciled COMPLETE holder snapshot as of '+
    prior.completedAt+'. Historical evidence, not current wallet-balance proof. Publication signature is not asserted.',
-   fields:prior.fields};
+   fields:reported?{...prior.fields,holderCount:reported}:prior.fields};
  // Explorer-reported count is separately sourced, never presented as full whale proof.
- const reported=await require('./arc-holder-count').fetchCount(address);
+
  if(reported)return {...signed,
   description:'Arc Blockscout current holder count; whale metrics require signed, reconciled COMPLETE publication.',
   fields:{...signed.fields,holderCount:reported}};
@@ -193,6 +208,7 @@ function addressWord(raw){
   !/^0{40}$/.test(raw.slice(-40))?'0x'+raw.slice(-40).toLowerCase():null;
 }
 async function mechanics({address,base}){
+ const legacyWork=require('../../../lib/search-request').withRpc((method,params)=>method==='eth_blockNumber'?Promise.resolve(base.block):rpcClient.rpc(method,params),()=>original.callOriginal('mechanics',address,{refresh:'1',scanId:'v5-'+base.block})).catch(()=>null);
  const results=await Promise.allSettled([
   rpcClient.rpc('eth_call',[{to:address,data:'0x8da5cb5b'},base.block]),
   rpcClient.rpc('eth_getStorageAt',[address,IMPLEMENTATION,base.block])
@@ -216,7 +232,7 @@ async function mechanics({address,base}){
  // The legacy route's GoPlus fallback is fail-closed on Vercel unless its
  // separate explicit permission flag is enabled.
  try{
-  const legacy=await original.callOriginal('mechanics',address);
+  const legacy=await legacyWork;
   const reviewed=original.contract(legacy,address);
   fields=Object.fromEntries(Object.entries(preliminary).map(([key,value])=>[
    key,value.dataState==='DATA_FOUND'?value:

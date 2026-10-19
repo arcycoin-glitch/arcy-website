@@ -46,11 +46,30 @@ function mechanicsCard(controls,securityData={},getters={}){
 }
 async function build(address){
  const t=await inspectToken(address);
+ require('./progress').identity('ethereum',t);
+ const onChain=x=>x?.status==='ON_CHAIN'?evidence.found(x.value,'Ethereum RPC',[{method:x.method,block:t.block,address:t.address}],'ON_CHAIN'):evidence.unknown(x?.reason||'No on-chain verification available.');
+ const earlySupply=evidence.card({totalSupply:onChain(t.fields.totalSupply),circulatingSupply:evidence.unknown('Exact-contract circulation evidence pending.'),burnAddressBalance:onChain(t.fields.burnAddressBalance),burnAddressPct:burnAddressPercent(t.totalSupplyRaw,t.burnAddressRaw,t.block,t.address)},'Pinned-block on-chain supply and standard burn address balances.');
+ require('./progress').card('ethereum',t,'supply',earlySupply);
+ const marketWork=market.inspect(t.address,t.block).then(m=>{
+  const liquidity=copyFields(m,['liquidityUsd','volume24h','dexPairCount','lpStatus'],'Exact-matched source-reported market data. LP permissions remain unverified.');
+  const activity=copyFields(m,['priceUsd','valuation','change24h','volume24h'],'Exact-contract source-reported market observations.');
+  activity.fields.valuation=require('./valuation').normalize(activity.fields.valuation,activity.fields.priceUsd,t,'ethereum');
+  require('./progress').card('ethereum',t,'liquidity',liquidity);require('./progress').card('ethereum',t,'activity',activity);return m;
+ });
+ const controls=control.inspect(t.address,t.block).catch(control.failure);
+ const securityWork=security.inspect('ethereum',t.address).catch(()=>({}));
+ const mechanicsWork=(async()=>{
+  const [c,sec]=await Promise.all([controls,securityWork]);let extra={};
+  if(c.fields?.owner?.dataState!=='DATA_FOUND'||c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'){
+   try{extra=await require('./admin-getters').inspect({network:'ethereum',address:t.address,block:t.block,rpc:require('./eth').rpc,needAdmin:c.fields?.owner?.dataState!=='DATA_FOUND',needImplementation:c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'})}catch{}
+  }
+  return require('./mechanics-deep').enrich({network:'ethereum',address:t.address,block:t.block,rpc:require('./eth').rpc,card:mechanicsCard(c,sec,extra)});
+ })();
  const [marketResult,controlResult,holderResult,circulatingResult,securityResult,goPlusHolderResult]=await Promise.allSettled([
-  market.inspect(t.address,t.block),control.inspect(t.address,t.block),
+  marketWork,controls,
   holdersSource.inspect(t.address,t.block,t.totalSupplyRaw),
   circulation.inspect(t.address,t.fields.totalSupply.value),
-  security.inspect('ethereum',t.address),
+  securityWork,
   security.inspectHolders('ethereum',t.address)
  ]);
  const m=marketResult.status==='fulfilled'?marketResult.value:market.failure(marketResult.reason);
@@ -58,7 +77,7 @@ async function build(address){
  const h=holderResult.status==='fulfilled'?holderResult.value:holdersSource.blank('Holder provider request failed.','SOURCE_API_FAILED');
  const circ=circulatingResult.status==='fulfilled'?circulatingResult.value:evidence.error(circulatingResult.reason,'Licensed circulation source');
  const sec=securityResult.status==='fulfilled'?securityResult.value:{};
- const onChain=x=>x?.status==='ON_CHAIN'?evidence.found(x.value,'Ethereum RPC',[{method:x.method,block:t.block,address:t.address}],'ON_CHAIN'):evidence.unknown(x?.reason||'No on-chain verification available.');
+
  const supply=evidence.card({
    totalSupply:onChain(t.fields.totalSupply),
    circulatingSupply:circ,
@@ -77,16 +96,7 @@ async function build(address){
  const liquidity=copyFields(m,['liquidityUsd','volume24h','dexPairCount','lpStatus'],'Exact-matched source-reported market data. LP permissions remain unverified.');
  const activity=copyFields(m,['priceUsd','valuation','change24h','volume24h'],'Primary base-token market values from exact Ethereum pairs; source-reported.');
  activity.fields.valuation=require('./valuation').normalize(activity.fields.valuation,activity.fields.priceUsd,t,'ethereum');
- let extra={};
- if(c.fields?.owner?.dataState!=='DATA_FOUND'||c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'){
-  try{extra=await require('./admin-getters').inspect({
-   network:'ethereum',address:t.address,block:t.block,rpc:require('./eth').rpc,
-   needAdmin:c.fields?.owner?.dataState!=='DATA_FOUND',
-   needImplementation:c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'
-  })}catch{} // A failing optional getter never removes existing evidence.
- }
- const mechanics=await require('./mechanics-deep').enrich({network:'ethereum',address:t.address,
-  block:t.block,rpc:require('./eth').rpc,card:mechanicsCard(c,sec,extra)});
+ const mechanics=await mechanicsWork;
  const cards={supply,holders,liquidity,activity,mechanics};
  for(const d of schema){
    if(!cards[d.id])throw Error('Missing required card '+d.id);
