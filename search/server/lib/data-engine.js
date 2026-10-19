@@ -72,6 +72,15 @@ function formatCard(cardId,raw,cfg,context){
   statuses.includes('SOURCE_API_FAILED')?'SOURCE_API_FAILED':'NOT_VERIFIED',
   description:typeof raw?.description==='string'?raw.description.slice(0,250):'Only chain-matched evidence is displayed.'};
 }
+// A failed provider call is not the same as a source reporting no evidence.
+// Use constant reasons; never expose remote URLs, addresses or exception text.
+function failedCard(cardId,cfg){
+ const keys=SCHEMA_KEYS.get(cardId)||[];
+ return {fields:Object.fromEntries(keys.map(id=>[id,{
+  ...missing('This analysis source could not be verified during the scan.','CARD_SOURCE_FAILED',cfg.id),
+  dataState:'SOURCE_API_FAILED',chainId:cfg.chainId
+ }]))};
+}
 function validateBase(base,cfg,address){
  if(!base||typeof base!=='object'||base.chainId!==cfg.chainId||
   base.network!==cfg.id||base.address?.toLowerCase()!==address||
@@ -101,9 +110,17 @@ function createEngine(adapters){
    require('./progress').identity(cfg.id,base);
    const [stock,...responses]=await Promise.allSettled([
     typeof adapter.inspectStock==='function'?
-     adapter.inspectStock({cfg,address:normalized,base}):Promise.resolve(null),
+     Promise.resolve().then(()=>adapter.inspectStock({cfg,address:normalized,base})):Promise.resolve(null),
     ...schema.map(card=>typeof adapter.inspectCard==='function'?
-     Promise.resolve(adapter.inspectCard({cfg,address:normalized,base,cardId:card.id})).then(value=>{require('./progress').card(cfg.id,base,card.id,value);return value}):Promise.resolve(null))
+     Promise.resolve().then(()=>adapter.inspectCard({cfg,address:normalized,base,cardId:card.id}))
+      .then(value=>{require('./progress').card(cfg.id,base,card.id,value);return value})
+      .catch(()=>{
+       const failed=failedCard(card.id,cfg);
+       // Progress receives a non-sensitive source-failure status while healthy
+       // cards continue; errors in the progress transport cannot abort them.
+       try{require('./progress').card(cfg.id,base,card.id,failed)}catch{}
+       return failed;
+      }):Promise.resolve(null))
    ]);
    const cards={};
    schema.forEach((card,i)=>{
