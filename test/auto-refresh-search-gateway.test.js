@@ -56,7 +56,7 @@ test('site keeps exactly the approved sections and exposes refresh handlers',()=
 });
 function harness(){
  const actionCalls=[],handlers={};
- for(const name of ['health','token','report','discover','chart']){
+ for(const name of ['health','token','report','progress','discover','chart']){
   handlers[name]=async (req,res)=>{actionCalls.push({name,query:req.query,method:req.method});
    return res.status(200).json({ok:true,action:name,query:req.query})};
  }
@@ -69,7 +69,7 @@ function harness(){
 function res(){return {statusCode:200,status(v){this.statusCode=v;return this},json(v){this.body=v;return v}}}
 test('Vercel routing metadata cannot contaminate token/report/discovery strict query',async()=>{
  const {gateway,calls}=harness(),address='0x'+'a'.repeat(40);
- for(const action of ['report','token','discover']){
+ for(const action of ['report','progress','token','discover']){
   const wanted=action==='discover'?{action,q:'Pons',chain:'robinhood'}:{action,chain:'arc',address};
   const url='/api/search?'+new URLSearchParams(wanted).toString();
   const result=res();
@@ -77,7 +77,7 @@ test('Vercel routing metadata cannot contaminate token/report/discovery strict q
   assert.equal(result.statusCode,200);assert.equal(result.body.action,action);
   assert.equal(Object.keys(result.body.query).sort().join(','),action==='discover'?'chain,q':'address,chain');
  }
- assert.equal(calls.length,3);
+ assert.equal(calls.length,4);
 });
 test('URL query rejects duplicate action, falls back to local-dev request query',async()=>{
  const {gateway}=harness();

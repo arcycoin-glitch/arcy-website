@@ -72,7 +72,7 @@ function candidate(network) {
       server.stdout.once('data', () => { clearTimeout(timer); resolve(); });
       server.once('error', reject);
     });
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({ headless: true,channel:'msedge' });
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     const pageErrors = [];
     const seen = [];
@@ -100,7 +100,7 @@ function candidate(network) {
         }
         return route.fulfill({ json: { ok: true, chainId: chains[network], network, matches: [candidate(network)] } });
       }
-      if (action === 'report') {
+      if ((action === 'report' || action === 'progress')) {
         return route.fulfill({ json: report(network, url.searchParams.get('address')) });
       }
       return route.fulfill({ status: 400, json: { ok: false } });
@@ -147,8 +147,8 @@ function candidate(network) {
         await page.waitForFunction(() => document.querySelector('#detailState')?.textContent.includes('Snapshot complete'));
         assert.equal(await page.locator('#cards > .card').count(), 5);
         assert.equal(await page.locator('#deepResearch').getAttribute('open'),'');
-        assert.equal(await page.locator('#cards > .card > .metric').count(), 20, 'all rows remain directly visible, including unresolved valuation');
-        assert.equal(await page.locator('#cards > .card .missingGroup').count(), 0);
+        assert.equal(await page.locator('#cards > .card > .metric').count(), 19, 'only source-backed rows remain directly visible');
+        assert.equal(await page.locator('#cards > .card .missingGroup').count(), 1);
         for(const row of await page.locator('#cards > .card > .metric').all())assert.ok(await row.isVisible());
         assert.match(await page.locator('#evidenceCount').innerText(), /20 checks/);
         const detailLogo = page.locator('#tokenDetail img.token-title-logo');
@@ -198,7 +198,7 @@ function candidate(network) {
     }
     assert.deepEqual(pageErrors, []);
     assert.equal(seen.filter(x => x.action === 'discover').length, 24, 'homepage and detail-page discovery each run once per chain/viewport');
-    assert.equal(seen.filter(x => x.action === 'report').length, 12);
+    assert.equal(seen.filter(x => ['report','progress'].includes(x.action)).length, 12);
     // Two real-world failure modes: an issuer-known static FLOKI suggestion
     // receives art asynchronously; a Robinhood non-stock PONS gets DEX art.
     await page.goto(origin + '/#search');
