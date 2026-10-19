@@ -47,8 +47,14 @@ function response(value,audit,{archive=false}={}){
    [...recentThree,...fallback.ITEMS.slice(recentThree.length).map(x=>({...x,publishedAt:null,verifiedCurrentWeek:false,contentType:'SOURCE_GUIDE'}))].slice(0,3):
    threeSections(value.cards,{status:value.status,cycle:value.cycle});
  const neutralTake=fallback.fallback().take;
- const editorial=display.some(c=>c.contentType==='RECENT_VERIFIED')?
-  'Önceki haftanın kaynakları, Arc için iki somut araştırma eksenini öne çıkarıyor: Gateway üzerinden agent treasury akışları ve borsa yatırma/çekme entegrasyonları. Circle’ın wrapped asset çerçevesi ise cirBTC değerlendirmesinde rezerv kanıtı, saklama ve itfa koşullarının ayrıca doğrulanması gerektiğini gösteriyor. Bunlar entegrasyon ve yöntem kanıtlarıdır; kullanıcı benimsenmesi veya likidite artışının doğrudan kanıtı değildir.':'';
+ const hasBitquery=display.some(c=>c.url?.includes('bitquery.io/investigations/arc-blockchain-first-month'));
+ const hasGateway=display.some(c=>c.url?.includes('community.arc.io/public/videos/move-supported-non-usdc'));
+ const titles=display.filter(c=>c.contentType==='RECENT_VERIFIED'||c.contentType==='VERIFIED_DEVELOPMENT').map(c=>c.title);
+ const hasSelat=display.some(c=>c.url?.includes('/how-selat-uses-circle-gateway'));
+ const editorial=hasBitquery?
+  'Bitquery’nin 15 Ekim tarihli Arc ilk ay araştırması, günlük işlem gönderen adreslerin ilk gün 406.006’dan dördüncü hafta ortalamasında 24.678’e indiğini ve cirBTC teminatlı yaklaşık 190 milyon dolarlık USDC borçlanmasını raporluyor. Bunlar benzersiz kişi sayısı veya ARCY tarafından yeniden hesaplanmış sonuçlar değildir. '+(hasGateway?'Arc House’un 14 Ekim geliştirici videosunda CCTP ve Fast Gateway Deposits fonlama süresini azaltan teknik akış olarak açıklanıyor; bu, yeni bir ürün lansmanı veya kanıtlanmış kullanıcı artışı değildir. ':'')+(hasSelat?'SELAT ise tek Gateway bakiyesi üzerinden agent ödemelerini anlatıyor. ':'')+'ARCY TAKE: Fon büyüklüğünden çok kalıcı gerçek kullanıcı aktivitesi, likidite ve borçlanan fonların kullanımını izleyin.':
+  titles.length?'ARCY TAKE: '+titles.slice(0,2).join(' / ')+'. Bu tarihli kaynaklar teknik gelişme veya araştırma bulgularını gösteriyor; benimsenme, likidite ve kullanıcı artışı ayrıca zincir üzerinde kanıtlanmalıdır.':'';
+
 
  return {ok:true,number:value.number,status:value.status,generatedAt:value.generatedAt,
   isCurrentWeekResearch:display.some(card=>card.verifiedCurrentWeek===true),
