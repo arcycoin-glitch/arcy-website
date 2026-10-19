@@ -6,7 +6,7 @@
  if(!frame)return;
  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
  const saveData=()=>navigator.connection?.saveData===true;
- let visible=false,playing=false,failed=false,attempt=null,watchdog=null,button=null;
+ let visible=false,playing=false,failed=false,watchdog=null,button=null;
  const fallback=()=>{
   playing=false;frame.classList.remove('video-playing');
  };
@@ -35,7 +35,7 @@
  function start(userGesture=false){
   if(document.hidden||reduced.matches||!visible||failed)return;
   if(!userGesture&&saveData()){control();return;}
-  // Initialize on visibility, not window.load/requestIdleCallback. Large
+  // Initialize on visibility rather than waiting for all page assets. Large
   // homepage images must not postpone the mascot's first moving frame.
   if(!video.getAttribute('src')){
    video.preload='auto';
