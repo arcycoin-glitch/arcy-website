@@ -47,8 +47,13 @@ function response(value,audit,{archive=false}={}){
    [...recentThree,...fallback.ITEMS.slice(recentThree.length).map(x=>({...x,publishedAt:null,verifiedCurrentWeek:false,contentType:'SOURCE_GUIDE'}))].slice(0,3):
    threeSections(value.cards,{status:value.status,cycle:value.cycle});
  const neutralTake=fallback.fallback().take;
- const editorial=display.some(c=>c.contentType==='RECENT_VERIFIED')?
-  'Önceki haftanın kaynakları, Arc için iki somut araştırma eksenini öne çıkarıyor: Gateway üzerinden agent treasury akışları ve borsa yatırma/çekme entegrasyonları. Circle’ın wrapped asset çerçevesi ise cirBTC değerlendirmesinde rezerv kanıtı, saklama ve itfa koşullarının ayrıca doğrulanması gerektiğini gösteriyor. Bunlar entegrasyon ve yöntem kanıtlarıdır; kullanıcı benimsenmesi veya likidite artışının doğrudan kanıtı değildir.':'';
+ const hasBitquery=display.some(c=>c.url?.includes('bitquery.io/investigations/arc-blockchain-first-month'));
+ const hasGateway=display.some(c=>c.url?.includes('community.arc.io/public/videos/move-supported-non-usdc'));
+ const editorial=hasBitquery?
+  'Bitquery’nin 15 Ekim araştırmasında Arc’ın günlük aktif cüzdan sayısı ilk gündeki 406.006 seviyesinden dördüncü hafta ortalaması 24.678’e geriliyor. Bu rakamlar kişi sayısı değil, işlem gönderen adreslerdir. Aynı araştırmada cirBTC teminatlı USDC borçlanması yaklaşık 190 milyon dolara ulaşıyor. '+(hasGateway?'Arc House’un Fast Gateway Deposits güncellemesi ise çapraz zincir USDC fonlamasında kesinleşme süresini azaltmaya odaklanıyor. ':'')+'ARCY’nin izlemesi gereken şey yalnızca fon akışı değil; bağımsız kullanıcı aktivitesi, gerçek likidite ve borç alınan USDC’nin nereye gittiğidir. Bu tespitler kaynak raporlarına dayanır; ARCY tarafından bağımsız on-chain yeniden hesaplama yapıldığı anlamına gelmez.':
+  display.some(c=>c.contentType==='RECENT_VERIFIED')?
+   'Önceki haftanın resmî kaynakları Arc üzerindeki ödeme ve entegrasyon altyapısındaki ilerlemeyi gösteriyor. Ancak geliştirici duyuruları tek başına kalıcı kullanıcı talebi veya gerçek likidite artışının kanıtı değildir.':'';
+
 
  return {ok:true,number:value.number,status:value.status,generatedAt:value.generatedAt,
   isCurrentWeekResearch:display.some(card=>card.verifiedCurrentWeek===true),
