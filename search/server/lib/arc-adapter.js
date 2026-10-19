@@ -209,9 +209,20 @@ function addressWord(raw){
 }
 async function mechanics({address,base}){
  const legacyWork=require('../../../lib/search-request').withRpc((method,params)=>method==='eth_blockNumber'?Promise.resolve(base.block):rpcClient.rpc(method,params),()=>original.callOriginal('mechanics',address,{refresh:'1',scanId:'v5-'+base.block})).catch(()=>null);
+ const pinnedReads=new Map();
+ const mechanicsRpc=(method,params,options)=>{
+  const key=method+JSON.stringify(params);
+  const cached=pinnedReads.get(key);if(cached)return cached;
+  const task=rpcClient.rpc(method,params,options);
+  if(method==='eth_call'||method==='eth_getStorageAt'){
+   pinnedReads.set(key,task);
+   task.catch(()=>{if(pinnedReads.get(key)===task)pinnedReads.delete(key)});
+  }
+  return task;
+ };
  const results=await Promise.allSettled([
-  rpcClient.rpc('eth_call',[{to:address,data:'0x8da5cb5b'},base.block]),
-  rpcClient.rpc('eth_getStorageAt',[address,IMPLEMENTATION,base.block])
+  mechanicsRpc('eth_call',[{to:address,data:'0x8da5cb5b'},base.block]),
+  mechanicsRpc('eth_getStorageAt',[address,IMPLEMENTATION,base.block])
  ]);
  const owner=results[0].status==='fulfilled'?addressWord(results[0].value):null;
  const implementation=results[1].status==='fulfilled'?addressWord(results[1].value):null;
@@ -251,7 +262,7 @@ async function mechanics({address,base}){
     detected[key]?.dataState==='DATA_FOUND'?detected[key]:existing
   ]));
  }
- return require('./mechanics-deep').enrich({network:'arc',address,block:base.block,rpc:rpcClient.rpc,
+ return require('./mechanics-deep').enrich({network:'arc',address,block:base.block,rpc:mechanicsRpc,
   card:{description:'Verified Arc contract mechanics with pinned-RPC/source fallback; external detection never overrides stronger first-party evidence.',fields}});
 }
 async function inspectCard({base,address,cardId}){
