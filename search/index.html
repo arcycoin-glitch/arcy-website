@@ -1415,6 +1415,20 @@ $('chartRanges').addEventListener('click',event=>{
 $('chain').addEventListener('change',chainChanged);
 $('go').addEventListener('click',searchOrScan);
 $('detailSearchForm').addEventListener('submit',searchFromDetail);
+$('detailSearchQuery').addEventListener('input',()=>{
+ clearTimeout(detailTypeaheadTimer);
+ ++detailSearchGeneration;
+ $('detailMatches').replaceChildren();$('detailMatches').hidden=true;
+ const q=$('detailSearchQuery').value.trim();
+ if(q.length<2||q.length>48||EVM_ADDRESS.test(q)||/^0x/i.test(q)){
+  $('detailSearchStatus').textContent='Type at least two letters to find a token.';
+  return;
+ }
+ detailTypeaheadTimer=setTimeout(()=>{
+  detailTypeaheadTimer=null;
+  void searchFromDetail({preventDefault(){}});
+ },340);
+});
 function syncDetailSearchNetwork(){
  const network=$('detailSearchChain').value;
  for(const button of document.querySelectorAll('#detailNetworkShortcuts [data-detail-chain]')){
@@ -1433,8 +1447,19 @@ for(const button of document.querySelectorAll('#detailNetworkShortcuts [data-det
   $('detailSearchQuery').focus();
  });
 }
-$('address').addEventListener('keydown',event=>{if(event.key==='Enter')void searchOrScan()});
-$('address').addEventListener('input',()=>{cancelPending();clearMatches();$('asset').replaceChildren();clearIdentity();render(null)});
+let typeaheadTimer=null,detailTypeaheadTimer=null;
+// Debounced typeahead shares the existing exact-chain, contract-scoped
+// discovery renderer. No hidden ticker wall, new UI or unverified issuer mark.
+function scheduleTypeahead(){
+ clearTimeout(typeaheadTimer);
+ const q=$('address').value.trim();
+ if(q.length<2||q.length>48||EVM_ADDRESS.test(q)||/^0x/i.test(q))return;
+ typeaheadTimer=setTimeout(()=>{typeaheadTimer=null;void searchOrScan()},340);
+}
+$('address').addEventListener('keydown',event=>{
+ if(event.key==='Enter'){clearTimeout(typeaheadTimer);void searchOrScan()}
+});
+$('address').addEventListener('input',()=>{cancelPending();clearMatches();$('asset').replaceChildren();clearIdentity();render(null);scheduleTypeahead()});
  $('backSearch').addEventListener('click',()=>location.assign('/#search'));
 $('copyLink').addEventListener('click',async()=>{
  try{
