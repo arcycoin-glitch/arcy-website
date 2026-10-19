@@ -76,20 +76,15 @@ async function discover({network='ethereum',query}){
  // Providers are independent; Blockscout 403 or an unavailable official
  // registry must not blank other verified/source-scoped search candidates.
  const deadline=operation=>require('./timeout').withTimeout(Promise.resolve().then(operation),1000,'Optional discovery provider deadline');
- const [registry,indexed,dexSearch,prefix]=await Promise.allSettled([
+ const [registry,indexed,dexSearch]=await Promise.allSettled([
   deadline(()=>network==='robinhood'?robinhood.discover({query}):[]),
   deadline(()=>explorerDiscovery.searchExplorer(network,query)),
-  deadline(()=>dexMarket.discover(network,query)),
-  // Arcscan's token-name prefix index is independent of Blockscout and DEX;
-  // it never grants official identity or economic verification.
-  network==='arc'?require('./timeout').withTimeout(
-   require('./arc-prefix').discover(query),2000,'Arc prefix index deadline'):Promise.resolve([])
+  deadline(()=>dexMarket.discover(network,query))
  ]);
  const providers=[
   {name:'Robinhood official registry',response:registry},
   {name:'Blockscout explorer index',response:indexed},
-  {name:'DEX Screener exact-chain pair index',response:dexSearch},
-  {name:'Arcscan public prefix index',response:prefix}
+  {name:'DEX Screener exact-chain pair index',response:dexSearch}
  ];
  const errors=providers.filter(p=>p.response.status==='rejected').map(p=>p.name);
  const candidates=providers.flatMap(p=>p.response.status==='fulfilled'&&Array.isArray(p.response.value)?
