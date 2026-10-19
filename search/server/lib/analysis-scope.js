@@ -6,14 +6,15 @@ const scope=new AsyncLocalStorage();
 const pending=new Map();
 function run(operation,notify){return scope.run({reads:new Map(),complete:new Map(),active:0,waiters:[],notify},operation)}
 function read(network,endpoint,method,params,options,operation){
+ const diagnostics=require('./diagnostics'),measured=async()=>{const start=Date.now();try{const value=await operation();diagnostics.record('rpc',network,'ok',Date.now()-start);return value}catch(error){diagnostics.record('rpc',network,diagnostics.category(error),Date.now()-start);throw error}};
  const identity=JSON.stringify([network,endpoint,method,params]);
  const key=JSON.stringify([identity,options]);
  const state=scope.getStore();
- if(!state)return operation();
- if(state.complete.has(identity))return Promise.resolve(state.complete.get(identity));
+ if(!state)return measured();
+ if(state.complete.has(identity)){diagnostics.record('rpc',network,'cache_hit');return Promise.resolve(state.complete.get(identity))}
  if(!state.reads.has(key))state.reads.set(key,(async()=>{
   if(state.active>=8)await new Promise(resolve=>state.waiters.push(resolve));else state.active++;
-  try{const value=await operation();state.complete.set(identity,value);return value}
+  try{const value=await measured();state.complete.set(identity,value);return value}
   finally{const next=state.waiters.shift();if(next)next();else state.active--}
  })());
  return state.reads.get(key);
