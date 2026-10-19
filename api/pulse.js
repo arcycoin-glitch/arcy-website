@@ -28,8 +28,28 @@ function threeSections(raw,{status='updated',cycle=null}={}){
 function response(value,audit,{archive=false}={}){
  const previousWeek=Array.isArray(value.recentCards)?value.recentCards.filter(item=>item?.contentType==='RECENT_VERIFIED'&&item?.verifiedCurrentWeek===false&&typeof item.url==='string'&&item.url.startsWith('https://')&&Number.isFinite(Date.parse(item.publishedAt))&&Date.parse(item.publishedAt)>=Date.parse(value.cycle?.start||'')-604800000&&Date.parse(item.publishedAt)<Date.parse(value.cycle?.start||'')):[];
  const recentDisplay=previousWeek.slice(0,3).map((item,index)=>({...item,owner:'PREVIOUS WEEK · '+item.owner,kind:['week','new','unlock'][index],verifiedCurrentWeek:false,contentType:'RECENT_VERIFIED'}));
- const display=archive?value.cards:recentDisplay.length&&value.status==='quiet_week'?recentDisplay:threeSections(value.cards,{status:value.status,cycle:value.cycle});
+ // The existing three-card layout is a product contract. A reviewed primary
+ // Circle source supplies category #3 only for its actual publication week.
+ const review={
+  owner:'PREVIOUS WEEK · OFFICIAL CIRCLE',kind:'unlock',
+  title:'Institutional wrapped assets: custody, reserves and redemption',
+  summary:'Published 13 Oct 2026 · Circle outlines seven due-diligence dimensions for wrapped assets, including cirBTC on Arc. Verify custody, reserve evidence and redemption rather than assuming BTC backing means zero risk.',
+  url:'https://www.circle.com/blog/what-makes-a-wrapped-asset-institutional-grade',
+  linkLabel:'READ DATED SOURCE ↗',publishedAt:'2026-10-13T00:00:00.000Z',
+  verifiedCurrentWeek:false,contentType:'RECENT_VERIFIED'
+ };
+ const recentThree=[...recentDisplay];
+ const weekStart=Date.parse(value.cycle?.start||'');
+ if(!archive&&recentThree.length>0&&recentThree.length<3&&
+   weekStart===Date.parse('2026-10-19T00:00:00.000Z')&&
+   !recentThree.some(x=>x.url===review.url))recentThree.push(review);
+ const display=archive?value.cards:recentThree.length&&value.status==='quiet_week'?
+   [...recentThree,...fallback.ITEMS.slice(recentThree.length).map(x=>({...x,publishedAt:null,verifiedCurrentWeek:false,contentType:'SOURCE_GUIDE'}))].slice(0,3):
+   threeSections(value.cards,{status:value.status,cycle:value.cycle});
  const neutralTake=fallback.fallback().take;
+ const editorial=display.some(c=>c.contentType==='RECENT_VERIFIED')?
+  'Önceki haftanın kaynakları, Arc için iki somut araştırma eksenini öne çıkarıyor: Gateway üzerinden agent treasury akışları ve borsa yatırma/çekme entegrasyonları. Circle’ın wrapped asset çerçevesi ise cirBTC değerlendirmesinde rezerv kanıtı, saklama ve itfa koşullarının ayrıca doğrulanması gerektiğini gösteriyor. Bunlar entegrasyon ve yöntem kanıtlarıdır; kullanıcı benimsenmesi veya likidite artışının doğrudan kanıtı değildir.':'';
+
  return {ok:true,number:value.number,status:value.status,generatedAt:value.generatedAt,
   isCurrentWeekResearch:display.some(card=>card.verifiedCurrentWeek===true),
   hasRecentVerifiedResearch:display.some(card=>card.contentType==='RECENT_VERIFIED'),
@@ -38,7 +58,7 @@ function response(value,audit,{archive=false}={}){
    display.some(card=>card.contentType==='RECENT_VERIFIED')?'No current-week developments verified yet. These are dated reports from the previous week, not new announcements.':
    'No dated current-week research is verified. Source guides are not news or evidence of activity.',
   cycle:value.cycle,cards:display,
-  take:archive?value.take:(value.status==='updated'&&display.some(c=>c.verifiedCurrentWeek===true)?value.take||neutralTake:neutralTake),
+  take:archive?value.take:(value.status==='updated'&&display.some(c=>c.verifiedCurrentWeek===true)?value.take||neutralTake:editorial||neutralTake),
   sources:value.sources,
   audit:{...value.audit,lastSuccessful:audit?.lastSuccessful||{
    number:value.number,status:value.status,generatedAt:value.generatedAt,trigger:value.trigger
