@@ -4,22 +4,6 @@
 const {CHAIN_CONFIG}=require('../lib/chains');
 const schema=require('../schema');
 module.exports=function health(req,res){
- if(process.env.VERCEL_ENV==='preview'){
-  return (async()=>{
-   const endpoints=[
-    'https://api.arc-scan.org/v1/search/suggest?q=po&limit=10',
-    'https://api.arc-scan.org/v1/tokens/0xf76b1d00bd3d63a37246b5f512074e864010e33d/holders?limit=5',
-    'https://explorer.arc.io/api/v2/tokens/0xf76b1d00bd3d63a37246b5f512074e864010e33d/counters'
-   ];
-   const checks=await Promise.all(endpoints.map(async url=>{
-    try{const response=await fetch(url,{signal:AbortSignal.timeout(3500),headers:{accept:'application/json'}});
-     const raw=await response.text();return {endpoint:new URL(url).pathname,http:response.status,sample:raw.slice(0,1700)}
-    }catch(e){return {endpoint:new URL(url).pathname,error:e.name||'ERROR'}}
-   }));
-   return res.status(200).json({ok:true,temporaryPreviewProbe:true,checks});
-  })();
- }
-
  res.setHeader('Content-Type','application/json; charset=utf-8');
  res.setHeader('Cache-Control','no-store');
  res.setHeader('X-Content-Type-Options','nosniff');
