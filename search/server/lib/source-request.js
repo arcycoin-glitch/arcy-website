@@ -31,7 +31,8 @@ function createReader({ttlMs=15000,maxEntries=128,now=Date.now}={}){
     const response=await Promise.race([fetcher(key,{headers:{accept:'application/json'},signal:controller.signal}),deadline]);
     if(!response.ok){
      if(response.status===429){const raw=response.headers?.get?.('retry-after'),seconds=Number(raw),delay=raw?(Number.isFinite(seconds)?seconds*1000:Date.parse(raw)-now()):30000;cooldowns.set(url.origin,now()+Math.min(120000,Math.max(1000,Number.isFinite(delay)?delay:30000)));while(cooldowns.size>32)cooldowns.delete(cooldowns.keys().next().value);}
-     await response.body?.cancel?.();
+     // Cancellation is best-effort; a broken stream must not hold the error path open.
+     Promise.resolve().then(()=>response.body?.cancel?.()).catch(()=>{});
      throw Object.assign(Error('Source HTTP '+response.status),{code:'SOURCE_HTTP_ERROR',httpStatus:response.status});
     }
     const body=await Promise.race([readJson(response,maxBytes),deadline]);checked(body,validate);
