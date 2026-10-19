@@ -40,6 +40,26 @@ function response(value,audit,{archive=false}={}){
    number:value.number,status:value.status,generatedAt:value.generatedAt,trigger:value.trigger
   },lastFailure:audit?.lastFailure||null,nextScheduledAt:edition.nextRun()}};
 }
+let transientCache=null;
+let transientPromise=null;
+async function currentTransient(now){
+ const cycle=edition.cycle(now);
+ if(transientCache&&transientCache.week===cycle.start&&transientCache.expiresAt>now)return transientCache.value;
+ if(!transientPromise){
+  transientPromise=(async()=>{
+   try{
+    const value=await Promise.race([
+     edition.generate({now,fetcher:fetch,trigger:'transient'}),
+     new Promise((_,reject)=>setTimeout(()=>reject(Object.assign(Error('timeout'),{code:'PULSE_TRANSIENT_TIMEOUT'})),8500))
+    ]);
+    return value;
+   }catch(error){return fallback.fallback(now,{reasonCode:error.code||'PULSE_SOURCE_CHECK_UNAVAILABLE'});}
+  })().finally(()=>{transientPromise=null});
+ }
+ const value=await transientPromise;
+ transientCache={week:cycle.start,expiresAt:Date.now()+(value.status==='updated'?900000:180000),value};
+ return value;
+}
 async function handler(req,res){
  res.setHeader('Cache-Control','no-store');const scheduled=cronRequest(req),manual=req.method==='POST'||req.query?.action==='refresh',auditOnly=req.query?.action==='audit';
  if(req.method==='GET'&&req.query?.action==='edition'){const number=Number(req.query.number);if(!Number.isSafeInteger(number)||number<1||number>9999)return res.status(400).json({ok:false,error:'INVALID_EDITION'});const saved=await client.edition(number);return saved?res.status(200).json(response(saved,null,{archive:true})):res.status(404).json({ok:false,error:'EDITION_NOT_FOUND',number});}
@@ -55,12 +75,13 @@ async function handler(req,res){
   // and legacy signed documents that did not publish cycle.start.
   if(!saved.cycle?.start||start===week.start)
    return res.status(200).json(response(saved,await client.audit()));
-  return res.status(200).json(fallback.fallback(now,{reasonCode:'LAST_VERIFIED_EDITION_OUTDATED',lastEdition:saved}));
+  const latest=await currentTransient(now);
+  return res.status(200).json(latest.status==='updated'?response(latest,null):latest);
  }
  // Even with provider outages, visitors receive three useful source-led
  // sections and ARCY Take; no headlines are forged or recycled as current.
- try{return res.status(200).json(response(await edition.generate({now,fetcher:fetch,trigger:'transient'}),null));}
- catch(error){return res.status(200).json(fallback.fallback(now,{reasonCode:error.code||'PULSE_SOURCE_CHECK_UNAVAILABLE'}));}
+ const current=await currentTransient(now);
+ return res.status(200).json(current.status==='updated'?response(current,null):current);
 }
 module.exports=handler;
 module.exports.threeSections=threeSections;
