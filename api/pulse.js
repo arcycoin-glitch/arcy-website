@@ -48,7 +48,7 @@ function response(value,audit,{archive=false}={}){
    threeSections(value.cards,{status:value.status,cycle:value.cycle});
  const neutralTake=fallback.fallback().take;
  const editorial=display.some(c=>c.contentType==='RECENT_VERIFIED')?
-  'ARCY TAKE · Önceki haftanın kaynakları, Arc için iki somut araştırma eksenini öne çıkarıyor: Gateway üzerinden agent treasury akışları ve borsa yatırma/çekme entegrasyonları. Circle’ın wrapped asset çerçevesi ise cirBTC değerlendirmesinde rezerv kanıtı, saklama ve itfa koşullarının ayrıca doğrulanması gerektiğini gösteriyor. Bunlar entegrasyon ve yöntem kanıtlarıdır; kullanıcı benimsenmesi veya likidite artışının doğrudan kanıtı değildir.':'';
+  'Önceki haftanın kaynakları, Arc için iki somut araştırma eksenini öne çıkarıyor: Gateway üzerinden agent treasury akışları ve borsa yatırma/çekme entegrasyonları. Circle’ın wrapped asset çerçevesi ise cirBTC değerlendirmesinde rezerv kanıtı, saklama ve itfa koşullarının ayrıca doğrulanması gerektiğini gösteriyor. Bunlar entegrasyon ve yöntem kanıtlarıdır; kullanıcı benimsenmesi veya likidite artışının doğrudan kanıtı değildir.':'';
 
  return {ok:true,number:value.number,status:value.status,generatedAt:value.generatedAt,
   isCurrentWeekResearch:display.some(card=>card.verifiedCurrentWeek===true),
