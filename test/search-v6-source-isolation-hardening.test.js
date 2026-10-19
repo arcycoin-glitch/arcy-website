@@ -47,3 +47,9 @@ test('a body that never closes is bounded, and its response is not cached',async
  const fresh=await reader.json(url,{fetcher:async()=>Response.json({state:'fresh'}),timeoutMs:100});
  assert.equal(fresh.state,'fresh');
 });
+
+test('stuck cancellation on error responses never blocks provider failure reporting',async()=>{
+ const reader=createReader();
+ const fake={ok:false,status:503,headers:{get:()=>null},body:{cancel:()=>new Promise(()=>{})}};
+ await assert.rejects(reader.json('https://proof.example/503',{fetcher:async()=>fake,timeoutMs:60}),{httpStatus:503});
+});
