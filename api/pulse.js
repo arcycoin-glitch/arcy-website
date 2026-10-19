@@ -49,10 +49,11 @@ function response(value,audit,{archive=false}={}){
  const neutralTake=fallback.fallback().take;
  const hasBitquery=display.some(c=>c.url?.includes('bitquery.io/investigations/arc-blockchain-first-month'));
  const hasGateway=display.some(c=>c.url?.includes('community.arc.io/public/videos/move-supported-non-usdc'));
+ const titles=display.filter(c=>c.contentType==='RECENT_VERIFIED'||c.contentType==='VERIFIED_DEVELOPMENT').map(c=>c.title);
+ const hasSelat=display.some(c=>c.url?.includes('/how-selat-uses-circle-gateway'));
  const editorial=hasBitquery?
-  'Bitquery’nin 15 Ekim araştırmasında Arc’ın günlük aktif cüzdan sayısı ilk gündeki 406.006 seviyesinden dördüncü hafta ortalaması 24.678’e geriliyor. Bu rakamlar kişi sayısı değil, işlem gönderen adreslerdir. Aynı araştırmada cirBTC teminatlı USDC borçlanması yaklaşık 190 milyon dolara ulaşıyor. '+(hasGateway?'Arc House’un Fast Gateway Deposits güncellemesi ise çapraz zincir USDC fonlamasında kesinleşme süresini azaltmaya odaklanıyor. ':'')+'ARCY’nin izlemesi gereken şey yalnızca fon akışı değil; bağımsız kullanıcı aktivitesi, gerçek likidite ve borç alınan USDC’nin nereye gittiğidir. Bu tespitler kaynak raporlarına dayanır; ARCY tarafından bağımsız on-chain yeniden hesaplama yapıldığı anlamına gelmez.':
-  display.some(c=>c.contentType==='RECENT_VERIFIED')?
-   'Önceki haftanın resmî kaynakları Arc üzerindeki ödeme ve entegrasyon altyapısındaki ilerlemeyi gösteriyor. Ancak geliştirici duyuruları tek başına kalıcı kullanıcı talebi veya gerçek likidite artışının kanıtı değildir.':'';
+  'Bitquery’nin 15 Ekim tarihli Arc ilk ay araştırması, günlük işlem gönderen adreslerin ilk gün 406.006’dan dördüncü hafta ortalamasında 24.678’e indiğini ve cirBTC teminatlı yaklaşık 190 milyon dolarlık USDC borçlanmasını raporluyor. Bunlar benzersiz kişi sayısı veya ARCY tarafından yeniden hesaplanmış sonuçlar değildir. '+(hasGateway?'Arc House’un 14 Ekim geliştirici videosunda CCTP ve Fast Gateway Deposits fonlama süresini azaltan teknik akış olarak açıklanıyor; bu, yeni bir ürün lansmanı veya kanıtlanmış kullanıcı artışı değildir. ':'')+(hasSelat?'SELAT ise tek Gateway bakiyesi üzerinden agent ödemelerini anlatıyor. ':'')+'ARCY TAKE: Fon büyüklüğünden çok kalıcı gerçek kullanıcı aktivitesi, likidite ve borçlanan fonların kullanımını izleyin.':
+  titles.length?'ARCY TAKE: '+titles.slice(0,2).join(' / ')+'. Bu tarihli kaynaklar teknik gelişme veya araştırma bulgularını gösteriyor; benimsenme, likidite ve kullanıcı artışı ayrıca zincir üzerinde kanıtlanmalıdır.':'';
 
 
  return {ok:true,number:value.number,status:value.status,generatedAt:value.generatedAt,
