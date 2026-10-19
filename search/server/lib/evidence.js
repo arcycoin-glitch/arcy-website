@@ -10,7 +10,7 @@ function found(value,source,evidence,status='SOURCE_REPORTED',observedAt=Date.no
   return {value,status,dataState:'DATA_FOUND',reasonCode:null,reason:null,source,chainId:1,network:'ethereum',freshness:{retrievedAt:new Date(observed).toISOString(),ageMs:Math.max(0,checkedAt-observed),basis:'Time since this provider response was retrieved; upstream publication time may be unavailable.'},evidence};
 }
 function error(e,source){
-  return {...unknown('Data provider request failed.','SOURCE_API_FAILED'),dataState:'SOURCE_API_FAILED',source:source||null,details:String(e?.message||'Unexpected provider failure').slice(0,140)};
+  return {...unknown('Data provider request failed.','SOURCE_API_FAILED'),dataState:'SOURCE_API_FAILED',source:source||null,details:require('./diagnostics').category(e)};
 }
 function card(fields,description){
   const values=Object.values(fields);

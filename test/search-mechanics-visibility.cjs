@@ -33,7 +33,7 @@ function report(network,mode){
    page.on('pageerror',e=>errors.push(e.message));let current;
    await page.route('**/api/search?**',route=>{
     const q=new URL(route.request().url()).searchParams;
-    return route.fulfill(q.get('action')==='report'?{json:current}:{status:503,json:{ok:false}});
+    return route.fulfill(['report','progress'].includes(q.get('action'))?{json:current}:{status:503,json:{ok:false}});
    });
    await page.route('https://www.geckoterminal.com/**',r=>r.fulfill({contentType:'text/html',body:'<title>Chart fixture</title>'}));
    for(const network of Object.keys(chains))for(const mode of ['architecture-only','unverified','missing-fields','missing-card','verified']){
@@ -46,17 +46,23 @@ function report(network,mode){
     if(mode.startsWith('missing-'))await page.evaluate(data=>render(data),fixture);
     assert.ok(await page.locator('#deepResearch').evaluate(el=>el.open));
     assert.equal(await page.locator('#cards .card').count(),5);assert.equal(await page.locator('#cards .metric').count(),20);
-    assert.equal(await page.locator('#cards > .card > .metric').count(),20);
-    assert.equal(await page.locator('#cards .unverifiedModules').count(),0);
-    for(const row of await page.locator('#cards > .card > .metric').all())assert.ok(await row.isVisible());
-    const card=page.locator('#cards > .card').filter({has:page.locator('h2',{hasText:'Contract & Mechanics'})});
-    assert.equal(await card.count(),1,'Mechanics must not be nested inside the no-source category disclosure');
-    const rows=card.locator(':scope > .metric');assert.equal(await rows.count(),4);
-    assert.deepEqual(await rows.locator(':scope > span').allTextContents(),labels);
-    for(const row of await rows.all())assert.equal(await row.isVisible(),true);
-    assert.equal(await card.locator('.missingGroup .metric').count(),0);
-    const values=await rows.locator('.result > b').allTextContents();
     const count=mode==='verified'?0:mode==='architecture-only'?3:4;
+    const card=page.locator('#cards .card').filter({has:page.locator('h2',{hasText:'Contract & Mechanics'})});
+    assert.equal(await card.count(),1);
+    if(count===4){
+     assert.equal(await card.isVisible(),false,'Empty Mechanics category starts collapsed');
+     await page.locator('#cards .unverifiedModules').evaluate(e=>e.open=true);
+    }else assert.ok(await card.isVisible());
+    assert.equal(await card.locator(':scope > .metric').count(),4-count);
+    if(count){
+     const missing=card.locator('.missingGroup');assert.equal(await missing.evaluate(e=>e.open),false);
+     assert.equal(await missing.locator('.metric').count(),count);
+     await missing.evaluate(e=>e.open=true);
+    }
+    const rows=card.locator('.metric');assert.equal(await rows.count(),4);
+    assert.deepEqual((await rows.locator(':scope > span').allTextContents()).sort(),labels.slice().sort());
+    for(const row of await rows.all())assert.ok(await row.isVisible());
+    const values=await rows.locator('.result > b').allTextContents();
     assert.equal(values.filter(v=>v==='NOT VERIFIED').length,count);
     assert.equal(await rows.locator('.reason').count(),count);
     if(mode!=='missing-card'){
@@ -72,9 +78,21 @@ function report(network,mode){
      await card.screenshot({path:path.join(process.argv[2],'mechanics-'+width+'.png')});
     }
    }
+   // Every category, including Mechanics, follows the identical clean-card rule.
+   for(const spec of schema){
+    const fixture=report('ethereum','verified');
+    for(const category of schema)for(const [key] of category.fields)fixture.cards[category.id].fields[key]=known(0);
+    for(const [key] of spec.fields)fixture.cards[spec.id].fields[key]={value:null,dataState:'NOT_VERIFIED',status:'NOT_VERIFIED',reason:'Explicit missing-source test reason',evidence:[]};
+    await page.evaluate(data=>render(data),fixture);
+    const group=page.locator('#cards .unverifiedModules');assert.equal(await group.count(),1);assert.equal(await group.evaluate(e=>e.open),false);
+    const empty=group.locator('.card');assert.equal(await empty.count(),1);assert.equal(await empty.isVisible(),false);
+    assert.equal(await empty.locator('.metric').count(),4);assert.equal(await page.locator('#cards > .card > .metric').count(),16);
+    await group.evaluate(e=>e.open=true);await empty.locator('.missingGroup').evaluate(e=>e.open=true);
+    for(const row of await empty.locator('.metric').all())assert.ok(await row.isVisible());
+   }
    assert.deepEqual(errors,[]);await page.close();
   }
   if(process.argv[2])await fs.writeFile(path.join(process.argv[2],'results.json'),JSON.stringify(results,null,2));
-  console.log('PASS: 30 desktop/mobile/three-chain Mechanics visibility scenarios, 5 cards/20 rows, evidence and no overflow.');
+  console.log('PASS: 30 Mechanics scenarios plus 10 all-category empty-card/zero-value scenarios, 5 cards/20 fields retained, evidence and no overflow.');
  }finally{if(browser)await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

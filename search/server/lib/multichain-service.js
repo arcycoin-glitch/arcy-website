@@ -25,7 +25,7 @@ function parseChain(raw){
  const value=raw===undefined?'ethereum':raw;
  return chains.chain(value).id;
 }
-async function report({network='ethereum',address}){
+async function buildReport({network='ethereum',address}){
  chains.chain(network);
  // Logos are decorative and never contribute to on-chain identity or research evidence.
  const result=await engine.report({network,address});
@@ -49,6 +49,15 @@ async function report({network='ethereum',address}){
  if(logoUrl)result.token={...result.token,logoUrl};
  return result;
 }
+function report({network='ethereum',address,onProgress}){
+ chains.chain(network);
+ if(typeof address!=='string'||!/^0x[0-9a-f]{40}$/i.test(address))return Promise.reject(Error('Invalid token address'));
+ const policy=['VERCEL','DEXSCREENER_PUBLIC_DISPLAY_APPROVED','GOPLUS_PUBLIC_DISPLAY_APPROVED','ETH_RPC_URL','ARC_RPC_URL','ARC_RPC_FALLBACK_URL','ROBINHOOD_RPC_URL','ROBINHOOD_RPC_FALLBACK_URL'].map(k=>process.env[k]||'');
+ const key=JSON.stringify([network,address.toLowerCase(),policy]);
+ return require('./analysis-scope').report(key,()=>require('./progress').run(async()=>{
+  const start=Date.now(),d=require('./diagnostics');try{const result=await buildReport({network,address});d.record('report',network,'ok',Date.now()-start,Object.values(result.cards).flatMap(c=>Object.values(c.fields)).filter(f=>f.dataState==='DATA_FOUND').length);return result}catch(error){d.record('report',network,d.category(error),Date.now()-start);throw error}
+ }),onProgress);
+}
 async function token({network='ethereum',address}){
  if(network==='ethereum')return ethereumToken.inspect(address);
  const adapter=network==='arc'?arc:robinhood;
@@ -66,10 +75,11 @@ async function discover({network='ethereum',query}){
  chains.chain(network);
  // Providers are independent; Blockscout 403 or an unavailable official
  // registry must not blank other verified/source-scoped search candidates.
+ const deadline=operation=>require('./timeout').withTimeout(Promise.resolve().then(operation),1000,'Optional discovery provider deadline');
  const [registry,indexed,dexSearch]=await Promise.allSettled([
-  network==='robinhood'?robinhood.discover({query}):Promise.resolve([]),
-  explorerDiscovery.searchExplorer(network,query),
-  dexMarket.discover(network,query)
+  deadline(()=>network==='robinhood'?robinhood.discover({query}):[]),
+  deadline(()=>explorerDiscovery.searchExplorer(network,query)),
+  deadline(()=>dexMarket.discover(network,query))
  ]);
  const providers=[
   {name:'Robinhood official registry',response:registry},
@@ -80,7 +90,10 @@ async function discover({network='ethereum',query}){
  const candidates=providers.flatMap(p=>p.response.status==='fulfilled'&&Array.isArray(p.response.value)?
   p.response.value:[]);
  const ranked=identities.rank(network,query,candidates);
- const matches=await logos.enhance(network,ranked);
+ let matches;
+ try{matches=await require('./timeout').withTimeout(logos.enhance(network,ranked),350,'Optional discovery artwork deadline')}
+ catch{matches=ranked.map(item=>({...item,logoUrl:logos.localLogo(network,item.address),logoSource:null}))}
+
  return {ok:true,query,chainId:chains.chain(network).chainId,network,
   matches,source:'Issuer/Robinhood registries, explorer and DEX Screener source-scoped candidates',
   providerError:errors.length>0,unavailableSources:errors,

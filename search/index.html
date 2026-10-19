@@ -486,8 +486,11 @@ function displayBurnShare(value){
  return percentage.toFixed(12).replace(/0+$/,'').replace(/\.$/,'')+'%';
 }
 function render(report){
+  const preserve=arguments[1]?.preserve===true;
+  const open=new Set(preserve?[...document.querySelectorAll('#cards details[open]')].map(d=>(d.closest('[data-card-id]')?.dataset.cardId||'root')+':'+d.className):[]);
   const root=$('cards');
   root.replaceChildren();
+  const withoutEvidence=[];
   const count=$('evidenceCount');count.textContent='20 checks · Sources, risks and evidence';
   if(report&&report.cards){
    let valid=0,historical=0,total=0;
@@ -506,13 +509,13 @@ function render(report){
   for(const spec of displayDefinitions){
     const card=report?.cards?.[spec.id];
     const section=document.createElement('section');
-    section.className='card';
+    section.className='card';section.dataset.cardId=spec.id;
     section.style.setProperty('--accent',spec.accent);
     const present=spec.fields.filter(([key])=>{
      const d=card?.fields?.[key];
      return d?.dataState==='DATA_FOUND'&&d.value!==null&&d.value!==undefined;
     }).length;
-    if(card&&present===0)section.classList.add('card-empty');
+    if(report&&present===0)section.classList.add('card-empty');
     const title=document.createElement('h2');
     title.textContent=spec.title;
     section.append(title);
@@ -522,6 +525,7 @@ function render(report){
      'Current holdings at standard zero/dead addresses; not proof of an official burn event, buyback or lifetime burned supply.':
      (card?.description||'Awaiting verified evidence');
     section.append(description);
+    const missingRows=[];
     let knownCount=0;
     for(const [key,label] of spec.fields){
       const data=card?.fields?.[key];
@@ -532,7 +536,7 @@ function render(report){
        key==='burnAddressBalance'?'Burn-Address Balance':key==='burnAddressPct'?'Burn-Address Share':label;
       const result=document.createElement('div');result.className='result';
       const value=document.createElement('b');
-      const missing=!data||data.value===null||data.value===undefined;
+      const missing=!data||data.dataState!=='DATA_FOUND'||data.value===null||data.value===undefined;
       value.className=missing?'no':'';
       const kind=key==='valuation'?data?.kind:null;
       const displayed=!report?'—':missing?'NOT VERIFIED':key==='burnAddressPct'&&typeof data.value==='number'?
@@ -559,12 +563,19 @@ function render(report){
        result.append(why);
       }
       row.append(name,result);
-      section.append(row);if(report&&!missing)knownCount++;
+      if(report&&missing)missingRows.push(row);
+      else{section.append(row);if(report&&!missing)knownCount++}
     }
-    if(report&&knownCount===0&&spec.id!=='mechanics'){
+    if(report&&knownCount===0){
       const notice=document.createElement('p');notice.className='noSource';
       notice.textContent='No independently supported figures for this category yet.';
       section.append(notice);
+    }
+    if(report&&missingRows.length){
+      const hidden=document.createElement('details');hidden.className='missingGroup';
+      const toggle=document.createElement('summary');
+      toggle.textContent='Show '+missingRows.length+' unverified checks and reasons';
+      hidden.append(toggle,...missingRows);section.append(hidden);
     }
     const status=document.createElement('div');
     status.className='meta statusLine';
@@ -586,6 +597,10 @@ function render(report){
       const details=document.createElement('details');details.className='proof-panel';
       const summary=document.createElement('summary');summary.textContent='View sources & evidence';
       const proofList=document.createElement('div');proofList.className='proof-list';
+      if(Array.isArray(card.researchNotes))for(const note of card.researchNotes.slice(0,5)){
+       if(typeof note!=='string')continue;
+       const context=document.createElement('p');context.className='proof-entry';context.textContent=note.slice(0,600);proofList.append(context);
+      }
       for(const [key,label] of spec.fields){
         const field=card.fields[key];if(!field)continue;
         const block=document.createElement('div');block.className='proof-entry';
@@ -629,6 +644,23 @@ function render(report){
         }
         proofList.append(block);
       }
+      if(spec.id==='holders'&&Array.isArray(card.holderCandidates)&&card.holderCandidates.length){
+       const ranked=document.createElement('details');ranked.className='advanced-proof';
+       const heading=document.createElement('summary');
+       heading.textContent='Inspect source-ranked holder addresses ('+card.holderCandidates.length+' candidates)';
+       const explanation=document.createElement('p');
+       explanation.textContent='Pinned balances for explorer-provided candidates. UNKNOWN means no confirmed address role. These are not proven global ranks or beneficial owners.';
+       ranked.append(heading,explanation);
+       for(const item of card.holderCandidates){
+        if(!/^0x[0-9a-f]{40}$/i.test(item.address)||!Number.isFinite(item.sharePct))continue;
+        const line=document.createElement('p');line.className='proof-entry';
+        const anchor=document.createElement('a');anchor.href='https://eth.blockscout.com/address/'+item.address;
+        anchor.rel='noopener noreferrer';anchor.target='_blank';anchor.textContent=item.address;
+        line.append(document.createTextNode('#'+item.rank+' · '+item.sharePct.toFixed(4)+'% · '+item.role+' · '),anchor);
+        ranked.append(line);
+       }
+       proofList.append(ranked);
+      }
       details.append(summary,proofList);
       const advanced=document.createElement('details');advanced.className='advanced-proof';
       const more=document.createElement('summary');more.textContent='Technical evidence JSON';
@@ -636,8 +668,18 @@ function render(report){
       advanced.append(more,pre);details.append(advanced);
       section.append(details);
     }
-    root.append(section);
+    if(report&&present===0)withoutEvidence.push(section);
+    else root.append(section);
   }
+  if(report&&withoutEvidence.length){
+    const groups=document.createElement('details');groups.className='unverifiedModules';
+    const label=document.createElement('summary');
+    label.textContent=withoutEvidence.length+' research '+(withoutEvidence.length===1?'category':'categories')+
+     ' without source-backed metrics · Review reasons';
+    const nested=document.createElement('div');nested.className='grid';
+    nested.append(...withoutEvidence);groups.append(label,nested);root.append(groups);
+  }
+  if(preserve)for(const d of root.querySelectorAll('details'))d.open=open.has((d.closest('[data-card-id]')?.dataset.cardId||'root')+':'+d.className);
 }
 render(null);
 $('deepResearch').open=true;
@@ -1056,22 +1098,19 @@ function baseUrl(route,params){
  return route+'?'+new URLSearchParams({...params,chain:selected()}).toString();
 }
 async function scanAddress(address,network=selected(),version=searchVersion,chosenIdentity=null,chosenLogo=null){
- const info=NETWORKS[network],button=$('go');
- if(!info)return;
- button.disabled=true;clearMatches();$('asset').replaceChildren();clearIdentity();render(null);
- $('quickFacts').replaceChildren();
+ const info=NETWORKS[network],button=$('go');if(!info)return;
+ button.disabled=true;clearMatches();$('asset').replaceChildren();clearIdentity();render(null);$('quickFacts').replaceChildren();
  $('detailState').textContent='Reading '+info.label+' on-chain and external evidence…';
- const controller=requestController();
- try{
-  const url='/api/search?action=report&'+new URLSearchParams({address,chain:network}).toString();
-  const response=await fetch(url,{signal:controller.signal,cache:'no-store'});
-  const data=await response.json();
-  if(version!==searchVersion||network!==selected())return;
-  if(!response.ok||data.ok!==true||data.cardCount!==5||data.chainId!==info.id||data.network!==network||data.address.toLowerCase()!==address.toLowerCase()||!data.cards)
-   throw Error(data.reason||data.error||'Invalid chain-scoped scan response');
+ const controller=requestController();let anchor=null,complete=false;
+ function paint(data,phase){
+  if(version!==searchVersion||network!==selected()||controller.signal.aborted)return;
+  if(data.ok!==true||data.cardCount!==5||data.chainId!==info.id||data.network!==network||data.address?.toLowerCase()!==address.toLowerCase()||!data.cards||!/^0x[0-9a-f]+$/i.test(data.block||''))throw Error('Invalid chain-scoped scan response');
+  if(anchor&&anchor!==data.block)throw Error('Analysis block changed during progressive loading');
+  const hadAnchor=anchor!==null;
   for(const spec of definitions)
    if(!data.cards[spec.id]||spec.fields.some(([key])=>!data.cards[spec.id].fields?.[key]))
     throw Error('Missing required five-card metric');
+  anchor=data.block;
   const asset=data.token||{},container=$('asset');
   container.replaceChildren();
   const title=document.createElement('span');
@@ -1101,17 +1140,34 @@ async function scanAddress(address,network=selected(),version=searchVersion,chos
   }
   const identity=data.tokenIdentity;
   renderIdentity(identity,network);
-  render(data);renderQuickFacts(data);
+  render(data,{preserve:hadAnchor});renderQuickFacts(data);
   document.title=(asset.name||asset.symbol||'Token')+' ('+(asset.symbol||'?')+') · ARCY SEARCH';
-  $('detailState').textContent='Chain '+info.id+' · Snapshot complete · '+data.scannedAt+' · Unsupported metrics remain NOT VERIFIED.';
+  $('detailState').textContent=phase==='complete'?'Chain '+info.id+' · Snapshot complete · '+data.scannedAt+' · Unsupported metrics remain NOT VERIFIED.':'Chain '+info.id+' · Verified data loading · Deep analysis in progress…';
+  $('detailState').dataset.phase=phase;
+  dispatchEvent(new CustomEvent('arcy-search-progress',{detail:{phase,network,address,block:data.block,availableFields:Object.values(data.cards[phase]?.fields||{}).filter(isCurrentEvidence).length}}));
+  if(phase==='complete')complete=true;
+ }
+ try{
+  const params=new URLSearchParams({address,chain:network});
+  let response=await fetch('/api/search?action=progress&'+params,{signal:controller.signal,cache:'no-store'});
+  if(response.status===404)response=await fetch('/api/search?action=report&'+params,{signal:controller.signal,cache:'no-store'});
+  if(!response.ok){const data=await response.json();throw Error(data.reason||data.error||'Scan unavailable')}
+  if(!response.headers.get('content-type')?.includes('application/x-ndjson'))paint(await response.json(),'complete');
+  else{
+   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
+   const event=text=>{if(!text.trim())return;const e=JSON.parse(text);if(e.phase==='error')throw Error(e.error||'Deep analysis unavailable');if(!['identity','supply','holders','liquidity','activity','mechanics','complete'].includes(e.phase))throw Error('Invalid analysis phase');paint(e.report,e.phase)};
+   try{for(;;){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});if(buffer.length>2*1024*1024)throw Error('Analysis frame exceeds limit');let cut;while((cut=buffer.indexOf('\n'))!==-1){event(buffer.slice(0,cut));buffer=buffer.slice(cut+1)}}buffer+=decoder.decode();if(buffer.trim())event(buffer)}
+   finally{if(!complete)await reader.cancel().catch(()=>{});reader.releaseLock()}
+   if(!complete)throw Error('Analysis stream ended before completion');
+  }
  }catch(error){
   if(version!==searchVersion||network!==selected()||controller.signal.aborted)return;
-  $('detailState').textContent='Scan unavailable: '+String(error.message).slice(0,150);
-  // Contract identity failed; invalidate any independently loaded chart too.
-  chartGeneration++;if(chartController){chartController.abort();chartController=null}
-  clearPriceChart();$('marketLink').hidden=true;
-  $('chartNote').textContent='On-chain contract evidence could not be established. Chart withheld.';
-  $('asset').replaceChildren();clearIdentity();render(null);$('quickFacts').replaceChildren();
+  $('detailState').textContent=(anchor?'Deep analysis unavailable; verified partial data retained: ':'Scan unavailable: ')+String(error.message).slice(0,150);
+  if(!anchor){
+   chartGeneration++;if(chartController){chartController.abort();chartController=null}
+   clearPriceChart();$('marketLink').hidden=true;$('chartNote').textContent='On-chain contract evidence could not be established. Chart withheld.';
+   $('asset').replaceChildren();clearIdentity();render(null);$('quickFacts').replaceChildren();
+  }
  }finally{if(version===searchVersion&&network===selected()){button.disabled=false;if(activeController===controller)activeController=null}}
 }
 // Site-owned ARCY mascot is an on-site brand graphic, NOT issuer verification.

@@ -13,21 +13,39 @@ const BURN=['0x0000000000000000000000000000000000000000','0x00000000000000000000
 const ADDRESS=/^0x[0-9a-fA-F]{40}$/;
 const {readJson}=require('./http');
 let rpcId=0;
-async function rpc(method,params,{timeoutMs=12000}={}){
+async function rawRpc(method,params,{timeoutMs=12000}={}){
   const id=++rpcId;
   // Ref-counted timeout: Node's unref'd AbortSignal.timeout can leave promises unresolved in CI.
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(new DOMException('RPC request timed out','TimeoutError')),timeoutMs);
   let response,result;
-  try{response=await fetch(RPC_URL,{method:'POST',headers:{'content-type':'application/json'},
-   body:JSON.stringify({jsonrpc:'2.0',id,method,params}),signal:controller.signal});
-   if(!response.ok)throw Error('Ethereum RPC HTTP '+response.status);
-   result=await readJson(response,1024*1024);}
-  finally{clearTimeout(timer)}
+  const deadline=Date.now()+timeoutMs;
+  try{
+   for(let attempt=0;;attempt++){
+    try{
+     response=await fetch(RPC_URL,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id,method,params}),signal:controller.signal});
+     if(!response.ok){await response.body?.cancel?.();throw Object.assign(Error('Ethereum RPC HTTP '+response.status),{httpStatus:response.status,code:'RPC_HTTP_ERROR'})}
+     result=await readJson(response,1024*1024);
+     if([-32005,-32016].includes(result?.error?.code))throw Object.assign(Error('Ethereum RPC rate limited'),{code:'RPC_RATE_LIMIT'});
+     break;
+    }catch(error){
+     const retryable=[429,502,503,504].includes(error.httpStatus)||error.code==='RPC_RATE_LIMIT'||error.name==='TypeError';
+     if(attempt>=1||!retryable||controller.signal.aborted)throw error;
+     const raw=response?.headers?.get?.('retry-after');
+     const retry=raw?(Number.isFinite(Number(raw))?Number(raw)*1000:Date.parse(raw)-Date.now()):250;
+     const delay=Math.max(250,Number.isFinite(retry)?retry:250);
+     if(Date.now()+delay>=deadline)throw error;
+     await new Promise(resolve=>setTimeout(resolve,delay));
+    }
+   }
+  }finally{clearTimeout(timer)}
   if(!result||typeof result!=='object'||Array.isArray(result)||result.jsonrpc!=='2.0'||result.id!==id)throw Error('Ethereum RPC response identity mismatch');
   if(result.error)throw Error('Ethereum RPC method failed: '+method+(Number.isInteger(result.error.code)?' ('+result.error.code+')':''));
   if(!Object.hasOwn(result,'result'))throw Error('Ethereum RPC response missing result: '+method);
   return result.result;
+}
+function rpc(method,params,options={}){
+ return require('./analysis-scope').read('ethereum',RPC_URL,method,params,options,()=>rawRpc(method,params,options));
 }
 function uint(hex){
   if(typeof hex!=='string'||!/^0x[0-9a-fA-F]{64}$/.test(hex))throw Error('Invalid 32-byte ABI result');
@@ -60,16 +78,18 @@ async function inspect(address){
   if(code==='0x')throw Error('No contract deployed at this address');
   if(typeof code!=='string'||!/^0x[0-9a-fA-F]+$/.test(code))throw Error('Invalid contract bytecode');
   const call=data=>rpc('eth_call',[{to:normalized,data},block]);
-  const [s,d]=await Promise.all([call('0x18160ddd'),call('0x313ce567')]);
-  const raw=uint(s);
-  const decimals=Number(uint(d));
+  // All getters use the already verified chain, code and pinned block.
+  const [s,d,addresses,names]=await Promise.all([
+    call('0x18160ddd'),call('0x313ce567'),
+    Promise.allSettled(BURN.map(a=>call('0x70a08231'+a.slice(2).padStart(64,'0')).then(uint))),
+    Promise.allSettled([call('0x06fdde03'),call('0x95d89b41')])
+  ]);
+  const raw=uint(s),decimals=Number(uint(d));
   const supply=status(units(raw,decimals),'totalSupply()',block);
-  const addresses=await Promise.allSettled(BURN.map(a=>call('0x70a08231'+a.slice(2).padStart(64,'0')).then(uint)));
   const burnRaw=addresses.every(x=>x.status==='fulfilled')?addresses.reduce((n,x)=>n+x.value,0n):null;
   const burn=burnRaw!==null?status(units(burnRaw,decimals),'balanceOf(zero/dead)',block):unknown('One or both standard burn-address balances were unavailable.');
-  const [nameResult,symbolResult]=await Promise.allSettled([call('0x06fdde03'),call('0x95d89b41')]);
-  const name=nameResult.status==='fulfilled'?abiString(nameResult.value):null;
-  const symbol=symbolResult.status==='fulfilled'?abiString(symbolResult.value):null;
+  const name=names[0].status==='fulfilled'?abiString(names[0].value):null;
+  const symbol=names[1].status==='fulfilled'?abiString(names[1].value):null;
   return {
     ok:true,chainId:CHAIN_ID,address:normalized,block,scannedAt:new Date().toISOString(),token:{name,symbol,decimals},totalSupplyRaw:raw.toString(),burnAddressRaw:burnRaw?.toString()??null,
     fields:{

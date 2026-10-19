@@ -67,7 +67,7 @@ function candidate(network) {
       server.stdout.once('data', () => { clearTimeout(timer); resolve(); });
       server.once('error', reject);
     });
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({ headless: true, ...(process.env.ARCY_BROWSER_CHANNEL ? { channel: process.env.ARCY_BROWSER_CHANNEL } : {}) });
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     const pageErrors = [];
     const requests = [];
@@ -86,6 +86,8 @@ function candidate(network) {
         if (discoveryStatus !== 200) return route.fulfill({ status: discoveryStatus, json: { ok: false, reason: 'RATE_LIMITED' } });
         return route.fulfill({ json: { ok: true, chainId: chains[network], network, matches: [candidate(network)] } });
       }
+      // Exercise compatibility with an existing deployment lacking the optional stream route.
+      if (action === 'progress') return route.fulfill({ status: 404, json: { ok: false } });
       if (action === 'report') {
         if (reportStatus !== 200) return route.fulfill({ status: reportStatus, json: { ok: false, reason: 'REPORT_UNAVAILABLE' } });
         return route.fulfill({ json: report(network, url.searchParams.get('address')) });

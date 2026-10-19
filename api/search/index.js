@@ -3,6 +3,7 @@ const handlers=Object.freeze({
  health:require('../../search/server/api/health'),
  discover:require('../../search/server/api/discover'),
  report:require('../../search/server/api/report'),
+ progress:require('../../search/server/api/progress'),
  token:require('../../search/server/api/token'),
  chart:require('../../search/server/api/chart')
 });
@@ -11,6 +12,7 @@ const KEYS=Object.freeze({
  discover:['q','chain'],
  token:['address','chain'],
  report:['address','chain'],
+ progress:['address','chain'],
  chart:['address','chain','interval','range','timeframe','period']
 });
 function decodeQuery(req){

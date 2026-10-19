@@ -22,7 +22,7 @@ function providers(env=process.env){
 function retryable(error){
  return Boolean(error?.retryable)||['AbortError','TimeoutError','TypeError'].includes(error?.name);
 }
-async function requestAt(endpoint,method,params,{timeoutMs=11000}={}){
+async function rawRequestAt(endpoint,method,params,{timeoutMs=11000}={}){
  if(!READ_ONLY.has(method))throw Error('Arc RPC method not allowed in read-only lab');
  const id=++nextId;
  // A ref-counted watchdog is essential: AbortSignal.timeout() is unref'd
@@ -38,6 +38,7 @@ async function requestAt(endpoint,method,params,{timeoutMs=11000}={}){
   });
   if(!response.ok){
    const error=new Error('Arc RPC HTTP '+response.status);
+   error.httpStatus=response.status;
    error.retryable=response.status===403||response.status===429||response.status>=500;
    throw error;
   }
@@ -47,6 +48,9 @@ async function requestAt(endpoint,method,params,{timeoutMs=11000}={}){
   body.id!==id||body.error||!Object.hasOwn(body,'result'))
   throw Object.assign(Error('Arc RPC invalid response'),{retryable:true});
  return body.result;
+}
+function requestAt(endpoint,method,params,options={}){
+ return require('./analysis-scope').read('arc',endpoint,method,params,options,()=>rawRequestAt(endpoint,method,params,options));
 }
 // Standalone read-only RPC calls also fail over, but pin-sensitive token scans
 // use inspectAt() below to avoid combining two providers in one snapshot.
@@ -76,16 +80,15 @@ async function inspectAt(endpoint,address){
  if(!/^0x[0-9a-f]+$/i.test(bytecode||'')||bytecode==='0x')
   throw Error('No verified token contract');
  const call=data=>callRpc('eth_call',[{to:address,data},block]);
- const [supplyWord,decimalsWord]=await Promise.all([
-  call('0x18160ddd'),call('0x313ce567')
+ // Independent getters share the already validated chain/code/block anchor.
+ const [supplyWord,decimalsWord,names]=await Promise.all([
+  call('0x18160ddd'),call('0x313ce567'),
+  Promise.allSettled([call('0x06fdde03'),call('0x95d89b41'),
+   ...BURN.map(a=>call('0x70a08231'+a.slice(2).padStart(64,'0')))])
  ]);
  const totalSupplyRaw=uint(supplyWord),decimals=Number(uint(decimalsWord));
  if(!Number.isInteger(decimals)||decimals<0||decimals>36)
   throw Error('Unsupported token precision');
- const names=await Promise.allSettled([
-  call('0x06fdde03'),call('0x95d89b41'),
-  ...BURN.map(a=>call('0x70a08231'+a.slice(2).padStart(64,'0')))
- ]);
  const name=names[0].status==='fulfilled'?abiString(names[0].value):null;
  const symbol=names[1].status==='fulfilled'?abiString(names[1].value):null;
  const raw=names.slice(2).every(x=>x.status==='fulfilled')?

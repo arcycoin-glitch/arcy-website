@@ -94,16 +94,16 @@ async function inspect(address,block,rawSupply,{getCounters=json,getPages=pages,
    const info=await getCounters(API+address.toLowerCase()+'/counters');
    const count=parseCount(info);
    if(!count)return blank('A positive explorer holder count was not established.','COUNT_NOT_VERIFIED');
-   reported=found(count,'Blockscout',[{provider:'Blockscout',address,scope:'Source-reported current holder count; may not match an earlier pinned block.'}],'SOURCE_REPORTED',source.observedAt(API+address.toLowerCase()+'/counters'));
+   reported=found(count,'Blockscout',[{provider:'Blockscout',address,sourceUrl:API+address.toLowerCase()+'/counters',scope:'Source-reported current holder count; may not match an earlier pinned block.'}],'SOURCE_REPORTED',source.observedAt(API+address.toLowerCase()+'/counters'));
    if(count>MAX_HOLDERS){
      const sourceRank=await require('./large-holders').inspect(address.toLowerCase(),block,rawSupply,count);
-     return card({
+     return {...card({
        holderCount:reported,
        ...sourceRank.fields
      },sourceRank.rankedEvidence
        ?'Blockscout holder addresses re-ranked using pinned Ethereum RPC balances. Candidate-list completeness remains SOURCE_REPORTED.'
        :'Blockscout-reported holder count only; ranked candidates could not be reconciled.'
-     );
+     ),holderCandidates:sourceRank.holderCandidates||[]};
    }
    // Complete small-wallet census is allowed only after every indexed wallet
    // is re-read at the pinned block and balances equal the total token supply.
