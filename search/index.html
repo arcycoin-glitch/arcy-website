@@ -482,8 +482,8 @@ function isCurrentEvidence(field){
 function displayBurnShare(value){
  const percentage=Number(value);
  if(typeof value!=='number'||!Number.isFinite(percentage)||percentage<0||percentage>100)return 'NOT VERIFIED';
- if(percentage>0&&percentage<0.000000000001)return '<0.000000000001%';
- return percentage.toFixed(12).replace(/0+$/,'').replace(/\.$/,'')+'%';
+ if(percentage>0&&percentage<0.0001)return '<0.0001%';
+ return percentage.toFixed(4).replace(/0+$/,'').replace(/\.$/,'')+'%';
 }
 function render(report){
   const preserve=arguments[1]?.preserve===true;
@@ -563,7 +563,9 @@ function render(report){
        result.append(why);
       }
       row.append(name,result);
-      if(report&&missing)missingRows.push(row);
+      // Mechanics should explain all four checks in place, not look empty
+      // simply because a verified contract source is unavailable.
+      if(report&&missing&&spec.id!=='mechanics')missingRows.push(row);
       else{section.append(row);if(report&&!missing)knownCount++}
     }
     if(report&&knownCount===0){
@@ -1415,6 +1417,20 @@ $('chartRanges').addEventListener('click',event=>{
 $('chain').addEventListener('change',chainChanged);
 $('go').addEventListener('click',searchOrScan);
 $('detailSearchForm').addEventListener('submit',searchFromDetail);
+$('detailSearchQuery').addEventListener('input',()=>{
+ clearTimeout(detailTypeaheadTimer);
+ ++detailSearchGeneration;
+ $('detailMatches').replaceChildren();$('detailMatches').hidden=true;
+ const q=$('detailSearchQuery').value.trim();
+ if(q.length<2||q.length>48||EVM_ADDRESS.test(q)||/^0x/i.test(q)){
+  $('detailSearchStatus').textContent='Type at least two letters to find a token.';
+  return;
+ }
+ detailTypeaheadTimer=setTimeout(()=>{
+  detailTypeaheadTimer=null;
+  void searchFromDetail({preventDefault(){}});
+ },340);
+});
 function syncDetailSearchNetwork(){
  const network=$('detailSearchChain').value;
  for(const button of document.querySelectorAll('#detailNetworkShortcuts [data-detail-chain]')){
@@ -1422,6 +1438,8 @@ function syncDetailSearchNetwork(){
  }
 }
 $('detailSearchChain').addEventListener('change',()=>{
+ ++detailSearchGeneration;
+ clearTimeout(detailTypeaheadTimer);
  syncDetailSearchNetwork();
  $('detailMatches').replaceChildren();$('detailMatches').hidden=true;
  $('detailSearchStatus').textContent='Search on '+NETWORKS[$('detailSearchChain').value].label+' first-party sources.';
@@ -1433,8 +1451,19 @@ for(const button of document.querySelectorAll('#detailNetworkShortcuts [data-det
   $('detailSearchQuery').focus();
  });
 }
-$('address').addEventListener('keydown',event=>{if(event.key==='Enter')void searchOrScan()});
-$('address').addEventListener('input',()=>{cancelPending();clearMatches();$('asset').replaceChildren();clearIdentity();render(null)});
+let typeaheadTimer=null,detailTypeaheadTimer=null;
+// Debounced typeahead shares the existing exact-chain, contract-scoped
+// discovery renderer. No hidden ticker wall, new UI or unverified issuer mark.
+function scheduleTypeahead(){
+ clearTimeout(typeaheadTimer);
+ const q=$('address').value.trim();
+ if(q.length<2||q.length>48||EVM_ADDRESS.test(q)||/^0x/i.test(q))return;
+ typeaheadTimer=setTimeout(()=>{typeaheadTimer=null;void searchOrScan()},340);
+}
+$('address').addEventListener('keydown',event=>{
+ if(event.key==='Enter'){clearTimeout(typeaheadTimer);void searchOrScan()}
+});
+$('address').addEventListener('input',()=>{cancelPending();clearMatches();$('asset').replaceChildren();clearIdentity();render(null);scheduleTypeahead()});
  $('backSearch').addEventListener('click',()=>location.assign('/#search'));
 $('copyLink').addEventListener('click',async()=>{
  try{

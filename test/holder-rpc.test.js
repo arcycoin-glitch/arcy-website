@@ -8,3 +8,17 @@ test('timeout removes provider and a later healthy provider succeeds',async()=>{
 test('cooling providers yield to the worker deadline without sleeping past it',async()=>{const h=harness(()=>({ok:false,status:429,headers:new Headers({'retry-after':'60'})}));await assert.rejects(h.client.rpc('eth_blockNumber',[]));await assert.rejects(budget.run(20,()=>h.client.rpc('eth_blockNumber',[])),{code:'HOLDER_WORKER_BUDGET_EXHAUSTED'});assert.equal(h.calls.length,2);});
 test('balance batches are bounded and preserve exact item ordering',async()=>{const h=harness((url,p)=>good(p));const values=await h.client.batch(Array.from({length:12},()=>({method:'eth_call',params:[]})));assert.equal(values.length,12);assert.deepEqual(h.calls.filter(x=>Array.isArray(x.p)).map(x=>x.p.length),[5,5,2]);assert.ok(h.client.metrics().backoffMs>0);});
 test('a deadline-limited request yields its checkpoint slice without quarantining a healthy provider',async()=>{const client=create({endpoints:['healthy'],interval:0,fetcher:async(url,options)=>{const p=JSON.parse(options.body);if(p.method==='eth_chainId')return good(p);return new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Object.assign(Error(),{name:'TimeoutError'})),{once:true}));}});await assert.rejects(budget.run(30,()=>budget.operation(()=>client.rpc('eth_blockNumber',[]))),{code:'HOLDER_WORKER_BUDGET_EXHAUSTED'});await new Promise(r=>setTimeout(r,10));assert.equal(client.health()[0].cooldownMs,0);assert.equal(client.health()[0].interval,0);assert.equal(client.metrics().errors,0);assert.equal(client.metrics().http429,0);});
+
+test('generic JSON-RPC provider errors fall back to independently chain-checked RPC',async()=>{
+ const h=harness((url,p)=>url==='primary'&&p.method!=='eth_chainId'?
+  {ok:true,json:async()=>({id:p.id,error:{code:-32603,message:'internal node failure'}})}:good(p));
+ assert.equal(await h.client.rpc('eth_getBlockByNumber',['0x123',false]),'0x01');
+ assert.equal(h.client.metrics().fallbacks,1);
+ assert.equal(h.calls.filter(x=>x.url==='secondary'&&x.p.method==='eth_chainId').length,1);
+});
+test('contract execution revert remains a getter outcome and does not fake a value',async()=>{
+ const h=harness((url,p)=>p.method==='eth_call'?
+  {ok:true,json:async()=>({id:p.id,error:{code:3,message:'execution reverted'}})}:good(p));
+ await assert.rejects(h.client.rpc('eth_call',[]),{code:'GETTER_REVERTED'});
+ assert.equal(h.calls.filter(x=>x.url==='secondary').length,0);
+});
