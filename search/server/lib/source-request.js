@@ -17,15 +17,24 @@ function createReader({ttlMs=15000,maxEntries=128,now=Date.now}={}){
   if(active>=8){observe('overloaded');throw Object.assign(Error('Source concurrency limit'),{code:'SOURCE_CAPACITY_LIMIT'})}
   observe('cache_miss');active++;
   const task=(async()=>{
-   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),Math.min(12000,Math.max(1,timeoutMs)));
+   const controller=new AbortController();
+   // A true wall-clock deadline covers both fetch and body parsing, even when
+   // a custom fetcher or response stream ignores AbortSignal.
+   let timer;
+   const deadline=new Promise((_,reject)=>{
+    timer=setTimeout(()=>{
+     controller.abort();
+     reject(Object.assign(Error('Source deadline exceeded'),{code:'SOURCE_TIMEOUT'}));
+    },Math.min(12000,Math.max(1,timeoutMs)));
+   });
    try{
-    const response=await fetcher(key,{headers:{accept:'application/json'},signal:controller.signal});
+    const response=await Promise.race([fetcher(key,{headers:{accept:'application/json'},signal:controller.signal}),deadline]);
     if(!response.ok){
      if(response.status===429){const raw=response.headers?.get?.('retry-after'),seconds=Number(raw),delay=raw?(Number.isFinite(seconds)?seconds*1000:Date.parse(raw)-now()):30000;cooldowns.set(url.origin,now()+Math.min(120000,Math.max(1000,Number.isFinite(delay)?delay:30000)));while(cooldowns.size>32)cooldowns.delete(cooldowns.keys().next().value);}
      await response.body?.cancel?.();
      throw Object.assign(Error('Source HTTP '+response.status),{code:'SOURCE_HTTP_ERROR',httpStatus:response.status});
     }
-    const body=await readJson(response,maxBytes);checked(body,validate);
+    const body=await Promise.race([readJson(response,maxBytes),deadline]);checked(body,validate);
     if(controller.signal.aborted)throw Object.assign(Error('Source request timed out'),{code:'SOURCE_TIMEOUT'});
     failures.delete(url.origin);observe('ok',now()-t);
     cache.delete(key);cache.set(key,{body:structuredClone(body),observedAt:now(),expires:now()+ttlMs});while(cache.size>maxEntries)cache.delete(cache.keys().next().value);
