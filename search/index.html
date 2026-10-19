@@ -1438,6 +1438,8 @@ function syncDetailSearchNetwork(){
  }
 }
 $('detailSearchChain').addEventListener('change',()=>{
+ ++detailSearchGeneration;
+ clearTimeout(detailTypeaheadTimer);
  syncDetailSearchNetwork();
  $('detailMatches').replaceChildren();$('detailMatches').hidden=true;
  $('detailSearchStatus').textContent='Search on '+NETWORKS[$('detailSearchChain').value].label+' first-party sources.';
