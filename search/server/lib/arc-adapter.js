@@ -239,13 +239,27 @@ async function mechanics({address,base}){
   rpcClient.rpc('eth_getStorageAt',[address,IMPLEMENTATION,base.block])
  ]);
  const owner=results[0].status==='fulfilled'?addressWord(results[0].value):null;
+ // Optional ABI-less getter observations are read-only. They never imply
+ // the full admin model or verified mint/upgrade permissions.
+ let alternativeOwner=null,alternativeMethod=null;
+ if(!owner){
+  const selector=name=>require('../../../lib/keccak')(Buffer.from(name)).slice(0,10);
+  const signatures=['getOwner()','admin()'];
+  const probes=await Promise.allSettled(signatures.map(name=>require('./timeout').withTimeout(
+   rpcClient.rpc('eth_call',[{to:address,data:selector(name)},base.block],{timeoutMs:1600}),
+   1900,'Optional owner getter deadline')));
+  for(let i=0;i<signatures.length;i++){
+   const value=probes[i].status==='fulfilled'?addressWord(probes[i].value):null;
+   if(value){alternativeOwner=value;alternativeMethod=signatures[i];break}
+  }
+ }
  const implementation=results[1].status==='fulfilled'?addressWord(results[1].value):null;
  const context={address,block:base.block};
  const preliminary={
   tradingTaxes:NO('Taxes need source-reviewed contract getter or exact-chain security evidence.','TAX_NOT_VERIFIED'),
   mintCapability:NO('A generic getter cannot establish mint privileges.','MINT_NOT_VERIFIED'),
-  ownerAdmin:owner?proof('owner() getter: '+owner,'Arc RPC',
-   {...context,method:'owner()',scope:'Getter-reported; other roles may exist.'},'GETTER_REPORTED'):
+  ownerAdmin:(owner||alternativeOwner)?proof((owner?'owner()':alternativeMethod)+' getter: '+(owner||alternativeOwner),'Arc RPC',
+   {...context,method:owner?'owner()':alternativeMethod,scope:'Getter-reported observation only; actual admin rights and other roles are not established.'},'GETTER_REPORTED'):
    NO('No reliable owner or admin getter established.','OWNER_ADMIN_NOT_VERIFIED'),
   contractArchitecture:implementation?proof('EIP-1967 implementation: '+implementation,'Arc RPC',
    {...context,method:'EIP-1967 implementation slot',
