@@ -21,3 +21,37 @@
  #hero .hero-video{display:none!important}
  #hero .hero-flight>img{opacity:1!important;visibility:visible!important}
 }
+
+/* When mobile autoplay, data saver or codec support prevents playback, the
+   original ARCY owl still floats visibly in its existing composition. */
+@keyframes arcy-owl-mobile-presence{
+  0%,100%{transform:translate3d(0,2px,0) rotate(-.5deg)}
+  50%{transform:translate3d(0,-12px,0) rotate(.65deg)}
+}
+@keyframes arcy-owl-fallback-glow{
+  0%,100%{opacity:.54}
+  50%{opacity:1}
+}
+@media(max-width:850px){
+ #hero .hero-flight:not(.video-playing){
+  animation:arcy-owl-mobile-presence 7.5s ease-in-out infinite;
+  will-change:transform;
+ }
+ #hero .hero-flight:not(.video-playing) .hero-wing-light{
+  animation:arcy-owl-fallback-glow 5s ease-in-out infinite;
+ }
+}
+#hero .hero-motion-toggle{
+ position:absolute;z-index:8;right:7%;bottom:8%;width:auto;
+ background:rgba(3,19,32,.88);color:#bdeefe;
+ border:1px solid rgba(81,220,245,.48);border-radius:999px;
+ padding:10px 14px;font:700 12px/1.2 system-ui,sans-serif;
+ letter-spacing:.015em;box-shadow:0 4px 20px #0007,0 0 16px #36d9f321;
+ backdrop-filter:blur(10px);cursor:pointer;
+}
+#hero .hero-motion-toggle[hidden]{display:none!important}
+#hero .hero-motion-toggle:focus-visible{outline:2px solid #65e5ff;outline-offset:4px}
+@media(prefers-reduced-motion:reduce){
+ #hero .hero-motion-toggle{display:none!important}
+ #hero .hero-flight,#hero .hero-flight .hero-wing-light{animation:none!important}
+}
