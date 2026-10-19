@@ -9,15 +9,16 @@ async function inspect(address,block,{dexInspect=dex.inspect,oracleInspect=oracl
  if(typeof address!=='string')return pending.card();
  // Independent reads start concurrently: a slow or unavailable DEX provider
  // cannot postpone an otherwise verifiable on-chain Chainlink price.
- const [dexResult,oracleResult]=await Promise.allSettled([
-  dexInspect('ethereum',address),
-  oracleInspect(address,block)
- ]);
- const fields=dexResult.status==='fulfilled'&&dexResult.value&&typeof dexResult.value==='object'?
-  {...dexResult.value}:{...pending.card().fields};
- if(fields.priceUsd?.dataState!=='DATA_FOUND'&&
-    oracleResult.status==='fulfilled'&&oracleResult.value?.priceUsd?.dataState==='DATA_FOUND')
-  fields.priceUsd=oracleResult.value.priceUsd;
+ const dexPromise=Promise.resolve().then(()=>dexInspect('ethereum',address)).catch(()=>null);
+ const oraclePromise=Promise.resolve().then(()=>oracleInspect(address,block)).catch(()=>null);
+ const dexFields=await dexPromise;
+ const fields=dexFields&&typeof dexFields==='object'?{...dexFields}:{...pending.card().fields};
+ // Verified DEX prices should not be delayed by a secondary RPC feed.
+ if(fields.priceUsd?.dataState!=='DATA_FOUND'){
+  const oracleResult=await oraclePromise;
+  if(oracleResult?.priceUsd?.dataState==='DATA_FOUND')
+   fields.priceUsd=oracleResult.priceUsd;
+ }
  return {fields,description:'Ethereum market evidence is exact-contract scoped. Chainlink reference prices are on-chain USD observations; DEX activity remains unavailable unless its source is approved.'};
 }
 function failure(){return pending.card()}
