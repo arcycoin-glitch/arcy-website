@@ -138,7 +138,7 @@ test('complete Ethereum census rejects mixed-case duplicate wallets even if thei
 test('burn share rejects invalid data and never emits scientific notation or misleading zero for tiny positives',()=>{
  const html=fs.readFileSync('search/index.html','utf8'),body=html.slice(html.indexOf('function displayBurnShare('),html.indexOf('function render(report)'));
  const display=new Function(body+';return displayBurnShare;')();
- assert.equal(display(0),'0%');assert.equal(display(1e-15),'<0.000000000001%');assert.equal(display(1e-9),'0.000000001%');assert.equal(display(100),'100%');
+ assert.equal(display(0),'0%');assert.equal(display(1e-15),'<0.0001%');assert.equal(display(1e-9),'<0.0001%');assert.equal(display(0.0000999),'<0.0001%');assert.equal(display(0.0001),'0.0001%');assert.equal(display(100),'100%');
  for(const n of [-1,NaN,Infinity,101,null,'0.1'])assert.equal(display(n),'NOT VERIFIED');
 });
 

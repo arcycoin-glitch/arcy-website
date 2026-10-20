@@ -69,25 +69,31 @@ function response(value,audit,{archive=false}={}){
    number:value.number,status:value.status,generatedAt:value.generatedAt,trigger:value.trigger
   },lastFailure:audit?.lastFailure||null,nextScheduledAt:edition.nextRun()}};
 }
-let transientCache=null;
-let transientPromise=null;
+const transientWeeks=new Map();
 async function currentTransient(now){
  const cycle=edition.cycle(now);
- if(transientCache&&transientCache.week===cycle.start&&transientCache.expiresAt>now)return transientCache.value;
- if(!transientPromise){
-  transientPromise=(async()=>{
+ let state=transientWeeks.get(cycle.start);
+ if(!state){state={};transientWeeks.set(cycle.start,state);while(transientWeeks.size>2)transientWeeks.delete(transientWeeks.keys().next().value);}
+ if(state.cache&&state.cache.expiresAt>now)return state.cache.value;
+ if(!state.promise){
+  state.promise=(async()=>{
+   const controller=new AbortController();let timer;
    try{
     const value=await Promise.race([
-     edition.generate({now,fetcher:fetch,trigger:'transient'}),
-     new Promise((_,reject)=>setTimeout(()=>reject(Object.assign(Error('timeout'),{code:'PULSE_TRANSIENT_TIMEOUT'})),8500))
+     edition.generate({now,fetcher:(url,options={})=>fetch(url,{...options,signal:options.signal?AbortSignal.any([options.signal,controller.signal]):controller.signal}),trigger:'transient'}),
+     new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Object.assign(Error('timeout'),{code:'PULSE_TRANSIENT_TIMEOUT'}));},8500);})
     ]);
     return value;
    }catch(error){return fallback.fallback(now,{reasonCode:error.code||'PULSE_SOURCE_CHECK_UNAVAILABLE'});}
-  })().finally(()=>{transientPromise=null});
+   finally{clearTimeout(timer);}
+  })().finally(()=>{state.promise=null;});
  }
- const value=await transientPromise;
- transientCache={week:cycle.start,expiresAt:Date.now()+(value.status==='updated'?900000:180000),value};
+ const value=await state.promise;
+ state.cache={expiresAt:now+(value.status==='updated'?900000:180000),value};
  return value;
+}
+function preserveAudit(value,saved,audit){
+ return {...value,audit:{...value.audit,lastSuccessful:audit?.lastSuccessful||value.audit?.lastSuccessful||(saved?{number:saved.number,status:saved.status,generatedAt:saved.generatedAt,trigger:saved.trigger}:null),lastFailure:audit?.lastFailure||value.audit?.lastFailure||null}};
 }
 async function handler(req,res){
  res.setHeader('Cache-Control','no-store');const scheduled=cronRequest(req),manual=req.method==='POST'||req.query?.action==='refresh',auditOnly=req.query?.action==='audit';
@@ -109,7 +115,8 @@ async function handler(req,res){
    }
    return res.status(200).json(response(saved,await client.audit()));}
   const latest=await currentTransient(now);
-  return res.status(200).json(latest.status==='updated'||latest.recentCards?.length?response(latest,null):latest);
+  const audit=await client.audit();
+  return res.status(200).json(preserveAudit(latest.status==='updated'||latest.recentCards?.length?response(latest,null):latest,saved,audit));
  }
  // Even with provider outages, visitors receive three useful source-led
  // sections and ARCY Take; no headlines are forged or recycled as current.

@@ -225,3 +225,7 @@ The existing failing test names (identical on production baseline) are:
 - Associated Mechanics/browser tests and this audit. No other application file is part of this proposal.
 
 **Review disposition:** Draft only. No production merge/deploy. No new contract-family coverage, provider license or mint/renouncement guarantee is claimed beyond the implemented, tested source evidence.
+
+### Follow-up regression review
+
+The inherited thirteen failures above were subsequently investigated against the exact production commit. Their classification, targeted Pulse corrections, deterministic fixtures and fresh three-chain browser results are documented in [PR44_REGRESSION_REVIEW_20261020.md](PR44_REGRESSION_REVIEW_20261020.md). The original failed run remains historical evidence; it is not the final release-check result.

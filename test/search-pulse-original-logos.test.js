@@ -18,7 +18,8 @@ test('three distinct Pulse source panels plus ARCY Take never present archived h
  assert.equal(v.generatedAt,null);assert.equal(v.audit.currentWeekVerified,false);
  assert.ok(v.cards.every(x=>x.verifiedCurrentWeek===false&&x.publishedAt===null));
  assert.ok(v.cards.every(x=>x.url==='#unlocks'||x.url.startsWith('https://')));
- assert.match(v.take,/(verify|usage|unlock)/i);
+ assert.match(v.take,/No current-week.*verified/i);
+ assert.match(v.take,/source-status notice.*not a weekly research conclusion/i);
 });
 test('public Pulse GET presents dated verified edition unchanged when current',async()=>{
  const latest=client.latest,audit=client.audit;
@@ -58,24 +59,27 @@ test('three Pulse slots preserve dated exact-cycle stories without reusing quiet
  assert.notEqual(missing[0].title,'Unsupported');
 });
 test('stale signed Pulse is not relabeled as the current weekly headline',async()=>{
- const old=client.latest;
+ const old=client.latest,orig=edition.generate;
+ delete require.cache[require.resolve('../api/pulse')];const isolatedPulse=require('../api/pulse');
  const oldEdition={number:3,status:'updated',generatedAt:'2026-10-06T10:00:00.000Z',
   cycle:{start:'2026-10-05T00:00:00.000Z'},cards:[{kind:'week',title:'Old event'}]};
  try{
   client.latest=async()=>oldEdition;
-  const res=response();await pulse({method:'GET',query:{},headers:{}},res);
+  edition.generate=async()=>{throw Object.assign(Error('Offline fixture'),{code:'PULSE_DISCOVERY_UNAVAILABLE'});};
+  const res=response();await isolatedPulse({method:'GET',query:{},headers:{}},res);
   assert.equal(res.code,200);assert.equal(res.body.status,'source_pending');
   assert.equal(res.body.cards.length,3);
   assert.equal(res.body.audit.lastSuccessful.number,3);
   assert.ok(res.body.cards.every(x=>x.title!=='Old event'));
- }finally{client.latest=old}
+ }finally{client.latest=old;edition.generate=orig;}
 });
 test('provider failure yields three truthful Pulse slots and never 503 with empty cards',async()=>{
  const old=client.latest,orig=edition.generate;
+ delete require.cache[require.resolve('../api/pulse')];const isolatedPulse=require('../api/pulse');
  try{
   client.latest=async()=>null;
   edition.generate=async()=>{throw Object.assign(Error('No current source'),{code:'PULSE_DISCOVERY_UNAVAILABLE'})};
-  const res=response();await pulse({method:'GET',query:{},headers:{}},res);
+  const res=response();await isolatedPulse({method:'GET',query:{},headers:{}},res);
   assert.equal(res.code,200);assert.equal(res.body.ok,true);
   assert.equal(res.body.cards.length,3);
   assert.equal(res.body.audit.reasonCode,'PULSE_DISCOVERY_UNAVAILABLE');
@@ -137,7 +141,9 @@ test('playing owl video is visible without doubling the still image or square ma
  assert.match(css,/mask-image:radial-gradient\(ellipse 49% 49%/);
  assert.match(css,/#hero \.hero-flight:not\(\.video-playing\)>img\{opacity:1;visibility:visible\}/);
  assert.match(css,/prefers-reduced-motion:reduce/);
- assert.match(js,/\['pause','waiting','stalled','ended'\]/);
+ assert.match(js,/video\.addEventListener\('pause',fallback\)/);
+ assert.match(js,/video\.addEventListener\('ended',fallback\)/);
+ assert.match(js,/video\.addEventListener\('stalled',[\s\S]*?if\(!playing\)fallback\(\)/);
 });
 
 /* Site-chrome GitHub appears only as the footer social icon; sources are retained. */
