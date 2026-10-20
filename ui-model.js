@@ -79,5 +79,14 @@
   if(name!=='whales'&&states.includes('DATA_FOUND')&&(d?.freshness?.state==='LAST_VERIFIED'||fields.some(f=>f.dataState==='DATA_FOUND'&&f.freshness?.state==='LAST_VERIFIED')))badge='LAST VERIFIED DATA';
   return {fields:fields.map((f,i)=>({...f,label:(labels[name]||['Claims Checked','Verified','Mismatch','Unverified'])[i],path:paths[name][i]})),badge,data:d};
  }
- return {labels,paths,compact,summarize};
+ // Hide the Mechanics panel when it would mostly be unsupported assertions.
+ // A complete, fully evidenced tax row is independently useful; otherwise
+ // require two complete verified rows, not just a non-proxy runtime result.
+ function mechanicsVisibility(view){
+  const rows=view?.fields;
+  if(!Array.isArray(rows)||rows.length!==4)return false;
+  const proven=rows.filter(f=>f?.dataState==='DATA_FOUND'&&f.verifiedPresentation===true);
+  return proven.length>=2||rows[0]?.verifiedPresentation===true;
+ }
+ return {labels,paths,compact,summarize,mechanicsVisibility};
 });
