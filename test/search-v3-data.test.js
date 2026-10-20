@@ -81,7 +81,16 @@ test('approved production-profile DEX reads coalesce and preserve original retri
  try{const [a,b]=await Promise.all([dex.inspect('ethereum',A),dex.inspect('ethereum',A)]);assert.equal(calls,1);assert.equal(a.priceUsd.value,2);assert.equal(a.priceUsd.freshness.retrievedAt,b.priceUsd.freshness.retrievedAt);await new Promise(r=>setTimeout(r,15));const c=await dex.inspect('ethereum',A);assert.equal(calls,1);assert.equal(c.priceUsd.freshness.retrievedAt,a.priceUsd.freshness.retrievedAt);assert.ok(c.priceUsd.freshness.ageMs>=15);}finally{global.fetch=prior.fetch;for(const[k,v]of [['VERCEL',prior.v],['DEXSCREENER_PUBLIC_DISPLAY_APPROVED',prior.flag]])if(v===undefined)delete process.env[k];else process.env[k]=v;}
 });
 test('approved visual DOM/CSS and unrelated website sections remain identical to production',()=>{
- const cp=require('child_process'),baseline=p=>cp.execFileSync('git',['show','7c1faf7:'+p],{maxBuffer:8*1024*1024}).toString().replace(/\r\n/g,'\n');
- for(const p of ['index.html','premium.css','api/unlocks.js','api/pulse.js','scripts/holder-worker.cjs'])assert.equal(fs.readFileSync(p,'utf8').replace(/\r\n/g,'\n'),baseline(p),p+' must stay unchanged');
- const withoutScripts=s=>s.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');assert.equal(withoutScripts(fs.readFileSync('search/index.html','utf8').replace(/\r\n/g,'\n')),withoutScripts(baseline('search/index.html')));
+ // Explicit read-only verified production SHA, not an obsolete pre-V4 source.
+ const cp=require('child_process'),baseline=p=>cp.execFileSync('git',['show','d0249734f21d92d43249f4aab0b7fce792eae8eb:'+p],{maxBuffer:8*1024*1024}).toString().replace(/\r\n/g,'\n');
+ for(const p of ['index.html','premium.css','hero-video.css','hero-video.js','api/unlocks.js','scripts/holder-worker.cjs'])assert.equal(fs.readFileSync(p,'utf8').replace(/\r\n/g,'\n'),baseline(p),p+' must stay unchanged');
+ // Pulse cache/audit fixes are authorized; preserve editorial rendering and
+ // authenticated cron/archive branches byte-for-byte and test changed behavior.
+ const pulse=fs.readFileSync('api/pulse.js','utf8').replace(/\r\n/g,'\n'),old=baseline('api/pulse.js');
+ assert.equal(pulse.slice(0,pulse.indexOf('const transientWeeks=')),old.slice(0,old.indexOf('let transientCache=')));
+ const auth=s=>s.slice(s.indexOf('async function handler('),s.indexOf(' const now=Date.now();',s.indexOf('async function handler(')));assert.equal(auth(pulse),auth(old));
+ const withoutScripts=s=>s.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
+ const html=fs.readFileSync('search/index.html','utf8').replace(/\r\n/g,'\n'),policy='<script src="/search/mechanics-policy.js"></script>\n';
+ assert.equal(html.split(policy).length-1,1,'Only the reviewed Mechanics policy loader is added');
+ assert.equal(withoutScripts(html.replace(policy,'')),withoutScripts(baseline('search/index.html')));
 });

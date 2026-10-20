@@ -44,6 +44,7 @@ function report(network, address) {
     }
   }
   if(network==='ethereum')cards.holders.holderCandidates=[{address:'0x'+'a'.repeat(40),rank:1,sharePct:1,role:'UNKNOWN',block:'0x10'}];
+  for(const f of Object.values(cards.mechanics.fields)){if(f.dataState==='DATA_FOUND'){f.status='VERIFIED_SOURCE';f.chainId=chains[network];f.network=network;f.evidence=[{chainId:chains[network],address,block:'0x10',method:'Reviewed browser fixture (not live evidence)'}];}}
   return {
     ok: true, chainId: chains[network], network, address, cardCount: 5, cards,
     token: { name, symbol, logoUrl: network === 'ethereum' ? fixtureArt : null },
