@@ -58,7 +58,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
  const safe=async(method,params)=>{try{return await read(method,params)}catch(e){diagnostics.push({source:cfg.label+' RPC',method,address,block,reason:/429/.test(String(e?.message))?'RPC_RATE_LIMIT':/timeout|budget/i.test(String(e?.message))?'RPC_TIMEOUT':'RPC_READ_FAILED'});return null;}};
  const call=(to,signature,args='')=>safe('eth_call',[{to,data:selector(signature)+args},block]);
  const word=async(to,signature,args='')=>{const raw=await call(to,signature,args);return WORD.test(raw||'')?raw:null;};
- const fact=(value,method,extra={},status='ON_CHAIN')=>({value,dataState:'DATA_FOUND',status,chainId:cfg.chainId,network,source:cfg.label+' RPC / contract evidence',freshness:{block,retrievedAt:new Date().toISOString()},evidence:[{chainId:cfg.chainId,network,address,block,method,...extra}]});
+ const fact=(value,method,extra={},status='ON_CHAIN')=>{const observedAt=new Date().toISOString();return {value,dataState:'DATA_FOUND',status,chainId:cfg.chainId,network,source:cfg.label+' RPC / contract evidence',freshness:{block,retrievedAt:observedAt},evidence:[{chainId:cfg.chainId,network,address,block,method,observedAt,verificationStatus:status,...extra}]};};
  const code=await safe('eth_getCode',[address,block]);if(!CODE.test(code||'')||/^0xef/i.test(code)){diagnostics.push({reason:'RUNTIME_UNSUPPORTED_OR_UNAVAILABLE'});return {fields,details};}
  const runtimeCodeHash=keccak(Buffer.from(code.slice(2),'hex'));details.runtimeCodeHash=runtimeCodeHash;
  const sourcePromise=sourceLoader(cfg,address,code,diagnostics);
@@ -100,7 +100,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
    }
   }
  }
- if(kind&&targetCode){
+ const publishProxy=async()=>{
   // UUPS UUID is read on the implementation, never through the proxy.
   const uuid=await word(target,'proxiableUUID()');
   fields.contractArchitecture=fact(kind+(uuid?.toLowerCase()===SLOTS.implementation?' · UUPS UUID observed':''),'Pinned proxy runtime/storage + deployed target bytecode',{implementation:target,beacon,runtimeCodeHash,implementationCodeHash:keccak(Buffer.from(targetCode.slice(2),'hex')),scope:'Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed.'});
@@ -112,6 +112,10 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
  // Unknown delegated target cannot inherit an outer ABI as token implementation evidence.
  const reviewedSlotProxy=outer&&Object.hasOwn(require('./mechanics-reviewed-v4').PROXY_SOURCES,outer.digest)&&kind==='EIP-1967 implementation';
  const boundTarget=target===address||Boolean(clone)||outer?.digest===REVIEWED_LEGACY_PROXY&&kind==='Legacy implementation slot'||beaconBinding||reviewedSlotProxy;
+ if(kind&&targetCode){
+  if(boundTarget)await publishProxy();
+  else details.observations.push({method:'Unbound proxy storage candidate',implementation:target,admin,beacon,block,scope:'Storage/getter observations only. The outer execution path is not reviewed/bound; proxy architecture, upgradeability and admin authority remain unverified.'});
+ }
  const reviewedImplementation=implementationSource&&Object.hasOwn(PROFILES,implementationSource.digest);
  const resolved=boundTarget&&(target===address?nonDelegating(code):targetCode&&(nonDelegating(targetCode)||reviewedImplementation));
  const source=resolved?implementationSource:null;

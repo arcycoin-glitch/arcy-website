@@ -49,12 +49,14 @@
    else fields=paths.claims.map(p=>read(d,p));
   }else if(name==='mechanics'){
    const taxKeys=['buyTax','sellTax','transferTax'],taxLabels=['Buy','Sell','Transfer'];
-   const taxes=taxKeys.map(k=>fact(d,'contractFields.'+k,f=>percent(f)));
+   const taxes=taxKeys.map(k=>({...fact(d,'contractFields.'+k,f=>percent(f)),sourceReported:d?.contractFields?.[k]?.status==='SOURCE_REPORTED'}));
    for(let i=0;i<taxes.length;i++)if(taxes[i].text==='NOT VERIFIED'&&taxes[i].dataState==='DATA_FOUND')taxes[i]=missing(d,'Invalid verified tax percentage.');
    const established=taxes.filter(f=>f.dataState==='DATA_FOUND'),allKnown=established.length===3;
    let taxText=taxes.map((f,i)=>taxLabels[i]+' '+f.text+(f.dataState==='DATA_FOUND'&&!allKnown?' VERIFIED':'')).join(' · ');
    if(taxes[0].text===taxes[1].text&&!allKnown)taxText='Buy/Sell '+taxes[0].text+(taxes[0].dataState==='DATA_FOUND'?' VERIFIED':'')+' · Transfer '+taxes[2].text+(taxes[2].dataState==='DATA_FOUND'?' VERIFIED':'');
-   if(allKnown)taxText+=' · VERIFIED';else if(!established.length)taxText='NOT VERIFIED';
+   const fullTaxProof=allKnown&&taxKeys.every(k=>d?.contractFields?.[k]?.status==='VERIFIED'&&d.contractFields[k].dataState==='DATA_FOUND'&&d.contractFields[k].evidence?.length>0);
+   if(allKnown)taxText+=' · '+(fullTaxProof?'VERIFIED':'SOURCE REPORTED');else if(!established.length)taxText='NOT VERIFIED';
+   if(!allKnown&&taxes.some(t=>t.sourceReported))taxText=taxes.map((f,i)=>taxLabels[i]+' '+f.text+(f.dataState==='DATA_FOUND'?(f.sourceReported?' SOURCE REPORTED':' VERIFIED'):'')).join(' · ');
    const mapping=taxes.find(f=>f.dataState==='FRONTEND_MAPPING_FAILED'),historical=taxes.find(f=>f.freshness?.state==='LAST_VERIFIED');
    const trading={text:!d?'…':d.ok===false?'NOT VERIFIED':taxText,dataState:mapping?'FRONTEND_MAPPING_FAILED':established.length?'DATA_FOUND':taxes[0].dataState,status:allKnown?'VERIFIED':'NOT_VERIFIED',components:taxes.map((f,i)=>({...f,label:taxLabels[i],path:'contractFields.'+taxKeys[i]})),reason:mapping?.reason||'Buy / Sell / Transfer token taxes. Unverified components remain unknown; external DEX/hook fees are not established.',...(historical?{freshness:historical.freshness}:{}),...(mapping?{reasonCode:mapping.reasonCode}:{})};
    const mechanicsFact=(path,architecture=false)=>{
@@ -64,7 +66,7 @@
     if(row.dataState==='DATA_FOUND'&&!supported)return {text:'NOT VERIFIED',dataState:'NOT_VERIFIED',reason:'Sufficient verified exact-contract evidence is required.'};
     return {...row,verifiedPresentation:supported&&row.dataState==='DATA_FOUND'};
    };
-   trading.verifiedPresentation=allKnown&&!mapping&&taxKeys.every(k=>d?.contractFields?.[k]?.status==='VERIFIED'&&d.contractFields[k].dataState==='DATA_FOUND'&&d.contractFields[k].evidence?.length>0);
+   trading.verifiedPresentation=fullTaxProof&&!mapping;
    fields=[trading,mechanicsFact(paths.mechanics[1]),mechanicsFact(paths.mechanics[2]),mechanicsFact(paths.mechanics[3],true)];
   }
   const combined=name==='liquidity'?['dexCount','pairCount']:[],combinedIndex=name==='liquidity'?2:3;
@@ -79,5 +81,14 @@
   if(name!=='whales'&&states.includes('DATA_FOUND')&&(d?.freshness?.state==='LAST_VERIFIED'||fields.some(f=>f.dataState==='DATA_FOUND'&&f.freshness?.state==='LAST_VERIFIED')))badge='LAST VERIFIED DATA';
   return {fields:fields.map((f,i)=>({...f,label:(labels[name]||['Claims Checked','Verified','Mismatch','Unverified'])[i],path:paths[name][i]})),badge,data:d};
  }
- return {labels,paths,compact,summarize};
+ // Hide the Mechanics panel when it would mostly be unsupported assertions.
+ // A complete, fully evidenced tax row is independently useful; otherwise
+ // require two complete verified rows, not just a non-proxy runtime result.
+ function mechanicsVisibility(view){
+  const rows=view?.fields;
+  if(!Array.isArray(rows)||rows.length!==4)return false;
+  const proven=rows.filter(f=>f?.dataState==='DATA_FOUND'&&f.verifiedPresentation===true);
+  return proven.length>=2||rows[0]?.verifiedPresentation===true;
+ }
+ return {labels,paths,compact,summarize,mechanicsVisibility};
 });
