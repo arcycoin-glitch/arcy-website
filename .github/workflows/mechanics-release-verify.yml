@@ -1,0 +1,56 @@
+name: Mechanics-only release verification
+
+on:
+  push:
+    branches:
+      - release/mechanics-only-20261020
+
+permissions:
+  contents: read
+
+jobs:
+  mechanics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Focused mechanics regressions
+        run: node --test test/mechanics-intelligence.test.js test/mechanics-presentation.test.js test/search-mechanics-deep.test.js test/mechanics-runtime.test.js test/mechanics-hook.test.js test/evidence.test.js
+      - name: Compare all failures against exact unchanged production baseline
+        shell: bash
+        env:
+          PRODUCTION_BASE: d0249734f21d92d43249f4aab0b7fce792eae8eb
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$RUNNER_TEMP/arcy-production-baseline" "$PRODUCTION_BASE"
+          set +e
+          (cd "$RUNNER_TEMP/arcy-production-baseline" && npm test > "$RUNNER_TEMP/arcy-base.tap" 2>&1)
+          base_status=$?
+          npm test > "$RUNNER_TEMP/arcy-candidate.tap" 2>&1
+          candidate_status=$?
+          set -e
+          export BASE_STATUS="$base_status" CANDIDATE_STATUS="$candidate_status"
+          node - <<'JS'
+          const fs=require('node:fs');
+          const base=fs.readFileSync(process.env.RUNNER_TEMP+'/arcy-base.tap','utf8');
+          const candidate=fs.readFileSync(process.env.RUNNER_TEMP+'/arcy-candidate.tap','utf8');
+          const names=s=>new Set([...s.matchAll(/^\s*not ok\s+\d+\s+-\s+(.+)$/gm)].map(x=>x[1].trim()));
+          const b=names(base),c=names(candidate),introduced=[...c].filter(n=>!b.has(n));
+          const count=s=>Number(s.match(/^# tests\s+(\d+)\s*$/m)?.[1]||0);
+          console.log(JSON.stringify({productionTests:count(base),candidateTests:count(candidate),productionFailures:[...b],candidateFailures:[...c],newFailures:introduced,productionExit:Number(process.env.BASE_STATUS),candidateExit:Number(process.env.CANDIDATE_STATUS)},null,2));
+          if(!count(base)||!count(candidate)||introduced.length){console.error('Release gate BLOCKED: no complete TAP summary or new failing tests');process.exitCode=1;}
+          JS
+      - name: Upload comparison TAP logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mechanics-baseline-comparison
+          path: |
+            ${{ runner.temp }}/arcy-base.tap
+            ${{ runner.temp }}/arcy-candidate.tap
+          if-no-files-found: ignore
