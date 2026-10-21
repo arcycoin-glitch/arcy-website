@@ -95,7 +95,7 @@ test('Robinhood incomplete, non-reconciled, or stale small cohorts fail closed',
  const stale=source([600n,300n,100n]);
  stale.rpcCall=async()=>('0x'+(900n).toString(16).padStart(64,'0'));
  const bad=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'1000',...stale});
- assert.equal(bad.reasonCode,'BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED');
+ assert.equal(bad.reasonCode,'BLOCKSCOUT_RANK_SUPPLY_RECONCILIATION_FAILED'); // Pinned values exceed total supply; fail closed.
 });
 test('Robinhood 10+ indexed candidate wallets preserve partial concentration without asserting complete top 20',async()=>{
  const balances=Array.from({length:10},(_,i)=>BigInt(100-i));

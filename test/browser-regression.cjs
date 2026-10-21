@@ -41,6 +41,7 @@ function report(network, address) {
       };
     }
   }
+  for(const f of Object.values(cards.mechanics.fields)){if(f.dataState==='DATA_FOUND'){f.status='VERIFIED_SOURCE';f.chainId=chains[network];f.network=network;f.evidence=[{chainId:chains[network],address,block:'0x10',method:'Reviewed browser fixture (not live evidence)'}];}}
   return {
     ok: true, chainId: chains[network], network, address,
     cardCount: 5, cards, token: { name, symbol },
@@ -142,8 +143,8 @@ function candidate(network) {
       await page.locator('#homeSearchQuery').fill(addresses.arc);
       await page.locator('.home-search-form').evaluate(form => form.requestSubmit());
       await page.waitForFunction(() => document.querySelector('#detailState')?.textContent.includes('Scan unavailable'));
-      assert.equal(await page.locator('#cards > .card').count(), 5, 'failed report preserves the five-card shell');
-      assert.deepEqual(await page.locator('#cards .metric b').allTextContents(), Array(20).fill('—'),
+      assert.equal(await page.locator('#cards > .card').count(), 4, 'failed report preserves other cards while unevidenced Mechanics stays hidden');
+      assert.deepEqual(await page.locator('#cards .metric b').allTextContents(), Array(16).fill('—'),
         'failed report clears prior token metrics instead of displaying stale values');
       reportStatus = 200;
       await page.goto(origin + '/#search');

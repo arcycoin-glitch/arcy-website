@@ -441,6 +441,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 </main>
 <script src="/search/schema.js"></script>
 <script src="/search/format.js"></script>
+<script src="/search/mechanics-policy.js"></script>
 <script src="/search/hero-greeting.js" defer></script>
 
 
@@ -508,6 +509,13 @@ function render(report){
   }
   for(const spec of displayDefinitions){
     const card=report?.cards?.[spec.id];
+    if(spec.id==='mechanics'){
+     const eligibility=ARCYMechanicsPolicy.assess(card,report||{});
+     if(!eligibility.visible){
+      count.textContent+=' · '+eligibility.reason;
+      continue;
+     }
+    }
     const section=document.createElement('section');
     section.className='card';section.dataset.cardId=spec.id;
     section.style.setProperty('--accent',spec.accent);
@@ -587,6 +595,10 @@ function render(report){
     const historical=rawProven-proven;
     state.textContent=!card?'NOT SCANNED':proven===spec.fields.length?'ALL 4 FIELDS SOURCE-BACKED':
      proven>0?'PARTIALLY SOURCE-BACKED':historical>0?'HISTORICAL EVIDENCE ONLY':'NO SOURCE-BACKED FIELDS';
+    if(spec.id==='mechanics'){
+     const assessment=ARCYMechanicsPolicy.assess(card,report||{});
+     state.textContent=historical?'LAST VERIFIED EVIDENCE':assessment.completeRows===4?'VERIFIED CONTRACT EVIDENCE':'PARTIAL VERIFIED EVIDENCE · '+assessment.completeRows+'/4 complete rows';
+    }
     status.append(state);
     if(card){
      const sources=document.createElement('span');
