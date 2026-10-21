@@ -101,7 +101,7 @@ test('Invalid credential and failed providers never leak details or invent holde
  const failed=await read.fetchCount(ADDRESS,{key:'nonsense',fetcher:async()=>{
   requests++;return new Response('blocked',{status:403});
  }});
- assert.equal(failed,null);assert.equal(requests,1);
+ assert.equal(failed,null);assert.equal(requests,2); // Public counters and token metadata both failed; no data fabricated.
  assert.equal(await read.fetchCount('not a contract',{fetcher:()=>{throw Error('Should not call')}}),null);
 });
 

@@ -15,16 +15,18 @@ async function fetchCount(address,{fetcher=fetch,key=process.env.BLOCKSCOUT_API_
  if(typeof address!=='string'||!ADDRESS.test(address))return null;
  const token=address.toLowerCase();
  const endpoints=[
-  {url:PUBLIC+token+'/counters',provider:'Robinhood Blockscout'},
-  {url:PUBLIC+token,provider:'Robinhood Blockscout token metadata'}
+  {url:PUBLIC+token+'/counters',provider:'Robinhood Blockscout'}
  ];
  // This credential never enters a public URL, browser field or source annotation.
  if(typeof key==='string'&&API_KEY.test(key)){
-  for(const suffix of ['/counters','']){
-   const rest=new URL(PRO+token+suffix);
-   rest.searchParams.set('apikey',key);
-   endpoints.push({url:rest.href,provider:'Blockscout PRO Robinhood'});
-  }
+  const rest=new URL(PRO+token+'/counters');
+  rest.searchParams.set('apikey',key);
+  endpoints.push({url:rest.href,provider:'Blockscout PRO Robinhood'});
+ }
+ endpoints.push({url:PUBLIC+token,provider:'Robinhood Blockscout token metadata'});
+ if(typeof key==='string'&&API_KEY.test(key)){
+  const detail=new URL(PRO+token);detail.searchParams.set('apikey',key);
+  endpoints.push({url:detail.href,provider:'Blockscout PRO Robinhood'});
  }
  for(const {url,provider} of endpoints){
   try{
