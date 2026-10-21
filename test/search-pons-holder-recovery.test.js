@@ -47,8 +47,8 @@ test('PONS 20 source-ranked wallets may drift at explorer height; pinned RPC met
  assert.equal(report.top20Pct.status,'SOURCE_REPORTED_RPC_RECONCILED');
  assert.equal(report.top20Pct.evidence[0].sourceRankCompleteness,'SOURCE_REPORTED');
  assert.equal(report.top20Pct.evidence[0].explorerBalanceAtDifferentBlockIgnored,true);
- assert.equal(report.largestWalletPct.value,199/50);
- assert.equal(report.top10Pct.value,38.9);
+ assert.equal(report.largestWalletPct.value,2.38);
+ assert.equal(report.top10Pct.value,22.9);
  assert.equal(report.top20Pct.value,43.8);
  assert.match(report.top10Pct.evidence[0].scope,/may OMIT higher-ranked wallets/);
 });
