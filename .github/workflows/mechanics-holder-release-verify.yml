@@ -1,0 +1,71 @@
+name: Mechanics and Holder release check
+
+on:
+  push:
+    branches:
+      - release/mechanics-holder-pons-20261021
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Mechanics and PONS Holder targeted tests
+        run: node --test test/search-pons-holder-recovery.test.js test/search-small-holder-census.test.js test/mechanics-intelligence.test.js test/mechanics-presentation.test.js test/search-mechanics-deep.test.js
+      - name: Full-suite differential against deployed production commit
+        shell: bash
+        env:
+          BASE_SHA: d0249734f21d92d43249f4aab0b7fce792eae8eb
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$RUNNER_TEMP/production" "$BASE_SHA"
+          set +e
+          (cd "$RUNNER_TEMP/production" && npm test > "$RUNNER_TEMP/base.tap" 2>&1)
+          base_status=$?
+          npm test > "$RUNNER_TEMP/candidate.tap" 2>&1
+          candidate_status=$?
+          set -e
+          BASE_EXIT="$base_status" CANDIDATE_EXIT="$candidate_status" node - <<'JS'
+          const fs=require('node:fs');
+          const b=fs.readFileSync(process.env.RUNNER_TEMP+'/base.tap','utf8');
+          const c=fs.readFileSync(process.env.RUNNER_TEMP+'/candidate.tap','utf8');
+          const failing=s=>new Set([...s.matchAll(/^\s*not ok\s+\d+\s+-\s+(.+)$/gm)].map(m=>m[1].trim()));
+          const f1=failing(b),f2=failing(c);
+          const extra=[...f2].filter(x=>!f1.has(x));
+          const summary=s=>Object.fromEntries(['tests','pass','fail','skipped'].map(k=>[k,Number(s.match(new RegExp('^# '+k+'\\s+(\\d+)', 'm'))?.[1]||0)]));
+          const old=summary(b),now=summary(c);
+          console.log(JSON.stringify({old,new:now,baselineFailures:[...f1],candidateFailures:[...f2],newFailures:extra},null,2));
+          if(!old.tests||!now.tests||f1.size!==old.fail||f2.size!==now.fail||extra.length){console.error('New failures or invalid test results');process.exitCode=1}
+          JS
+      - name: Public PONS holder source diagnostic (read only; non-gating)
+        if: always()
+        shell: bash
+        run: |
+          node - <<'JS'
+          const a='0x39dbed3a2bd333467115de45665cc57f813c4571';
+          (async()=>{for(const suffix of ['/counters','']){const endpoint='https://robinhoodchain.blockscout.com/api/v2/tokens/'+a+suffix;
+           try{const r=await fetch(endpoint,{signal:AbortSignal.timeout(5500),headers:{accept:'application/json'}});
+             const v=r.ok?await r.json():{};
+             console.log(JSON.stringify({endpoint:suffix||'/metadata',httpStatus:r.status,count:v.token_holders_count??v.holders_count??v.holder_count??null}));
+             if(r.ok&&v.token_holders_count||r.ok&&v.holders_count)break;
+           }catch(e){console.log(JSON.stringify({endpoint:suffix||'/metadata',unavailable:true,type:e.name}));}
+          }})().catch(()=>{});
+          JS
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-test-results
+          path: |
+            ${{ runner.temp }}/base.tap
+            ${{ runner.temp }}/candidate.tap
+          if-no-files-found: ignore

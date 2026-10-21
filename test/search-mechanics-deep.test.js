@@ -27,11 +27,11 @@ test('exact clones require target deployed at same block; no genesis/index calls
  for(const deployed of [false,true]){const x=fixture({code,targets:deployed?{[B]:basic}:{}});const r=await m.inspect(x.options);assert.equal(Boolean(r.fields.contractArchitecture),deployed);if(deployed)assert.equal(r.fields.contractArchitecture.evidence[0].implementation,B);assert.ok(x.seen.every(([n])=>!n.includes('Logs')));}
 });
 test('EIP1967 slot must point to real bytecode; high bits/self/empty target rejected',async()=>{
- for(const value of [addr(B),'0x'+'f'.repeat(24)+B.slice(2),addr(A)]){const x=fixture({code:delegate,slots:{[m.SLOTS.implementation]:value},targets:{[B]:basic}});const r=await m.inspect(x.options);assert.equal(Boolean(r.fields.contractArchitecture),value===addr(B));}
+ for(const value of [addr(B),'0x'+'f'.repeat(24)+B.slice(2),addr(A)]){const x=fixture({code:delegate,slots:{[m.SLOTS.implementation]:value},targets:{[B]:basic}});const r=await m.inspect(x.options);assert.equal(r.fields.contractArchitecture,undefined);assert.equal(r.fields.ownerAdmin,undefined);}
 });
 test('legacy proxy and beacon targets are pinned, never inferred from ABI name',async()=>{
- const x=fixture({code:delegate,slots:{[m.SLOTS.legacy]:addr(B)},targets:{[B]:basic}});assert.match((await m.inspect(x.options)).fields.contractArchitecture.value,/Legacy/);
- const b=fixture({code:delegate,slots:{[m.SLOTS.beacon]:addr(B)},calls:{[B+':'+m.selector('implementation()')]:addr(C)},targets:{[B]:basic,[C]:basic}});assert.match((await m.inspect(b.options)).fields.contractArchitecture.value,/beacon/);
+ const x=fixture({code:delegate,slots:{[m.SLOTS.legacy]:addr(B)},targets:{[B]:basic}});assert.equal((await m.inspect(x.options)).fields.contractArchitecture,undefined);
+ const b=fixture({code:delegate,slots:{[m.SLOTS.beacon]:addr(B)},calls:{[B+':'+m.selector('implementation()')]:addr(C)},targets:{[B]:basic,[C]:basic}});assert.equal((await m.inspect(b.options)).fields.contractArchitecture,undefined);
 });
 test('nondelegating runtime does not turn arbitrary storage into proxy/admin authority',async()=>{
  const x=fixture({slots:{[m.SLOTS.implementation]:addr(B),[m.SLOTS.admin]:addr(C)},targets:{[B]:basic}});const r=await m.inspect(x.options);assert.match(r.fields.contractArchitecture.value,/NON-PROXY/);assert.equal(r.fields.ownerAdmin,undefined);

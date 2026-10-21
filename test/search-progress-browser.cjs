@@ -35,7 +35,7 @@ const server=http.createServer((req,res)=>{
   finish();await page.waitForFunction(()=>/Snapshot complete|Deep analysis unavailable/.test(document.querySelector('#detailState').textContent));
   if(variant==='normal')assert.match(await page.locator('#detailState').innerText(),/Snapshot complete/);
   else{assert.match(await page.locator('#detailState').innerText(),/Deep analysis unavailable/);assert.match(await page.locator('#asset').innerText(),/Streaming fixture/);assert.equal(await page.locator('#cards > .card > .metric').count(),2)}
-  assert.equal(await page.locator('#cards .metric').count(),20);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.close();
+  assert.equal(await page.locator('#cards .metric').count(),16,'unsupported Mechanics stays hidden while the other four cards retain every row');assert.match(await page.locator('#evidenceCount').innerText(),/Contract & Mechanics is hidden/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.close();
  }
  for(const width of [1440,390]){
   mode='normal';const page=await browser.newPage({viewport:{width,height:844}});

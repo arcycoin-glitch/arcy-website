@@ -1,8 +1,8 @@
 'use strict';
 // Blockscout supplies a contract-scoped, balance-sorted candidate list. The
-// published top-wallet percentages are accepted only when the first 20 rows
-// reconcile to direct Robinhood RPC balanceOf reads at the report's pinned
-// block. A stale or incomplete indexer response stays NOT_VERIFIED.
+// top-wallet samples use balanceOf on the report's pinned Robinhood block,
+// independently of live explorer balance values. Explorer candidate membership
+// stays SOURCE_REPORTED; the snapshot never claims exhaustive global ranking.
 const {readJson}=require('./http');
 const {rpc}=require('./robinhood-rpc');
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
@@ -47,9 +47,15 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
    const word=await rpcCall('eth_call',[{to:token,data:'0x70a08231'+row.address.slice(2).padStart(64,'0')},block]);
    if(typeof word!=='string'||!/^0x[0-9a-f]{64}$/i.test(word))throw Error('Invalid pinned balance');
    const balance=BigInt(word);
-   if(balance!==row.amount)throw Error('Blockscout balance is not current at the pinned block');
+   // The explorer lists candidates at its latest index height, not the pinned
+   // block. A changed balance is expected and is never used in a published
+   // metric; only the block-pinned RPC balance is used.
+   if(balance<=0n)throw Error('Pinned candidate has no positive token balance');
    reconciled[i]={address:row.address,balance};
   }}));}catch{return unavailable('BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED')}
+  // Re-rank the reported candidate set by the independently pinned balances.
+  // This does not establish the ranks of wallets omitted by the explorer.
+  reconciled.sort((a,b)=>a.balance>b.balance?-1:a.balance<b.balance?1:a.address.localeCompare(b.address));
   const total=BigInt(totalSupplyRaw);
   const observed=reconciled.reduce((sum,row)=>sum+row.balance,0n);
   if(observed>total)return unavailable('BLOCKSCOUT_RANK_SUPPLY_RECONCILIATION_FAILED');
@@ -68,17 +74,18 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
   const evidence=[{network:'robinhood',chainId:4663,address:token,sourceUrl:url,block,
    method:'Blockscout sorted holder candidates + pinned Robinhood RPC balanceOf(wallet) reconciliation',
    matchedWallets:reconciled.length,censusComplete,verifiedPositiveHolderCount:censusComplete?reconciled.length:null,
+   explorerBalanceAtDifferentBlockIgnored:true,sourceRankCompleteness:'SOURCE_REPORTED',
    scope:censusComplete?
     'Every positive balance candidate matched RPC and together they account for 100% of totalSupply at the same block. For fewer than 10/20 holders, the respective top percentage includes every wallet. Wallets do not imply distinct beneficial owners.':
-    'Top wallet candidates and their balances matched Robinhood RPC at the pinned block; this does NOT prove the candidate list is exhaustive or that unlisted wallets are absent.'}];
+    'Blockscout supplied candidate addresses; their balances were read and re-ranked from Robinhood RPC at the pinned block. The sample may OMIT higher-ranked wallets. These are concentration measurements of source-ranked candidates, not independently established chain-wide top 10/20.'}];
   const found=(value,method)=>({value,status:censusComplete?'ONCHAIN_RECONCILED':'SOURCE_REPORTED_RPC_RECONCILED',
    dataState:'DATA_FOUND',source:'Robinhood RPC + Blockscout',network:'robinhood',chainId:4663,
    evidence:evidence.map(item=>({...item,method}))});
   return {
    ...(censusComplete?{holderCount:found(reconciled.length,'count of reconciled positive-balance token wallets')}:{}),
-   largestWalletPct:found(largest,'largest Blockscout-ranked wallet balance / totalSupply()'),
-   top10Pct:found(top10,'sum of up to 10 pinned wallet balances / totalSupply()'),
-   ...(top20===null?{}:{top20Pct:found(top20,'sum of up to 20 pinned wallet balances / totalSupply()')})
+   largestWalletPct:found(largest,'largest pinned balance among Blockscout-ranked candidate wallets / totalSupply()'),
+   top10Pct:found(top10,'sum of up to 10 pinned balances among source-ranked candidate wallets / totalSupply()'),
+   ...(top20===null?{}:{top20Pct:found(top20,'sum of up to 20 pinned balances among source-ranked candidate wallets / totalSupply()')})
   };
  }catch{return unavailable('BLOCKSCOUT_HOLDERS_REQUEST_FAILED');}
 }
