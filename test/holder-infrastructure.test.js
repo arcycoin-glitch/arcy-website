@@ -96,6 +96,11 @@ test('durable refresh queue resumes due work and worker endpoint requires config
 test('adaptive Transfer ranges handle provider limits and reject removed/conflicting duplicates before checkpointing',()=>fixture(async()=>{
  const ranges=require('../lib/holder-log-range'),log={address:a,blockNumber:'0xa',blockHash:anchor,logIndex:'0x1',topics:[index.TRANSFER,word(x),word(y)],data:word(1)};assert.deepEqual(ranges.candidates([log,log],a,10,10),[x,y]);assert.throws(()=>ranges.candidates([log,{...log,data:word(2)}],a,10,10),{code:'CONFLICTING_TRANSFER_LOG'});assert.throws(()=>ranges.candidates([{...log,removed:true}],a,10,10),{code:'INVALID_TRANSFER_LOG'});let calls=0;c.rpc=async(_m,p)=>{calls++;if(BigInt(p[0].toBlock)-BigInt(p[0].fromBlock)>1n)throw Object.assign(Error(),{code:'RPC_RANGE_LIMIT'});return [];};const r=await ranges.read(a,10,25,16);assert.equal(r.to,11);assert.equal(calls,4);
 }));
+test('Robinhood genesis scan progress exposes its pinned block range without presenting holder metrics',()=>fixture(async()=>{
+ const state={version:1,address:a,chainId:4663,phase:'CATCHUP',addresses:[x,y],balances:[],balanceCursor:0,block:'0x100',catchupStart:0,catchupCursor:50};
+ const progress=storage.progress(state);assert.deepEqual(progress,{phase:'CATCHUP',candidateAddresses:2,balancesChecked:0,offset:null,block:'0x100',scanFromBlock:0,scanCursor:50,scanToBlock:256});
+ assert.equal(storage.validSnapshot({chainId:4663,address:a},a),false);
+}));
 test('authenticated holder endpoint inspects the queue without invoking a serverless worker',()=>fixture(async()=>{
  const refresh=require('../lib/holder-refresh'),oldRun=refresh.run,oldSecret=process.env.CRON_SECRET;process.env.CRON_SECRET='unit-test-worker';let calls=0;refresh.run=async()=>{calls++;return [];};const invoke=authorization=>require('../api/holderrefresh')({method:'GET',headers:{authorization}},{setHeader(){},status(code){this.code=code;return this;},json(data){return {code:this.code,data};}});try{assert.equal((await invoke('Bearer wrong')).code,401);assert.equal(calls,0);assert.equal((await invoke('Bearer unit-test-worker')).code,200);assert.equal(calls,0);}finally{refresh.run=oldRun;if(oldSecret===undefined)delete process.env.CRON_SECRET;else process.env.CRON_SECRET=oldSecret;}
 }));
