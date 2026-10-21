@@ -1,4 +1,5 @@
 process.env.ARC_HOLDER_WORKER_RPC='1';
+const core=require('../lib/core'),chainId=Number(process.env.ARC_HOLDER_CHAIN_ID||5042);
 const storage=require('../lib/holder-storage'),refresh=require('../lib/holder-refresh');
 const {setTimeout:sleep}=require('node:timers/promises');
 async function refreshUnlocks(){
@@ -16,7 +17,7 @@ async function main(){
  let stopped=false;const idle=new AbortController();
  const stop=()=>{stopped=true;idle.abort();};process.once('SIGTERM',stop);process.once('SIGINT',stop);
  const server=require('../lib/holder-worker-http').start();
- console.log(JSON.stringify({event:'HOLDER_WORKER_STARTED',chainId:5042,storage:storage.mode()}));
+ console.log(JSON.stringify({event:'HOLDER_WORKER_STARTED',chainId,storage:storage.mode()}));
  try{
   do{
    let results=[];
@@ -30,4 +31,4 @@ async function main(){
   }while(!stopped);
  }finally{server?.close();process.removeListener('SIGTERM',stop);process.removeListener('SIGINT',stop);}
 }
-main().catch(()=>{console.error('Holder worker unavailable. Check private Redis configuration and provider health.');process.exitCode=1;});
+core.runWithChain(chainId,main).catch(()=>{console.error('Holder worker unavailable. Check chain-specific RPC and durable storage configuration.');process.exitCode=1;});

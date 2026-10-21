@@ -13,10 +13,10 @@ test('liquidity API isolates a failed DexScreener source and uses exact-contract
  }finally{[m.dexPairs,g.read,lp.inspect,go.read,identity.inspect]=old;}
 });
 test('HTTP-200 JSON-RPC rate limits retry with backoff instead of becoming negative evidence',async()=>{
- const old=global.fetch;let calls=0;try{global.fetch=async()=>({ok:true,json:async()=>++calls<3?{id:1,error:{code:-32005,message:'request limit exceeded'}}:{id:1,result:'0x42'}});assert.equal(await c.rpc('audit_rate_limit',[]),'0x42');assert.ok(calls>=3);}finally{global.fetch=old;}
+ const old=global.fetch,oldRpc=process.env.ARC_RPC_URL;let calls=0;try{process.env.ARC_RPC_URL='https://rpc-fixture.rate-limit.invalid';global.fetch=async(_url,options)=>{const payload=JSON.parse(options.body);return {ok:true,json:async()=>payload.method==='eth_chainId'?{id:1,result:'0x13b2'}:++calls<3?{id:1,error:{code:-32005,message:'request limit exceeded'}}:{id:1,result:'0x42'}};};assert.equal(await c.rpc('audit_rate_limit',[]),'0x42');assert.ok(calls>=3);}finally{global.fetch=old;if(oldRpc===undefined)delete process.env.ARC_RPC_URL;else process.env.ARC_RPC_URL=oldRpc;}
 });
 test('RPC rejects a response for a different request ID',async()=>{
- const old=global.fetch;try{global.fetch=async()=>({ok:true,json:async()=>({id:99,result:'0x1'})});await assert.rejects(c.rpc('audit_wrong_id',[]),e=>e.code==='MALFORMED_RPC_RESPONSE');}finally{global.fetch=old;}
+ const old=global.fetch,oldRpc=process.env.ARC_RPC_URL;try{process.env.ARC_RPC_URL='https://rpc-fixture.wrong-id.invalid';global.fetch=async(_url,options)=>{const payload=JSON.parse(options.body);return {ok:true,json:async()=>payload.method==='eth_chainId'?{id:1,result:'0x13b2'}:{id:99,result:'0x1'}};};await assert.rejects(c.rpc('audit_wrong_id',[]),e=>e.code==='MALFORMED_RPC_RESPONSE');}finally{global.fetch=old;if(oldRpc===undefined)delete process.env.ARC_RPC_URL;else process.env.ARC_RPC_URL=oldRpc;}
 });
 test('RPC batch errors and malformed responses cannot become verified values',async()=>{
  const old=global.fetch;try{global.fetch=async()=>({ok:true,json:async()=>[{id:1,result:'0x1'},{id:2,error:{code:3,message:'execution reverted'}}]});await assert.rejects(c.batch([{method:'x',params:[]},{method:'y',params:[]}]));}finally{global.fetch=old;}

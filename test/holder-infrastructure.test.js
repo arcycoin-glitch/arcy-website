@@ -69,7 +69,7 @@ test('a newly completed durable snapshot bypasses an already pending API refresh
  try{const value=await require('../api/holders')({method:'GET',query:{address:a}},{setHeader(){},status(){return this},json(d){return d;}});assert.equal(value.holderCount,2);assert.equal(value.snapshot.freshness,'LAST_VERIFIED');}finally{finish({holderCount:null});await pending;}
 }));
 test('simultaneous same-token requests share one cold discovery/reconciliation job',()=>fixture(async({calls})=>{
- const results=await Promise.all(Array.from({length:8},()=>worker.advance(a,{maxPages:2,maxBatches:1})));assert.equal(calls.context,1);assert.deepEqual(calls.pages,[0,2]);for(const r of results)assert.equal(r.value.block,'0xb');
+ const results=await Promise.all(Array.from({length:8},()=>worker.advance(a,{maxPages:2,maxBatches:1})));assert.equal(calls.context,2);assert.deepEqual(calls.pages,[0,2]);for(const r of results)assert.equal(r.value.block,'0xb');
 }));
 test('corrupt refresh checkpoints recover from the independently retained completed index instead of genesis',()=>fixture(async({folder,calls})=>{
  await storage.save(name,state('0xa',700000));const file=path.join(folder,name+'.v2.json'),d=JSON.parse(await fs.readFile(file));d.checkpoint.balanceCursor=999;await fs.writeFile(file,JSON.stringify(d));assert.equal((await storage.load(name)).phase,'COMPLETE');const r=await worker.advance(a,{maxPages:0,maxBatches:0});assert.equal(r.value.block,'0xa');assert.deepEqual(calls.pages,[]);

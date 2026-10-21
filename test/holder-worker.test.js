@@ -1,16 +1,16 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),worker=require('../lib/holder-candidates'),c=require('../lib/core');
 const a='0x'+'c'.repeat(40),x='0x'+'a'.repeat(40),y='0x'+'b'.repeat(40),word=n=>'0x'+BigInt(n).toString(16).padStart(64,'0');
 test('rate-limited discovery preserves its checkpoint and restart-like resume never exposes partial metrics',async()=>{
- const index=require('../lib/holder-index'),old=[index.load,index.save,c.json];let persisted={version:1,address:a,chainId:5042,phase:'DISCOVER',offset:100,addresses:[x],balances:[],balanceCursor:0},limited=true;
- try{index.load=async()=>structuredClone(persisted);index.save=async(_a,s)=>{persisted=structuredClone(s);};c.json=async url=>{if(url.endsWith('/stats'))return {chainId:5042,indexedBlocks:100};if(!url.includes('holders?'))return {address:a};assert.ok(url.endsWith('offset=100'));if(limited)throw Object.assign(Error('HTTP 429'),{httpStatus:429});return {items:[{address:y}],nextOffset:200};};
+ const index=require('../lib/holder-index'),old=[index.load,index.save,c.json,c.context];let persisted={version:1,address:a,chainId:5042,phase:'DISCOVER',offset:100,addresses:[x],balances:[],balanceCursor:0},limited=true;
+ try{index.load=async()=>structuredClone(persisted);index.save=async(_a,s)=>{persisted=structuredClone(s);};c.context=async()=>({block:'0x65'});c.json=async url=>{if(url.endsWith('/stats'))return {chainId:5042,indexedBlocks:100};if(!url.includes('holders?'))return {address:a};assert.ok(url.endsWith('offset=100'));if(limited)throw Object.assign(Error('HTTP 429'),{httpStatus:429});return {items:[{address:y}],nextOffset:200};};
  await assert.rejects(worker.advance(a,{maxPages:1,maxBatches:0}),{httpStatus:429});assert.equal(persisted.offset,100);assert.deepEqual(persisted.addresses,[x]);limited=false;
  const r=await worker.advance(a,{maxPages:1,maxBatches:0});assert.equal(r.value,null);assert.equal(r.coverage.complete,false);assert.equal(persisted.offset,200);assert.deepEqual(persisted.addresses,[x,y]);
- }finally{[index.load,index.save,c.json]=old;}
+ }finally{[index.load,index.save,c.json,c.context]=old;}
 });
 test('expired holder snapshot starts fresh discovery without stale tail anchors or confidence',async()=>{
- const index=require('../lib/holder-index'),old=[index.load,index.save,c.json],saved=[];try{
- index.load=async()=>({version:1,address:a,chainId:5042,phase:'COMPLETE',completedAt:Date.now()-700000,startedAt:0,discoveryIndexedBlock:1,transferTail:{fromBlock:1},anchor:'old',block:'0x1',result:{holderCount:999},addresses:[x],balances:[[x,'999']],balanceCursor:1});index.save=async(_a,s)=>saved.push(structuredClone(s));c.json=async url=>url.includes('/stats')?{chainId:5042,indexedBlocks:100}:{address:a};const r=await worker.advance(a,{maxPages:0,maxBatches:0});assert.equal(r.value,null);assert.equal(r.coverage.phase,'DISCOVER');const s=saved.at(-1);assert.equal(s.discoveryIndexedBlock,100);assert.equal(s.anchor,undefined);assert.equal(s.result,undefined);assert.deepEqual(s.balances,[]);assert.deepEqual(s.addresses,[]);
- }finally{[index.load,index.save,c.json]=old;}
+ const index=require('../lib/holder-index'),old=[index.load,index.save,c.json,c.context],saved=[];try{
+ index.load=async()=>({version:1,address:a,chainId:5042,phase:'COMPLETE',completedAt:Date.now()-700000,startedAt:0,discoveryIndexedBlock:1,transferTail:{fromBlock:1},anchor:'old',block:'0x1',result:{holderCount:999},addresses:[x],balances:[[x,'999']],balanceCursor:1});index.save=async(_a,s)=>saved.push(structuredClone(s));c.json=async url=>url.includes('/stats')?{chainId:5042,indexedBlocks:100}:{address:a};c.context=async()=>({block:'0x65'});const r=await worker.advance(a,{maxPages:0,maxBatches:0});assert.equal(r.value,null);assert.equal(r.coverage.phase,'DISCOVER');const s=saved.at(-1);assert.equal(s.discoveryIndexedBlock,100);assert.equal(s.anchor,undefined);assert.equal(s.result,undefined);assert.deepEqual(s.balances,[]);assert.deepEqual(s.addresses,[]);
+ }finally{[index.load,index.save,c.json,c.context]=old;}
 });
 test('expired complete holder snapshots resume incremental Transfer discovery and re-read all balances at a new block',async()=>{
  const index=require('../lib/holder-index'),reader=require('../lib/balance-reader'),old=[index.load,index.save,c.context,c.rpc,c.call,reader.balances],saved=[],anchor='0x'+'1'.repeat(64);

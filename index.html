@@ -107,9 +107,15 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
 </header>
 
 <section class="search">
+<label class="sr-only" for="chain">Network</label>
+<select id="chain" aria-label="Search network">
+<option value="5042">Arc</option>
+<option value="1">Ethereum</option>
+<option value="4663">Robinhood Chain</option>
+</select>
 <input
-aria-label="Arc token contract address" id="contract"
-placeholder="Paste an Arc token contract address..."
+aria-label="Token contract address" id="contract"
+placeholder="Paste a token contract address..."
 autocomplete="off"
 spellcheck="false"
 >
