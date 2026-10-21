@@ -73,3 +73,28 @@ test('Robinhood keeps independent source-backed count and sample if Blockscout r
   assert.equal(c.fields.top20Pct.value,null);
  }finally{[count.fetchCount,plus.inspectHolders,rank.fetchRank]=old;}
 });
+
+test('PONS rank uses Blockscout PRO after public 403, without publishing API credentials',async()=>{
+ const key='proapi_TEST_SAFE_SECRET_KEY_123',wallets=Array.from({length:20},(_,i)=>wallet(i+1));
+ const items=wallets.map((a,i)=>({address:a,value:String(200-i)}));
+ const values=new Map(wallets.map((a,i)=>[a,BigInt(200-i)])),seen=[];
+ const r=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'5000',key,
+  fetcher:async url=>{
+   seen.push(url);
+   return seen.length===1?http403():json({items});
+  },rpcCall:rpcBalances(values)});
+ assert.equal(seen.length,2);
+ assert.equal(new URL(seen[1]).searchParams.get('apikey'),key);
+ assert.equal(r.top10Pct.dataState,'DATA_FOUND');
+ assert.equal(r.top20Pct.dataState,'DATA_FOUND');
+ assert.equal(JSON.stringify(r).includes(key),false);
+ assert.equal(r.top20Pct.evidence[0].sourceUrl,'https://api.blockscout.com/4663/api/v2/tokens/'+PONS+'/holders');
+});
+test('PONS rank rejects blocked Blockscout endpoints without inventing wallet concentration',async()=>{
+ let calls=0;
+ const r=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'5000',key:'proapi_TEST_SAFE_SECRET_KEY_123',
+ fetcher:async()=>{calls++;return http403();}});
+ assert.equal(calls,2);
+ assert.equal(r.reasonCode,'BLOCKSCOUT_HOLDERS_HTTP_403');
+ assert.equal(r.top10Pct,undefined);
+});
