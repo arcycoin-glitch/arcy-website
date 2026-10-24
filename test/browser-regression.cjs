@@ -1,24 +1,165 @@
-const {chromium}=require('C:/Users/cicek/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const {spawn}=require('node:child_process'),assert=require('node:assert/strict'),path=require('node:path');
-const fixture=require('./connection-e2e-results.json').results[0],origin='http://127.0.0.1:3110';
-(async()=>{const server=spawn(process.execPath,['dev.cjs'],{cwd:path.join(__dirname,'..'),env:{...process.env,PORT:'3110'},stdio:['ignore','pipe','pipe'],windowsHide:true});let browser;try{
- await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Server startup timeout')),10000);server.stdout.once('data',()=>{clearTimeout(timer);resolve();});server.once('error',reject);});
- browser=await chromium.launch({headless:true,channel:'msedge'});const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];page.on('pageerror',e=>errors.push(e.message));let mode='failure';const requested=[];page.on('request',r=>{const u=new URL(r.url());if(u.pathname.startsWith('/api/')&&u.searchParams.has('address')&&!u.searchParams.has('action')&&!(u.pathname==='/api/liquidity'&&!u.searchParams.has('summary')))requested.push(u.pathname);});
- await page.route('**/api/**',async route=>{const name=new URL(route.request().url()).pathname.split('/').pop();if(!fixture.apis[name]&&name!=='activity'&&!['unlocks','pulse'].includes(name))return route.continue();if(['unlocks','pulse'].includes(name))return route.fulfill({status:503,json:{ok:false}});if(mode==='failure'&&name==='holders')return route.abort();if(mode==='metadata'&&name==='token')return route.abort();if(mode==='malformed'&&name==='holders')return route.fulfill({status:200,contentType:'text/html',body:'<html>upstream challenge</html>'});const data=name==='activity'?{ok:true,address:fixture.address,chainId:5042,priceUsd:{value:0.1,status:'MARKET_API_VERIFIED'},valuation:{value:1000000,kind:'FDV',status:'MARKET_API_VERIFIED'},change24h:{value:-1,status:'MARKET_API_VERIFIED'},volume24h:{value:100,status:'MARKET_API_VERIFIED'}}:structuredClone(fixture.apis[name].data);if(name==='mechanics')Object.assign(data,require('../lib/contract-summary').present({...data,...fixture.apis.control.data}));if(mode==='liquidity-null'&&name==='liquidity'){data.dataState='DATA_FOUND';data.liquidityUsd=null;data.fields={...data.fields,liquidityUsd:{value:null,dataState:'NOT_VERIFIED',reason:'One returned pair lacks liquidity.'}};}if(mode==='mapping'&&name==='holders'){data.renamedCount=data.holderCount;delete data.holderCount;}await route.fulfill({json:data});});
- await page.goto(origin);await page.locator('#contract').fill('invalid');await page.locator('#scan').click();assert.match(await page.locator('#helper').innerText(),/valid contract/);
- for(const viewport of [{width:390,height:844},{width:1440,height:1000}]){await page.setViewportSize(viewport);for(mode of ['failure','mapping','malformed','metadata','liquidity-null']){const requestStart=requested.length;await page.locator('#contract').fill(fixture.address);await page.locator('#scan').click();await page.waitForFunction(()=>document.getElementById('scan').dataset.pending==='0');for(const heading of ['Locked Supply','Unlocked Supply','Verified Burned','Next Unlock'])assert.match(await page.locator('.supply').innerText(),new RegExp(heading));assert.match(await page.locator('.liquidity').innerText(),/DEX/);assert.match(await page.locator('.activity').innerText(),/FDV/);assert.match(await page.locator('.mechanics .row b').nth(2).innerText(),/VERIFIED/);assert.equal(await page.locator('.control').count(),0);assert.equal(await page.locator('.card .row').count(),20);assert.equal(await page.locator('.activity .row').count(),4);assert.equal(await page.locator('.mechanics .row').count(),4);assert.equal(await page.locator('.mechanics-fields').count(),0);if(mode==='liquidity-null'){const value=page.locator('.liquidity .row b').first();assert.equal(await value.innerText(),'NOT VERIFIED');assert.equal(await value.getAttribute('data-data-state'),'NOT_VERIFIED');const count=await page.locator('.card .row b[data-data-state=DATA_FOUND]').count();assert.match(await page.locator('#helper').innerText(),new RegExp('^'+count+' of 20'));assert.ok(!(await page.locator('.card .row b[data-data-state=DATA_FOUND]').allTextContents()).includes('NOT VERIFIED'));}if(mode==='mapping')assert.match(await page.locator('.whales .badge').innerText(),/MAPPING FAILED/);if(['failure','malformed'].includes(mode))assert.match(await page.locator('.whales .badge').innerText(),/SOURCE\/API FAILED/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),JSON.stringify({mode,viewport,overflow:await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,elements:[...document.querySelectorAll('body *')].filter(x=>x.getBoundingClientRect().right>innerWidth+1).map(x=>({tag:x.tagName,class:x.className,right:x.getBoundingClientRect().right,text:x.textContent?.slice(0,60)})).slice(0,10)}))}));assert.equal(requested.length-requestStart,8);assert.ok(!requested.slice(requestStart).includes('/api/control'));assert.equal(await page.locator('#search .card').count(),5);}}
- // Reproduce the audited long-running cold scan: partial values must never surface,
- // and a COMPLETE result arriving after the old one-minute cutoff must paint without re-SCAN.
- const follow=await browser.newPage({viewport:{width:390,height:844}});follow.on('pageerror',e=>errors.push(e.message));await follow.clock.install();let ready=false,holderDeliveryFailure=false,publishedReads=0,queueReads=0,heldQueue,queueCompleted=false;
- const partial=a=>{const block='0x10',anchor='0x'+'a'.repeat(64),s=require('../lib/holder-index').aggregate([['0x'+'1'.repeat(40),'900'],['0x'+'2'.repeat(40),'100']],1000n,[{block,anchor,source:'Regression fixture'}]);return {ok:true,address:a,chainId:5042,...s,block,snapshot:{block,completedAt:new Date().toISOString(),freshness:'LAST_VERIFIED'},coverage:{complete:ready},publicationLookup:{state:ready?'COMPLETE':'ABSENT'}};};
- await follow.route('**/api/**',async route=>{const u=new URL(route.request().url()),name=u.pathname.split('/').pop(),a=u.searchParams.get('address')||fixture.address;if(name==='holders'){if(u.searchParams.get('action')==='queue'){queueReads++;if(heldQueue)await heldQueue;await route.fulfill({json:{ok:true,address:a,chainId:5042,queued:true}});queueCompleted=true;return;}if(u.searchParams.get('action')==='published')publishedReads++;if(holderDeliveryFailure==='lookup-failed')return route.fulfill({json:{ok:true,address:a,chainId:5042,status:'NOT_VERIFIED',dataState:'SOURCE_API_FAILED',publicationLookup:{state:'FAILED'},coverage:{complete:false},...Object.fromEntries(['holderCount','largestWalletPct','top10Pct','top20Pct'].map(k=>[k,null])),fields:Object.fromEntries(['holderCount','largestWalletPct','top10Pct','top20Pct'].map(k=>[k,{value:null,status:'NOT_VERIFIED',dataState:'SOURCE_API_FAILED'}]))}});if(holderDeliveryFailure)return route.fulfill({json:{ok:true,address:a,chainId:5042,status:'NOT_VERIFIED',reasonCode:'HOLDER_SNAPSHOT_ANCHOR_CHANGED',coverage:{complete:false}}});return route.fulfill({json:partial(a)});}if(['unlocks','pulse'].includes(name))return route.fulfill({status:503,json:{ok:false}});let d=structuredClone(fixture.apis[name]?.data||{ok:false});if(name==='activity')d={ok:true,address:a,chainId:5042,priceUsd:{value:0.1,status:'MARKET_API_VERIFIED'},valuation:{value:1000000,kind:'FDV',status:'MARKET_API_VERIFIED'},change24h:{value:1,status:'MARKET_API_VERIFIED'},volume24h:{value:100,status:'MARKET_API_VERIFIED'}};if(name==='mechanics')Object.assign(d,require('../lib/contract-summary').present({...d,...fixture.apis.control.data}));d.address=a;await route.fulfill({json:d});});
- await follow.goto(origin);await follow.locator('#contract').fill(fixture.address);await follow.locator('#scan').click();await follow.waitForFunction(()=>document.querySelector('#scan').dataset.pending==='0');await follow.waitForFunction(()=>document.querySelector('.whales .badge').textContent==='BUILDING VERIFIED HOLDER SNAPSHOT');assert.deepEqual(await follow.locator('.whales .row b').allTextContents(),Array(4).fill('NOT VERIFIED'));
- for(let i=0;i<16;i++){await follow.clock.fastForward(10000);await new Promise(r=>setTimeout(r,40));}assert.ok(publishedReads>6,'Publication checks continue beyond the old cutoff');ready=true;await follow.clock.fastForward(10000);await follow.waitForFunction(()=>document.querySelector('.whales .row b').textContent==='2');assert.deepEqual(await follow.locator('.whales .row b').allTextContents(),['2','90%','100%','100%']);for(const heading of ['Locked Supply','Unlocked Supply','Verified Burned','Next Unlock'])assert.match(await follow.locator('.supply').innerText(),new RegExp(heading));assert.ok(queueReads>=1);
- holderDeliveryFailure=true;await follow.locator('#contract').fill(fixture.address);await follow.locator('#scan').click();await follow.waitForFunction(()=>document.querySelector('#scan').dataset.pending==='0');assert.deepEqual(await follow.locator('.whales .row b').allTextContents(),['2','90%','100%','100%']);await follow.clock.fastForward(60000);assert.deepEqual(await follow.locator('.whales .row b').allTextContents(),['2','90%','100%','100%']);holderDeliveryFailure=false;
- holderDeliveryFailure='lookup-failed';await follow.locator('#contract').fill('0x'+'b'.repeat(40));await follow.locator('#scan').click();await follow.waitForFunction(()=>document.querySelector('#scan').dataset.pending==='0');await follow.waitForFunction(()=>JSON.parse(document.querySelector('.whales pre').textContent).response.backgroundRefresh?.queued===true);assert.equal(await follow.locator('.whales .badge').innerText(),'SOURCE/API FAILED');holderDeliveryFailure=false;
- // A newly selected contract cannot cancel the prior durable queue submission.
- let release;heldQueue=new Promise(r=>release=r);queueCompleted=false;await follow.locator('#contract').fill('0x'+'8'.repeat(40));await follow.locator('#scan').click();await follow.waitForFunction(()=>document.querySelector('#scan').dataset.pending==='0');await follow.locator('#contract').fill('0x'+'9'.repeat(40));await follow.locator('#scan').click();release();for(let i=0;i<100&&!queueCompleted;i++)await new Promise(r=>setTimeout(r,20));assert.ok(queueCompleted,'Queue acknowledgement survives switching Search contracts');await follow.waitForFunction(()=>document.querySelector('#scan').dataset.pending==='0');assert.equal(await follow.locator('#address').innerText(),'0x'+'9'.repeat(40));assert.deepEqual(await follow.locator('.whales .row b').allTextContents(),['2','90%','100%','100%']);await follow.close();
- assert.deepEqual(errors,[]);console.log('PASS: independent cards, late COMPLETE after polling cutoff, no partial holders, durable queue after scan switching, schema/input failures, five-card layout and mobile overflow.');
- }finally{if(browser)await browser.close();server.kill();}})().catch(e=>{console.error(e);process.exitCode=1});
+const { chromium } = require('playwright');
+const { spawn } = require('node:child_process');
+const assert = require('node:assert/strict');
+const path = require('node:path');
 
+const root = path.join(__dirname, '..');
+const origin = 'http://127.0.0.1:3110';
+const addresses = {
+  arc: '0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b',
+  ethereum: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+  robinhood: '0x322f0929c4625ed5bad873c95208d54e1c003b2d',
+};
+const chains = { arc: 5042, ethereum: 1, robinhood: 4663 };
+const tokens = {
+  arc: ['ARCY', 'ARCY'],
+  ethereum: ['USD Coin', 'USDC'],
+  robinhood: ['Tesla Token', 'TSLA'],
+};
+const fields = {
+  supply: ['totalSupply', 'circulatingSupply', 'burnAddressBalance', 'burnAddressPct'],
+  holders: ['holderCount', 'largestWalletPct', 'top10Pct', 'top20Pct'],
+  liquidity: ['liquidityUsd', 'volume24h', 'dexPairCount', 'lpStatus'],
+  activity: ['priceUsd', 'valuation', 'change24h', 'volume24h'],
+  mechanics: ['tradingTaxes', 'mintCapability', 'ownerAdmin', 'contractArchitecture'],
+};
+const missing = new Set(['circulatingSupply', 'top20Pct', 'lpStatus', 'valuation', 'mintCapability']);
 
+function report(network, address) {
+  const [name, symbol] = tokens[network];
+  const cards = {};
+  for (const [card, keys] of Object.entries(fields)) {
+    cards[card] = { description: 'Browser regression fixture; not live provider evidence.', fields: {} };
+    for (const key of keys) {
+      const unavailable = missing.has(key);
+      cards[card].fields[key] = {
+        value: unavailable ? null : key === 'tradingTaxes' ? 'NOT VERIFIED' : 1,
+        dataState: unavailable ? 'NOT_VERIFIED' : 'DATA_FOUND',
+        status: unavailable ? 'NOT_VERIFIED' : 'BROWSER_FIXTURE',
+        reason: unavailable ? 'Regression fixture has no source evidence for this field.' : undefined,
+        source: unavailable ? undefined : 'Browser-only fixture', evidence: [],
+      };
+    }
+  }
+  for(const f of Object.values(cards.mechanics.fields)){if(f.dataState==='DATA_FOUND'){f.status='VERIFIED_SOURCE';f.chainId=chains[network];f.network=network;f.evidence=[{chainId:chains[network],address,block:'0x10',method:'Reviewed browser fixture (not live evidence)'}];}}
+  return {
+    ok: true, chainId: chains[network], network, address,
+    cardCount: 5, cards, token: { name, symbol },
+    tokenIdentity: { status: 'NOT_VERIFIED' }, block: '0x10',
+    scannedAt: '2026-10-13T00:00:00.000Z',
+  };
+}
+
+function candidate(network) {
+  const [name, symbol] = tokens[network];
+  return { name, symbol, network, chainId: chains[network], address: addresses[network],
+    source: 'Browser fixture', logoUrl: null, identity: { status: 'NOT_VERIFIED' } };
+}
+
+(async () => {
+  const server = spawn(process.execPath, ['dev.cjs'], {
+    cwd: root, env: { ...process.env, PORT: '3110' },
+    stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
+  });
+  let browser;
+  try {
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(Error('Local preview startup timeout')), 10000);
+      server.stdout.once('data', () => { clearTimeout(timer); resolve(); });
+      server.once('error', reject);
+    });
+    browser = await chromium.launch({ headless: true, ...(process.env.ARCY_BROWSER_CHANNEL ? { channel: process.env.ARCY_BROWSER_CHANNEL } : {}) });
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    const pageErrors = [];
+    const requests = [];
+    let discoveryStatus = 200;
+    let reportStatus = 200;
+    page.on('pageerror', error => pageErrors.push(error.message));
+    page.on('request', request => {
+      if (new URL(request.url()).pathname === '/api/search') requests.push(new URL(request.url()));
+    });
+    await page.route('**/api/search?**', async route => {
+      const url = new URL(route.request().url());
+      const network = url.searchParams.get('chain');
+      const action = url.searchParams.get('action');
+      if (!Object.hasOwn(chains, network)) return route.fulfill({ status: 400, json: { ok: false } });
+      if (action === 'discover') {
+        if (discoveryStatus !== 200) return route.fulfill({ status: discoveryStatus, json: { ok: false, reason: 'RATE_LIMITED' } });
+        return route.fulfill({ json: { ok: true, chainId: chains[network], network, matches: [candidate(network)] } });
+      }
+      // Exercise compatibility with an existing deployment lacking the optional stream route.
+      if (action === 'progress') return route.fulfill({ status: 404, json: { ok: false } });
+      if (action === 'report') {
+        if (reportStatus !== 200) return route.fulfill({ status: reportStatus, json: { ok: false, reason: 'REPORT_UNAVAILABLE' } });
+        return route.fulfill({ json: report(network, url.searchParams.get('address')) });
+      }
+      if (action === 'chart') return route.fulfill({ status: 503, json: { ok: false, reason: 'CHART_SOURCE_UNAVAILABLE' } });
+      return route.fulfill({ status: 400, json: { ok: false } });
+    });
+    await page.route('https://www.geckoterminal.com/**', route => route.fulfill({
+      status: 200, contentType: 'text/html', body: '<title>Controlled chart iframe fixture</title>',
+    }));
+
+    for (const width of [320, 390, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(origin + '/#search');
+      assert.equal(await page.locator('.home-search').count(), 1, 'current homepage Search module appears');
+      assert.equal(await page.locator('.home-search-owl').count(), 1, 'Search module keeps one owl');
+      assert.equal(await page.locator('#contract').isVisible(), false, 'legacy contract input remains hidden after Search upgrade');
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `home overflow at ${width}px`);
+
+      await page.locator('#homeSearchQuery').fill('x');
+      await page.locator('.home-search-form').evaluate(form => form.requestSubmit());
+      assert.match(await page.locator('#homeSearchState').innerText(), /at least 2 characters/);
+
+      for (const network of ['arc', 'ethereum', 'robinhood']) {
+        if (network !== 'arc') await page.locator(`.home-network-option[data-network="${network}"]`).click();
+        discoveryStatus = 429;
+        await page.locator('#homeSearchQuery').fill(tokens[network][1]);
+        await page.locator('.home-search-form').evaluate(form => form.requestSubmit());
+        await page.waitForFunction(() => document.querySelector('#homeSearchState')?.textContent.includes('Search unavailable'));
+        discoveryStatus = 200;
+        await page.locator('.home-search-form').evaluate(form => form.requestSubmit());
+        const result = page.locator('.home-search-results .home-search-result');
+        await result.waitFor({ state: 'visible' });
+        assert.match(await result.innerText(), new RegExp(tokens[network][0]));
+        assert.match(await result.locator('.home-result-status').innerText(), /NOT VERIFIED/);
+        assert.equal(await result.locator('.home-token-placeholder').count(), 1, 'no-logo result has a visible fallback avatar');
+        await result.click();
+        await page.waitForURL(`**/search/token/${network}/${addresses[network]}`);
+        await page.waitForFunction(() => document.querySelector('#detailState')?.textContent.includes('Snapshot complete'));
+        await page.locator('#deepResearch').evaluate(node => { node.open = true; });
+        assert.equal(await page.locator('#cards > .card').count(), 5);
+        assert.equal(await page.locator('#cards .metric').count(), 20, 'all twenty schema fields render');
+        assert.equal(await page.locator('#cards .metric b.no').count(), 5, 'unsupported fixture fields remain visibly unverified');
+        assert.match(await page.locator('#evidenceCount').innerText(), /20 checks/);
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `detail overflow at ${width}px`);
+        assert.equal(await page.locator('.token-title-logo').count(), network === 'arc' ? 1 : 0,
+          'only the site-owned ARCY artwork is shown without an issuer artwork match');
+        await page.goto(origin + '/#search');
+      }
+
+      reportStatus = 503;
+      await page.locator('#homeSearchQuery').fill(addresses.arc);
+      await page.locator('.home-search-form').evaluate(form => form.requestSubmit());
+      await page.waitForFunction(() => document.querySelector('#detailState')?.textContent.includes('Scan unavailable'));
+      assert.equal(await page.locator('#cards > .card').count(), 4, 'failed report preserves other cards while unevidenced Mechanics stays hidden');
+      assert.deepEqual(await page.locator('#cards .metric b').allTextContents(), Array(16).fill('—'),
+        'failed report clears prior token metrics instead of displaying stale values');
+      reportStatus = 200;
+      await page.goto(origin + '/#search');
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `home return overflow at ${width}px`);
+    }
+
+    assert.deepEqual(pageErrors, []);
+    assert.equal(requests.filter(url => url.searchParams.get('action') === 'discover').length, 18);
+    assert.equal(requests.filter(url => url.searchParams.get('action') === 'report').length, 12);
+    assert.ok(requests.some(url => url.searchParams.get('chain') === 'arc'));
+    assert.ok(requests.some(url => url.searchParams.get('chain') === 'ethereum'));
+    assert.ok(requests.some(url => url.searchParams.get('chain') === 'robinhood'));
+    console.log('PASS: current homepage Search -> exact-chain candidate -> separate detail flow; 429 and report failures; five cards/twenty fields; 320/390/1440px layout; all API responses are mocked fixtures, not live provider evidence.');
+  } finally {
+    if (browser) await browser.close();
+    server.kill();
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });

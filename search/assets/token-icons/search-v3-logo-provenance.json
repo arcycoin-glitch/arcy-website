@@ -1,0 +1,34 @@
+{
+  "license": "CC0-1.0",
+  "sourceCommit": "1a63530be6e374711a8554f31b17e4cb92c25fa5",
+  "upstream": "https://github.com/spothq/cryptocurrency-icons",
+  "newFiles": [
+    "grt.svg"
+  ],
+  "sourceUrl": "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/grt.svg",
+  "mappings": [
+    {
+      "network": "arc",
+      "chainId": 5042,
+      "address": "0x76a443768a5e3b8d1aed0105fc250877841deb40",
+      "icon": "link.svg",
+      "proofUrl": "https://docs.chain.link/resources/link-token-contracts"
+    },
+    {
+      "network": "robinhood",
+      "chainId": 4663,
+      "address": "0x492641f648a4986844848e0befe66d14817bce34",
+      "icon": "link.svg",
+      "proofUrl": "https://docs.chain.link/resources/link-token-contracts"
+    },
+    {
+      "network": "ethereum",
+      "chainId": 1,
+      "address": "0xc944e90c64b2c07662a292be6244bdf05cda44a7",
+      "icon": "grt.svg",
+      "proofUrl": "https://thegraph.com/docs/en/resources/tokenomics/"
+    }
+  ],
+  "limitations": "Artwork is decorative; never issuer verification. Ondo artwork not licensed by this manifest.",
+  "sha256": "086d00387867274fea67efdfb0eb2e6b140bdf912543dd6377d7913999276742"
+}

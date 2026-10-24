@@ -16,3 +16,37 @@
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}.visual{transform:none!important}}
 #burn .card:before{left:0;right:0}@media(max-width:850px){#hero .hero-aura{left:0;right:0}}
 .burn-flow{position:relative;padding-bottom:16px}.burn-flow:after{content:"";position:absolute;bottom:0;left:0;width:100%;height:1px;background:linear-gradient(90deg,#35d7f500,#35d7f550,#f1ae6880,#f1ae6800);background-size:200% 100%;animation:burn-data-flow 9s linear infinite;pointer-events:none}@keyframes burn-data-flow{to{background-position:200% 0}}@media(prefers-reduced-motion:reduce){.burn-flow:after{animation:none!important}}
+
+/* Subtle premium transitions; the document stays readable if JS is blocked.
+   In-view classes only add an entrance, never hide data or block scrolling. */
+@keyframes arcy-section-enter{
+ from{opacity:.66;transform:translate3d(0,22px,0)}
+ to{opacity:1;transform:translate3d(0,0,0)}
+}
+@media(prefers-reduced-motion:no-preference){
+ #search.arcy-section-arrived>.wrap,
+ #burn.arcy-section-arrived>.wrap,
+ #unlocks.arcy-section-arrived>.wrap,
+ #pulse.arcy-section-arrived>.wrap,
+ #buy.arcy-section-arrived>.wrap{
+  animation:arcy-section-enter .75s cubic-bezier(.16,1,.3,1) both;
+ }
+ .nav .links a.arcy-active{color:#e6f9ff}
+ .nav .links a.arcy-active:after{width:100%;box-shadow:0 0 10px #54ddf588}
+}
+/* Read-only page progress: follows scroll, does not alter navigation. */
+.nav{--arcy-scroll:0}
+.nav:after{
+ content:'';position:absolute;bottom:0;left:0;width:100%;height:2px;
+ background:linear-gradient(90deg,#45d9f4,#42dfd2 65%,#f1ad5b);
+ transform-origin:0 50%;transform:scaleX(var(--arcy-scroll));
+ pointer-events:none;z-index:2;
+}
+@media(prefers-reduced-motion:reduce){
+ .nav:after{display:none}
+ #search.arcy-section-arrived>.wrap,
+ #burn.arcy-section-arrived>.wrap,
+ #unlocks.arcy-section-arrived>.wrap,
+ #pulse.arcy-section-arrived>.wrap,
+ #buy.arcy-section-arrived>.wrap{animation:none!important}
+}

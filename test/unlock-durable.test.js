@@ -78,7 +78,7 @@ test('Vercel Unlocks API returns a verified worker edition before attempting leg
   process.env.ARC_UNLOCK_PUBLISHED_URL = 'https://unlock-publication.example/';
   process.env.ARC_UNLOCK_PUBLIC_KEY = pair.publicKey.export({ type: 'spki', format: 'pem' });
   try {
-    const edition = { schemaVersion: 1, success: true, events: [], windows: { today: [], next7: [], days8to30: [] }, generatedAt: '2026-10-09T00:00:00.000Z', refreshAt: '2026-10-09T06:00:00.000Z', trigger: 'worker' };
+    const edition = { schemaVersion: 1, success: true, events: [], windows: { today: [], next7: [], days8to30: [] }, generatedAt: new Date(Date.now()-60000).toISOString(), refreshAt: new Date(Date.now()+21000000).toISOString(), trigger: 'worker' };
     const payload = JSON.stringify(edition), envelope = { payload, signature: crypto.sign(null, Buffer.from(payload), pair.privateKey).toString('base64') };
     const root = path.resolve(__dirname, '..'), evidence = (await fs.readFile(path.join(root, 'lib/unlock-evidence.js'), 'utf8')).replaceAll('export const', 'const'), source = (await fs.readFile(path.join(root, 'api/unlocks.js'), 'utf8')).replace(/^import .*unlock-evidence.*;\r?\n/m, '').replace('export default async function handler', 'async function handler');
     let fetches = 0;

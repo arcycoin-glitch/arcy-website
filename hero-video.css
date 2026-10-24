@@ -1,7 +1,57 @@
-/* Overlay the video within the existing owl's reserved frame. */
-#hero .hero-video{position:absolute;inset:0;width:100%;height:100%;padding:4%;box-sizing:border-box;object-fit:contain;opacity:0;pointer-events:none;mix-blend-mode:normal;mask-image:linear-gradient(to right,transparent,#000 6%,#000 94%,transparent),linear-gradient(to bottom,transparent,#000 6%,#000 94%,transparent);mask-composite:intersect;-webkit-mask-image:linear-gradient(to right,transparent,#000 6%,#000 94%,transparent),linear-gradient(to bottom,transparent,#000 6%,#000 94%,transparent);-webkit-mask-composite:source-in}
-#hero .hero-energy:has(.video-playing){isolation:auto;mix-blend-mode:screen}
-#hero .hero-flight.video-playing{mix-blend-mode:normal;background:radial-gradient(ellipse at center,#22d9ff0d,transparent 68%)}
-#hero .hero-flight.video-playing .hero-video{opacity:1}
-#hero .hero-flight.video-playing>img{visibility:hidden}
-@media(prefers-reduced-motion:reduce){#hero .hero-video{display:none!important}#hero .hero-flight.video-playing>img{visibility:visible}}
+/* Hero video polish: the opaque MP4 is displayed as the moving owl, not
+   faint ghosting on top of the completely static canonical mascot.
+   Screen blending removes black pixels while an elliptical vignette hides
+   the video's matte edges. The original PNG is an instant playback fallback. */
+#hero .hero-video{
+ position:absolute;inset:0;width:100%;height:100%;padding:0;box-sizing:border-box;
+ object-fit:contain;object-position:center;opacity:0;pointer-events:none;
+ border-radius:50%;mix-blend-mode:screen;
+ mask-image:radial-gradient(ellipse 49% 49% at 50% 50%,#000 38%,rgba(0,0,0,.96) 58%,rgba(0,0,0,.52) 76%,transparent 100%);
+ -webkit-mask-image:radial-gradient(ellipse 49% 49% at 50% 50%,#000 38%,rgba(0,0,0,.96) 58%,rgba(0,0,0,.52) 76%,transparent 100%)
+}
+/* With confirmed playback, reveal the animation itself (no static/animated
+   double exposure). Keep transparent isolation for screen compositing. */
+#hero .hero-energy:has(.video-playing){isolation:auto;mix-blend-mode:normal}
+#hero .hero-flight.video-playing{isolation:auto;mix-blend-mode:normal;background:transparent}
+#hero .hero-flight.video-playing .hero-video{opacity:1;mix-blend-mode:screen}
+#hero .hero-flight.video-playing>img{opacity:0;visibility:visible}
+/* An unavailable, paused, or blocked video always displays the original owl. */
+#hero .hero-flight:not(.video-playing)>img{opacity:1;visibility:visible}
+@media(prefers-reduced-motion:reduce){
+ #hero .hero-video{display:none!important}
+ #hero .hero-flight>img{opacity:1!important;visibility:visible!important}
+}
+
+/* When mobile autoplay, data saver or codec support prevents playback, the
+   original ARCY owl still floats visibly in its existing composition. */
+@keyframes arcy-owl-mobile-presence{
+  0%,100%{transform:translate3d(0,2px,0) rotate(-.5deg)}
+  50%{transform:translate3d(0,-12px,0) rotate(.65deg)}
+}
+@keyframes arcy-owl-fallback-glow{
+  0%,100%{opacity:.54}
+  50%{opacity:1}
+}
+@media(max-width:850px){
+ #hero .hero-flight:not(.video-playing){
+  animation:arcy-owl-mobile-presence 7.5s ease-in-out infinite;
+  will-change:transform;
+ }
+ #hero .hero-flight:not(.video-playing) .hero-wing-light{
+  animation:arcy-owl-fallback-glow 5s ease-in-out infinite;
+ }
+}
+#hero .hero-motion-toggle{
+ position:absolute;z-index:8;right:7%;bottom:8%;width:auto;
+ background:rgba(3,19,32,.88);color:#bdeefe;
+ border:1px solid rgba(81,220,245,.48);border-radius:999px;
+ padding:10px 14px;font:700 12px/1.2 system-ui,sans-serif;
+ letter-spacing:.015em;box-shadow:0 4px 20px #0007,0 0 16px #36d9f321;
+ backdrop-filter:blur(10px);cursor:pointer;
+}
+#hero .hero-motion-toggle[hidden]{display:none!important}
+#hero .hero-motion-toggle:focus-visible{outline:2px solid #65e5ff;outline-offset:4px}
+@media(prefers-reduced-motion:reduce){
+ #hero .hero-motion-toggle{display:none!important}
+ #hero .hero-flight,#hero .hero-flight .hero-wing-light{animation:none!important}
+}

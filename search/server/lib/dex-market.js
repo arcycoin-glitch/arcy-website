@@ -1,0 +1,151 @@
+'use strict';
+/**
+ * Read-only, contract-scoped DEX Screener market observations.
+ * Data is limited to compact source-reported fields, never a raw API proxy.
+ * Source/terms: https://docs.dexscreener.com/api/api-terms-and-conditions
+ * Market metrics are returned-pool subtotals, NOT complete network totals.
+ */
+const {createReader}=require('./source-request');
+const {safeLogoUrl}=require('./token-image');
+const {chain}=require('./chains');
+const ADDRESS=/^0x[0-9a-f]{40}$/i;
+const PAIR=/^0x(?:[0-9a-f]{40}|[0-9a-f]{64})$/i;
+const NETWORKS=Object.freeze({arc:'arc',ethereum:'ethereum',robinhood:'robinhood'});
+const ORIGIN='https://api.dexscreener.com';
+const TTL=60000;
+const sourceReader=createReader({ttlMs:TTL,maxEntries:100});
+function finite(value,{positive=false}={}){
+ if(typeof value!=='number'&&typeof value!=='string')return null;
+ if(typeof value==='string'&&!/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:e[+-]?\d{1,3})?$/i.test(value))return null;
+ const n=Number(value);
+ return Number.isFinite(n)&&(positive?n>0:n>=0)&&n<=1e18?n:null;
+}
+const missing=(reason,code='DEXSCREENER_SOURCE_UNAVAILABLE')=>({
+ value:null,dataState:'NOT_VERIFIED',status:'NOT_VERIFIED',reason,reasonCode:code,source:null,evidence:[]
+});
+function asField(value,network,address,selected,method,scope,kind){
+ if(value===null||value===undefined)return missing('DEX Screener did not provide an exact-contract '+method+' observation.','DEXSCREENER_FIELD_UNAVAILABLE');
+ const cfg=chain(network);
+ const pairs=Array.isArray(selected)?selected:(selected?[selected]:[]);
+ const out={value,status:'SOURCE_REPORTED',dataState:'DATA_FOUND',source:'DEX Screener',
+  network,chainId:cfg.chainId,
+  evidence:[{network,chainId:cfg.chainId,address,provider:'DEX Screener',
+   sourceUrl:pairs.length?'https://dexscreener.com/'+NETWORKS[network]+'/'+pairs[0].pair:null,
+   pairs:pairs.map(p=>p.pair),method,scope,
+   checkedAt:new Date().toISOString()}]};
+ if(kind)out.kind=kind;
+ return out;
+}
+function validPools(payload,network,address){
+ if(!Object.hasOwn(NETWORKS,network)||!ADDRESS.test(address))throw Error('Invalid network and token contract');
+ if(!Array.isArray(payload))throw Error('Invalid DEX Screener response');
+ const expected=NETWORKS[network],seen=new Map(),conflicts=new Set();
+ for(const pair of payload.slice(0,60)){
+  const p=typeof pair?.pairAddress==='string'?pair.pairAddress.toLowerCase():'';
+  const base=typeof pair?.baseToken?.address==='string'?pair.baseToken.address.toLowerCase():'';
+  const quote=typeof pair?.quoteToken?.address==='string'?pair.quoteToken.address.toLowerCase():'';
+  if(pair?.chainId!==expected||!PAIR.test(p)||!ADDRESS.test(base)||!ADDRESS.test(quote)||
+    base===quote||![base,quote].includes(address)||conflicts.has(p))continue;
+  const row={pair:p,base,quote,dex:String(pair.dexId||'').slice(0,80),
+   price:finite(pair.priceUsd,{positive:true}),
+   liquidity:finite(pair.liquidity?.usd),
+   volume24h:finite(pair.volume?.h24),
+   change24h:typeof pair.priceChange?.h24==='number'&&Number.isFinite(pair.priceChange.h24)&&
+    Math.abs(pair.priceChange.h24)<=1e7?pair.priceChange.h24:null,
+   marketCap:finite(pair.marketCap,{positive:true}),
+   fdv:finite(pair.fdv,{positive:true}),
+   // These are first-party response values, not ARCY calculations.
+  };
+  if(seen.has(p)){if(JSON.stringify(seen.get(p))!==JSON.stringify(row)){conflicts.add(p);seen.delete(p);}continue;}
+  seen.set(p,row);
+ }
+ return [...seen.values()].slice(0,30);
+}
+function parseMarket(payload,network,address){
+ const token=address.toLowerCase(),rows=validPools(payload,network,token);
+ const candidates=rows.filter(p=>p.base===token&&p.price!==null).sort((a,b)=>(b.liquidity??0)-(a.liquidity??0));
+ const best=candidates[0]||null;
+ const withLiquidity=rows.filter(p=>p.liquidity!==null);
+ const withVolume=rows.filter(p=>p.volume24h!==null);
+ const liquidity=withLiquidity.length?withLiquidity.reduce((x,p)=>x+p.liquidity,0):null;
+ const volume=withVolume.length?withVolume.reduce((x,p)=>x+p.volume24h,0):null;
+ const pairsLabel=rows.length?(new Set(rows.map(p=>p.dex).filter(Boolean)).size+
+  ' DEX · '+rows.length+' tracked pools'+(payload.length>=30?' (limited)':'')):null;
+ const scope='Only API-returned matching '+network+' token pools (max 30); partial pools and pagination may omit other venues. This is NOT total market liquidity or total market volume.';
+ const valuation=best?(best.marketCap!==null?asField(best.marketCap,network,token,best,'marketCap',scope,'MARKET_CAP'):
+  best.fdv!==null?asField(best.fdv,network,token,best,'fdv',scope,'FDV'):
+  missing('Neither a source-reported market cap nor FDV is present.','VALUATION_NOT_VERIFIED')):missing('Price-listed base-token pool unavailable.','VALUATION_NOT_VERIFIED');
+ return {rows,fields:{
+  liquidityUsd:asField(liquidity,network,token,withLiquidity,'sum(liquidity.usd)',scope),
+  volume24h:asField(volume,network,token,withVolume,'sum(volume.h24)',scope),
+  dexPairCount:asField(pairsLabel,network,token,rows,'unique DEX and pair count',scope),
+  lpStatus:missing('Pool reserves do not verify LP ownership, withdrawal control, burn or locker status.','LP_STATUS_NOT_VERIFIED'),
+  priceUsd:asField(best?.price,network,token,best,'baseToken priceUsd',scope),
+  valuation,
+  change24h:asField(best?.change24h,network,token,best,'baseToken priceChange.h24',scope)
+ }};
+}
+function unavailable(reason='DEX Screener did not return exact-contract pool data.',reasonCode='DEXSCREENER_SOURCE_UNAVAILABLE'){
+ return {liquidityUsd:missing(reason,reasonCode),volume24h:missing(reason,reasonCode),
+  dexPairCount:missing(reason,reasonCode),lpStatus:missing('No independently verified LP lock/custody evidence.','LP_STATUS_NOT_VERIFIED'),
+  priceUsd:missing(reason,reasonCode),valuation:missing(reason,reasonCode),change24h:missing(reason,reasonCode)};
+}
+function productionDisplayAllowed(){
+ // Vercel Preview is externally reachable too. Keep the source disabled in
+ // every deployed environment until the intended use restrictions are reviewed.
+ return process.env.VERCEL!=='1'||process.env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED==='true';
+}
+async function json(url,{fetcher=global.fetch,now=Date.now()}={}){
+ return (fetcher===global.fetch?sourceReader:createReader()).json(url,{
+  fetcher,timeoutMs:5000,maxBytes:2*1024*1024,validate:d=>Array.isArray(d)||Boolean(d&&Array.isArray(d.pairs))});
+}
+async function inspect(network,address,{fetcher=global.fetch,now=Date.now()}={}){
+ if(!Object.hasOwn(NETWORKS,network)||typeof address!=='string'||!ADDRESS.test(address))
+  throw Error('Invalid market network/contract');
+ if(!productionDisplayAllowed())return unavailable('DEX Screener public display is disabled until its production-use restrictions are reviewed.','PROVIDER_DISABLED_LICENSE_UNVERIFIED');
+ const token=address.toLowerCase();
+ const url=ORIGIN+'/token-pairs/v1/'+NETWORKS[network]+'/'+token;
+ try{
+  const data=await json(url,{fetcher,now});
+  const fields=parseMarket(data,network,token).fields;
+  const observed=sourceReader.observedAt(url)||now,stamp=new Date(observed).toISOString();
+  for(const field of Object.values(fields))if(field.dataState==='DATA_FOUND'){
+   field.freshness={retrievedAt:stamp,ageMs:Math.max(0,Date.now()-observed),basis:'Provider response retrieval time; upstream publication time unavailable.'};
+   field.evidence=field.evidence.map(e=>({...e,checkedAt:stamp}));
+  }
+  return fields;
+ }catch(error){
+  return unavailable('DEX Screener exact-contract market provider unavailable ('+
+   String(error?.message||'unknown').slice(0,70)+').');
+ }
+}
+function parseSearch(payload,network,rawQuery){
+ if(!Object.hasOwn(NETWORKS,network)||typeof rawQuery!=='string'||!Array.isArray(payload?.pairs))
+  throw Error('Invalid DEX Screener search response');
+ const needle=rawQuery.normalize('NFKC').toLocaleLowerCase('en-US');
+ const items=[],seen=new Set();
+ for(const pair of payload.pairs.slice(0,100)){
+  if(pair?.chainId!==NETWORKS[network]||!PAIR.test(pair.pairAddress||''))continue;
+  for(const entry of [pair.baseToken,pair.quoteToken]){
+   const address=typeof entry?.address==='string'?entry.address.toLowerCase():'';
+   const name=typeof entry?.name==='string'?entry.name.trim().slice(0,90):'';
+   const symbol=typeof entry?.symbol==='string'?entry.symbol.trim().slice(0,30):'';
+   if(!ADDRESS.test(address)||seen.has(address)||(!name&&!symbol)||
+     !((name+' '+symbol).normalize('NFKC').toLocaleLowerCase('en-US').includes(needle)))continue;
+   seen.add(address);
+   items.push({address,network,chainId:chain(network).chainId,name:name||symbol,symbol,
+    source:'DEX Screener pool index (unverified identity)',identityVerified:false,
+    registryMatched:false,logoUrl:entry===pair.baseToken?safeLogoUrl(pair.info?.imageUrl):null});
+   if(items.length===20)return items;
+  }
+ }
+ return items;
+}
+async function discover(network,rawQuery,{fetcher=global.fetch,now=Date.now()}={}){
+ if(!Object.hasOwn(NETWORKS,network)||typeof rawQuery!=='string'||rawQuery.length<2||rawQuery.length>48)
+  throw Error('Invalid market discovery query');
+ if(!productionDisplayAllowed())return [];
+ const url=ORIGIN+'/latest/dex/search?q='+encodeURIComponent(rawQuery.normalize('NFKC').trim());
+ return parseSearch(await json(url,{fetcher,now}),network,rawQuery.trim());
+}
+module.exports={NETWORKS,finite,validPools,parseMarket,inspect,unavailable,parseSearch,discover,productionDisplayAllowed};
