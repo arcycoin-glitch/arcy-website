@@ -24,6 +24,7 @@
 @media screen and (max-width:760px){
  #search .app .grid{
   display:flex!important;
+  position:relative;
   flex-direction:row!important;
   flex-wrap:nowrap!important;
   align-items:stretch!important;
@@ -39,7 +40,7 @@
   scroll-snap-type:x mandatory;
   scroll-padding-inline:2px;
   -webkit-overflow-scrolling:touch;
-  padding:4px 0 18px 2px!important;
+  padding:30px 0 18px 2px!important;
   box-sizing:border-box;
   scrollbar-width:thin;
   scrollbar-color:#315d77 transparent;
@@ -56,6 +57,17 @@
   scroll-snap-stop:always;
   overflow:hidden;
   padding:15px;
+ }
+ #search .app .grid::before{
+  content:"RESEARCH  ·  SWIPE →";
+  position:absolute;
+  top:4px;
+  left:2px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.12em;
+  color:#8baec8;
+  pointer-events:none;
  }
  #search .app .grid::after{
   content:"";
