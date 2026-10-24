@@ -67,7 +67,13 @@ function formatCard(cardId,raw,cfg,context){
     role:row.role,block:row.block});
   }
  }
- return {...(holderCandidates.length?{holderCandidates}:{}),researchNotes:require('./research-notes').notes(cardId,fields),fields,status:count===keys.length?'SOURCE_BACKED':
+ // Keep the legacy total-supply and burn-address custody observations for the
+ // existing headline quick-facts strip, OUTSIDE the new four research checks.
+ // They are intentionally never counted as verified burned-supply metrics.
+ const context=cardId==='supply'?Object.fromEntries(
+  ['totalSupply','circulatingSupply','burnAddressBalance','burnAddressPct']
+   .map(key=>[key,validateField(source[key],cfg)])) : null;
+ return {...(context?{context}:{}),...(holderCandidates.length?{holderCandidates}:{}),researchNotes:require('./research-notes').notes(cardId,fields),fields,status:count===keys.length?'SOURCE_BACKED':
   count>0?'PARTIAL_EVIDENCE':
   statuses.includes('SOURCE_API_FAILED')?'SOURCE_API_FAILED':'NOT_VERIFIED',
   description:typeof raw?.description==='string'?raw.description.slice(0,250):'Only chain-matched evidence is displayed.'};
