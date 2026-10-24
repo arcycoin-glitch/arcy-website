@@ -6,3 +6,14 @@
 
 /* Established Mechanics facts, including proven absence; unknowns stay neutral. */
 #search .mechanics .row b[data-verified="true"],#search .mechanics .badge[data-verified="true"]{color:#79dba7}
+
+/* Research-first visual order, independent of legacy DOM placement.
+   Market/activity overview stays ahead of the research cards when present. */
+#search .grid > .activity{order:0}
+#search .grid > .liquidity{order:1}
+#search .grid > .whales{order:2}
+#search .grid > .supply{order:3}
+#search .grid > .control{order:4}
+#search .grid > .mechanics{order:5}
+/* Claim vs Reality was intentionally retired; never resurrect the old card. */
+#search .grid > .claims{display:none!important}
