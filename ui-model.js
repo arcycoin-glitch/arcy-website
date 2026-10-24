@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.ARCYModel=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const labels={supply:['Total Supply','Circulating Supply','Burn Address Balance','Next Unlock'],whales:['Holder Count','Largest Wallet %','Top 10 Concentration','Top 20 Concentration'],liquidity:['Liquidity USD','24H Volume','DEX / Pair Count','LP Status'],activity:['Price','Market Cap / FDV','24H Change','24H Volume'],mechanics:['Trading Taxes','Mint Capability','Owner / Admin','Contract Architecture']};
- const paths={supply:['supply.totalSupply.amount','market.circulatingSupply','supply.burnAddressBalance.amount','unlock.nextUnlock.date'],whales:['holderCount','largestWalletPct','top10Pct','top20Pct'],liquidity:['liquidityUsd','volume24h','dexCount / pairCount','lpStatus'],claims:['counts.checked','counts.verified','counts.mismatch','counts.unverified'],mechanics:['contractFields.buyTax / contractFields.sellTax / contractFields.transferTax','contractFields.mint','contractFields.ownerAdmin','contractFields.proxyUpgradeable']};
+ const labels={supply:['Locked Supply','Unlocked Supply','Verified Burned','Next Unlock'],whales:['Holder Count','Largest Wallet %','Top 10 Concentration','Top 20 Concentration'],liquidity:['Liquidity USD','24H Volume','DEX / Pair Count','LP Status'],activity:['Price','Market Cap / FDV','24H Change','24H Volume'],mechanics:['Trading Taxes','Mint Capability','Owner / Admin','Contract Architecture']};
+ const paths={supply:['unlock.lockedSupply','unlock.unlockedSupply','unlock.verifiedBurned','unlock.nextUnlock.date'],whales:['holderCount','largestWalletPct','top10Pct','top20Pct'],liquidity:['liquidityUsd','volume24h','dexCount / pairCount','lpStatus'],claims:['counts.checked','counts.verified','counts.mismatch','counts.unverified'],mechanics:['contractFields.buyTax / contractFields.sellTax / contractFields.transferTax','contractFields.mint','contractFields.ownerAdmin','contractFields.proxyUpgradeable']};
  paths.activity=['priceUsd','valuation','change24h','volume24h'];
  const zero='0x0000000000000000000000000000000000000000';
  function compact(v){if(v===null||v===undefined||v==='')return 'NOT VERIFIED';const n=Number(v);if(!Number.isFinite(n))return 'NOT VERIFIED';if(n!==0&&Math.abs(n)<0.000001)return Number(n.toPrecision(4)).toString();for(const [d,s]of [[1e9,'B'],[1e6,'M'],[1e3,'K']])if(Math.abs(n)>=d)return (n/d).toFixed(1).replace(/\.0$/,'')+s;return new Intl.NumberFormat('en-US',{maximumFractionDigits:6}).format(n);}
@@ -30,10 +30,18 @@
  function detected(f){return !!(f&&typeof f.status==='string'&&f.status!=='NOT_VERIFIED'&&f.value!==null&&f.value!==undefined&&f.value!==zero&&f.value!==false);}
  function summarize(name,d){let fields=[];
   if(name==='supply'){
-   fields=[read(d?.supply,'totalSupply.amount'),read(d?.market,'circulatingSupply'),read(d?.supply,'burnAddressBalance.amount')];
-   if(fields[1].dataState==='DATA_FOUND'&&(d.market.status!=='SOURCE_REPORTED'||d.market.contractMatched!==true||Number(d.market.circulatingSupply)<=0))fields[1]={text:'NOT VERIFIED',dataState:'NOT_VERIFIED',reasonCode:'CIRCULATING_IDENTITY_OR_STATUS_UNVERIFIED',reason:'Circulating supply needs positive contract-matched source-reported data.'};
+   const checkedSupplyMetric=key=>{
+    const u=d?.unlock;if(!u)return {text:'…',dataState:'LOADING'};
+    if(u.ok===false)return {text:'NOT VERIFIED',dataState:u.dataState||'SOURCE_API_FAILED',reasonCode:u.reasonCode||'API_REQUEST_FAILED',reason:u.reason||'Supply evidence request failed.'};
+    const entry=get(u,key);if(!entry.exists)return missing(u,'Expected '+key+' supply evidence field.');
+    const f=entry.value;
+    if(!f||f.value===null||f.value===undefined)return {text:'NOT VERIFIED',dataState:f?.dataState||'NOT_VERIFIED',reasonCode:f?.reasonCode||'INSUFFICIENT_EVIDENCE',reason:f?.reason||'Complete trustworthy supply evidence is not available.'};
+    if(!['ONCHAIN_VERIFIED','VERIFIED_SOURCE','VERIFIED_SOURCE_AND_STATE'].includes(f.status)||f.dataState!=='DATA_FOUND'||!Array.isArray(f.evidence)||!f.evidence.length||!/^\d+(?:\.\d+)?$/.test(String(f.value))||!Number.isFinite(Number(f.value))||Number(f.value)<0)return {text:'NOT VERIFIED',dataState:'NOT_VERIFIED',reasonCode:'SUPPLY_VALUE_NOT_EVIDENCE_BACKED',reason:'Amount requires exact-contract verified evidence and valid nonnegative token units.'};
+    return {text:compact(f.value),dataState:'DATA_FOUND',evidence:f.evidence,verification:f.status,...(f.freshness?.state==='LAST_VERIFIED'?{freshness:f.freshness}:{})};
+   };
+   fields=['lockedSupply','unlockedSupply','verifiedBurned'].map(checkedSupplyMetric);
    const u=d?.unlock;
-   let unlock;if(!u)unlock={text:'…',dataState:'LOADING'};else if(u.ok===false)unlock=read(u,'nextUnlock.date');else {const x=get(u,'nextUnlock.date');unlock=!x.exists?missing(u,'Expected nextUnlock.date.') :x.value===null?{text:'NO SOURCE-REPORTED SCHEDULE',dataState:u.dataState||'NOT_VERIFIED',reasonCode:u.reasonCode||'NO_CONTRACT_MATCHED_SCHEDULE_SOURCE',reason:u.reason}:/^\d{4}-\d{2}-\d{2}/.test(x.value)?{text:x.value,dataState:'DATA_FOUND'}:missing(u,'Invalid schedule date.');}fields.push(unlock);
+   let unlock;if(!u)unlock={text:'…',dataState:'LOADING'};else if(u.ok===false)unlock=read(u,'nextUnlock.date');else {const x=get(u,'nextUnlock.date');unlock=!x.exists?missing(u,'Expected nextUnlock.date.') :x.value===null?{text:u.reasonCode==='UNLOCK_CHAIN_NOT_SUPPORTED'?'CHAIN NOT SUPPORTED':'NO SOURCE-REPORTED SCHEDULE',dataState:u.dataState||'NOT_VERIFIED',reasonCode:u.reasonCode||'NO_CONTRACT_MATCHED_SCHEDULE_SOURCE',reason:u.reason}:/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(x.value)&&Number.isFinite(Date.parse(x.value))&&Date.parse(x.value)>Date.now()?{text:x.value.slice(0,10),dataState:'DATA_FOUND',sourceScope:u.nextUnlock?.status==='OFFICIAL_DOCUMENTATION'?'PROJECT REPORTED':u.nextUnlock?.status==='MARKET_API_VERIFIED'?'SOURCE REPORTED':'VERIFIED',...(u.nextUnlock?.amount!==null&&u.nextUnlock?.amount!==undefined&&/^\d+(?:\.\d+)?$/.test(String(u.nextUnlock.amount))&&Number(u.nextUnlock.amount)>0?{amount:compact(u.nextUnlock.amount)}:{}),evidence:u.nextUnlock?.evidence||u.field?.evidence||[]}:missing(u,'Invalid or past unlock schedule date.');}fields.push(unlock);
    if(unlock.dataState==='DATA_FOUND'&&u?.freshness?.state==='LAST_VERIFIED')Object.assign(unlock,{freshness:u.freshness,reason:'Last verified source-reported schedule; refresh failed.'});
   }else if(name==='whales')fields=paths.whales.map((p,i)=>d?read(d,p,i?x=>compact(x)+'%':compact):({text:'NOT VERIFIED',dataState:'NOT_VERIFIED',reasonCode:'HOLDER_SNAPSHOT_BUILDING',reason:'Building a complete reconciled holder snapshot; partial metrics are not displayed.'}));
   else if(name==='liquidity'){
@@ -77,7 +85,7 @@
   if(name==='whales'&&d?.ok!==false&&d?.coverage?.refreshQueued===true&&d?.coverage?.complete===false&&!states.includes('DATA_FOUND')&&!states.includes('FRONTEND_MAPPING_FAILED')){const state=d.backgroundRefresh?.state;badge=state==='QUEUED'?'HOLDER SNAPSHOT QUEUED':state==='INDEXING'?'INDEXING VERIFIED HOLDER SNAPSHOT':state==='VERIFYING'?'VERIFYING HOLDER SNAPSHOT':state==='FAILED'?'HOLDER SNAPSHOT RETRYING':state==='UNSUPPORTED'?'HOLDER INDEXING UNSUPPORTED':'BUILDING VERIFIED HOLDER SNAPSHOT';}
 
   if(name!=='whales'&&states.includes('DATA_FOUND')&&(d?.freshness?.state==='LAST_VERIFIED'||fields.some(f=>f.dataState==='DATA_FOUND'&&f.freshness?.state==='LAST_VERIFIED')))badge='LAST VERIFIED DATA';
-  return {fields:fields.map((f,i)=>({...f,label:(labels[name]||['Claims Checked','Verified','Mismatch','Unverified'])[i],path:paths[name][i]})),badge,data:d};
+  return {fields:fields.map((f,i)=>({...f,label:(labels[name]||['Claims Checked','Verified','Mismatch','Unverified'])[i],path:paths[name][i],...(name==='supply'&&i===2?{interpretation:'Only independently verified supply-reducing burns count; dead-address balances alone do not prove a burn.'}:{})})),badge,data:d};
  }
  return {labels,paths,compact,summarize};
 });
