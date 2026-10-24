@@ -30,7 +30,11 @@ function baseline(network){
 function eventTime(text,now=Date.now()){
  if(typeof text!=='string'||!DATE.test(text))return null;
  const ms=Date.parse(text);
- return Number.isFinite(ms)&&ms>now&&ms<now+100*365.25*86400000?ms:null;
+ if(!Number.isFinite(ms))return null;
+ // Reject JS Date rollovers (for example February 31), even if Date.parse accepts them.
+ const canonical=text.endsWith('.000Z')?text:text.replace(/Z$/,'.000Z');
+ if(new Date(ms).toISOString()!==canonical)return null;
+ return ms>now&&ms<now+100*365.25*86400000?ms:null;
 }
 function sourceSchedule(network,address,record,source,scope){
  if(!record||record.dataState!=='DATA_FOUND'||!eventTime(record.value?.date))return null;
