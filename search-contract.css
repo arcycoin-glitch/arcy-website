@@ -18,37 +18,73 @@
 /* Claim vs Reality was intentionally retired; never resurrect the old card. */
 #search .grid > .claims{display:none!important}
 
-/* Mobile-first research carousel. Desktop keeps the established two-column grid. */
-@media (max-width:760px){
- #search .grid{
-  display:grid;
-  grid-auto-flow:column;
-  grid-auto-columns:minmax(0,86%);
+/* Mobile Research carousel: flex widths are explicit to avoid implicit-grid collapse.
+   One readable card occupies 86% of the viewport; 14% previews the next.
+   Reassert against responsive grid rules loaded by the legacy page. */
+@media screen and (max-width:760px){
+ #search .app .grid{
+  display:flex!important;
+  position:relative;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  align-items:stretch!important;
   grid-template-columns:none!important;
-  gap:12px;
-  overflow-x:auto;
+  grid-auto-flow:unset!important;
+  gap:12px!important;
+  min-width:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  overflow-x:auto!important;
+  overflow-y:hidden;
   overscroll-behavior-x:contain;
   scroll-snap-type:x mandatory;
   scroll-padding-inline:2px;
   -webkit-overflow-scrolling:touch;
-  padding:4px 14% 14px 2px;
+  padding:30px 0 18px 2px!important;
+  box-sizing:border-box;
   scrollbar-width:thin;
   scrollbar-color:#315d77 transparent;
  }
- #search .grid > .card{
+ #search .app .grid > .card{
+  flex:0 0 86%!important;
+  flex-shrink:0!important;
+  width:86%!important;
+  min-width:0!important;
+  max-width:86%!important;
+  min-height:225px;
+  height:auto;
   scroll-snap-align:start;
   scroll-snap-stop:always;
-  min-width:0;
-  min-height:0;
-  height:auto;
+  overflow:hidden;
+  padding:15px;
  }
- #search .grid > .activity{
-  /* The activity overview must not become a hidden sixth research slide. */
-  scroll-snap-align:start;
+ #search .app .grid::before{
+  content:"RESEARCH  ·  SWIPE →";
+  position:absolute;
+  top:4px;
+  left:2px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.12em;
+  color:#8baec8;
+  pointer-events:none;
  }
- #search .card{padding:15px}
- #search .card h2{margin:8px 0 12px}
- #search .row{padding:6px 0;font-size:12px}
+ #search .app .grid::after{
+  content:"";
+  display:block;
+  flex:0 0 14%;
+  height:1px;
+  pointer-events:none;
+ }
+ #search .app .grid > .claims{display:none!important}
+ #search .app .grid > .activity{order:0}
+ #search .app .grid > .liquidity{order:1}
+ #search .app .grid > .whales{order:2}
+ #search .app .grid > .supply{order:3}
+ #search .app .grid > .control{order:4}
+ #search .app .grid > .mechanics{order:5}
+ #search .app .grid > .card h2{margin:8px 0 12px;overflow-wrap:anywhere}
+ #search .app .grid > .card .row{padding:6px 0;font-size:12px}
 }
 @media (prefers-reduced-motion:reduce){
  #search .grid{scroll-behavior:auto}
