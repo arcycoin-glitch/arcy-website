@@ -1,7 +1,17 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),c=require('../lib/core'),f=require('../lib/fields'),refresh=require('../lib/search-request');
 const a='0x'+'a'.repeat(40),word=n=>'0x'+BigInt(n).toString(16).padStart(64,'0'),res={setHeader(){},status(){return this},json(d){return d}};
-test('nonzero dust balances do not render as a verified zero; historical burn custody stays explicitly labelled',()=>{
- const model=require('../ui-model');assert.notEqual(model.compact('0.000000000250239775'),'0');assert.equal(model.compact(0),'0');const d={supply:{ok:true,totalSupply:{amount:'100'},burnAddressBalance:{amount:'1',freshness:{state:'LAST_VERIFIED',observedAt:'2026-10-01T00:00:00Z'}}}};const view=model.summarize('supply',d);assert.equal(view.badge,'LAST VERIFIED DATA');assert.equal(view.fields[2].freshness.state,'LAST_VERIFIED');assert.match(view.fields[2].reason,/2026-10-01/);
+test('dust remains nonzero while custody balances cannot masquerade as verified burned supply',()=>{
+ const model=require('../ui-model');
+ assert.notEqual(model.compact('0.000000000250239775'),'0');
+ assert.equal(model.compact(0),'0');
+ const stale={state:'LAST_VERIFIED',observedAt:'2026-10-01T00:00:00Z'};
+ const unknown={value:null,status:'NOT_VERIFIED',reasonCode:'INSUFFICIENT_EVIDENCE'};
+ const burn={value:'0',status:'ONCHAIN_VERIFIED',dataState:'DATA_FOUND',freshness:stale,evidence:[{source:'Exact-contract immutable source'}]};
+ const view=model.summarize('supply',{supply:{burnAddressBalance:{amount:'99999'}},unlock:{ok:true,lockedSupply:unknown,unlockedSupply:unknown,verifiedBurned:burn,nextUnlock:{date:null}}});
+ assert.equal(view.badge,'LAST VERIFIED DATA');
+ assert.equal(view.fields[2].text,'0');
+ assert.equal(view.fields[2].freshness.state,'LAST_VERIFIED');
+ assert.equal(view.fields[0].text,'NOT VERIFIED');
 });
 test('derived compact rows retain historical field labels rather than presenting old owner/control evidence as current',()=>{
  const model=require('../ui-model'),last={state:'LAST_VERIFIED',observedAt:'2026-10-01T00:00:00Z'},fact=value=>({value,status:'ON_CHAIN',dataState:'DATA_FOUND'});const d={ok:true,mint:fact(false),pause:fact(false),blacklist:fact(false),owner:{...fact(a),freshness:last},admin:{value:null,status:'NOT_VERIFIED'}};d.contractFields={...Object.fromEntries(['buyTax','sellTax','transferTax','mint','ownerAdmin','proxyUpgradeable'].map(k=>[k,{value:null,status:'NOT_VERIFIED'}])),ownerAdmin:{value:true,status:'VERIFIED',dataState:'DATA_FOUND',evidence:[{source:'Historical exact-contract proof',address:a}],freshness:last}};const view=model.summarize('mechanics',d);assert.equal(view.fields[2].text,'VERIFIED');assert.equal(view.fields[2].freshness.state,'LAST_VERIFIED');assert.equal(view.badge,'LAST VERIFIED DATA');
