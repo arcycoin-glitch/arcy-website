@@ -1028,7 +1028,10 @@ function renderQuickFacts(report){
   ['24H CHANGE','activity','change24h','change24h'],
   ['TRACKED PAIRS','liquidity','dexPairCount','dexPairCount']
  ];
- const valid=c=>{const f=report.cards?.[c[1]]?.fields?.[c[2]];
+ const quickField=(card,key)=>card==='supply'?
+  (report.cards?.supply?.context?.[key]||report.cards?.supply?.fields?.[key]):
+  report.cards?.[card]?.fields?.[key];
+ const valid=c=>{const f=quickField(c[1],c[2]);
   return isCurrentEvidence(f)&&
    typeof f.source==='string'&&f.source.length>0;
  };
@@ -1052,7 +1055,7 @@ function renderQuickFacts(report){
   root.append(empty);
  }else{
   for(const [label,card,key,formatKey] of prioritized){
-   const field=report.cards?.[card]?.fields?.[key];
+   const field=quickField(card,key);
    const box=document.createElement('div');box.className='quick';
    const a=document.createElement('span');a.className='quick-label';
    a.textContent=key==='valuation'?(field?.kind==='MARKET_CAP'?'MARKET CAP':field?.kind==='FDV'?'FDV':'VALUATION'):label;
