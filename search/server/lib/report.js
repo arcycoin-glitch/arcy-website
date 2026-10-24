@@ -7,6 +7,7 @@ const holdersSource=require('./holders');
 const circulation=require('./circulating');
 const security=require('./goplus-evidence');
 const schema=require('../schema');
+const supplyInsights=require('./supply-insights');
 function unavailable(description,fields){
  return evidence.card(Object.fromEntries(fields.map(([key,reason])=>[key,evidence.unknown(reason)])),description);
 }
@@ -48,7 +49,7 @@ async function build(address){
  const t=await inspectToken(address);
  require('./progress').identity('ethereum',t);
  const onChain=x=>x?.status==='ON_CHAIN'?evidence.found(x.value,'Ethereum RPC',[{method:x.method,block:t.block,address:t.address}],'ON_CHAIN'):evidence.unknown(x?.reason||'No on-chain verification available.');
- const earlySupply=evidence.card({totalSupply:onChain(t.fields.totalSupply),circulatingSupply:evidence.unknown('Exact-contract circulation evidence pending.'),burnAddressBalance:onChain(t.fields.burnAddressBalance),burnAddressPct:burnAddressPercent(t.totalSupplyRaw,t.burnAddressRaw,t.block,t.address)},'Pinned-block on-chain supply and standard burn address balances.');
+ const earlySupply=evidence.card({...supplyInsights.baseline('ethereum'),totalSupply:onChain(t.fields.totalSupply),circulatingSupply:evidence.unknown('Exact-contract circulation evidence pending.'),burnAddressBalance:onChain(t.fields.burnAddressBalance),burnAddressPct:burnAddressPercent(t.totalSupplyRaw,t.burnAddressRaw,t.block,t.address)},'Pinned-block on-chain supply and standard burn address balances.');
  require('./progress').card('ethereum',t,'supply',earlySupply);
  const marketWork=market.inspect(t.address,t.block).then(m=>{
   const liquidity=copyFields(m,['liquidityUsd','volume24h','dexPairCount','lpStatus'],'Exact-matched source-reported market data. LP permissions remain unverified.');
@@ -82,7 +83,9 @@ async function build(address){
  const circ=circulatingResult.status==='fulfilled'?circulatingResult.value:evidence.error(circulatingResult.reason,'Licensed circulation source');
  const sec=securityResult.status==='fulfilled'?securityResult.value:{};
 
+ const supplyResearch=await supplyInsights.inspect({network:'ethereum',base:{address:t.address,block:t.block,chainId:1,network:'ethereum',totalSupplyRaw:t.totalSupplyRaw,burnAddressRaw:t.burnAddressRaw}});
  const supply=evidence.card({
+   ...supplyResearch,
    totalSupply:onChain(t.fields.totalSupply),
    circulatingSupply:circ,
    burnAddressBalance:onChain(t.fields.burnAddressBalance),

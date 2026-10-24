@@ -5,7 +5,7 @@ function notes(cardId,fields){
  const out=[];
  if(cardId==='holders')out.push('Address balances do not establish beneficial ownership. Candidate-relative ranks are not an exhaustive holder census; unknown roles remain UNKNOWN. Historical COMPLETE snapshots describe their original block only.');
  if(cardId==='liquidity')out.push('Reported pool liquidity and returned pool counts do not guarantee exit capacity. LP custody, lock duration and withdrawal authority require separate exact-pool evidence.');
- if(cardId==='supply')out.push('Zero/dead-address balances measure current custody. They do not establish an official buyback, burn event, permanent destruction or lifetime burned supply. Circulating supply cannot be inferred from total supply alone.');
+ if(cardId==='supply')out.push('Locked and unlocked totals require complete contract-matched vesting coverage. Current zero/dead-address balances do not establish an official buyback, burn event, permanent destruction or lifetime burned supply. A funded or issuer-published next event does not prove that every unlock was identified. Exact-chain source traces are available per field.');
  if(cardId==='activity')out.push('Price, volume and valuation retain their individual provider timestamps and scopes. Market cap requires verified circulating supply; FDV is not market cap.');
  if(cardId==='mechanics'){
   if(known('ownerAdmin'))out.push('An observed owner/admin getter or registry is not a complete enumeration of privileged roles or upgrade permissions.');

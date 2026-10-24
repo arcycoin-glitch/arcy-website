@@ -128,12 +128,14 @@ test('Five research-card coverage statuses distinguish full 4/4 from partial and
  const cfg={id:'ethereum',chainId:1};
  const field=value=>({value,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',
   chainId:1,network:'ethereum',source:'Exact-chain source',evidence:[{sourceUrl:'https://example.org/'}]});
- const source={fields:{totalSupply:field(1000000),circulatingSupply:field(950000),
-  burnAddressBalance:field(1000),burnAddressPct:field(0.1)}};
+ const source={fields:{lockedSupply:field('250000'),unlockedSupply:field('750000'),
+  verifiedBurned:field('0'),nextUnlock:field('2099-01-01T00:00:00Z'),totalSupply:field(1000000)}};
  const good=engine.formatCard('supply',source,cfg);
  assert.equal(good.status,'SOURCE_BACKED');
  assert.equal(Object.values(good.fields).filter(x=>x.dataState==='DATA_FOUND').length,4);
- const partial=engine.formatCard('supply',{fields:{totalSupply:field(1000000)}},cfg);
+ assert.equal(good.context.totalSupply.value,1000000);
+ assert.equal(Object.keys(good.fields).length,4);
+ const partial=engine.formatCard('supply',{fields:{verifiedBurned:field('0')}},cfg);
  assert.equal(partial.status,'PARTIAL_EVIDENCE');
  assert.equal(Object.values(partial.fields).filter(x=>x.dataState==='DATA_FOUND').length,1);
  const empty=engine.formatCard('supply',{fields:{}},cfg);

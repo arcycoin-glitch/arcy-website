@@ -43,12 +43,13 @@ async function inspectStock({address}){
 }
 async function supply(base){
  const proof={address:base.address,block:base.block,source:'Robinhood RPC',method:'ERC-20 pinned-block call'};
+ const supplyResearch=await require('./supply-insights').inspect({network:'robinhood',base});
  const raw=BigInt(base.totalSupplyRaw);
  const precision=10n**80n;
  const share=base.burnAddressRaw===null||raw<=0n||BigInt(base.burnAddressRaw)>raw?null:
   Number((BigInt(base.burnAddressRaw)*100n*precision+raw/2n)/raw)/1e80;
- return {description:'Pinned Robinhood mainnet ERC-20 total supply and current zero/dead holdings.',
- fields:{
+ return {description:'Four evidence-reviewed supply indicators; dead-address holdings retained as supporting context only.',
+ fields:{...supplyResearch,
   totalSupply:evidence(base.totalSupply,'Robinhood RPC',{...proof,method:'totalSupply()'},'ON_CHAIN'),
   circulatingSupply:NO('No source-confirmed, contract-matched circulating supply for Robinhood Chain.'),
   burnAddressBalance:base.burnAddressBalance===null?NO('Burn-address balance unavailable.'):

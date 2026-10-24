@@ -55,9 +55,9 @@ test('V6 practical notes preserve unverified authority, exit and burn distinctio
 test('V6 evidence boundary rejects another contract or current block but preserves historical evidence',()=>{
  const {formatCard}=require('../search/server/lib/data-engine'),cfg={id:'ethereum',chainId:1},address='0x'+'a'.repeat(40),other='0x'+'b'.repeat(40),context={address,block:'0x100'};
  const f={value:10,dataState:'DATA_FOUND',chainId:1,network:'ethereum',source:'Fixture',status:'ON_CHAIN',evidence:[{address:other,block:'0x100'}]};
- assert.equal(formatCard('supply',{fields:{totalSupply:f}},cfg,context).fields.totalSupply.reasonCode,'SOURCE_CONTRACT_MISMATCH');
- f.evidence=[{address,block:'0x99'}];assert.equal(formatCard('supply',{fields:{totalSupply:f}},cfg,context).fields.totalSupply.reasonCode,'SOURCE_BLOCK_MISMATCH');
- f.status='HISTORICAL_ONCHAIN_VERIFIED';assert.equal(formatCard('supply',{fields:{totalSupply:f}},cfg,context).fields.totalSupply.value,10);
+ assert.equal(formatCard('supply',{fields:{totalSupply:f}},cfg,context).context.totalSupply.reasonCode,'SUPPLY_CONTEXT_TOKEN_MISMATCH');
+ f.evidence=[{address,block:'0x99'}];assert.equal(formatCard('supply',{fields:{totalSupply:f}},cfg,context).context.totalSupply.reasonCode,'SUPPLY_CONTEXT_BLOCK_MISMATCH');
+ f.status='HISTORICAL_ONCHAIN_VERIFIED';assert.equal(formatCard('supply',{fields:{totalSupply:f}},cfg,context).context.totalSupply.value,10);
 });
 test('V6 public field failures never echo secret-bearing upstream exception messages',()=>{
  const f=require('../search/server/lib/evidence').error(Error('https://provider.example?api_key=SECRET'),'Provider');assert.doesNotMatch(JSON.stringify(f),/SECRET|api_key|https/);assert.equal(f.details,'unavailable');

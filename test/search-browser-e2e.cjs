@@ -19,7 +19,7 @@ const tokens = {
   robinhood: ['Tesla Token', 'TSLA'],
 };
 const fieldKeys = {
-  supply: ['totalSupply', 'circulatingSupply', 'burnAddressBalance', 'burnAddressPct'],
+  supply: ['lockedSupply', 'unlockedSupply', 'verifiedBurned', 'nextUnlock'],
   holders: ['holderCount', 'largestWalletPct', 'top10Pct', 'top20Pct'],
   liquidity: ['liquidityUsd', 'volume24h', 'dexPairCount', 'lpStatus'],
   activity: ['priceUsd', 'valuation', 'change24h', 'volume24h'],
@@ -34,7 +34,7 @@ function report(network, address) {
     for (const key of keys) {
       const missing = key === 'valuation';
       cards[card].fields[key] = {
-        value: missing ? null : key === 'lpStatus' ? 'NOT VERIFIED' : key === 'tradingTaxes' ? 'NOT VERIFIED' : 1,
+        value: missing ? null : key === 'nextUnlock' ? '2099-01-01T00:00:00Z' : key === 'lpStatus' ? 'NOT VERIFIED' : key === 'tradingTaxes' ? 'NOT VERIFIED' : 1,
         dataState: missing ? 'NOT_VERIFIED' : 'DATA_FOUND',
         status: missing ? 'NOT_VERIFIED' : 'BROWSER_FIXTURE',
         kind: key === 'valuation' ? 'FDV' : undefined,

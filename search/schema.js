@@ -1,5 +1,5 @@
 (function(root,factory){const value=factory();if(typeof module==='object'&&module.exports)module.exports=value;else root.ARCYEthLabSchema=value})(typeof globalThis!=='undefined'?globalThis:this,function(){'use strict';return Object.freeze([
-{id:'supply',title:'🔓 Unlock & Supply',accent:'#e4c65a',fields:[['totalSupply','Total Supply'],['circulatingSupply','Circulating Supply'],['burnAddressBalance','Burn Address Balance'],['burnAddressPct','Burn Address %']]},
+{id:'supply',title:'🔓 Unlock & Supply',accent:'#e4c65a',fields:[['lockedSupply','Locked Supply'],['unlockedSupply','Unlocked Supply'],['verifiedBurned','Verified Burned'],['nextUnlock','Next Unlock']]},
 {id:'holders',title:'🐋 Holder & Whale',accent:'#45e5be',fields:[['holderCount','Holder Count'],['largestWalletPct','Largest Wallet %'],['top10Pct','Top 10 Concentration'],['top20Pct','Top 20 Concentration']]},
 {id:'liquidity',title:'💧 Liquidity & Exit',accent:'#5fd2f4',fields:[['liquidityUsd','Tracked Liquidity USD'],['volume24h','Tracked 24H Volume'],['dexPairCount','Returned DEX / Pairs'],['lpStatus','LP Status']]},
 {id:'activity',title:'📊 Market Activity',accent:'#469dff',fields:[['priceUsd','Price'],['valuation','Market Cap / FDV'],['change24h','24H Change'],['volume24h','Tracked 24H Volume']]},

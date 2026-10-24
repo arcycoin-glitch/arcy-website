@@ -174,7 +174,7 @@ test('Arc Search supply remains on pinned RPC and mechanics fails closed when re
   legacy.callOriginal=async()=>{throw Error('shared legacy provider route must not be called')};
   rpc.rpc=async()=> '0x'+'0'.repeat(64);
   const arc=require('../search/server/lib/arc-adapter');
-  const base={address:A,block:'0x100',totalSupplyRaw:'1000000',totalSupply:'1',
+  const base={address:A,network:'arc',chainId:5042,block:'0x100',totalSupplyRaw:'1000000',totalSupply:'1',
    burnAddressRaw:'0',burnAddressBalance:'0'};
   const supply=await arc.supply(base);
   assert.equal(supply.fields.totalSupply.dataState,'DATA_FOUND');
