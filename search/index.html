@@ -7,6 +7,7 @@
 <link rel="icon" href="/assets/hero-arcy.png" type="image/png">
 <link rel="stylesheet" href="/search/detail-premium.css">
 <link rel="stylesheet" href="/search/final-polish.css">
+<link rel="stylesheet" href="/search/report-navigation.css">
 <script>if(/^\/search\/?$/.test(location.pathname)||location.pathname==='/search/index.html'){location.replace('/#search'+location.search)}</script>
 
 <title>ARCY SEARCH — Multichain Lab</title>
@@ -430,6 +431,8 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
   <h2>Research, without the noise.</h2>
   <p>Only contract-matched metrics. Open source evidence when you need it.</p>
 </div>
+<nav id="reportNavigation" aria-label="On-chain research shortcuts"></nav>
+<p id="reportNavigationStatus" class="report-navigation-status" role="status"></p>
 <details id="deepResearch">
  <summary><span class="report-summary-label"><strong>Explore full on-chain report</strong><small id="evidenceCount" aria-live="polite">20 checks · Sources, risks and evidence</small></span><span class="report-summary-arrow" aria-hidden="true">↗</span></summary>
  <p class="buyers">Contract confirmation is not an investment safety rating. Missing evidence is never treated as proof of safety.</p>
@@ -440,6 +443,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 <footer>Evidence is token and network specific. NOT VERIFIED does not mean false or zero. This tool does not execute transactions or provide investment advice. ARCY SEARCH is independent and is not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.<div class="source-link market-source-pending">Market data is source-reported from cited providers and limited to returned pools, not the entire market. Unsupported metrics remain NOT VERIFIED.</div><div class="source-link"><a href="https://github.com/arcycoin-glitch/arcy-website" target="_blank" rel="noopener noreferrer" aria-label="Inspect ARCY SEARCH source code on GitHub">GitHub · View Source ↗</a></div></footer>
 </main>
 <script src="/search/schema.js"></script>
+<script src="/search/report-navigation.js" defer></script>
 <script src="/search/format.js"></script>
 <script src="/search/mechanics-policy.js"></script>
 <script src="/search/hero-greeting.js" defer></script>
