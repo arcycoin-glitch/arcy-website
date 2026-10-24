@@ -1,0 +1,13 @@
+/* Entrance only: opacity/translate never change the reserved Hero layout. */
+#hero.hero-welcome h1{animation:v7-welcome-copy .8s ease-out both}
+#hero.hero-welcome h1 .arcy-wordmark{color:#ecf8ff}
+#hero.hero-welcome h1 .arcy-wordmark-y{color:#ff984b;animation:v7-welcome-gold 1s ease-out both}
+#hero.hero-welcome .hero-search{color:#51dcf5}
+#hero.hero-welcome .hero-energy{animation:v7-welcome-owl .9s 1s ease-out both}
+#hero.hero-welcome>div:first-child>.eyebrow,#hero.hero-welcome h2,#hero.hero-welcome>div:first-child>p,#hero.hero-welcome>div:first-child>.actions{animation:v7-welcome-copy .75s 2s ease-out both}
+#hero.hero-welcome:focus-within h1,#hero.hero-welcome:focus-within .hero-energy,#hero.hero-welcome:focus-within>div:first-child>.eyebrow,#hero.hero-welcome:focus-within h2,#hero.hero-welcome:focus-within>div:first-child>p,#hero.hero-welcome:focus-within>div:first-child>.actions{animation:none}
+@keyframes v7-welcome-copy{from{opacity:0;translate:0 6px}to{opacity:1;translate:0 0}}
+@keyframes v7-welcome-owl{from{opacity:0}to{opacity:1}}
+@keyframes v7-welcome-gold{from{text-shadow:0 0 0 transparent}60%{text-shadow:0 0 22px #ff984b80}to{text-shadow:0 0 8px #ff984b24}}
+@media(max-width:580px){@keyframes v7-welcome-copy{from{opacity:0;translate:0 3px}to{opacity:1;translate:0 0}}}
+@media(prefers-reduced-motion:reduce){#hero.hero-welcome,#hero.hero-welcome *{animation:none!important;translate:none!important}}
