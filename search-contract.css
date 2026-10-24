@@ -39,7 +39,7 @@
   scroll-snap-type:x mandatory;
   scroll-padding-inline:2px;
   -webkit-overflow-scrolling:touch;
-  padding:4px 14% 18px 2px!important;
+  padding:4px 0 18px 2px!important;
   box-sizing:border-box;
   scrollbar-width:thin;
   scrollbar-color:#315d77 transparent;
@@ -56,6 +56,13 @@
   scroll-snap-stop:always;
   overflow:hidden;
   padding:15px;
+ }
+ #search .app .grid::after{
+  content:"";
+  display:block;
+  flex:0 0 14%;
+  height:1px;
+  pointer-events:none;
  }
  #search .app .grid > .claims{display:none!important}
  #search .app .grid > .activity{order:0}
