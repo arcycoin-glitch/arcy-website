@@ -17,3 +17,39 @@
 #search .grid > .mechanics{order:5}
 /* Claim vs Reality was intentionally retired; never resurrect the old card. */
 #search .grid > .claims{display:none!important}
+
+/* Mobile-first research carousel. Desktop keeps the established two-column grid. */
+@media (max-width:760px){
+ #search .grid{
+  display:grid;
+  grid-auto-flow:column;
+  grid-auto-columns:minmax(0,86%);
+  grid-template-columns:none!important;
+  gap:12px;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+  scroll-snap-type:x mandatory;
+  scroll-padding-inline:2px;
+  -webkit-overflow-scrolling:touch;
+  padding:4px 14% 14px 2px;
+  scrollbar-width:thin;
+  scrollbar-color:#315d77 transparent;
+ }
+ #search .grid > .card{
+  scroll-snap-align:start;
+  scroll-snap-stop:always;
+  min-width:0;
+  min-height:0;
+  height:auto;
+ }
+ #search .grid > .activity{
+  /* The activity overview must not become a hidden sixth research slide. */
+  scroll-snap-align:start;
+ }
+ #search .card{padding:15px}
+ #search .card h2{margin:8px 0 12px}
+ #search .row{padding:6px 0;font-size:12px}
+}
+@media (prefers-reduced-motion:reduce){
+ #search .grid{scroll-behavior:auto}
+}
