@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>ARCY SEARCH · Supply Lab (Preview Only)</title>
+<style>
+:root{color-scheme:dark;--bg:#050b13;--panel:#0b1827;--border:#20364c;--muted:#9bacc0;--text:#ebf5ff;--cyan:#42d7f4;--yellow:#efc95b}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#0d2940,var(--bg) 55%);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text)}
+main{max-width:940px;margin:0 auto;padding:28px 16px 80px}header{display:flex;justify-content:space-between;align-items:start;gap:16px;margin-bottom:28px}.eyebrow{color:var(--cyan);font-size:11px;letter-spacing:.17em;font-weight:800}.brand{font-size:26px;letter-spacing:.015em;font-weight:800;margin:5px 0}.sub{margin:4px 0;color:var(--muted)}
+.tag{border:1px solid #34566c;padding:5px 9px;border-radius:16px;color:#c7e3f5;font-size:10px;white-space:nowrap}
+.notice{padding:12px 15px;background:#102031;border:1px solid #274c62;border-radius:12px;color:#cbdfea;margin-bottom:22px;font-size:13px}
+form{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0 12px}input{flex:1;min-width:min(100%,340px);background:#101f2e;color:white;border:1px solid #416176;border-radius:11px;padding:14px;font-size:14px}button{background:linear-gradient(135deg,#26d0e9,#357ff0);color:#071321;border:0;border-radius:11px;padding:12px 17px;font-weight:800;cursor:pointer}button:disabled{opacity:.6;cursor:wait}
+.helper{font-size:12px;color:var(--muted);margin-bottom:20px}.state{display:inline-block;font-size:11px;letter-spacing:.04em;margin:5px 0 14px;color:#a6d6e9}.state.bad{color:#f6b0ae}.state.good{color:#98e3c8}
+.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.metric{min-width:0;min-height:156px;padding:17px 15px;background:linear-gradient(150deg,#0f2233,#081320);border:1px solid var(--border);border-radius:16px;box-shadow:0 11px 33px #0002}
+.metric:nth-child(1){border-top:3px solid #49a0fa}.metric:nth-child(2){border-top:3px solid #33d5bd}.metric:nth-child(3){border-top:3px solid #fa9d52}.metric:nth-child(4){border-top:3px solid var(--yellow)}
+.metric-label{font-size:12px;font-weight:700;letter-spacing:.015em;color:#b4c4d5}.metric-value{font-size:clamp(16px,3vw,25px);font-weight:750;overflow-wrap:anywhere;line-height:1.3;margin:17px 0 6px}.metric-meta{font-size:11px;color:#a3b8c9;overflow-wrap:anywhere}.metric-reason{font-size:11px;color:#7f9ab0;margin-top:5px;overflow-wrap:anywhere}
+.row{display:flex;gap:12px;justify-content:space-between;padding:11px 0;border-bottom:1px solid #26374a;align-items:start}.row span:first-child{color:var(--muted)}.row strong{text-align:right;overflow-wrap:anywhere}
+.panel{margin-top:17px;background:#081522;border:1px solid #1e3b51;border-radius:16px;padding:16px 18px}h2{font-size:15px;margin:0 0 8px}h3{font-size:13px;margin:12px 0 6px;color:#d1e9fa}p{margin:7px 0;color:#a8bacb;font-size:13px}
+summary{cursor:pointer;font-weight:700;color:#acd9ed}details{border-top:1px solid #24374a;padding:12px 0}details:first-of-type{border-top:0}pre{white-space:pre-wrap;word-break:break-word;max-height:380px;overflow:auto;color:#b0c5d8;font-size:11px}
+code{color:#7bd9ed}a{color:#64dcf3}footer{margin-top:25px;color:#8198ae;font-size:12px}
+@media(max-width:410px){.metric{padding:14px 11px;min-height:163px}.metric-value{font-size:17px}.tag{font-size:9px}.brand{font-size:22px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important}}
+</style>
+</head>
+<body>
+<main>
+<header><div><div class="eyebrow">ARCY SEARCH / RESEARCH LAB</div><div class="brand">🔓 Unlock &amp; Supply</div><div class="sub">Research First. No Hype.</div></div><div class="tag">PREVIEW ONLY · ARC 5042</div></header>
+<div class="notice"><strong>Isolated research prototype.</strong> This page is not linked into the homepage or existing Search. Values appear only after the exact Arc token address is scanned; unknowns are never estimated.</div>
+<form id="lookup" autocomplete="off"><input id="token" name="address" required maxlength="42" spellcheck="false" placeholder="Paste exact Arc token contract · 0x…" aria-label="Token address"><button id="scan" type="submit">SCAN TOKEN</button></form>
+<div class="helper">Arc mainnet · exact contract address required · token unlocks are not the same as liquidity-pool locks.</div>
+<div id="status" class="state" role="status" aria-live="polite">NOT SCANNED · No figures loaded</div>
+<section class="metrics" aria-label="Four supply indicators">
+<article class="metric"><div class="metric-label">🔒 Locked Supply</div><div class="metric-value" id="locked-value">—</div><div class="metric-meta" id="locked-status">NOT SCANNED</div><div class="metric-reason" id="locked-reason">Only complete evidence-backed token lock coverage qualifies.</div></article>
+<article class="metric"><div class="metric-label">🔓 Unlocked Supply</div><div class="metric-value" id="unlocked-value">—</div><div class="metric-meta" id="unlocked-status">NOT SCANNED</div><div class="metric-reason" id="unlocked-reason">Unlocked is not necessarily circulating supply.</div></article>
+<article class="metric"><div class="metric-label">🔥 Verified Burned</div><div class="metric-value" id="burned-value">—</div><div class="metric-meta" id="burned-status">NOT SCANNED</div><div class="metric-reason" id="burned-reason">A zero/dead address balance is not evidence of supply reduction.</div></article>
+<article class="metric"><div class="metric-label">📅 Next Unlock</div><div class="metric-value" id="next-value">—</div><div class="metric-meta" id="next-status">NOT SCANNED</div><div class="metric-reason" id="next-reason">The source-reported next event can be incomplete.</div></article>
+</section>
+<section class="panel">
+<h2>Verified on-chain context</h2>
+<div class="row"><span>Total Supply</span><strong id="total-supply">—</strong></div>
+<div class="row"><span>Tokens held at 0x0 / 0xdead</span><strong id="dead-holdings">—</strong></div>
+<p>This balance is <strong>not</strong> automatically labeled burned supply, redeemed supply or a buyback. The primary four metrics remain separate.</p>
+</section>
+<section class="panel">
+<h2>Next unlock · source trace</h2>
+<div class="row"><span>Reported release amount</span><strong id="next-amount">—</strong></div>
+<div class="row"><span>Source / validation tier</span><strong id="next-source">—</strong></div>
+<div class="row"><span>Source coverage</span><strong id="next-coverage">—</strong></div>
+<p>A token may have vesting, founder restrictions or multiple contract-specific schedules that are not covered by any single third-party calendar.</p>
+<details><summary>View source attempts &amp; evidence</summary><pre id="evidence">Scan an exact token address to read evidence.</pre></details>
+</section>
+<section class="panel">
+<h2>Contract mechanics · separate from historical burned supply</h2>
+<p>Burn capability and buyback capability do not prove any amount has actually been burned. Scan first, then open this independently checked context.</p>
+<button id="mechanics" type="button" disabled>LOAD CONTRACT MECHANICS</button>
+<div class="row"><span>Burn mechanism</span><strong id="burn-mechanism">—</strong></div>
+<div class="row"><span>Buyback &amp; Burn flow</span><strong id="buyback">—</strong></div>
+<details><summary>Mechanics evidence</summary><pre id="mechanics-evidence">Not scanned.</pre></details>
+</section>
+<section class="panel">
+<h2>Data rules / researched sources</h2>
+<p>On-chain supply: Arc RPC totalSupply() and ERC-20 balanceOf(). Burn proof: exact bytecode-matched reviewed contract source (<a href="https://sourcify.dev/" rel="noopener" target="_blank">Sourcify</a>) plus Arc RPC. Unlock candidates: funded contract-linked vesting getters, <a href="https://gopluslabs.io/" rel="noopener" target="_blank">GoPlus</a> matching lock signals, or contract-selected project metadata. <a href="https://tokenomist.ai/" rel="noopener" target="_blank">Tokenomist</a> listings without an exact token-contract match are not promoted to verified values.</p>
+<p>“No verified schedule” means <em>not established from covered sources</em>, not proof that the token will never unlock. Locked/unlocked totals remain unknown without complete reconciled lock coverage. This prototype currently supports Arc chain 5042 only.</p>
+</section>
+<footer>ARCY SEARCH · isolated supply research prototype · existing website and Search page remain unchanged.</footer>
+</main>
+<script src="/ui-model.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const http=async path=>{const response=await fetch(path,{headers:{accept:'application/json'},cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);const value=await response.json();if(!value||typeof value!=='object')throw Error('Invalid JSON response');return value};
+const safeString=v=>v===null||v===undefined?'—':String(v);
+const compact=v=>window.ARCYModel?.compact?.(v)||safeString(v);
+const field=(obj,key)=>obj?.[key]?.amount===null||obj?.[key]?.amount===undefined?'NOT VERIFIED':compact(obj[key].amount);
+let currentAddress=null,busy=false;
+function put(id,text){$(id).textContent=safeString(text);}
+function setState(message,kind=''){put('status',message);$('status').className='state '+kind;}
+function output(fieldName,key){
+ put(key+'-value',fieldName.text);
+ put(key+'-status',fieldName.dataState==='DATA_FOUND'?'VERIFIED / SOURCE BACKED':fieldName.dataState==='LOADING'?'LOADING':fieldName.dataState==='SOURCE_API_FAILED'?'SOURCE UNAVAILABLE':safeString(fieldName.reasonCode||fieldName.dataState||'NOT VERIFIED'));
+ put(key+'-reason',fieldName.reason||fieldName.interpretation||(fieldName.dataState==='DATA_FOUND'?'Value sourced from evidence.':'A complete verified value has not been established.'));
+}
+function complete(model,unlock,supply,errors){
+ const result=model.summarize('supply',{unlock,supply});
+ ['locked','unlocked','burned','next'].forEach((id,index)=>output(result.fields[index],id));
+ put('total-supply',supply?.ok===false?'SOURCE UNAVAILABLE':supply?field(supply,'totalSupply'):'SOURCE UNAVAILABLE');
+ put('dead-holdings',supply?.ok===false?'SOURCE UNAVAILABLE':supply?field(supply,'burnAddressBalance'):'SOURCE UNAVAILABLE');
+ const n=result.fields[3];
+ put('next-amount',n.amount|| (unlock?.nextUnlock?.amount===null?'NOT VERIFIED':'—'));
+ put('next-source',n.sourceScope||unlock?.nextUnlock?.status||'NOT VERIFIED');
+ put('next-coverage',unlock?.nextUnlock?.coverage||'NOT VERIFIED');
+ put('evidence',JSON.stringify({attempts:unlock?.attempts||[],nextUnlock:unlock?.nextUnlock||null,verifiedBurned:unlock?.verifiedBurned||null,errors},null,2));
+}
+async function scan(event){
+ event?.preventDefault();
+ const a=$('token').value.trim().toLowerCase();
+ if(!/^0x[0-9a-f]{40}$/.test(a)){setState('Enter a complete 0x-prefixed 40-byte contract address.','bad');return;}
+ if(busy)return;
+ currentAddress=a;busy=true;$('scan').disabled=true;$('mechanics').disabled=true;setState('SCANNING · Exact Arc token evidence...');
+ const [unlockResult,supplyResult]=await Promise.allSettled([http('/api/unlock?address='+encodeURIComponent(a)+'&chainId=5042'),http('/api/supply?address='+encodeURIComponent(a))]);
+ const unlock=unlockResult.status==='fulfilled'?unlockResult.value:{ok:false,dataState:'SOURCE_API_FAILED',reasonCode:'UNLOCK_API_FAILED'};
+ const supply=supplyResult.status==='fulfilled'?supplyResult.value:{ok:false,dataState:'SOURCE_API_FAILED',reasonCode:'SUPPLY_API_FAILED'};
+ const errors={unlock:unlockResult.status==='rejected'?safeString(unlockResult.reason):null,supply:supplyResult.status==='rejected'?safeString(supplyResult.reason):null};
+ complete(window.ARCYModel,unlock,supply,errors);
+ const found=window.ARCYModel.summarize('supply',{unlock,supply}).fields.filter(f=>f.dataState==='DATA_FOUND').length;
+ setState('SCAN COMPLETE · '+found+'/4 verified or source-reported indicators',found?'good':'');
+ $('mechanics').disabled=false;$('scan').disabled=false;busy=false;
+}
+async function scanMechanics(){
+ if(!currentAddress)return;
+ const address=currentAddress;$('mechanics').disabled=true;
+ put('burn-mechanism','SCANNING');put('buyback','SCANNING');
+ try{
+  const m=await http('/api/mechanics?address='+encodeURIComponent(address));
+  if(m.ok===false)throw Error(m.reasonCode||m.error||'MECHANICS_REQUEST_FAILED');
+  const decode=obj=>obj?.value===null||obj?.value===undefined?'NOT VERIFIED':obj.status==='NOT_DETECTED'&&obj.value===false?'NOT DETECTED':obj.value===false?'FALSE':obj.value===true?'DETECTED':safeString(obj.value);
+  put('burn-mechanism',decode(m.burnMechanism));put('buyback',decode(m.buybackAndBurn||m.buybackMechanism));
+  put('mechanics-evidence',JSON.stringify({burnMechanism:m.burnMechanism,buybackAndBurn:m.buybackAndBurn,burnAllocation:m.burnAllocation,buybackExecution:m.buybackExecution},null,2));
+ }catch(e){put('burn-mechanism','SOURCE UNAVAILABLE');put('buyback','SOURCE UNAVAILABLE');put('mechanics-evidence',String(e));}
+ $('mechanics').disabled=false;
+}
+$('lookup').addEventListener('submit',scan);
+$('mechanics').addEventListener('click',scanMechanics);
+})();
+</script>
+</body>
+</html>
