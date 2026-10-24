@@ -11,7 +11,7 @@ const server=http.createServer((req,res)=>{
   if(url.searchParams.get('action')!=='progress'){res.writeHead(503,{'Content-Type':'application/json'});res.end('{"ok":false}');return}
   scans++;const data=snapshot();data.address=url.searchParams.get('address');res.writeHead(200,{'Content-Type':'application/x-ndjson'});
   const write=(phase,report=data)=>{if(!res.destroyed&&!res.writableEnded)res.write(JSON.stringify({phase,report})+'\n')};
-  data.cards.supply.fields.totalSupply=found(0);write('identity');
+  data.cards.supply.fields.verifiedBurned=found('0');write('identity');
   market=()=>{data.cards.activity.fields.priceUsd=found(.25);write('activity')};
   finish=()=>{if(mode==='changed-block')data.block='0x124';if(mode!=='truncated')write('complete');if(!res.destroyed&&!res.writableEnded)res.end()};return;
  }
@@ -27,14 +27,14 @@ const server=http.createServer((req,res)=>{
   await page.goto('http://127.0.0.1:3165/search/token/ethereum/'+address,{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#asset').textContent.includes('Streaming fixture'));
   assert.match(await page.locator('#detailState').innerText(),/in progress/);
-  assert.equal(await page.locator('#cards > .card > .metric').count(),1,'valid zero remains visible before deep completion');
-  const supply=page.locator('#cards [data-card-id="supply"]');await supply.locator('.missingGroup').evaluate(e=>e.open=true);
+  assert.equal(await page.locator('#cards > .card > .metric').count(),4,'all four supply rows remain visible before deep completion');
+  const supply=page.locator('#cards [data-card-id="supply"]');await supply.locator('.proof-panel').evaluate(e=>e.open=true);
   market();await page.waitForFunction(()=>document.querySelector('#detailState').dataset.phase==='activity');
-  assert.ok(await supply.locator('.missingGroup').evaluate(e=>e.open),'user disclosure state survives a progress update');
-  assert.equal(await page.locator('#cards > .card > .metric').count(),2);
+  assert.ok(await supply.locator('.proof-panel').evaluate(e=>e.open),'user evidence disclosure state survives a progress update');
+  assert.equal(await page.locator('#cards > .card > .metric').count(),5);
   finish();await page.waitForFunction(()=>/Snapshot complete|Deep analysis unavailable/.test(document.querySelector('#detailState').textContent));
   if(variant==='normal')assert.match(await page.locator('#detailState').innerText(),/Snapshot complete/);
-  else{assert.match(await page.locator('#detailState').innerText(),/Deep analysis unavailable/);assert.match(await page.locator('#asset').innerText(),/Streaming fixture/);assert.equal(await page.locator('#cards > .card > .metric').count(),2)}
+  else{assert.match(await page.locator('#detailState').innerText(),/Deep analysis unavailable/);assert.match(await page.locator('#asset').innerText(),/Streaming fixture/);assert.equal(await page.locator('#cards > .card > .metric').count(),5)}
   assert.equal(await page.locator('#cards .metric').count(),16,'unsupported Mechanics stays hidden while the other four cards retain every row');assert.match(await page.locator('#evidenceCount').innerText(),/Contract & Mechanics is hidden/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.close();
  }
  for(const width of [1440,390]){
