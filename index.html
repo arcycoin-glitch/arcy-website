@@ -86,6 +86,7 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
 <link rel="stylesheet" href="/search-contract.css">
 <link rel="stylesheet" href="/search-upgrade.css">
 <link rel="stylesheet" href="/hero-video.css">
+<link rel="stylesheet" href="/pulse-chain-navigation.css">
 </head>
 <body>
 <nav class="nav"><div class="wrap navin"><a class="brand" href="#hero">ARCY</a><div class="links" id="siteLinks"><a href="#search">Search</a><a href="#burn">Burn</a><a href="#unlocks">Unlocks</a><a href="#pulse">Arc Pulse</a><a href="#buy">Swap</a><a class="nav-github" href="https://github.com/arcycoin-glitch/arcy-website" target="_blank" rel="noopener noreferrer" aria-label="ARCY Website GitHub repository"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.56.1.76-.24.76-.54v-2.08c-3.1.67-3.76-1.31-3.76-1.31-.5-1.28-1.24-1.62-1.24-1.62-1.02-.7.08-.69.08-.69 1.12.08 1.71 1.15 1.71 1.15 1 .1.57 2.03 3.04 1.55.1-.72.39-1.2.7-1.48-2.48-.28-5.08-1.24-5.08-5.52 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.14a10.6 10.6 0 0 1 5.55 0c2.1-1.43 3.04-1.14 3.04-1.14.61 1.54.23 2.68.12 2.96.71.78 1.14 1.78 1.14 3.01 0 4.3-2.6 5.23-5.09 5.5.4.35.75 1.03.75 2.08v3.1c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z"/></svg><span>GitHub</span></a></div><button class="menu-toggle" aria-controls="siteLinks" aria-expanded="false" aria-label="Toggle navigation">☰</button><a class="btn primary" id="navBuy" href="#buy">BUY $ARCY</a></div></nav>
@@ -331,12 +332,23 @@ View details →
 
 
 <section id="pulse"><div class="wrap">
+ <div class="pulse-chain-selector" role="tablist" aria-label="Weekly Pulse blockchain">
+  <button id="pulse-tab-arc" type="button" role="tab" aria-selected="true" aria-controls="pulse-panel-arc" data-pulse-chain="arc"><img src="/search/assets/arc-network-mark.svg" alt="" width="22" height="22">Arc</button>
+  <button id="pulse-tab-ethereum" type="button" role="tab" aria-selected="false" aria-controls="pulse-panel-ethereum" tabindex="-1" data-pulse-chain="ethereum"><img src="/search/assets/ethereum-mark.svg" alt="" width="22" height="22">Ethereum</button>
+  <button id="pulse-tab-robinhood" type="button" role="tab" aria-selected="false" aria-controls="pulse-panel-robinhood" tabindex="-1" data-pulse-chain="robinhood"><img src="/search/assets/robinhood-chain-mark.svg" alt="" width="22" height="22">Robinhood Chain</button>
+ </div>
+ <div class="pulse-chain-panels">
+ <div id="pulse-panel-arc" class="pulse-chain-panel" role="tabpanel" aria-labelledby="pulse-tab-arc" tabindex="0">
   <div class="eyebrow">WEEKLY ARC SIGNAL</div>
   <div class="head"><h3><span id="pulseTitle">ARCY ARC PULSE — 📡</span></h3><p>A concise weekly filter for the Arc ecosystem — what changed, what is new, what to watch and what risk actually matters.</p></div>
   <div class="pulse-grid" id="pulseGrid">
     <article class="pulse-card pulse-week"><span>🔥 THIS WEEK</span><small class="pulse-owner">ARC / CIRCLE</small><h4>Loading weekly signal…</h4><p>Fetching the latest official Arc/Circle updates.</p></article>
   </div>
   <div class="pulse-take"><b>🦉 ARCY TAKE</b><p id="pulseTake">Infrastructure is arriving. The next test is measurable usage: users, liquidity, settlement activity and repeat demand.</p><small>No hype. Just signal. • arcyusdc.xyz</small><a class="pulse-archive-link" id="pulseArchive" hidden></a></div>
+</div>
+ <div id="pulse-panel-ethereum" class="pulse-chain-panel pulse-chain-empty" role="tabpanel" aria-labelledby="pulse-tab-ethereum" aria-hidden="true" inert tabindex="0"></div>
+ <div id="pulse-panel-robinhood" class="pulse-chain-panel pulse-chain-empty" role="tabpanel" aria-labelledby="pulse-tab-robinhood" aria-hidden="true" inert tabindex="0"></div>
+ </div>
 </div></section>
 
 <section id="buy"><div class="wrap grid2">
@@ -552,6 +564,7 @@ loadPulse();
 <script src="/hero-video.js" defer></script>
 <script src="/search-upgrade.js" defer></script>
 <script src="/site-refresh.js" defer></script>
+<script src="/pulse-chain-navigation.js" defer></script>
 <script src="/analytics.js" defer></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body></html>
