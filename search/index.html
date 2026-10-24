@@ -523,14 +523,14 @@ function render(report){
      const d=card?.fields?.[key];
      return d?.dataState==='DATA_FOUND'&&d.value!==null&&d.value!==undefined;
     }).length;
-    if(report&&present===0)section.classList.add('card-empty');
+    if(report&&present===0&&spec.id!=='supply')section.classList.add('card-empty');
     const title=document.createElement('h2');
     title.textContent=spec.title;
     section.append(title);
     const description=document.createElement('div');
     description.className='description';
     description.textContent=spec.id==='supply'&&card?
-     'Current holdings at standard zero/dead addresses; not proof of an official burn event, buyback or lifetime burned supply.':
+     'Locked/unlocked supply requires complete contract coverage. Verified burns require supply-reduction proof. Unlock dates are source-reported and may be incomplete.':
      (card?.description||'Awaiting verified evidence');
     section.append(description);
     const missingRows=[];
@@ -541,17 +541,27 @@ function render(report){
       row.className='metric';
       const name=document.createElement('span');
       name.textContent=key==='valuation'?(data?.kind==='MARKET_CAP'?'Market Cap':data?.kind==='FDV'?'FDV':'Valuation'):
-       key==='burnAddressBalance'?'Burn-Address Balance':key==='burnAddressPct'?'Burn-Address Share':label;
+       label;
       const result=document.createElement('div');result.className='result';
       const value=document.createElement('b');
       const missing=!data||data.dataState!=='DATA_FOUND'||data.value===null||data.value===undefined;
       value.className=missing?'no':'';
       const kind=key==='valuation'?data?.kind:null;
-      const displayed=!report?'—':missing?'NOT VERIFIED':key==='burnAddressPct'&&typeof data.value==='number'?
-       displayBurnShare(data.value):metricFormat.display(data.value,key,key==='valuation'?null:kind);
+      const displayed=!report?'—':missing?'NOT VERIFIED':key==='nextUnlock'&&typeof data.value==='string'&&/^\d{4}-\d{2}-\d{2}T/.test(data.value)&&Number.isFinite(Date.parse(data.value))?
+       new Date(data.value).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):metricFormat.display(data.value,key,key==='valuation'?null:kind);
       value.textContent=displayed;
       value.title=data?.reason||data?.source||'';
       result.append(value);
+      if(report&&!missing&&spec.id==='supply'&&key==='nextUnlock'){
+       const event=data?.evidence?.find(p=>typeof p?.eventAmount==='string'&&/^[0-9]+(?:[.][0-9]+)?$/.test(p.eventAmount)&&Number(p.eventAmount)>0);
+       if(event){
+        const amount=document.createElement('small');
+        amount.className='unlock-amount';
+        amount.textContent=metricFormat.display(event.eventAmount,'nextUnlock')+' tokens · SOURCE REPORTED';
+        amount.style.cssText='display:block;margin-top:5px;font-size:10px;color:#b7d5e8';
+        result.append(amount);
+       }
+      }
       if(!missing&&data?.freshness?.state==='LAST_VERIFIED'){
        const observed=Date.parse(data.freshness.observedAt||'');
        if(Number.isFinite(observed)){
@@ -573,10 +583,10 @@ function render(report){
       row.append(name,result);
       // Mechanics should explain all four checks in place, not look empty
       // simply because a verified contract source is unavailable.
-      if(report&&missing&&spec.id!=='mechanics')missingRows.push(row);
+      if(report&&missing&&spec.id!=='mechanics'&&spec.id!=='supply')missingRows.push(row);
       else{section.append(row);if(report&&!missing)knownCount++}
     }
-    if(report&&knownCount===0){
+    if(report&&knownCount===0&&spec.id!=='supply'){
       const notice=document.createElement('p');notice.className='noSource';
       notice.textContent='No independently supported figures for this category yet.';
       section.append(notice);
@@ -682,7 +692,7 @@ function render(report){
       advanced.append(more,pre);details.append(advanced);
       section.append(details);
     }
-    if(report&&present===0)withoutEvidence.push(section);
+    if(report&&present===0&&spec.id!=='supply')withoutEvidence.push(section);
     else root.append(section);
   }
   if(report&&withoutEvidence.length){
