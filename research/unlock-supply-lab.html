@@ -81,7 +81,8 @@ function put(id,text){$(id).textContent=safeString(text);}
 function setState(message,kind=''){put('status',message);$('status').className='state '+kind;}
 function output(fieldName,key){
  put(key+'-value',fieldName.text);
- put(key+'-status',fieldName.dataState==='DATA_FOUND'?'VERIFIED / SOURCE BACKED':fieldName.dataState==='LOADING'?'LOADING':fieldName.dataState==='SOURCE_API_FAILED'?'SOURCE UNAVAILABLE':safeString(fieldName.reasonCode||fieldName.dataState||'NOT VERIFIED'));
+ const label=fieldName.dataState==='DATA_FOUND'?(key==='next'?(fieldName.sourceScope==='PROJECT REPORTED'?'PROJECT REPORTED · NOT ON-CHAIN PROVEN':fieldName.sourceScope==='SOURCE REPORTED'?'SOURCE REPORTED · PARTIAL COVERAGE':'EVIDENCE BACKED'):'EVIDENCE BACKED'):fieldName.dataState==='LOADING'?'LOADING':fieldName.dataState==='SOURCE_API_FAILED'?'SOURCE UNAVAILABLE':safeString(fieldName.reasonCode||fieldName.dataState||'NOT VERIFIED');
+ put(key+'-status',label+(key==='next'&&fieldName.amount?' · '+fieldName.amount+' tokens':''));
  put(key+'-reason',fieldName.reason||fieldName.interpretation||(fieldName.dataState==='DATA_FOUND'?'Value sourced from evidence.':'A complete verified value has not been established.'));
 }
 function complete(model,unlock,supply,errors){
