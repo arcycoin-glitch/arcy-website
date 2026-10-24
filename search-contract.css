@@ -53,3 +53,27 @@
 @media (prefers-reduced-motion:reduce){
  #search .grid{scroll-behavior:auto}
 }
+
+/* Compact 2x2 supply evidence layout. Keep sources/caveats below the metrics. */
+#search .supply > .row{
+ display:inline-flex;
+ vertical-align:top;
+ flex-direction:column;
+ align-items:flex-start;
+ justify-content:space-between;
+ width:calc(50% - 7px);
+ min-height:92px;
+ padding:12px;
+ margin:0 7px 9px 0;
+ border:1px solid rgba(92,140,175,.22);
+ border-radius:12px;
+ background:linear-gradient(155deg,rgba(16,39,56,.65),rgba(6,20,34,.55));
+ gap:10px;
+}
+#search .supply > .row span{font-size:11px;line-height:1.35;color:#9baec4}
+#search .supply > .row b{font-size:14px;line-height:1.25;text-align:left;overflow-wrap:anywhere}
+#search .supply > details,#search .supply > .badge,#search .supply > .details{clear:both}
+@media(max-width:420px){
+ #search .supply > .row{width:calc(50% - 5px);min-height:88px;padding:10px;margin-right:5px}
+ #search .supply > .row b{font-size:12px}
+}
