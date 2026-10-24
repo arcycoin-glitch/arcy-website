@@ -20,7 +20,7 @@ test('Search isolates sync and async card failures; healthy cards survive and ca
  const report=await createEngine({arc:adapter()}).report({network:'arc',address:ADDRESS});
  assert.equal(report.ok,true);
  assert.deepEqual(Object.keys(report.cards),['supply','holders','liquidity','activity','mechanics']);
- assert.equal(report.cards.supply.fields.totalSupply.value,100);
+ assert.equal(report.cards.supply.context.totalSupply.value,100,'legacy total supply remains available as a separate verified headline fact');
  for(const name of ['holders','mechanics']){
   assert.equal(report.cards[name].status,'SOURCE_API_FAILED');
   for(const field of Object.values(report.cards[name].fields)){
