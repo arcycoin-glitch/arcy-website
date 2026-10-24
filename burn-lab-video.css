@@ -1,0 +1,15 @@
+#burn .burn-lab-visual{min-width:0}
+#burn .burn-lab-scene{position:relative;margin:0;width:100%;aspect-ratio:4/3;overflow:hidden;border-radius:20px;background:radial-gradient(ellipse at center,#102b3b,#061421 75%);isolation:isolate}
+#burn .burn-lab-poster,#burn .burn-lab-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;transform:none;animation:none;filter:none}
+#burn .burn-lab-video{opacity:0;pointer-events:none}
+#burn .burn-lab-scene.is-playing .burn-lab-video{opacity:1}
+#burn .burn-lab-scene.is-playing .burn-lab-poster{visibility:hidden}
+#burn .burn-lab-scoreboard{position:absolute;bottom:12px;left:12px;right:12px;z-index:1;padding:12px 16px;border:1px solid #27546c;border-radius:14px;background:rgba(4,15,25,.94);color:#eaf6ff;overflow-wrap:anywhere}
+#burn .burn-lab-scoreboard .burnnum{font-size:clamp(24px,3vw,42px);line-height:1.15;margin:4px 0}
+#burn .burn-lab-scoreboard .burn-caption{font-size:11px;margin:4px 0}
+#burn .burn-lab-scoreboard .status{font-size:10px;gap:6px;flex-wrap:wrap;margin:5px 0 0}
+#burn .burn-lab-play{position:absolute;top:12px;right:12px;z-index:2;border:1px solid #22d4ff;border-radius:12px;background:#0d2534;color:#eaf6ff;padding:12px;font:inherit;cursor:pointer}
+#burn .burn-lab-play[hidden]{display:none}
+#burn .burn-lab-play:focus-visible{outline:2px solid #ff984b;outline-offset:3px}
+@media(max-width:650px){#burn .burn-lab-scene{aspect-ratio:1/1}#burn .burn-lab-scoreboard{padding:10px;bottom:8px;left:8px;right:8px}}
+@media(prefers-reduced-motion:reduce){#burn .burn-lab-video{display:none}#burn .burn-lab-scene .burn-lab-poster{visibility:visible}}
