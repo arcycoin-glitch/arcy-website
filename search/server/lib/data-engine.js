@@ -72,7 +72,18 @@ function formatCard(cardId,raw,cfg,context){
  // They are intentionally never counted as verified burned-supply metrics.
  const auxiliarySupply=cardId==='supply'?Object.fromEntries(
   ['totalSupply','circulatingSupply','burnAddressBalance','burnAddressPct']
-   .map(key=>[key,validateField(source[key],cfg)])) : null;
+   .map(key=>{
+    const field=validateField(source[key],cfg);
+    if(context&&field.dataState==='DATA_FOUND'){
+     const first=field.evidence[0]||{};
+     const identity=first.address||first.contract||first.token;
+     if(typeof identity==='string'&&ADDRESS.test(identity)&&identity.toLowerCase()!==context.address.toLowerCase())
+      return [key,missing('Supplemental supply evidence belongs to another token.','SUPPLY_CONTEXT_TOKEN_MISMATCH',cfg.id)];
+     if(/^(ON_CHAIN|ONCHAIN_VERIFIED|VERIFIED_SOURCE_AND_STATE)/.test(field.status||'')&&first.block&&first.block!==context.block)
+      return [key,missing('Supplemental on-chain supply evidence is from another block.','SUPPLY_CONTEXT_BLOCK_MISMATCH',cfg.id)];
+    }
+    return [key,field];
+   })) : null;
  return {...(auxiliarySupply?{context:auxiliarySupply}:{}),...(holderCandidates.length?{holderCandidates}:{}),researchNotes:require('./research-notes').notes(cardId,fields),fields,status:count===keys.length?'SOURCE_BACKED':
   count>0?'PARTIAL_EVIDENCE':
   statuses.includes('SOURCE_API_FAILED')?'SOURCE_API_FAILED':'NOT_VERIFIED',
