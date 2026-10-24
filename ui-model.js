@@ -1,6 +1,6 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.ARCYModel=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const labels={supply:['Total Supply','Circulating Supply','Burn Address Balance','Next Unlock'],whales:['Holder Count','Largest Wallet %','Top 10 Concentration','Top 20 Concentration'],liquidity:['Liquidity USD','24H Volume','DEX / Pair Count','LP Status'],activity:['Price','Market Cap / FDV','24H Change','24H Volume'],mechanics:['Trading Taxes','Mint Capability','Owner / Admin','Contract Architecture']};
+ const labels={supply:['Total Supply','Circulating Supply','Tokens Held at Burn Addresses','Next Unlock'],whales:['Holder Count','Largest Wallet %','Top 10 Concentration','Top 20 Concentration'],liquidity:['Liquidity USD','24H Volume','DEX / Pair Count','LP Status'],activity:['Price','Market Cap / FDV','24H Change','24H Volume'],mechanics:['Trading Taxes','Mint Capability','Owner / Admin','Contract Architecture']};
  const paths={supply:['supply.totalSupply.amount','market.circulatingSupply','supply.burnAddressBalance.amount','unlock.nextUnlock.date'],whales:['holderCount','largestWalletPct','top10Pct','top20Pct'],liquidity:['liquidityUsd','volume24h','dexCount / pairCount','lpStatus'],claims:['counts.checked','counts.verified','counts.mismatch','counts.unverified'],mechanics:['contractFields.buyTax / contractFields.sellTax / contractFields.transferTax','contractFields.mint','contractFields.ownerAdmin','contractFields.proxyUpgradeable']};
  paths.activity=['priceUsd','valuation','change24h','volume24h'];
  const zero='0x0000000000000000000000000000000000000000';
@@ -77,7 +77,7 @@
   if(name==='whales'&&d?.ok!==false&&d?.coverage?.refreshQueued===true&&d?.coverage?.complete===false&&!states.includes('DATA_FOUND')&&!states.includes('FRONTEND_MAPPING_FAILED')){const state=d.backgroundRefresh?.state;badge=state==='QUEUED'?'HOLDER SNAPSHOT QUEUED':state==='INDEXING'?'INDEXING VERIFIED HOLDER SNAPSHOT':state==='VERIFYING'?'VERIFYING HOLDER SNAPSHOT':state==='FAILED'?'HOLDER SNAPSHOT RETRYING':state==='UNSUPPORTED'?'HOLDER INDEXING UNSUPPORTED':'BUILDING VERIFIED HOLDER SNAPSHOT';}
 
   if(name!=='whales'&&states.includes('DATA_FOUND')&&(d?.freshness?.state==='LAST_VERIFIED'||fields.some(f=>f.dataState==='DATA_FOUND'&&f.freshness?.state==='LAST_VERIFIED')))badge='LAST VERIFIED DATA';
-  return {fields:fields.map((f,i)=>({...f,label:(labels[name]||['Claims Checked','Verified','Mismatch','Unverified'])[i],path:paths[name][i]})),badge,data:d};
+  return {fields:fields.map((f,i)=>({...f,label:(labels[name]||['Claims Checked','Verified','Mismatch','Unverified'])[i],path:paths[name][i],...(name==='supply'&&i===2?{secondary:true,disclosureGroup:'Burn & Supply Details',interpretation:'Balances at zero/dead addresses are not proof of a verified burn event or supply reduction.'}:{})})),badge,data:d};
  }
  return {labels,paths,compact,summarize};
 });
