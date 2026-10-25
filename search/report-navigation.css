@@ -7,3 +7,62 @@
 .report-navigation-status:empty{display:none}
 #cards [data-card-id]{scroll-margin-top:var(--report-header-offset,20px)}
 @media(max-width:650px){#reportNavigation a{flex:0 0 auto;padding:11px 14px}}
+
+/* V8: source-backed research card rail. This changes only presentation;
+   the underlying 5-card/20-field report renderer remains untouched. */
+#tokenDetail #deepResearch #cards.grid{
+ display:flex;flex-wrap:nowrap;align-items:flex-start;gap:14px;
+ overflow-x:auto;overflow-y:clip;max-width:100%;min-width:0;
+ padding:8px 2px 19px;position:relative;
+ scroll-snap-type:x mandatory;scroll-padding-inline:2px;
+ overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+ scrollbar-color:#307c9c #092538;scrollbar-width:thin;
+}
+#tokenDetail #deepResearch #cards.grid>[data-card-id]{
+ flex:0 0 min(46%,470px);width:min(46%,470px);min-width:0;
+ scroll-snap-align:start;scroll-snap-stop:always;
+ align-self:stretch;overflow-wrap:anywhere;
+}
+#tokenDetail #deepResearch #cards.grid>.unverifiedModules{
+ flex:0 0 92%;max-width:92%;scroll-snap-align:start;
+}
+#tokenDetail #deepResearch .report-carousel-controls{
+ display:flex;align-items:center;justify-content:flex-end;gap:8px;
+ padding:4px 2px 7px;color:#a7cddc;
+}
+#tokenDetail #deepResearch .report-carousel-controls[hidden]{display:none}
+#tokenDetail #deepResearch .report-carousel-caption{
+ flex:1;min-width:0;font-size:11px;line-height:1.4;
+}
+#tokenDetail #deepResearch .report-carousel-arrow{
+ display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;
+ border:1px solid #337e9b;border-radius:12px;background:#103047;
+ color:#bdf5ff;font-size:20px;cursor:pointer;
+}
+#tokenDetail #deepResearch .report-carousel-arrow:not(:disabled):hover{
+ background:#16526b;border-color:#5addf3;
+}
+#tokenDetail #deepResearch .report-carousel-arrow:focus-visible{
+ outline:2px solid #ff9e47;outline-offset:3px;
+}
+#tokenDetail #deepResearch .report-carousel-arrow:disabled{opacity:.33;cursor:default}
+#tokenDetail #deepResearch #cards.grid:focus-visible{
+ outline:2px solid #47d9e9;outline-offset:2px;border-radius:9px;
+}
+@media(max-width:800px){
+ #tokenDetail #deepResearch #cards.grid>[data-card-id]{
+  flex-basis:min(80%,440px);width:min(80%,440px);
+ }
+}
+@media(max-width:600px){
+ #tokenDetail #deepResearch #cards.grid{gap:10px;scroll-padding-inline:1px}
+ #tokenDetail #deepResearch #cards.grid>[data-card-id]{
+  flex-basis:calc(100% - 26px);width:calc(100% - 26px);
+ }
+ #tokenDetail #deepResearch .report-carousel-controls{gap:6px}
+ #tokenDetail #deepResearch .report-carousel-caption{font-size:10px}
+ #tokenDetail #deepResearch .report-carousel-arrow{flex-basis:34px;width:34px;height:34px}
+}
+@media(prefers-reduced-motion:reduce){
+ #tokenDetail #deepResearch #cards.grid{scroll-behavior:auto}
+}
