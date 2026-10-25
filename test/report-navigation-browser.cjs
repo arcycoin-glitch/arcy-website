@@ -4,7 +4,7 @@ const {chromium}=require('playwright'),{spawn}=require('node:child_process'),ass
 const root=path.resolve(__dirname,'..'),schema=require('../search/schema'),address='0x'+'1'.repeat(40),origin='http://127.0.0.1:3157';
 (async()=>{let browser;const server=spawn(process.execPath,['dev.cjs'],{cwd:root,env:{...process.env,PORT:'3157'},windowsHide:true,stdio:['ignore','pipe','pipe']});
 try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j)});browser=await chromium.launch({headless:true,channel:'msedge'});
-for(const width of[1440,390]){
+for(const width of[320,360,390,430,768,1440]){
  const page=await browser.newPage({viewport:{width,height:844},reducedMotion:'reduce'}),errors=[];let calls=0;
  page.on('pageerror',e=>errors.push(e.message));
  const cards=Object.fromEntries(schema.map(s=>[s.id,{fields:Object.fromEntries(s.fields.map(([key])=>[key,{value:1,dataState:'DATA_FOUND',status:'VERIFIED_SOURCE',chainId:5042,network:'arc',source:'Browser fixture',evidence:[{address,chainId:5042,block:'0x10',method:'Browser fixture'}]}]))}]));

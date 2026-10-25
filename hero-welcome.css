@@ -1,4 +1,6 @@
 /* Entrance only: opacity/translate never change the reserved Hero layout. */
+/* Rotating circular borders have square overflow bounds at 45deg. Contain only this decorative layer. */
+#hero .hero-rings{overflow:clip}
 #hero.hero-welcome h1{animation:v7-welcome-copy .8s ease-out both}
 #hero.hero-welcome h1 .arcy-wordmark{color:#ecf8ff}
 #hero.hero-welcome h1 .arcy-wordmark-y{color:#ff984b;animation:v7-welcome-gold 1s ease-out both}
