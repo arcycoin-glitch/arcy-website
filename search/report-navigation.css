@@ -25,6 +25,9 @@
 
 /* Compact only the small-screen analysis cards; keep content and type sizes intact. */
 @media(max-width:850px){
+ #tokenDetail #deepResearch #cards.report-carousel{align-items:flex-start}
+ #tokenDetail #deepResearch #cards>.report-carousel-slide[aria-hidden="true"]{contain:size}
+ #tokenDetail #deepResearch #cards>.report-carousel-slide>.card{height:auto}
  #tokenDetail #deepResearch #cards .card{padding:14px 13px}
  #tokenDetail #deepResearch #cards .card h2{margin-bottom:5px}
  #tokenDetail #deepResearch #cards .card .description{margin-bottom:7px;line-height:1.45}
