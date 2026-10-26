@@ -7,7 +7,7 @@
  */
 const {rpc,ADDRESS,uint}=require('./eth');
 const {found,unknown,card}=require('./evidence');
-const source=require('./source-request').createReader({ttlMs:15000,maxEntries:32});
+const {readJson}=require('./http');
 const BASE='https://eth.blockscout.com/api/v2/tokens/';
 const TOP_SIZE=21; // top 20 plus rank #21 as an ordering boundary
 const MAX_REQUEST_TIMEOUT_MS=8500;
@@ -15,9 +15,6 @@ function absent(reason,code='RANKED_SNAPSHOT_NOT_VERIFIED'){
  return Object.fromEntries(['largestWalletPct','top10Pct','top20Pct'].map(k=>[k,unknown(reason,code)]));
 }
 function parsePage(payload,contract){
- if(!ADDRESS.test(contract||''))return {ok:false,reasonCode:'INVALID_RANK_TOKEN'};
- const identities=[payload?.token?.address_hash,payload?.token_address].filter(x=>x!==undefined);
- if(identities.some(x=>typeof x!=='string'||x.toLowerCase()!==contract.toLowerCase())||[payload?.chain_id,payload?.chainId].filter(x=>x!==undefined).some(x=>String(x)!=='1'))return {ok:false,reasonCode:'RANK_SOURCE_IDENTITY_MISMATCH'};
  if(!payload||!Array.isArray(payload.items)||payload.items.length<TOP_SIZE)return {ok:false,reasonCode:'INSUFFICIENT_RANK_CANDIDATES'};
  const first=payload.items.slice(0,TOP_SIZE);
  const seen=new Set(),rows=[];
@@ -79,11 +76,12 @@ function evaluate(page,chainBalances,totalSupply,block,token,count){
   top20Pct:found(top20,'Blockscout candidate addresses + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED')
  }};
 }
-async function fetchPage(token,{fetcher=fetch}={}){
- if(!ADDRESS.test(token||''))throw Error('Invalid ranked token address');
- // Cache only validated exact-contract candidate addresses, NEVER RPC balances
- // or computed percentages. Every report reconciles again at its own block.
- return source.json(BASE+token.toLowerCase()+'/holders',{fetcher,timeoutMs:MAX_REQUEST_TIMEOUT_MS,maxBytes:512*1024,validate:p=>parsePage(p,token).ok});
+async function fetchPage(token){
+ const r=await fetch(BASE+token+'/holders',{headers:{accept:'application/json'},signal:AbortSignal.timeout(MAX_REQUEST_TIMEOUT_MS)});
+ if(!r.ok)throw Error('Blockscout ranked-holder HTTP '+r.status);
+ const p=await readJson(r,512*1024);
+ if(!p||typeof p!=='object'||Array.isArray(p))throw Error('Malformed ranked holder response');
+ return p;
 }
 async function readBalances(token,rows,block){
  const out=new Array(TOP_SIZE);
@@ -98,23 +96,16 @@ async function readBalances(token,rows,block){
 async function inspect(token,block,supplyRaw,count,{getPage=fetchPage,getBalances=readBalances}={}){
  const missing=(code,reason)=>({status:'NOT_VERIFIED',fields:absent(reason,code),reasonCode:code});
  if(!ADDRESS.test(token)||!Number.isSafeInteger(count)||count<TOP_SIZE||typeof supplyRaw!=='string'||!/^[1-9][0-9]*$/.test(supplyRaw))return missing('INVALID_RANK_INPUT','Unverified token address, holder count or raw supply.');
- let stage='CANDIDATE_SOURCE';
  try{
   const page=parsePage(await getPage(token.toLowerCase()),token.toLowerCase());
   if(!page.ok)return missing(page.reasonCode,'Blockscout did not supply 21 well-formed, sorted, distinct ranked holders.');
-  stage='PINNED_RPC';
   const chainBalances=await getBalances(token.toLowerCase(),page.rows,block);
   const result=evaluate(page,chainBalances,BigInt(supplyRaw),block,token.toLowerCase(),count);
   if(!result.ok)return missing(result.reasonCode,'Ranked holder candidates failed pinned Ethereum RPC reconciliation.');
-  const observed=getPage===fetchPage?source.observedAt(BASE+token.toLowerCase()+'/holders'):null;
-  if(Number.isFinite(observed))for(const field of Object.values(result.fields))field.evidence[0].candidateSourceRetrievedAt=new Date(observed).toISOString();
   return {...card(result.fields,'Source-ranked top-20 balances reconciled with pinned Ethereum RPC; ranked completeness remains explorer-reported.'),
    holderCandidates:result.holderCandidates,rankedEvidence:'SOURCE_REPORTED_RPC_RECONCILED'};
  }catch(e){
-  const type=[408,429,500,502,503,504,401,403,404].includes(e?.httpStatus)?'HTTP_'+e.httpStatus:/timeout/i.test(e?.name||'')||e?.code==='SOURCE_TIMEOUT'?'TIMEOUT':e?.code==='SOURCE_SCHEMA_INVALID'?'INVALID_RESPONSE':e?.code==='SOURCE_RATE_LIMIT'?'RATE_LIMIT':'UNAVAILABLE';
-  const value=missing('RANKED_SOURCE_API_FAILED',stage==='CANDIDATE_SOURCE'?'Blockscout candidate source failed; no wallet distribution was inferred.':'Pinned Ethereum balance reconciliation failed; no partial metrics were published.');
-  for(const field of Object.values(value.fields)){field.reasonCode='HOLDER_'+stage+'_'+type;field.evidence=[{network:'ethereum',chainId:1,address:token.toLowerCase(),block,sourceUrl:BASE+token.toLowerCase()+'/holders',stage,status:'SOURCE_UNAVAILABLE',reasonCode:field.reasonCode}];}
-  return value;
+  return missing('RANKED_SOURCE_API_FAILED','Blockscout or Ethereum RPC failed during source-ranked holder checks.');
  }
 }
 module.exports={TOP_SIZE,parsePage,percentage,evaluate,fetchPage,readBalances,inspect};
