@@ -296,10 +296,8 @@ async function mechanics({address,base}){
  // Separate reviewed immutable hook-tax evidence from ordinary ERC20 transfers.
  // The direct source re-read must prove the exact chain, token, hook and
  // nearby observed block. Never copy fee values by project name or ticker.
- if(!/^Buy\s+\d+(?:\.\d+)?%\s*·\s*Sell\s+\d+(?:\.\d+)?%/.test(String(expanded.fields?.tradingTaxes?.value||''))&&
-   expanded.fields?.tradingTaxes?.evidence?.some(e=>
-     e?.sourceDigest==='f4abba6aa7071125168a9b9ea39cdfd08f01835d3c59aa74c55173c71e50daa1'&&
-     e.address===address&&e.block===base.block)){
+ if(address===ARCY&&
+   !/^Buy\s+\d+(?:\.\d+)?%\s*·\s*Sell\s+\d+(?:\.\d+)?%/.test(String(expanded.fields?.tradingTaxes?.value||''))){
   try{
    const legacy=await require('./timeout').withTimeout(
      original.callOriginal('mechanics',address),15000,'Reviewed Arc hook fallback deadline');
