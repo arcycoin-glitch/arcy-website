@@ -17,7 +17,7 @@ const root=path.resolve(__dirname,'..'),origin='http://127.0.0.1:3162';
   for(const id of['burn','pulse','unlocks','buy']){await page.locator('#'+id).scrollIntoViewIfNeeded();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));}
   for(const chain of['ethereum','robinhood','arc']){await page.locator('[data-pulse-chain="'+chain+'"]').click();await page.waitForTimeout(40);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));}
   assert.equal(await page.locator('#burned').innerText(),await page.evaluate(amount=>fmt(amount),supply.burnAddressBalance.amount));
-  assert.equal(await page.locator('#burn video').getAttribute('src'),null);assert.equal(await page.locator('#hero .hero-flight>img').getAttribute('src'),'/assets/hero-arcy.png');
+  assert.equal(await page.locator('#burn video').getAttribute('src'),null);assert.equal(await page.locator('#hero .hero-flight>img').getAttribute('src'),'/assets/arcy-hero-video-poster-v8.webp');
   const docOverflow=await page.evaluate(()=>({html:getComputedStyle(document.documentElement).overflowX,body:getComputedStyle(document.body).overflowX}));assert(!['hidden','clip'].includes(docOverflow.html));assert(!['hidden','clip'].includes(docOverflow.body));
   console.log('PASS '+width+': full orbital rotation + section/tab switches; max scrollWidth='+maximum+'; no document clipping');
  }
