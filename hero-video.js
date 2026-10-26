@@ -6,7 +6,7 @@
  if(!frame)return;
  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
  const saveData=()=>navigator.connection?.saveData===true;
- let visible=false,playing=false,failed=false,watchdog=null,button=null;
+ let visible=false,playing=false,failed=false,watchdog=null,button=null,manualPlayback=false;
  const fallback=()=>{
   playing=false;frame.classList.remove('video-playing');
  };
@@ -34,7 +34,8 @@
  }
  function start(userGesture=false){
   if(document.hidden||reduced.matches||!visible||failed)return;
-  if(!userGesture&&saveData()){control();return;}
+  if(userGesture)manualPlayback=true;
+  if(!manualPlayback&&saveData()){control();return;}
   // Initialize on visibility rather than waiting for all page assets. Large
   // homepage images must not postpone the mascot's first moving frame.
   if(!video.getAttribute('src')){
@@ -51,7 +52,7 @@
  }
  video.addEventListener('playing',()=>{
   playing=true;clearTimeout(watchdog);
-  if(reduced.matches){video.pause();fallback();return;}
+  if(reduced.matches||!visible||document.hidden||(!manualPlayback&&saveData())){video.pause();fallback();return;}
   frame.classList.add('video-playing');
   if(button)button.hidden=true;
  });
@@ -66,7 +67,7 @@
  }
  if('IntersectionObserver'in window){
   new IntersectionObserver(entries=>visibility(entries[0].isIntersecting),
-   {threshold:0.01,rootMargin:'160px 0px 160px 0px'}).observe(frame);
+   {threshold:0.01,rootMargin:'0px'}).observe(frame);
  }else visibility(true);
  document.addEventListener('visibilitychange',()=>{
   if(document.hidden){video.pause();fallback();}
@@ -74,7 +75,12 @@
  });
  window.addEventListener('pageshow',()=>start());
  reduced.addEventListener?.('change',()=>{
-  if(reduced.matches){clearTimeout(watchdog);video.pause();fallback();if(button)button.hidden=true;}
+  if(reduced.matches){clearTimeout(watchdog);video.pause();fallback();video.removeAttribute('src');video.load();video.preload='none';if(button)button.hidden=true;}
+  else start();
+ });
+ navigator.connection?.addEventListener?.('change',()=>{
+  manualPlayback=false;
+  if(saveData()){clearTimeout(watchdog);video.pause();fallback();video.removeAttribute('src');video.load();video.preload='none';if(visible)control();}
   else start();
  });
 })();

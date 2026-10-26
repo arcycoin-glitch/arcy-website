@@ -147,9 +147,9 @@ function candidate(network) {
         await page.locator('.home-search-result').click();
         await page.waitForURL(`**/search/token/${network}/${addresses[network]}`);
         await page.waitForFunction(() => document.querySelector('#detailState')?.textContent.includes('Snapshot complete'));
-        assert.equal(await page.locator('#cards > .card').count(), 5);
+        assert.equal(await page.locator('#cards .card').count(), 5);
         assert.equal(await page.locator('#deepResearch').getAttribute('open'),'');
-        assert.equal(await page.locator('#cards > .card > .metric').count(), 19, 'only source-backed rows remain directly visible');
+        assert.equal(await page.locator('#cards .card > .metric').count(), 19, 'only source-backed rows remain directly visible');
         if(network==='ethereum'){
           const holderProof=page.locator('[data-card-id="holders"] > .proof-panel');
           await holderProof.evaluate(node=>node.open=true);
@@ -160,8 +160,12 @@ function candidate(network) {
           assert.match(await candidates.innerText(),/UNKNOWN/);
           assert.equal(await candidates.locator('a').getAttribute('href'),'https://eth.blockscout.com/address/0x'+'a'.repeat(40));
         }
-        assert.equal(await page.locator('#cards > .card .missingGroup').count(), 1);
-        for(const row of await page.locator('#cards > .card > .metric').all())assert.ok(await row.isVisible());
+        assert.equal(await page.locator('#cards .card .missingGroup').count(), 1);
+                for(const id of ['liquidity','holders','mechanics','supply','activity']){
+          await page.locator('#reportNavigation a[href="#research-'+id+'"]').click();
+          await page.waitForFunction(id=>{const root=document.getElementById('cards'),slide=root.querySelector('[data-report-card="'+id+'"]');return slide&&Math.abs(root.scrollLeft-slide.offsetLeft)<=1},id);
+          for(const row of await page.locator('#research-'+id+' > .metric').all())assert.ok(await row.isVisible());
+        }
         assert.match(await page.locator('#evidenceCount').innerText(), /20 checks/);
         const detailLogo = page.locator('#tokenDetail img.token-title-logo');
         assert.equal(await detailLogo.count(), network === 'robinhood' ? 0 : 1, 'site-owned and permitted provider artwork appear on detail while missing stock art stays absent');

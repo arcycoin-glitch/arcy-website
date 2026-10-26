@@ -51,6 +51,12 @@
 }
 #hero .hero-motion-toggle[hidden]{display:none!important}
 #hero .hero-motion-toggle:focus-visible{outline:2px solid #65e5ff;outline-offset:4px}
+/* The approved V8 clip includes a landscape illustration. Retain its complete
+   frame and colors instead of cropping its panels with the old oval mask. */
+#hero .hero-video.hero-video-v8{object-fit:contain;object-position:center;border-radius:0;mix-blend-mode:normal;mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent),linear-gradient(0deg,transparent,#000 3%,#000 97%,transparent);mask-composite:intersect;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent),linear-gradient(0deg,transparent,#000 3%,#000 97%,transparent);-webkit-mask-composite:source-in}
+#hero .hero-flight.video-playing .hero-video.hero-video-v8{mix-blend-mode:normal}
+#hero .hero-energy:has(.video-playing .hero-video-v8) .v8-hologram{visibility:hidden}
+#hero .hero-video-notice{position:absolute;z-index:6;left:0;right:0;bottom:-25px;max-width:none;margin:0;font:500 10px/1.5 system-ui,sans-serif;text-align:center;letter-spacing:.01em;color:#a9c6d5;pointer-events:none}
 @media(prefers-reduced-motion:reduce){
  #hero .hero-motion-toggle{display:none!important}
  #hero .hero-flight,#hero .hero-flight .hero-wing-light{animation:none!important}

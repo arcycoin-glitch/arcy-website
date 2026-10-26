@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');
+module.exports=function(){
+ const root=path.resolve(__dirname,'../..'),get=(ref,file)=>cp.execFileSync('git',['show',ref+':'+file],{cwd:root,encoding:'utf8',maxBuffer:10000000}),norm=s=>s.replace(/\r\n/g,'\n');
+ const base=get('b5d897d','index.html');let current=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ for(const[ref,id]of[['779e92d','burn'],['be9384b','pulse']]){const re=new RegExp('<section id="'+id+'">[\\s\\S]*?<\\/section>');assert.equal(norm(current.match(re)[0]),norm(get(ref,'index.html').match(re)[0]),id+' matches approved isolated PR exactly');current=current.replace(re,()=>base.match(re)[0]);}
+ current=norm(current);for(const file of['burn-lab-video','pulse-chain-navigation','hero-welcome'])for(const hook of['<link rel="stylesheet" href="/'+file+'.css">\n','<script src="/'+file+'.js" defer></script>\n']){assert.equal(current.split(hook).length,2,'exactly one '+file+' hook');current=current.replace(hook,'');}
+ assert.equal(current,norm(base),'all other homepage markup and inline data scripts unchanged');
+ let detail=norm(fs.readFileSync(path.join(root,'search/index.html'),'utf8'));for(const hook of['<link rel="stylesheet" href="/search/report-navigation.css">\n','<script src="/search/report-navigation.js" defer></script>\n','<nav id="reportNavigation" aria-label="On-chain research shortcuts"></nav>\n','<p id="reportNavigationStatus" class="report-navigation-status" role="status"></p>\n']){assert.equal(detail.split(hook).length,2);detail=detail.replace(hook,'');}assert.equal(detail,norm(get('b5d897d','search/index.html')),'detail renderer/data/20 fields unchanged except four navigation hooks');
+ for(const file of['assets/hero-arcy.png','assets/1000266146.mp4','hero-video.js','hero-video.css']){const original=cp.execFileSync('git',['show','b5d897d:'+file],{cwd:root,maxBuffer:50000000}),actual=fs.readFileSync(path.join(root,file));if(file.startsWith('assets/'))assert(original.equals(actual),file+' binary preserved exactly');else assert.equal(norm(actual.toString()),norm(original.toString()),file+' text preserved exactly (Git checkout line endings)');}
+ assert.equal(cp.execFileSync('git',['diff','b5d897d','--','api','lib','search/server','scripts','vercel.json'],{cwd:root,encoding:'utf8'}),'','data layer and deployment config untouched');
+};

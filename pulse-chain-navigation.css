@@ -1,0 +1,10 @@
+#pulse .pulse-chain-selector{display:flex;gap:10px;margin-bottom:24px;max-width:100%;overflow-x:auto;padding:4px;scrollbar-width:thin}
+#pulse .pulse-chain-selector button{display:flex;align-items:center;justify-content:center;gap:9px;flex:0 0 auto;min-height:46px;padding:10px 16px;border:1px solid #27546c;border-radius:14px;background:#0b1e2d;color:#9ebdcc;font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+#pulse .pulse-chain-selector button[aria-selected="true"]{background:#103246;border-color:#22d4ff;color:#eaf6ff}
+#pulse .pulse-chain-selector button:focus-visible{outline:2px solid #ff984b;outline-offset:2px}
+#pulse .pulse-chain-selector img{object-fit:contain;flex:none}
+#pulse .pulse-chain-panels{display:grid;min-width:0}
+#pulse .pulse-chain-panel{grid-area:1/1;min-width:0}
+#pulse .pulse-chain-panel[aria-hidden="true"]{visibility:hidden;pointer-events:none}
+#pulse .pulse-chain-empty .pulse-source-placeholder{display:inline-block;margin-top:auto;padding-top:4px;font-size:10px;font-weight:800;color:var(--accent)}
+@media(max-width:580px){#pulse .pulse-chain-selector{gap:7px}#pulse .pulse-chain-selector button{padding:10px 12px;font-size:11px}}
