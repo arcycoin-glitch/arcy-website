@@ -21,11 +21,24 @@ function recover(original,{address,block,now=Date.now()}={}){
   ['REVIEWED_COMPILER_TEMPLATE_IMMUTABLES_ONLY','match','exact_match'].includes(e.runtimeMatch);
  // All three rate fields must independently name the SAME reviewed hook at
  // the SAME block; one good sell proof may never legitimize an untrusted buy.
- const proofSets=['buyTax','sellTax','transferTax'].map(k=>
-  (original.contractFields?.[k]?.evidence||[]).filter(validHook));
- if(proofSets.some(set=>set.length===0))return null;
- const hook=proofSets[0][0].hook;
- if(proofSets.some(set=>!set.some(e=>e.hook===hook)))return null;
+ // Only the buy/sell fees belong to the swap hook. Wallet-to-wallet
+ // Transfer 0% is established by a DIFFERENT bytecode-reviewed ERC-20
+ // implementation, not by the hook. Never demand false hook provenance
+ // for that independent token-level metric.
+ const buy=(original.contractFields?.buyTax?.evidence||[]).filter(validHook);
+ const sell=(original.contractFields?.sellTax?.evidence||[]).filter(validHook);
+ if(!buy.length||!sell.some(e=>buy.some(b=>b.hook===e.hook)))return null;
+ const tokenSource='f4abba6aa7071125168a9b9ea39cdfd08f01835d3c59aa74c55173c71e50daa1';
+ const transfer=original.contractFields?.transferTax;
+ const transferEvidence=transfer?.evidence||[];
+ const subjectBound=transferEvidence.some(e=>
+   e?.chainId===5042&&e.address===address&&e.block===original.block&&
+   e.method==='Mechanics summary subject binding');
+ const runtimeReviewed=transferEvidence.some(e=>
+   e?.block===original.block&&e.sourceDigest===tokenSource&&
+   e.profile==='ARGUS_V4_LAUNCH_TOKEN_7');
+ if(transfer?.value!==0||transfer.dataState!=='DATA_FOUND'||
+   !subjectBound||!runtimeReviewed)return null;
  // The hook's buy/sell configuration is compiler-verified immutable; the
  // last successful on-chain reading is still tied to its actual block, not
  // relabeled as the report's different pinned block.
