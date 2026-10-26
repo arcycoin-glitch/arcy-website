@@ -35,3 +35,11 @@
 - Await primary Supply-row choice and separate production authorization. Next weekly review schedule is Monday 2 November 2026 06:00 UTC.
 
 Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA_RESUME_20261027.md includes historical, now-excluded Holder experiments and is not the current scope.
+
+## Post-push read-only verification
+- Official live collectors: Ethereum 615 ms, 2/2 source families checked, one corroborated development; Robinhood 974 ms, 2/2 checked, quiet_week. Review clock explicitly 27 October 2026; next run 2 November 06:00 UTC.
+- New pinned-block on-chain supporting supply reads succeeded without calling Holder: ARCY block 0x1abbc56 (444 ms), Ethereum USDT block 0x190ff0d (577 ms), Robinhood TSLA block 0x5e2b73e (1093 ms).
+- Raw supply / decimals / dead-address balance: ARCY 1000000000000000000000000000 / 18 / 26952979843703698452942720; USDT 88301265725970534 / 6 / 26992832786; TSLA 10959986260000000000000 / 18 / 86051206085377017. Zero-address balances were checked at each same pinned block separately. None is circulating or scheduled unlock evidence.
+- An initial standalone Robinhood probe used an incorrect hostname and failed; corrected to the existing configured official rpc.mainnet.chain.robinhood.com endpoint and verified chain ID 4663. No application configuration was changed.
+- Mechanics paired nine-token results remain 8/9 tax-row evidence, 8/9 mint, 9/9 owner, 9/9 architecture. No redundant full re-audit or code changes in this follow-up.
+- No existing Draft PR was overwritten, no PR merged and no production rollout performed. Completed code and these audit notes are saved on the development branch.
