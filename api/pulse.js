@@ -116,5 +116,17 @@ async function handler(req,res){
  const current=await currentTransient(now);
  return res.status(200).json(current.status==='updated'||current.recentCards?.length?response(current,null):current);
 }
-module.exports=handler;
+module.exports=async(req,res)=>{
+ const networks=require('../lib/pulse-network-client'),chain=req.query?.chain;
+ if(chain!==undefined&&!['arc','ethereum','robinhood'].includes(chain)){res.setHeader('Cache-Control','no-store');return res.status(400).json({ok:false,error:'INVALID_PULSE_CHAIN'});}
+ if(chain&&chain!=='arc'){
+  if(req.method!=='GET'||req.query?.action==='refresh')return res.status(405).json({ok:false,error:'USE_AUTHENTICATED_COMBINED_REFRESH'});
+  const n=Number(req.query?.number);if(req.query?.action==='edition'&&(!Number.isSafeInteger(n)||n<1||n>9999))return res.status(400).json({ok:false,error:'INVALID_EDITION'});
+  const value=req.query?.action==='edition'?await networks.edition(chain,n):(await networks.bundle())[chain];res.setHeader('Cache-Control','no-store');return res.status(value?200:404).json(value?networks.view(value,{archive:req.query?.action==='edition'}):{ok:false,error:'EDITION_NOT_FOUND'});
+ }
+ const scheduled=cronRequest(req),manual=req.method==='POST'||req.query?.action==='refresh',refreshing=(scheduled||manual)&&authorized(req),all=req.query?.chains==='all';
+ if(!refreshing&&!all)return handler(req,res);
+ const extra=refreshing?networks.refresh(scheduled?'cron':'manual'):(async()=>{const values=await networks.bundle(),archive=req.query?.networkArchive;if(['ethereum','robinhood'].includes(archive)){const n=Number(req.query?.number),saved=await networks.edition(archive,n);values[archive]=saved?networks.view(saved,{archive:true}):require('../lib/pulse-networks').pending(archive,'EDITION_NOT_FOUND');}return Object.fromEntries(Object.entries(values).map(([c,v])=>[c,v?.contentNotice?v:networks.view(v)]));})();
+ const proxy=Object.create(res);proxy.setHeader=res.setHeader.bind(res);proxy.status=n=>{res.status(n);return proxy;};proxy.json=async data=>res.json({...data,[refreshing?'networkRefresh':'chains']:await extra});return handler(req,proxy);
+};
 module.exports.threeSections=threeSections;

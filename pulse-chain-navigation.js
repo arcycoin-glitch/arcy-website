@@ -12,6 +12,29 @@
   const take=document.createElement('div');take.className='pulse-take';const label=document.createElement('b'),text=document.createElement('p'),small=document.createElement('small');label.textContent='🦉 ARCY TAKE';text.textContent='Verified weekly research has not been connected yet.';small.textContent='No hype. Just signal. • arcyusdc.xyz';take.append(label,text,small);panel.append(eyebrow,head,grid,take);
  }
  skeleton(panels[1],'Ethereum');skeleton(panels[2],'Robinhood Chain');
+ function publications(values){
+  if(document.readyState==='loading')return;
+  for(const [chain,chainId,index]of [['ethereum',1,1],['robinhood',4663,2]]){
+   const value=values?.[chain],panel=panels[index];if(value?.chain!==chain||value.chainId!==chainId||!Array.isArray(value.cards)||value.cards.length!==3)continue;
+   const title=panel.querySelector('.head h3');title.querySelector('[data-pulse-number]')?.remove();
+   if(Number.isSafeInteger(value.number)&&value.number>0){const edition=document.createElement('span');edition.dataset.pulseNumber='';edition.textContent=' #'+String(value.number).padStart(3,'0');title.append(edition);}
+   panel.querySelector('.head p').textContent=value.contentNotice||'Verified weekly publication unavailable. No news has been substituted.';
+   for(const [i,card]of [...panel.querySelectorAll('.pulse-card')].entries()){
+    const item=value.cards[i];card.querySelector('.pulse-owner').textContent=(item.owner||'SOURCE STATUS')+(item.publishedAt?' · '+item.publishedAt.slice(0,10):'');card.querySelector('h4').textContent=item.title;card.querySelector('p').textContent=item.summary;
+    const old=card.querySelector('.pulse-source-placeholder'),link=document.createElement(item.url?'a':'div');link.className='pulse-source-placeholder';
+    let url;try{url=new URL(item.url);if(url.protocol!=='https:')url=null;}catch{}
+    if(url){link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';link.textContent=item.linkLabel||'READ PRIMARY SOURCE ↗';}else link.textContent='SOURCE STATUS · NOT A NEWS ITEM';old.replaceWith(link);
+   }
+   panel.querySelector('.pulse-take p').textContent=value.take;
+   let archive=panel.querySelector('.pulse-archive-link');if(!archive){archive=document.createElement('a');archive.className='pulse-archive-link';panel.querySelector('.pulse-take').append(archive);}
+   const params=new URLSearchParams(location.search),archived=params.get('pulseChain')===chain&&Number.isSafeInteger(Number(params.get('pulseEdition')))&&Number(params.get('pulseEdition'))>0;
+   archive.hidden=!archived&&!(value.number>1);archive.href='/?pulseChain='+chain+(archived?'':'&pulseEdition='+(value.number-1))+'#pulse';archive.textContent=archived?'CURRENT EDITION':'PREVIOUS EDITION #'+String(value.number-1).padStart(3,'0');
+  }
+  sizes();
+ }
+ addEventListener('arcy-pulse-networks',event=>publications(event.detail));
+ addEventListener('DOMContentLoaded',()=>{publications(window.ARCYPulseNetworks);const chain=new URLSearchParams(location.search).get('pulseChain');if(chain==='ethereum')select(1);if(chain==='robinhood')select(2);});
+ if(document.readyState!=='loading')publications(window.ARCYPulseNetworks);
  // Mirror only category labels/classes. Never copy Arc news, source URLs or editions.
  function sizes(){for(const panel of panels.slice(1)){for(const selector of['.head','.pulse-take'])panel.querySelector(selector).style.minHeight=arc.querySelector(selector).getBoundingClientRect().height+'px';const source=[...arc.querySelectorAll('.pulse-card')];panel.querySelectorAll('.pulse-card').forEach((card,i)=>{card.style.minHeight=(source[i]?.getBoundingClientRect().height||0)+'px';});}}
  function headings(){const cards=[...arc.querySelectorAll('.pulse-card')];if(cards.length!==3)return;for(const panel of panels.slice(1))for(const[i,card]of [...panel.querySelectorAll('.pulse-card')].entries()){const label=cards[i].querySelector(':scope > span');if(label)card.firstElementChild.textContent=label.textContent;card.className=cards[i].className;}sizes();}

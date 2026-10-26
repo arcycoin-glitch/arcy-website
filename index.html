@@ -547,12 +547,14 @@ async function loadPulse(){
     }).join('');
   };
   try{
-    const params=new URLSearchParams(location.search),edition=Number(params.get('pulseEdition'));
-    const archived=Number.isSafeInteger(edition)&&edition>0;
-    const endpoint=archived?`/api/pulse?action=edition&number=${edition}`:'/api/pulse';
+    const params=new URLSearchParams(location.search),edition=Number(params.get('pulseEdition')),pulseChain=params.get('pulseChain');
+    const archived=Number.isSafeInteger(edition)&&edition>0&&!['ethereum','robinhood'].includes(pulseChain);
+    const networkArchive=['ethereum','robinhood'].includes(pulseChain)&&Number.isSafeInteger(edition)&&edition>0;
+    const endpoint=archived?`/api/pulse?action=edition&number=${edition}`:'/api/pulse?chains=all'+(networkArchive?`&networkArchive=${pulseChain}&number=${edition}`:'');
     const r=await dataFetch(endpoint,{cache:'no-store'});
     const j=await r.json();
     const title=document.getElementById('pulseTitle');
+    if(j.chains){window.ARCYPulseNetworks=j.chains;dispatchEvent(new CustomEvent('arcy-pulse-networks',{detail:j.chains}));}
     if(title && Number.isSafeInteger(j.number)) title.textContent=`ARCY ARC PULSE #${String(j.number).padStart(3,'0')}${archived?' · ARCHIVE':''} 📡`;
     const grid=document.getElementById('pulseGrid');
     if(Array.isArray(j.cards))renderCards(grid,j.cards);
