@@ -43,3 +43,15 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - An initial standalone Robinhood probe used an incorrect hostname and failed; corrected to the existing configured official rpc.mainnet.chain.robinhood.com endpoint and verified chain ID 4663. No application configuration was changed.
 - Mechanics paired nine-token results remain 8/9 tax-row evidence, 8/9 mint, 9/9 owner, 9/9 architecture. No redundant full re-audit or code changes in this follow-up.
 - No existing Draft PR was overwritten, no PR merged and no production rollout performed. Completed code and these audit notes are saved on the development branch.
+
+
+## Release update — 27 October 2026, V8 Supply primary evidence
+- Production Vercel deployment READY: dpl_E9EU5ZvAFpa7DZkGs4ahgTLaPJvE; www.arcyusdc.xyz pointed to tested commit b7e060edb1b2f2ec258a241c72a64751bb5efe7e.
+- Branch fix/supply-primary-evidence-20261027; Draft PR #59; main had not been merged as of this note.
+- Search supply primary metrics now totalSupply / circulatingSupply / burnAddressBalance / nextUnlock (20 metrics across five original cards preserved). On-chain total supply and current zero/dead custody were already sourced with pinned evidence and are now visible in the main card, not misrepresented as lifetime burns. Existing quick facts remain intact.
+- Holder and V8 visual structure were unchanged. Contract/Mechanics verified-source enrichments and Pulse three-chain candidate are included in production web code.
+- GitHub Actions node unit/regression result: 516/530 PASS, 14 historical failures, zero additional failures from changed Supply metrics; source-completeness fixture was updated.
+- Vercel deployment READY and domain alias confirmed; this is not proof of live per-token on-chain API coverage or user-browser acceptance. Full browser/e2e verification remains outstanding.
+- IMPORTANT: Ethereum/Robinhood Pulse's signed weekly publisher depends on a separately updated persistent worker/API service. Vercel deployment alone does NOT activate the new worker routes. Do not claim weekly live generation is working until worker health/audit, signing, archiving and current editions are tested.
+- Circulating supply remains permission-blocked; exact-contract next unlock schedules remain unverifiable for tested token sample. Do not synthesize numbers, bypass commercial licenses, or conflate dead address custody with actual burns.
+- Next work: verify live Search responses for representative nine contracts (before/after actual DATA_FOUND, not synthetic); finish authorized Pulse worker rollout with end-to-end signed publications; investigate lawful circulation and exact token-matched schedule sources.
