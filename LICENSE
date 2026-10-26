@@ -1,0 +1,23 @@
+ARCY — SOURCE VIEWING AND RIGHTS NOTICE
+Copyright (c) 2026 ARCY Project. All rights reserved.
+
+This repository may be publicly accessible for transparency and inspection.
+Public visibility does not mean that the original ARCY implementation
+is offered under an open-source license.
+
+Except as expressly permitted by applicable law, GitHub's applicable
+Terms of Service, or a separate written authorization from the rights
+holder, no license is granted to reproduce, redistribute, modify,
+sublicense, commercialize, or deploy ARCY's original source code in
+another product or service.
+
+Third-party software, dependencies, and assets remain subject to their
+own respective licenses and terms. This notice does not override those
+licenses or restrict use of publicly available blockchain data.
+
+Security note: repository visibility and this notice do not prevent
+technical copying of public files. Credentials, signing keys, private
+configuration, proprietary analysis logic, and privileged integrations
+must be stored outside public repositories. If any secret has ever
+been committed publicly, revoke or rotate it; deleting the file alone
+will not remove it from Git history.
