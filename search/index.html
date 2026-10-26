@@ -534,7 +534,7 @@ function render(report){
     const description=document.createElement('div');
     description.className='description';
     description.textContent=spec.id==='supply'&&card?
-     'Locked/unlocked supply requires complete contract coverage. Verified burns require supply-reduction proof. Unlock dates are source-reported and may be incomplete.':
+     'Total supply and zero/dead-address balances use pinned on-chain evidence. Custody at burn addresses is not proof of historic supply destruction. Circulating supply and unlock dates require independent source verification.':
      (card?.description||'Awaiting verified evidence');
     section.append(description);
     const missingRows=[];
