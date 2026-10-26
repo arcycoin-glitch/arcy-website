@@ -41,6 +41,14 @@ async function report([chain,symbol,address]){
   transfer:m.contractFields?.transferTax?.dataState==='DATA_FOUND'?m.contractFields.transferTax.value:'NOT_VERIFIED',
   hookEvidenceCount:m.hookEvidence?.length||0}));
  const originalCard=require('../search/server/lib/arc-legacy-evidence').contract(m,sample[0][2]);
+ const recovered=require('../search/server/lib/arc-mechanics-recovery').recover(m,{address:sample[0][2],block:output[0]?.block});
+ console.log('ARCY_RECOVERY_CHECK '+JSON.stringify({ok:!!recovered,reported:recovered?.value||null,status:recovered?.status||null,
+   reportBlock:output[0]?.block,originalBlock:m.block,proof:(m.contractFields?.buyTax?.evidence||[]).map(e=>({
+    chainId:e.chainId,address:e.address,block:e.block,hook:e.hook,
+    portalDigestMatch:e.portalSourceDigest===require('../lib/mechanics-hook').reviewed.portal,
+    hookDigestMatch:e.hookSourceDigest===require('../lib/mechanics-hook').reviewed.hook,
+    runtimeMatch:e.runtimeMatch
+   })).slice(0,4)}));
  const tax=originalCard.tradingTaxes;
  console.log('ARCY_BRIDGE_DIAGNOSTIC '+JSON.stringify({state:tax?.dataState,status:tax?.status,
   source:tax?.source,value:tax?.value,
