@@ -207,6 +207,19 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
  for(const f of Object.values(fields))f.evidence.push({chainId:cfg.chainId,network,address,block,method:'Mechanics analysis detail',...details});
  return {fields,details};
 }
+function originalTradeScopeIsBroader(field,{network,address,block}){
+ if(network!=='arc'||field?.dataState!=='DATA_FOUND'||typeof field.value!=='string'||field.source==='GoPlus')return false;
+ // Buy/sell values from the existing reviewed Arc route are not superseded by
+ // a token-transfer-only finding from the newly reviewed implementation.
+ if(!/\bBuy\s+\d+(?:\.\d+)?%\s*·\s*Sell\s+\d+(?:\.\d+)?%/.test(field.value))return false;
+ return Array.isArray(field.evidence)&&field.evidence.some(e=>
+  e?.chainId===5042&&e.address?.toLowerCase()===address&&e.block===block&&
+  (/Sourcify|Arc RPC/.test(e.source||'')||e.hookSourceDigest||e.sourceDigest));
+}
+function onlyTokenTransfer(field){
+ return field?.evidence?.some(e=>e?.coverage==='TOKEN_TRANSFER_ONLY')||
+   /^Transfer\s+\d+(?:\.\d+)?%\s*·\s*DEX\/hook fees NOT VERIFIED/.test(String(field?.value||''));
+}
 async function enrich(options){
  const card=options.card,old=card?.fields||{};let result;
  try{result=await inspect(options);}catch{return card;}
@@ -214,8 +227,10 @@ async function enrich(options){
  for(const[key,value]of Object.entries(result.fields)){
   // Strong source/state proof wins over a secondary provider; generic getters
   // only fill gaps. Never discard established reviewed Arc mechanics evidence.
-  if(key==='contractArchitecture'||old[key]?.dataState!=='DATA_FOUND'||
-   (value.status.startsWith('VERIFIED_SOURCE')&&!['VERIFIED_SOURCE','VERIFIED_SOURCE_AND_STATE','ONCHAIN_VERIFIED'].includes(old[key]?.status)))fields[key]={...value,evidence:[...value.evidence,...(old[key]?.dataState==='DATA_FOUND'&&Array.isArray(old[key].evidence)?old[key].evidence.map(e=>({...e,retainedFrom:'Existing Mechanics evidence; original block preserved'})):[])]};
+  const preserveTrade=key==='tradingTaxes'&&onlyTokenTransfer(value)&&
+    originalTradeScopeIsBroader(old[key],options);
+  if(!preserveTrade&&(key==='contractArchitecture'||old[key]?.dataState!=='DATA_FOUND'||
+   (value.status.startsWith('VERIFIED_SOURCE')&&!['VERIFIED_SOURCE','VERIFIED_SOURCE_AND_STATE','ONCHAIN_VERIFIED'].includes(old[key]?.status))))fields[key]={...value,evidence:[...value.evidence,...(old[key]?.dataState==='DATA_FOUND'&&Array.isArray(old[key].evidence)?old[key].evidence.map(e=>({...e,retainedFrom:'Existing Mechanics evidence; original block preserved'})):[])]};
   else fields[key]={...fields[key],evidence:[...(fields[key].evidence||[]),...value.evidence.map(e=>({...e,observationValue:value.value,observationStatus:value.status,retainedFrom:'Additional validated observation; existing displayed value preserved'}))]};
  }
  // Unknown architecture observations must not retain an unchecked storage word.
