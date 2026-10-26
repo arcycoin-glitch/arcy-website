@@ -13,3 +13,5 @@
 #burn .burn-lab-play:focus-visible{outline:2px solid #ff984b;outline-offset:3px}
 @media(max-width:650px){#burn .burn-lab-scene{aspect-ratio:1/1}#burn .burn-lab-scoreboard{padding:10px;bottom:8px;left:8px;right:8px}}
 @media(prefers-reduced-motion:reduce){#burn .burn-lab-video{display:none}#burn .burn-lab-scene .burn-lab-poster{visibility:visible}}
+/* Play only in the existing illustration viewport, never across the live scoreboard. */
+#burn .burn-lab-scene>.burn-lab-video-v8{inset:0 0 auto;height:auto;aspect-ratio:872/505;object-fit:contain;object-position:center}
