@@ -7,7 +7,7 @@ const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 test('hero animation starts when visible, not after window load or idle callback',()=>{
  const script=read('hero-video.js');
  assert.match(script,/new IntersectionObserver/);
- assert.match(script,/rootMargin:'160px 0px 160px 0px'/);
+ assert.match(script,/rootMargin:'0px'/); // V8: start the owl video only when the hero enters the actual viewport.
  assert.match(script,/video\.src=video\.dataset\.src/);
  assert.doesNotMatch(script,/requestIdleCallback|addEventListener\('load'/);
  assert.match(script,/video\.play\(\)/);
