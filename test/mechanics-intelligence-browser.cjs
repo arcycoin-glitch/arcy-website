@@ -22,9 +22,9 @@ for(const mode of['unknown','architecture','partial-tax','two-rows','full-tax','
  if(mode==='full-tax')f.tradingTaxes=fact('Buy 0% · Sell 2% · Transfer 0%');
  if(mode==='historical')for(const x of Object.values(f).filter(x=>x.dataState==='DATA_FOUND'))x.freshness={state:'LAST_VERIFIED',observedAt:'2026-10-01T00:00:00Z'};
  await page.evaluate(d=>render(d,{preserve:true}),data);
- const visible=['two-rows','full-tax','historical','recovered'].includes(mode);assert.equal(await page.locator(selector).count(),visible?1:0,mode);
+ const visible=['architecture','partial-tax','two-rows','full-tax','historical','recovered'].includes(mode);assert.equal(await page.locator(selector).count(),visible?1:0,mode);
  if(visible){assert.ok(await page.locator(selector).isVisible());assert.equal(await page.locator(selector+' > .metric').count(),4);await page.locator(selector+' .proof-panel').evaluate(e=>e.open=true);assert.equal(await page.locator(selector+' .proof-entry').count(),4);if(mode==='historical')assert.match(await page.locator(selector).innerText(),/HISTORICAL/);}
- else assert.match(await page.locator('#evidenceCount').innerText(),/Contract & Mechanics is hidden/);
+ else assert.match(await page.locator('#evidenceCount').innerText(),/Contract & Mechanics has no evidence-backed fields/);
  assert.equal(await page.locator('#cards .card').count(),visible?5:4);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));checks++;
 }
 assert.deepEqual(errors,[]);await page.close();}

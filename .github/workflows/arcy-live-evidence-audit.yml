@@ -1,0 +1,29 @@
+name: ARCY live evidence smoke (read-only)
+on:
+  pull_request:
+    paths:
+      - 'search/server/lib/mechanics-deep.js'
+      - 'search/mechanics-policy.js'
+      - 'lib/pulse-network-client.js'
+      - 'scripts/audit-live-contract-pulse.cjs'
+      - '.github/workflows/arcy-live-evidence-audit.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'search/server/lib/mechanics-deep.js'
+      - 'search/mechanics-policy.js'
+      - 'lib/pulse-network-client.js'
+      - 'scripts/audit-live-contract-pulse.cjs'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read only nine token and three-chain Pulse public audit
+        run: node scripts/audit-live-contract-pulse.cjs

@@ -291,8 +291,22 @@ async function mechanics({address,base}){
     detected[key]?.dataState==='DATA_FOUND'?detected[key]:existing
   ]));
  }
- return require('./mechanics-deep').enrich({network:'arc',address,block:base.block,rpc:rpcClient.rpc,
+ const expanded=await require('./mechanics-deep').enrich({network:'arc',address,block:base.block,rpc:rpcClient.rpc,
   card:{description:'Verified Arc contract mechanics with pinned-RPC/source fallback; external detection never overrides stronger first-party evidence.',fields}});
+ // Separate reviewed immutable hook-tax evidence from ordinary ERC20 transfers.
+ // The direct source re-read must prove the exact chain, token, hook and
+ // nearby observed block. Never copy fee values by project name or ticker.
+ if(!/^Buy\s+\d+(?:\.\d+)?%\s*·\s*Sell\s+\d+(?:\.\d+)?%/.test(String(expanded.fields?.tradingTaxes?.value||''))){
+  try{
+   const legacy=await require('./timeout').withTimeout(
+     original.callOriginal('mechanics',address),8500,'Reviewed Arc hook fallback deadline');
+   const recovered=require('./arc-mechanics-recovery').recover(legacy,{address,block:base.block});
+   if(recovered)expanded.fields.tradingTaxes={...recovered,evidence:[...recovered.evidence,
+    ...(expanded.fields?.tradingTaxes?.evidence||[]).map(e=>({...e,
+     retainedFrom:'Current ordinary token transfer review; separate from verified launch-pool fee rates'}))]};
+  }catch{} // Keep the original evidence state; do not invent fees.
+ }
+ return expanded;
 }
 async function inspectCard({base,address,cardId}){
  switch(cardId){

@@ -1,4 +1,6 @@
 'use strict';
+// Existing signed-publication fixtures exercise strict mode; direct source fallback is tested separately.
+process.env.ARC_PULSE_DIRECT_FALLBACK='0';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path'),crypto=require('node:crypto');
 const news=require('../lib/pulse-networks'),store=require('../lib/pulse-network-storage');
 const NOW=Date.parse('2026-10-26T06:00:00Z');
@@ -37,4 +39,37 @@ test('combined API preserves the exact Arc response, with one optional bundle an
  const handler=require('../api/pulse'),arc=require('../lib/pulse-client'),networks=require('../lib/pulse-network-client'),period=require('../lib/pulse-edition').cycle(),saved={number:5,status:'updated',generatedAt:new Date().toISOString(),cycle:{start:new Date(period.start).toISOString(),end:new Date(period.end).toISOString()},take:'Arc test fixture.',cards:['week','new','unlock'].map((kind,i)=>({kind,title:'Arc fixture '+i,summary:'Rendering fixture.',url:'https://www.arc.io/fixture-'+i,publishedAt:new Date(period.start+1000).toISOString()})),sources:[]};
  const old=[arc.latest,arc.audit,arc.refresh,networks.bundle,networks.refresh],oldSecret=process.env.CRON_SECRET;let refreshes=0;arc.latest=async()=>saved;arc.audit=async()=>null;arc.refresh=async()=>({ok:true,edition:saved});networks.bundle=async()=>({ethereum:news.pending('ethereum'),robinhood:news.pending('robinhood')});networks.refresh=async()=>{refreshes++;return {ethereum:{ok:true},robinhood:{ok:false}}};const response=()=>({setHeader(){},status(n){this.code=n;return this},json(d){this.body=d;return this}});
  try{let r=response();await handler({method:'GET',headers:{},query:{}},r);const expected=r.body;r=response();await handler({method:'GET',headers:{},query:{chains:'all'}},r);const {chains,...rest}=r.body;assert.deepEqual(rest,expected);assert.equal(chains.ethereum.chainId,1);assert.equal(refreshes,0);process.env.CRON_SECRET='cron-fixture';r=response();await handler({method:'POST',headers:{},query:{}},r);assert.equal(r.code,401);assert.equal(refreshes,0);r=response();await handler({method:'GET',headers:{authorization:'Bearer cron-fixture','x-vercel-cron':'1'},query:{}},r);assert.equal(r.code,200);assert.equal(refreshes,1);assert.equal(r.body.take,expected.take);assert.equal(r.body.networkRefresh.robinhood.ok,false);}finally{[arc.latest,arc.audit,arc.refresh,networks.bundle,networks.refresh]=old;if(oldSecret===undefined)delete process.env.CRON_SECRET;else process.env.CRON_SECRET=oldSecret;}
+});
+
+test('missing worker editions fall back to bounded official reviews with explicit unsigned provenance',async()=>{
+ const client=require('../lib/pulse-network-client'),research=require('../lib/pulse-networks'),
+  oldGenerate=research.generate,oldFetch=global.fetch,oldFlag=process.env.ARC_PULSE_DIRECT_FALLBACK,
+  oldUrl=process.env.ARC_PULSE_PUBLISHED_URL;
+ let fetches=0,generations=0;
+ process.env.ARC_PULSE_DIRECT_FALLBACK='1';
+ process.env.ARC_PULSE_PUBLISHED_URL='https://new-review-unavailable.example';
+ global.fetch=async()=>{fetches++;return new Response('unavailable',{status:503});};
+ research.generate=async({chain})=>{
+  generations++;const cycle=research.windowFor();
+  return {success:true,status:chain==='robinhood'?'quiet_week':'updated',
+   chain,chainId:research.config(chain).chainId,cycle,publicationWeek:cycle.publicationWeek,
+   cards:[{kind:'week',title:'Source review',contentType:'SOURCE_STATUS'},
+    {kind:'new',title:'No fabricated news',contentType:'SOURCE_STATUS'},
+    {kind:'unlock',title:'No unlock assumed',contentType:'SOURCE_STATUS'}],
+   take:'First-party source review',audit:{sourcesAttempted:2,sourcesSuccessfullyChecked:2}};
+ };
+ try{
+  const a=await client.bundle();
+  assert.equal(a.ethereum.publicationAvailability,'DIRECT_OFFICIAL_SOURCES');
+  assert.equal(a.robinhood.status,'quiet_week');
+  assert.match(client.view(a.ethereum).contentNotice,/NOT SIGNED\/ARCHIVED/);
+  const b=await client.bundle();
+  assert.equal(b.ethereum.chainId,1);
+  assert.equal(generations,2,'both reviews are coalesced/cached');
+  assert.equal(fetches,1,'worker access is not retried within signed-cache interval');
+ }finally{
+  research.generate=oldGenerate;global.fetch=oldFetch;
+  if(oldFlag===undefined)delete process.env.ARC_PULSE_DIRECT_FALLBACK;else process.env.ARC_PULSE_DIRECT_FALLBACK=oldFlag;
+  if(oldUrl===undefined)delete process.env.ARC_PULSE_PUBLISHED_URL;else process.env.ARC_PULSE_PUBLISHED_URL=oldUrl;
+ }
 });
