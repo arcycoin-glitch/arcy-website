@@ -1,6 +1,14 @@
 'use strict';
 // Presentation only; article content, edition IDs, links and data are not rewritten.
 (()=>{
+ // Preserve the English interface of the approved research holograms when
+ // browser page translation is enabled (the source copy is already English).
+ document.querySelectorAll('#hero .v8-hologram').forEach(card=>{
+  card.lang='en';
+  card.translate=false;
+  card.classList.add('notranslate');
+  card.setAttribute('translate','no');
+ });
  const factory=document.querySelector('.v8-burn-factory-art img');
  if(factory&&!navigator.connection?.saveData){const load=()=>{factory.addEventListener('load',()=>factory.closest('.burn-lab-scene').classList.add('v8-factory-ready'),{once:true});factory.src=factory.dataset.src;};if('IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){observer.disconnect();load();}},{rootMargin:'120px'});observer.observe(factory.parentElement);}else load();}
  const pulse=document.getElementById('pulse');if(!pulse)return;

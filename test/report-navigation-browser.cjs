@@ -15,6 +15,20 @@ for(const width of[320,360,390,430,768,1440]){
  await page.goto(origin+'/search/token/arc/'+address,{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>document.getElementById('detailState').textContent.includes('Snapshot complete'));
  assert.equal(await page.locator('#reportNavigation a').count(),5);assert.equal(await page.locator('#cards .card').count(),5);assert.equal(await page.locator('#cards .metric').count(),20);
+ await page.locator('#deepResearch').evaluate(el=>el.open=true);
+ const rail=await page.locator('#cards').evaluate(el=>({
+  display:getComputedStyle(el).display,
+  scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,
+  widths:[...el.querySelectorAll('[data-card-id]')].map(c=>Math.round(c.getBoundingClientRect().width))
+ }));
+ assert.equal(rail.display,'flex','report cards must use a horizontal rail');
+ assert(rail.scrollWidth>rail.clientWidth+40,'all 5 cards remain reachable by sideways swipe');
+ assert(rail.widths.every(w=>w>190&&w<=rail.clientWidth),'card width must fit mobile viewport');
+ await page.locator('.report-carousel-arrow[aria-label="Next analysis"]').click();
+ await page.waitForFunction(()=>document.getElementById('cards').scrollLeft>10);
+ await page.locator('.report-carousel-arrow[aria-label="Previous analysis"]').click();
+ await page.waitForFunction(()=>document.getElementById('cards').scrollLeft<10);
+
  const before=calls;
  for(const id of['liquidity','holders','mechanics','supply','activity']){
   await page.locator('#deepResearch').evaluate(el=>el.open=false);

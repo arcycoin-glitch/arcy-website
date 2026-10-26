@@ -2,12 +2,13 @@
 (()=>{
  const nav=document.getElementById('reportNavigation'),report=document.getElementById('deepResearch'),cards=document.getElementById('cards'),status=document.getElementById('reportNavigationStatus');
  if(!nav||!report||!cards)return;
+ nav.lang='en';nav.setAttribute('translate','no');nav.classList.add('notranslate');cards.lang='en';
  const order=['liquidity','holders','mechanics','supply','activity'],definitions=window.ARCYEthLabSchema||[],links=new Map(),groupStates=new Map(),motion=matchMedia('(prefers-reduced-motion: reduce)');
  let activeId=order[0],slides=[],pending=false,rebuilding=false,intended=null;
  cards.classList.add('report-carousel');cards.setAttribute('role','region');cards.setAttribute('aria-roledescription','carousel');cards.setAttribute('aria-label','Token analysis cards');cards.tabIndex=0;
- const controls=document.createElement('div');controls.className='report-carousel-controls';
+ const controls=document.createElement('div');controls.className='report-carousel-controls';controls.setAttribute('role','group');controls.setAttribute('aria-label','Swipe or use the arrows to explore all available analyses');
  const previous=document.createElement('button'),next=document.createElement('button'),position=document.createElement('span');
- previous.type=next.type='button';previous.textContent='← Previous';next.textContent='Next →';previous.setAttribute('aria-label','Previous analysis card');next.setAttribute('aria-label','Next analysis card');previous.setAttribute('aria-controls','cards');next.setAttribute('aria-controls','cards');position.setAttribute('role','status');position.setAttribute('aria-live','polite');controls.append(previous,position,next);cards.before(controls);
+ previous.type=next.type='button';previous.className=next.className='report-carousel-arrow';previous.textContent='← Previous';next.textContent='Next →';previous.setAttribute('aria-label','Previous analysis');next.setAttribute('aria-label','Next analysis');previous.setAttribute('aria-controls','cards');next.setAttribute('aria-controls','cards');position.setAttribute('role','status');position.setAttribute('aria-live','polite');controls.append(previous,position,next);cards.before(controls);
  const title=id=>definitions.find(spec=>spec.id===id)?.title||id;
  function activeIndex(){return slides.findIndex(slide=>slide.dataset.reportCard===activeId);}
  function activate(index){
