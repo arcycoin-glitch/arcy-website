@@ -48,7 +48,7 @@ async function report([chain,symbol,address]){
     portalDigestMatch:e.portalSourceDigest===require('../lib/mechanics-hook').reviewed.portal,
     hookDigestMatch:e.hookSourceDigest===require('../lib/mechanics-hook').reviewed.hook,
     runtimeMatch:e.runtimeMatch
-   })).slice(0,4)}));
+   })).slice(0,4),transfer:{value:m.contractFields?.transferTax?.value,status:m.contractFields?.transferTax?.status,evidence:(m.contractFields?.transferTax?.evidence||[]).slice(0,4).map(e=>({chainId:e.chainId,address:e.address,block:e.block,sourceDigest:e.sourceDigest,source:e.source,profile:e.profile,method:e.method}))}}));
  const tax=originalCard.tradingTaxes;
  console.log('ARCY_BRIDGE_DIAGNOSTIC '+JSON.stringify({state:tax?.dataState,status:tax?.status,
   source:tax?.source,value:tax?.value,
