@@ -15,12 +15,17 @@ function recover(original,{address,block,now=Date.now()}={}){
  if(candidate?.dataState!=='DATA_FOUND'||typeof candidate.value!=='string'||
   !/^Buy (?:0|[1-9]\d*)(?:\.\d+)?% · Sell (?:0|[1-9]\d*)(?:\.\d+)?% · Transfer (?:0|[1-9]\d*)(?:\.\d+)?%$/.test(candidate.value)||
   !/^Sourcify bytecode-matched reviewed V4 hook \+ Arc RPC$/.test(candidate.source||''))return null;
- const evidence=(candidate.evidence||[]).find(e=>e?.chainId===5042&&
-  e.address===address&&e.block===original.block&&
+ const validHook=e=>e?.chainId===5042&&e.address===address&&e.block===original.block&&
   e.hookSourceDigest===reviewed.hook&&e.portalSourceDigest===reviewed.portal&&
-  /^0x[0-9a-f]{40}$/i.test(e.hook||'')&&e.runtimeMatch&&
-  (e.runtimeMatch==='REVIEWED_COMPILER_TEMPLATE_IMMUTABLES_ONLY'||e.runtimeMatch==='match'||e.runtimeMatch==='exact_match'));
- if(!evidence)return null;
+  /^0x[0-9a-f]{40}$/i.test(e.hook||'')&&
+  ['REVIEWED_COMPILER_TEMPLATE_IMMUTABLES_ONLY','match','exact_match'].includes(e.runtimeMatch);
+ // All three rate fields must independently name the SAME reviewed hook at
+ // the SAME block; one good sell proof may never legitimize an untrusted buy.
+ const proofSets=['buyTax','sellTax','transferTax'].map(k=>
+  (original.contractFields?.[k]?.evidence||[]).filter(validHook));
+ if(proofSets.some(set=>set.length===0))return null;
+ const hook=proofSets[0][0].hook;
+ if(proofSets.some(set=>!set.some(e=>e.hook===hook)))return null;
  // The hook's buy/sell configuration is compiler-verified immutable; the
  // last successful on-chain reading is still tied to its actual block, not
  // relabeled as the report's different pinned block.
