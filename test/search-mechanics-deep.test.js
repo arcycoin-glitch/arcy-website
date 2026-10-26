@@ -10,6 +10,16 @@ function fixture({code=basic,slots={},calls={},targets={},source=null}={}){
 }
 function fn(name,inputs=[],type='address'){return {type:'function',name,stateMutability:'view',inputs:inputs.map(type=>({type})),outputs:[{type}]};}
 const profile=id=>Object.keys(m.PROFILES).find(k=>m.PROFILES[k]===id);
+
+test('reviewed one-shot reward launch source establishes only transfer tax; initialized portal is required for no further mint',async()=>{
+ for(const initialized of [false,true]){const source={digest:profile('INITIALIZED_REWARD_LAUNCH_TOKEN'),abi:[fn('owner'),fn('portal')],url:'https://sourcify.dev/exact-source'},x=fixture({source,calls:{[m.selector('owner()')]:addr(B),[m.selector('portal()')]:initialized?addr(C):zero}}),r=await m.inspect(x.options);assert.match(r.fields.tradingTaxes.value,/Transfer 0%/);assert.match(r.fields.tradingTaxes.value,/DEX\/hook fees NOT VERIFIED/);assert.equal(r.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TRANSFER_ONLY');assert.equal(Boolean(r.fields.mintCapability),initialized);assert(r.details.observations.some(x=>x.burn?.includes('dead address is an ordinary holder')));}
+});
+test('second complete reviewed legacy source binds implementation/admin; unrelated source and invalid target do not',async()=>{
+ const cloneSource={digest:'316b86e4d73ad7a683188f2ac85162c763fd055d47d44c2be790d54b83a73a49',abi:[]},implementation={digest:'d8d6edfc12f71433b5efe6ab623af4db5b160750902daa4f08fe337865087ceb',abi:[]},x=fixture({code:delegate,slots:{[m.SLOTS.legacy]:addr(B),[m.SLOTS.legacyAdmin]:addr(C)},targets:{[B]:basic},calls:{[m.selector('masterMinter()')]:addr(C)}});x.options.sourceLoader=async(cfg,a)=>a===A?cloneSource:implementation;const r=await m.inspect(x.options);assert.match(r.fields.contractArchitecture.value,/Legacy implementation/);assert.equal(r.fields.contractArchitecture.evidence[0].implementation,B);assert.match(r.fields.ownerAdmin.value,/Proxy admin/);assert.match(r.fields.ownerAdmin.evidence[0].method,/legacy/i);assert.match(r.fields.mintCapability.value,/Allowance-limited/);assert(r.details.observations.some(x=>x.burn?.includes('totalSupply')));
+});
+test('unknown fields retain source-failure evidence instead of silently dropping diagnostics',async()=>{
+ const x=fixture(),card={fields:{tradingTaxes:{value:null,dataState:'NOT_VERIFIED',reason:'Tax semantics unknown',evidence:[]}}};x.options.sourceLoader=async(cfg,a,c,failures)=>{failures.push({reason:'SOURCE_API_FAILED',chainId:cfg.chainId,address:a});return null};const result=await m.enrich({...x.options,card});assert.equal(result.fields.tradingTaxes.value,null);assert.equal(result.fields.tradingTaxes.dataState,'NOT_VERIFIED');assert(result.fields.tradingTaxes.evidence.some(x=>x.failures?.some(f=>f.reason==='SOURCE_API_FAILED')));
+});
 test('source identity, bytecode, malformed ABI and unrelated source fail closed',()=>{
  const d={chainId:'1',address:A,runtimeMatch:'exact_match',runtimeBytecode:{onchainBytecode:basic},abi:[],sources:{'x.sol':{content:'original'}}};
  const args={chainId:1,address:A,code:basic};assert.ok(m.validateSource(d,args).digest);

@@ -22,9 +22,12 @@ const PROFILES=Object.freeze({
  '3424b81acc01fc833b18f1e2341511fe1bffdd065376112ef979243834e13ba4':'WARD_AUTH_TOKEN',
  '5f75f27c6b98783b82c28164831948668e502ee20bd302aaaeff35c74dbda664':'ALLOWANCE_MINTER_TOKEN',
  '82f4da21cdb0464ca580be2847548393fa678d7e06310fc169d74663ede571fd':'REGISTRY_AUTH_TOKEN',
+ 'f4abba6aa7071125168a9b9ea39cdfd08f01835d3c59aa74c55173c71e50daa1':'INITIALIZED_REWARD_LAUNCH_TOKEN',
+ 'd8d6edfc12f71433b5efe6ab623af4db5b160750902daa4f08fe337865087ceb':'ALLOWANCE_MINTER_TOKEN',
  ...require('./mechanics-reviewed-v4').PROFILES
 });
 const REVIEWED_LEGACY_PROXY='b49bec6077f927208196e052c2a55e5a37fe21fd8e9e1dc8e90f6f1116cf8c7e';
+const reviewedLegacy=digest=>[REVIEWED_LEGACY_PROXY,'316b86e4d73ad7a683188f2ac85162c763fd055d47d44c2be790d54b83a73a49'].includes(digest);
 const REVIEWED_BEACON_PROXY='922425867904c46fb129080ebcd685ba70e0afb5aaa9fdc47b5f9327cee41196';
 const selector=s=>keccak(Buffer.from(s)).slice(0,10);
 function digest(sources){return crypto.createHash('sha256').update(JSON.stringify(Object.entries(sources).map(([p,x])=>[p,x.content]).sort(([a],[b])=>a.localeCompare(b)))).digest('hex');}
@@ -78,7 +81,10 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
   }
  }
  const outer=await sourcePromise;if(outer)details.sources.push({address,digest:outer.digest,url:outer.url,retrievedAt:outer.retrievedAt});
- if(outer?.digest===REVIEWED_LEGACY_PROXY&&kind==='Legacy implementation slot')admin=addressWord(await safe('eth_getStorageAt',[address,SLOTS.legacyAdmin,block]));
+ if(reviewedLegacy(outer?.digest)&&kind==='Legacy implementation slot'){
+  admin=addressWord(await safe('eth_getStorageAt',[address,SLOTS.legacyAdmin,block]));
+  if(admin)details.observations.push({method:'Reviewed legacy proxy upgrade authority',admin,block,sourceUrl:outer.url,sourceDigest:outer.digest,status:'VERIFIED_SOURCE_AND_STATE',scope:'Reviewed admin slot gates changeAdmin, upgradeTo and upgradeToAndCall. Token owner and implementation roles are separate; key ownership and complete multisig membership are not inferred.'});
+ }
  let beaconBinding=false;
  const template=require('./mechanics-reviewed-v4').immutableBeacon(code);
  if(outer?.digest===REVIEWED_BEACON_PROXY||template){
@@ -104,14 +110,14 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
   // UUPS UUID is read on the implementation, never through the proxy.
   const uuid=await word(target,'proxiableUUID()');
   fields.contractArchitecture=fact(kind+(uuid?.toLowerCase()===SLOTS.implementation?' · UUPS UUID observed':''),'Pinned proxy runtime/storage + deployed target bytecode',{implementation:target,beacon,runtimeCodeHash,implementationCodeHash:keccak(Buffer.from(targetCode.slice(2),'hex')),scope:'Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed.'});
-  if(admin){fields.ownerAdmin=fact('Proxy admin: '+admin,'EIP-1967 admin slot on delegating runtime',{admin,scope:'Observed admin storage, not proof that all privileges are enumerated.'});const aCode=await deployed(admin);if(aCode){const o=addressWord(await call(admin,'owner()'));if(o)details.observations.push({method:'ProxyAdmin owner()',contract:admin,value:o,block,scope:'Getter-reported; not complete admin semantics.'});}}
+  if(admin){fields.ownerAdmin=fact('Proxy admin: '+admin,kind==='Legacy implementation slot'?'Reviewed legacy proxy admin slot':'EIP-1967 admin slot on delegating runtime',{admin,scope:'Observed admin storage, not proof that all privileges are enumerated.'});const aCode=await deployed(admin);if(aCode){const o=addressWord(await call(admin,'owner()'));if(o)details.observations.push({method:'ProxyAdmin owner()',contract:admin,value:o,block,scope:'Getter-reported; not complete admin semantics.'});}}
   if(beacon){const owner=addressWord(await call(beacon,'owner()'));if(owner&&!fields.ownerAdmin)fields.ownerAdmin=fact('Beacon owner() getter: '+owner,'Pinned beacon owner() getter',{beacon,implementation:target,scope:'Getter-reported, not a proof of complete authority.'},'GETTER_REPORTED');}
  }
  const implementationSource=target!==address&&targetCode?await sourceLoader(cfg,target,targetCode,diagnostics):outer;
  if(implementationSource&&target!==address)details.sources.push({address:target,digest:implementationSource.digest,url:implementationSource.url,retrievedAt:implementationSource.retrievedAt});
  // Unknown delegated target cannot inherit an outer ABI as token implementation evidence.
  const reviewedSlotProxy=outer&&Object.hasOwn(require('./mechanics-reviewed-v4').PROXY_SOURCES,outer.digest)&&kind==='EIP-1967 implementation';
- const boundTarget=target===address||Boolean(clone)||outer?.digest===REVIEWED_LEGACY_PROXY&&kind==='Legacy implementation slot'||beaconBinding||reviewedSlotProxy;
+ const boundTarget=target===address||Boolean(clone)||reviewedLegacy(outer?.digest)&&kind==='Legacy implementation slot'||beaconBinding||reviewedSlotProxy;
  if(kind&&targetCode){
   if(boundTarget)await publishProxy();
   else details.observations.push({method:'Unbound proxy storage candidate',implementation:target,admin,beacon,block,scope:'Storage/getter observations only. The outer execution path is not reviewed/bound; proxy architecture, upgradeability and admin authority remain unverified.'});
@@ -150,6 +156,12 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
   const profile=PROFILES[source.digest];details.reviewedProfile=profile||null;
   if(profile){
    const proof={...sourceProof,profile,scope:'Reviewed complete source matched to pinned deployed bytecode; token-level transfer mechanics only. DEX pool/hook fees are NOT VERIFIED; no trade simulation was performed.'};
+   if(profile==='INITIALIZED_REWARD_LAUNCH_TOKEN'){
+    fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed full-value ERC20 _update + bounded, caught reward-share callbacks',{...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'The complete reviewed token source deducts no transfer tax. isExempt affects reward shares, not transfer fees. External pool/hook fees and buyback operations are not established.'},'VERIFIED_SOURCE');
+    const portal=addressWord(await call(address,'portal()'));
+    if(portal&&portal!=='0x'+'0'.repeat(40))fields.mintCapability=fact('NONE DETECTED ✓','Reviewed one-shot initialization mint + pinned nonzero portal',{...proof,portal,scope:'Nonzero portal is assigned only after the one-shot initialization guard. No subsequent public mint entry point exists in this exact runtime. This is not a statement about external hook/portal powers.'},'VERIFIED_SOURCE_AND_STATE');
+    details.observations.push({method:'Reviewed token burn/buyback/control paths',block,...sourceProof,status:'VERIFIED_SOURCE',burn:'No exposed supply-reducing burn path; dead address is an ordinary holder.',buyback:'NOT VERIFIED: external portal/hook activity is outside this token runtime.',taxMutable:false,ownerScope:'Recorded owner is observational in the token; external reward-tracker authority is separate.',pause:'No token-level pause path in reviewed runtime.',blacklist:'No token-level blacklist path in reviewed runtime.'});
+   }
    if(profile==='WARD_AUTH_TOKEN'){
     fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed transfer/transferFrom execution',{...proof,coverage:'TOKEN_TRANSFER_ONLY'},'VERIFIED_SOURCE');
     fields.mintCapability=fact('Ward-authorized mint','Reviewed mint(address,uint256) auth modifier',{...proof,scope:'Mint adds balance and totalSupply; wards[msg.sender] must equal 1. Active ward enumeration not claimed.'},'VERIFIED_SOURCE');
@@ -159,6 +171,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
     fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed transfer/transferFrom execution',{...proof,coverage:'TOKEN_TRANSFER_ONLY',scope:'Token transfer moves full value; blacklist/pause restrictions can revert. Pool/hook fees are separate.'},'VERIFIED_SOURCE');
     const master=addressWord(await call(address,'masterMinter()'));
     if(master)fields.mintCapability=fact('Allowance-limited mint','Reviewed mint/configureMinter + pinned masterMinter',{...proof,masterMinter:master,scope:'Configured minters mint within allowance; masterMinter configures them. Paused/blacklist checks apply. No complete minter list or executable mint simulation claimed.'},'VERIFIED_SOURCE_AND_STATE');
+    details.observations.push({method:'Reviewed minter burn and operational permissions',block,...sourceProof,status:'VERIFIED_SOURCE',burn:'burn(uint256) reduces caller balance and totalSupply; onlyMinters, whenNotPaused and notBlacklisted guards apply. Capability is not proof a burn occurred.',pause:'pauser controls pause/unpause; owner updates pauser.',blacklist:'blacklister controls account restrictions; owner updates blacklister.',buyback:'NOT VERIFIED: no token-level buyback execution established.',taxMutable:false,scope:'Exact reviewed implementation only; proxy admin can replace it.'});
    }
    if(profile==='REGISTRY_AUTH_TOKEN'){
     const registry=addressWord(await call(address,'ACCESS_CONTROLLED_REGISTRY()'));const registryCode=await deployed(registry);
@@ -203,11 +216,13 @@ async function enrich(options){
   // only fill gaps. Never discard established reviewed Arc mechanics evidence.
   if(key==='contractArchitecture'||old[key]?.dataState!=='DATA_FOUND'||
    (value.status.startsWith('VERIFIED_SOURCE')&&!['VERIFIED_SOURCE','VERIFIED_SOURCE_AND_STATE','ONCHAIN_VERIFIED'].includes(old[key]?.status)))fields[key]={...value,evidence:[...value.evidence,...(old[key]?.dataState==='DATA_FOUND'&&Array.isArray(old[key].evidence)?old[key].evidence.map(e=>({...e,retainedFrom:'Existing Mechanics evidence; original block preserved'})):[])]};
+  else fields[key]={...fields[key],evidence:[...(fields[key].evidence||[]),...value.evidence.map(e=>({...e,observationValue:value.value,observationStatus:value.status,retainedFrom:'Additional validated observation; existing displayed value preserved'}))]};
  }
  // Unknown architecture observations must not retain an unchecked storage word.
  if(!result.fields.contractArchitecture&&old.contractArchitecture?.dataState==='DATA_FOUND'&&
   /EIP-1967 implementation|DELEGATECALL opcode|No DELEGATECALL/.test(String(old.contractArchitecture.value)))fields.contractArchitecture={value:null,status:'NOT_VERIFIED',dataState:'NOT_VERIFIED',source:null,evidence:[],reasonCode:'ARCHITECTURE_TARGET_UNRESOLVED',reason:'Proxy target/runtime proof could not be established at the pinned block.'};
  for(const key of Object.keys(fields))if(fields[key]?.dataState==='DATA_FOUND'&&!Object.hasOwn(result.fields,key))fields[key]={...fields[key],evidence:[...(fields[key].evidence||[]),{method:'Additional Mechanics evidence',chainId:chain(options.network).chainId,network:options.network,address:options.address,block:options.block,...result.details}]};
+  for(const [key,field]of Object.entries(fields))if(field?.dataState!=='DATA_FOUND')fields[key]={...field,evidence:[...(field?.evidence||[]),{method:'Unresolved Mechanics evidence',chainId:chain(options.network).chainId,network:options.network,address:options.address,block:options.block,...result.details}]};
  return {...card,fields};
 }
 module.exports={inspect,enrich,validateSource,digest,abiFn,decodeArray,PROFILES,SLOTS,selector};
