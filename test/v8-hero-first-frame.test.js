@@ -1,0 +1,20 @@
+'use strict';
+const{test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.join(__dirname,'..');
+test('hero fallback matches the approved V8 video, without flashing the legacy owl',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ const hero=html.match(/<div class="hero-flight">([\s\S]*?)<div class="hero-medallion"/)?.[1];
+ assert(hero,'expected V8 welcome scene');
+ assert.match(hero,/<img[^>]+src="\/assets\/arcy-hero-video-poster-v8\.webp"[^>]*>/);
+ assert.match(hero,/<video[^>]+poster="\/assets\/arcy-hero-video-poster-v8\.webp"/);
+ assert.doesNotMatch(hero,/hero-arcy\.png/);
+ assert.match(hero,/data-src="\/assets\/arcy-hero-welcome-v8\.mp4"/);
+ const poster=fs.readFileSync(path.join(root,'assets/arcy-hero-video-poster-v8.webp'));
+ assert.equal(poster.toString('ascii',0,4),'RIFF');
+ assert.equal(poster.toString('ascii',8,12),'WEBP');
+ assert(poster.byteLength>10000&&poster.byteLength<100000);
+ assert(fs.existsSync(path.join(root,'assets/hero-arcy.png')),'token logo asset must remain');
+});
