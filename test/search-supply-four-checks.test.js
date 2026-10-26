@@ -17,7 +17,7 @@ test('existing Search second-page supply card has exactly four requested fields,
  assert.equal(schema.length,5);
  assert.equal(schema.reduce((n,card)=>n+card.fields.length,0),20);
  const supply=schema.find(card=>card.id==='supply');
- assert.deepEqual(supply.fields,[['lockedSupply','Locked Supply'],['unlockedSupply','Unlocked Supply'],['verifiedBurned','Verified Burned'],['nextUnlock','Next Unlock']]);
+ assert.deepEqual(supply.fields,[['totalSupply','Total Supply'],['circulatingSupply','Circulating Supply'],['burnAddressBalance','Burn Address Balance'],['nextUnlock','Next Unlock']]);
  const html=fs.readFileSync(path.join(__dirname,'../search/index.html'),'utf8');
  assert.match(html,/id="deepResearch"/);
  assert.match(html,/id="cards" class="grid"/);
@@ -36,17 +36,20 @@ test('missing source coverage never becomes fabricated locked, unlocked or burne
   }
  }
 });
-test('exactly known source facts remain separate from 20 checks and legacy quick supply facts',()=>{
+test('on-chain supply and burn-address custody are visible as primary metrics, without claiming actual burned supply',()=>{
  const fields={...unknown('arc'),verifiedBurned:fact('0'),nextUnlock:fact('2099-02-01T00:00:00Z'),
   totalSupply:fact('1000000'),burnAddressBalance:fact('200000'),burnAddressPct:fact(20)};
  const card=engine.formatCard('supply',{fields}, {id:'arc',chainId:5042},base('arc',5042));
- assert.deepEqual(Object.keys(card.fields),['lockedSupply','unlockedSupply','verifiedBurned','nextUnlock']);
- assert.equal(card.fields.verifiedBurned.value,'0');
- assert.equal(card.fields.lockedSupply.value,null);
+ assert.deepEqual(Object.keys(card.fields),['totalSupply','circulatingSupply','burnAddressBalance','nextUnlock']);
+ assert.equal(card.fields.totalSupply.value,'1000000');
+ assert.equal(card.fields.burnAddressBalance.value,'200000');
+ assert.equal(card.fields.circulatingSupply.dataState,'NOT_VERIFIED');
+ assert.equal(card.fields.nextUnlock.value,'2099-02-01T00:00:00Z');
  assert.equal(card.context.totalSupply.value,'1000000');
  assert.equal(card.context.burnAddressBalance.value,'200000');
  assert.equal(card.context.burnAddressPct.value,20);
  assert.equal(card.status,'PARTIAL_EVIDENCE');
+ assert.equal(Object.hasOwn(card.fields,'verifiedBurned'),false,'custody cannot be mislabeled as a burn event');
 });
 test('source-reported date must be future and exact; invalid or missing proof stays unknown',()=>{
  assert.equal(checks.eventTime('2020-01-01T00:00:00Z'),null);
@@ -77,4 +80,14 @@ test('nonburnable zero requires exact reviewed source and immutable nondelegatin
   runtime.nonDelegating=()=>false;
   assert.equal((await checks.arcNonburnableZero(base('arc',5042))).value,null);
  }finally{c.rpc=old.rpc;review.lookup=old.lookup;runtime.nonDelegating=old.nonDelegating;}
+});
+
+test('new visible supply rows fail closed on a wrong contract or wrong on-chain block',()=>{
+ const wrong=fact('123');wrong.evidence=[{address:'0x'+'b'.repeat(40),network:'arc',chainId:5042,block}];
+ const stale=fact('10');stale.status='ON_CHAIN';stale.evidence=[{address,network:'arc',chainId:5042,block:'0x124'}];
+ const fields={...unknown('arc'),totalSupply:wrong,circulatingSupply:fact('70'),burnAddressBalance:stale};
+ const card=engine.formatCard('supply',{fields},{id:'arc',chainId:5042},base('arc',5042));
+ assert.equal(card.fields.totalSupply.dataState,'NOT_VERIFIED');
+ assert.equal(card.fields.burnAddressBalance.dataState,'NOT_VERIFIED');
+ assert.equal(card.fields.circulatingSupply.value,'70');
 });
