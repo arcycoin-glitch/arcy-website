@@ -107,6 +107,7 @@ async function inspect({network,base}){
       scope:'Exact Ethereum token-contract match; schedule source-reported, not proof of global vesting completeness or on-chain execution.'},'SOURCE_REPORTED');
   }
  }
+ result.nextUnlock=require('./unlock-windows').attach(result.nextUnlock,{network,address:base.address});
  return result;
 }
 module.exports={inspect,baseline,unknown,found,eventTime,sourceSchedule,arcNext,arcNonburnableZero};

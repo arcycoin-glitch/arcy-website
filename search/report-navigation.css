@@ -22,3 +22,17 @@
 .report-carousel-controls [role="status"]{min-width:0;font-size:11px;color:#9ebdcc;text-align:center;overflow-wrap:anywhere}
 #reportNavigation a[data-unavailable="true"]{opacity:.6}
 @media(max-width:650px){.report-carousel-controls{gap:8px}.report-carousel-controls button{padding:10px;font-size:11px}.report-carousel-controls [role="status"]{font-size:10px}}
+
+/* Compact only the small-screen analysis cards; keep content and type sizes intact. */
+@media(max-width:850px){
+ #tokenDetail #deepResearch #cards.report-carousel{align-items:flex-start}
+ #tokenDetail #deepResearch #cards>.report-carousel-slide[aria-hidden="true"]{contain:size}
+ #tokenDetail #deepResearch #cards>.report-carousel-slide>.card{height:auto}
+ #tokenDetail #deepResearch #cards .card{padding:14px 13px}
+ #tokenDetail #deepResearch #cards .card h2{margin-bottom:5px}
+ #tokenDetail #deepResearch #cards .card .description{margin-bottom:7px;line-height:1.45}
+ #tokenDetail #deepResearch #cards .card .metric{padding:7px 0}
+ #tokenDetail #deepResearch #cards .card .statusLine{margin-top:8px;padding:6px 0 0}
+ #tokenDetail #deepResearch #cards .card .proof-panel{margin-top:8px}
+ #tokenDetail #deepResearch #cards .card .proof-panel>summary{padding:8px 0;min-height:44px;align-content:center}
+}
