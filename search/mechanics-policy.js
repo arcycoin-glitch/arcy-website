@@ -20,7 +20,7 @@
    return true;
   });
   const count=rows.filter(Boolean).length;
-  return {visible:count>=2||rows[0],completeRows:count,rows,reason:count>=2||rows[0]?'Meaningful contract evidence available.':'Contract & Mechanics is hidden until two complete evidence-backed rows or a complete verified tax result are available.'};
+  return {visible:count>=1,completeRows:count,rows,reason:count>=1?'Available exact-contract evidence is shown; unsupported fields remain NOT VERIFIED.':'Contract & Mechanics has no evidence-backed fields yet.'};
  }
  return {assess};
 });
