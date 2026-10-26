@@ -30,9 +30,15 @@ function recover(original,{address,block,now=Date.now()}={}){
  if(!buy.length||!sell.some(e=>buy.some(b=>b.hook===e.hook)))return null;
  const tokenSource='f4abba6aa7071125168a9b9ea39cdfd08f01835d3c59aa74c55173c71e50daa1';
  const transfer=original.contractFields?.transferTax;
- if(transfer?.value!==0||transfer.dataState!=='DATA_FOUND'||!transfer.evidence?.some(e=>
+ const transferEvidence=transfer?.evidence||[];
+ const subjectBound=transferEvidence.some(e=>
    e?.chainId===5042&&e.address===address&&e.block===original.block&&
-   e.sourceDigest===tokenSource))return null;
+   e.method==='Mechanics summary subject binding');
+ const runtimeReviewed=transferEvidence.some(e=>
+   e?.block===original.block&&e.sourceDigest===tokenSource&&
+   e.profile==='ARGUS_V4_LAUNCH_TOKEN_7');
+ if(transfer?.value!==0||transfer.dataState!=='DATA_FOUND'||
+   !subjectBound||!runtimeReviewed)return null;
  // The hook's buy/sell configuration is compiler-verified immutable; the
  // last successful on-chain reading is still tied to its actual block, not
  // relabeled as the report's different pinned block.
