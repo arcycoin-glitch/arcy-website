@@ -40,6 +40,13 @@ async function report([chain,symbol,address]){
   sell:m.contractFields?.sellTax?.dataState==='DATA_FOUND'?m.contractFields.sellTax.value:'NOT_VERIFIED',
   transfer:m.contractFields?.transferTax?.dataState==='DATA_FOUND'?m.contractFields.transferTax.value:'NOT_VERIFIED',
   hookEvidenceCount:m.hookEvidence?.length||0}));
+ const originalCard=require('../search/server/lib/arc-legacy-evidence').contract(m,sample[0][2]);
+ const tax=originalCard.tradingTaxes;
+ console.log('ARCY_BRIDGE_DIAGNOSTIC '+JSON.stringify({state:tax?.dataState,status:tax?.status,
+  source:tax?.source,value:tax?.value,
+  proof:(tax?.evidence||[]).slice(0,3).map(e=>({source:e.source,chainId:e.chainId,
+   address:e.address,block:e.block,hookSourceDigest:!!e.hookSourceDigest,
+   sourceDigest:!!e.sourceDigest,method:e.method}))}));
  const pulse=await get('/api/pulse?chains=all',22000),p=pulse.body||{};
  console.log('LIVE_PULSE_AUDIT '+JSON.stringify({http:pulse.http||null,error:pulse.error||null,
   arc:{status:p.status||null,cards:p.cards?.length||0},
