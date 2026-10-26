@@ -1,0 +1,29 @@
+# Local credentials and configuration
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.p12
+*.pfx
+*.keystore
+*.privatekey
+*.secret
+.secrets/
+secrets/
+credentials/
+.npmrc
+
+# Local build and hosting artifacts
+node_modules/
+.vercel/
+dist/
+build/
+coverage/
+.nyc_output/
+*.log
+.DS_Store
+
+# Local editor/workspace files
+.vscode/
+.idea/
