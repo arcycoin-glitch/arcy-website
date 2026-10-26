@@ -15,9 +15,10 @@ function fixture(){
   evidence:[{...hook}]});
  return {ok:true,address,block,chainId:5042,
   contractFields:{buyTax:fact(3),sellTax:fact(3),transferTax:{...fact(0),evidence:[{
-    source:'Sourcify',address,block,chainId:5042,network:'arc',
-    sourceDigest:'f4abba6aa7071125168a9b9ea39cdfd08f01835d3c59aa74c55173c71e50daa1',
-    scope:'Ordinary ERC-20 transfer behavior only'}]}}};
+    source:'Sourcify',address,block,chainId:5042,network:'arc',method:'Mechanics summary subject binding'},
+    {source:'Sourcify',block,
+     sourceDigest:'f4abba6aa7071125168a9b9ea39cdfd08f01835d3c59aa74c55173c71e50daa1',
+     profile:'ARGUS_V4_LAUNCH_TOKEN_7',scope:'Ordinary ERC-20 transfer behavior only'}]}}};
 }
 test('recovers 3/3/0 from contract-bound immutable reviewed V4 hook with exact pinned block',()=>{
  const candidate=recover(fixture(),{address,block});
