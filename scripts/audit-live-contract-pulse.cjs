@@ -20,21 +20,21 @@ async function get(path,ms=22000){
 }
 function cardSummary(card){const f=card?.fields||{};return {found:Object.values(f).filter(v=>v?.dataState==='DATA_FOUND'&&v.value!==null&&v.value!==undefined).length,total:Object.keys(f).length};}
 async function report([chain,symbol,address]){
- const r=await get('/api/search?action=report&chain='+chain+'&address='+address);
- if(!r.body?.ok)return {chain,symbol,http:r.http||null,error:r.body?.error||r.error||'UNAVAILABLE'};
+ const started=Date.now(),r=await get('/api/search?action=report&chain='+chain+'&address='+address);
+ if(!r.body?.ok)return {chain,symbol,durationMs:Date.now()-started,http:r.http||null,error:r.body?.error||r.error||'UNAVAILABLE'};
  const cards=r.body.cards||{},mechanics=cards.mechanics?.fields||{};
- return {chain,symbol,block:r.body.block,supply:cardSummary(cards.supply),holder:cardSummary(cards.holders),
+ return {chain,symbol,durationMs:Date.now()-started,block:r.body.block,supply:cardSummary(cards.supply),holder:cardSummary(cards.holders),
  liquidity:cardSummary(cards.liquidity),market:cardSummary(cards.activity),mechanics:cardSummary(cards.mechanics),
- tradingTaxes:mechanics.tradingTaxes?.dataState==='DATA_FOUND'?String(mechanics.tradingTaxes.value).slice(0,140):'NOT_VERIFIED',
+ tradingTaxes:mechanics.tradingTaxes?.dataState==='DATA_FOUND'?String(mechanics.tradingTaxes.value).slice(0,140):'NOT_VERIFIED',taxStatus:mechanics.tradingTaxes?.status||null,
  mint:mechanics.mintCapability?.dataState,owner:mechanics.ownerAdmin?.dataState,architecture:mechanics.contractArchitecture?.dataState};
 }
 (async()=>{
  const output=[];
  for(let i=0;i<sample.length;i+=3)output.push(...await Promise.all(sample.slice(i,i+3).map(report)));
  console.log('LIVE_NINE_TOKEN_AUDIT '+JSON.stringify({date:new Date().toISOString(),results:output}));
- const mechanics=await get('/api/mechanics?address='+sample[0][2]);
+ const mechanicsStarted=Date.now(),mechanics=await get('/api/mechanics?address='+sample[0][2]);
  const m=mechanics.body||{};
- console.log('ARCY_ORIGINAL_MECHANICS '+JSON.stringify({http:mechanics.http||null,error:mechanics.error||null,
+ console.log('ARCY_ORIGINAL_MECHANICS '+JSON.stringify({durationMs:Date.now()-mechanicsStarted,http:mechanics.http||null,error:mechanics.error||null,
   coverage:m.analysisCoverage||null,block:m.block||null,
   buy:m.contractFields?.buyTax?.dataState==='DATA_FOUND'?m.contractFields.buyTax.value:'NOT_VERIFIED',
   sell:m.contractFields?.sellTax?.dataState==='DATA_FOUND'?m.contractFields.sellTax.value:'NOT_VERIFIED',
