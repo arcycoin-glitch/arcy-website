@@ -222,7 +222,7 @@ async function enrich(options){
  if(!result.fields.contractArchitecture&&old.contractArchitecture?.dataState==='DATA_FOUND'&&
   /EIP-1967 implementation|DELEGATECALL opcode|No DELEGATECALL/.test(String(old.contractArchitecture.value)))fields.contractArchitecture={value:null,status:'NOT_VERIFIED',dataState:'NOT_VERIFIED',source:null,evidence:[],reasonCode:'ARCHITECTURE_TARGET_UNRESOLVED',reason:'Proxy target/runtime proof could not be established at the pinned block.'};
  for(const key of Object.keys(fields))if(fields[key]?.dataState==='DATA_FOUND'&&!Object.hasOwn(result.fields,key))fields[key]={...fields[key],evidence:[...(fields[key].evidence||[]),{method:'Additional Mechanics evidence',chainId:chain(options.network).chainId,network:options.network,address:options.address,block:options.block,...result.details}]};
-  for(const [key,field]of Object.entries(fields))if(field?.dataState!=='DATA_FOUND')fields[key]={...field,evidence:[...(field?.evidence||[]),{method:'Unresolved Mechanics evidence',chainId:chain(options.network).chainId,network:options.network,address:options.address,block:options.block,...result.details}]};
+  for(const [key,field]of Object.entries(fields))if(field?.dataState!=='DATA_FOUND')fields[key]={...field,analysisDiagnostics:result.details,evidence:[...(field?.evidence||[]),{method:'Unresolved Mechanics evidence',chainId:chain(options.network).chainId,network:options.network,address:options.address,block:options.block,...result.details}]};
  return {...card,fields};
 }
 module.exports={inspect,enrich,validateSource,digest,abiFn,decodeArray,PROFILES,SLOTS,selector};
