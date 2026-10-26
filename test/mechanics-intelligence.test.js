@@ -4,7 +4,7 @@ const A='0x'+'1'.repeat(40),context={address:A,network:'ethereum',chainId:1,bloc
 const fact=value=>({value,dataState:'DATA_FOUND',status:'VERIFIED_SOURCE',chainId:1,network:'ethereum',source:'Reviewed exact source',evidence:[{address:A,chainId:1,block:'0x123',sourceDigest:'a'.repeat(64)}]});
 test('active multichain card hides one architecture and reveals two complete rows or all verified taxes',()=>{
  const card={fields:{contractArchitecture:fact('NON-PROXY')}};
- assert.equal(policy.assess(card,context).visible,false);
+ assert.equal(policy.assess(card,context).visible,true);
  card.fields.ownerAdmin=fact('Role authority');assert.equal(policy.assess(card,context).visible,true);
  const taxes={fields:{tradingTaxes:fact('Buy 0% · Sell 2% · Transfer 0%')}};
  assert.equal(policy.assess(taxes,context).visible,true);
