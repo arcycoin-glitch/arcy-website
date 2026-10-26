@@ -7,3 +7,18 @@
 .report-navigation-status:empty{display:none}
 #cards [data-card-id]{scroll-margin-top:var(--report-header-offset,20px)}
 @media(max-width:650px){#reportNavigation a{flex:0 0 auto;padding:11px 14px}}
+
+/* Native horizontal scrolling is bounded to the detail report, never the homepage. */
+#tokenDetail #deepResearch #cards.report-carousel{position:relative;display:flex;grid-template-columns:none;gap:0;padding:0;width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;align-items:stretch}
+#cards.report-carousel::-webkit-scrollbar{display:none}
+#cards.report-carousel>.report-carousel-slide{box-sizing:border-box;flex:0 0 100%;min-width:0;max-width:100%;padding:2px;scroll-snap-align:start;scroll-snap-stop:always}
+#tokenDetail #deepResearch .report-carousel-slide>.card{width:100%;height:100%;box-sizing:border-box}
+#tokenDetail #deepResearch .report-card-disclosure{margin:0;padding:0;width:100%;min-width:0;box-sizing:border-box}
+#tokenDetail #deepResearch .report-card-disclosure>.card{width:100%;box-sizing:border-box}
+.report-carousel-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;scroll-margin-top:100px}
+.report-carousel-controls button{min-height:44px;border:1px solid #27546c;border-radius:12px;background:#0d2534;color:#b5ebf7;padding:10px 16px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.report-carousel-controls button:disabled{opacity:.4;cursor:default}
+.report-carousel-controls button:focus-visible,#cards.report-carousel:focus-visible{outline:2px solid #ff984b;outline-offset:2px}
+.report-carousel-controls [role="status"]{min-width:0;font-size:11px;color:#9ebdcc;text-align:center;overflow-wrap:anywhere}
+#reportNavigation a[data-unavailable="true"]{opacity:.6}
+@media(max-width:650px){.report-carousel-controls{gap:8px}.report-carousel-controls button{padding:10px;font-size:11px}.report-carousel-controls [role="status"]{font-size:10px}}
