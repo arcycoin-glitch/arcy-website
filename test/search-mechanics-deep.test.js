@@ -73,6 +73,20 @@ test('bounded role enumeration confirms membership and never promotes ABI to min
 test('diamond array rejects malformed offsets, duplicates, large count, dirty addresses and partial payloads',()=>{
  const valid='0x'+word(32).slice(2)+word(1).slice(2)+addr(B).slice(2);assert.deepEqual(m.decodeArray(valid),[B]);for(const raw of ['0x',word(0)+word(1).slice(2)+addr(B).slice(2),valid+'0'.repeat(64),'0x'+word(32).slice(2)+word(33).slice(2)])assert.equal(m.decodeArray(raw),null);
 });
+test('Arc first-party verified buy/sell fees survive narrower source-reviewed token transfer proof',async()=>{
+ const src={digest:profile('INITIALIZED_REWARD_LAUNCH_TOKEN'),abi:[fn('owner'),fn('portal')]};
+ const x=fixture({source:src,calls:{[m.selector('owner()')]:addr(B),[m.selector('portal()')]:addr(C)}});
+ x.options.network='arc';
+ const original={value:'Buy 3% · Sell 3% · Transfer 0%',status:'SOURCE_REPORTED',dataState:'DATA_FOUND',source:'Sourcify / Arc RPC',
+ evidence:[{chainId:5042,network:'arc',address:A,block,source:'Sourcify',hookSourceDigest:'reviewed-hook',scope:'Bound launch pool; fees not global'}]};
+ const kept=await m.enrich({...x.options,card:{fields:{tradingTaxes:original}}});
+ assert.equal(kept.fields.tradingTaxes.value,original.value);
+ assert(kept.fields.tradingTaxes.evidence.some(e=>e.observationValue?.startsWith('Transfer 0%')));
+ const secondary=await m.enrich({...x.options,card:{fields:{tradingTaxes:{...original,source:'GoPlus'}}}});
+ assert.match(secondary.fields.tradingTaxes.value,/Transfer 0%/);
+ const stale=await m.enrich({...x.options,card:{fields:{tradingTaxes:{...original,evidence:[{...original.evidence[0],block:'0x1233'}]}}}});
+ assert.match(stale.fields.tradingTaxes.value,/Transfer 0%/);
+});
 test('RPC failure preserves prior reviewed values and provides sanitized detail',async()=>{
  const card={fields:{tradingTaxes:{value:'Buy 3%',status:'VERIFIED_SOURCE',dataState:'DATA_FOUND',evidence:[{source:'reviewed'}]}}};const r=await m.enrich({network:'arc',address:A,block,rpc:async()=>{throw Error('secret endpoint credential')},sourceLoader:async()=>null,card});assert.equal(r.fields.tradingTaxes.value,'Buy 3%');assert.ok(!JSON.stringify(r).includes('credential'));
 });
