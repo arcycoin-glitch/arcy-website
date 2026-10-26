@@ -1,6 +1,8 @@
 'use strict';
 // Presentation only; article content, edition IDs, links and data are not rewritten.
 (()=>{
+ // Protect identifiers as text, without rewriting names, addresses or source data.
+ for(const brand of document.querySelectorAll('.brand,#hero h1,.home-search-brand,#pulseTitle,.pulse-take>b,.pulse-chain-empty .head h3')){brand.lang='en';brand.setAttribute('translate','no');brand.classList.add('notranslate');}
  // Preserve the English interface of the approved research holograms when
  // browser page translation is enabled (the source copy is already English).
  document.querySelectorAll('#hero .v8-hologram').forEach(card=>{
