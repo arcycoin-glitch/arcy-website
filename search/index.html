@@ -1283,7 +1283,8 @@ function safeCandidateImage(raw){
 function showCandidates(data,network,version){
  const container=$('matches');container.replaceChildren();
  const candidates=data.matches.filter(item=>
-  item.chainId===NETWORKS[network].id&&item.network===network&&EVM_ADDRESS.test(item.address));
+  EVM_ADDRESS.test(item.address||'')&&Object.hasOwn(NETWORKS,item.network)&&item.network!=='all'&&
+  item.chainId===NETWORKS[item.network].id&&(network==='all'||item.network===network));
  const query=$('address').value.trim().toLocaleLowerCase('en-US');
  const exact=item=>String(item.symbol||'').toLowerCase()===query||
   String(item.name||'').toLowerCase()===query;
@@ -1306,7 +1307,8 @@ function showCandidates(data,network,version){
   const art=document.createElement('span');art.className='candidate-logo';
   const initials=String(item.symbol||item.name||'?').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'?';
   art.textContent=initials;
-  const logo=displayLogo(item.logoUrl,network,item.address,item.identity);
+  const sourceNetwork=item.network;
+  const logo=displayLogo(item.logoUrl,sourceNetwork,item.address,item.identity);
   if(logo){
    const img=document.createElement('img');
    img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
@@ -1321,7 +1323,7 @@ function showCandidates(data,network,version){
   const status=item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?' · OFFICIAL CONTRACT MATCHED':
    item.identity?.status==='REGISTRY_MATCHED'?' · ROBINHOOD STOCK TOKEN REGISTRY MATCHED':
    ' · Identity NOT VERIFIED';
-  meta.textContent=item.address.slice(0,8)+'…'+item.address.slice(-6)+' · '+(item.source||'Indexed candidate');
+  meta.textContent=NETWORKS[sourceNetwork].label+' · '+item.address.slice(0,8)+'…'+item.address.slice(-6)+' · '+(item.source||'Indexed candidate');
   info.append(title,meta);
   const badge=document.createElement('span');badge.className='candidate-badge';
   badge.textContent=item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?'✓ Official':
@@ -1330,16 +1332,36 @@ function showCandidates(data,network,version){
   if(!item.identity||item.identity.status==='NOT_VERIFIED')badge.classList.add('unknown');
   info.append(badge);detail.append(art,info);
   const choose=document.createElement('span');choose.textContent='→';choose.className='scan-label';
-  option.setAttribute('aria-label',(item.name||item.symbol||'Token')+' · '+NETWORKS[network].label+' · contract '+item.address+' · '+badge.textContent);
+  option.setAttribute('aria-label',(item.name||item.symbol||'Token')+' · '+NETWORKS[sourceNetwork].label+' · contract '+item.address+' · '+badge.textContent);
   if(official(item))option.classList.add('official');
   option.append(detail,choose);
   option.addEventListener('click',()=>{
    if(version!==searchVersion||network!==selected())return;
-   activateDetail(item.address,network,{identity:item.identity,logoUrl:item.logoUrl});
+   activateDetail(item.address,sourceNetwork,{identity:item.identity,logoUrl:item.logoUrl});
   });
   return option;
  }
- if(trustedMain){
+ if(network==='all'){
+  // All-network results remain visible by chain rather than silently
+  // choosing a ticker on one network. Each button carries its own identity.
+  for(const chain of ['arc','ethereum','robinhood']){
+   const group=candidates.filter(item=>item.network===chain);
+   if(!group.length)continue;
+   const section=document.createElement('div');section.className='candidate-list';
+   const title=document.createElement('p');title.className='candidate-footnote';
+   title.textContent=NETWORKS[chain].label+' · '+group.length+' contract candidate(s)';
+   section.append(title);
+   for(const item of group.slice(0,4))section.append(candidateElement(item,item===main));
+   if(group.length>4){
+    const extra=document.createElement('details');extra.className='candidate-extra';
+    const summary=document.createElement('summary');summary.textContent='Show '+(group.length-4)+' more on '+NETWORKS[chain].label;
+    const list=document.createElement('div');list.className='candidate-extra-list';
+    for(const item of group.slice(4))list.append(candidateElement(item));
+    extra.append(summary,list);section.append(extra);
+   }
+   container.append(section);
+  }
+ }else if(trustedMain){
   // Project-authenticated or exact issuer-registry address: one main card by default.
   container.append(candidateElement(main,true));
   const others=candidates.filter(item=>item.address.toLowerCase()!==main.address.toLowerCase());
@@ -1374,11 +1396,11 @@ function showCandidates(data,network,version){
 function renderDetailMatches(matches,network,version){
  const container=$('detailMatches');container.replaceChildren();
  for(const item of matches.slice(0,8)){
-  if(item.network!==network||item.chainId!==NETWORKS[network].id||!EVM_ADDRESS.test(item.address||''))continue;
+  if((network!=='all'&&item.network!==network)||!Object.hasOwn(NETWORKS,item.network)||item.network==='all'||item.chainId!==NETWORKS[item.network].id||!EVM_ADDRESS.test(item.address||''))continue;
   const option=document.createElement('button');option.type='button';option.className='detail-match';
   const avatar=document.createElement('span');avatar.className='detail-match-avatar';
   avatar.textContent=String(item.symbol||item.name||'?').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'?';
-  const logo=displayLogo(item.logoUrl,network,item.address,item.identity);
+  const logo=displayLogo(item.logoUrl,item.network,item.address,item.identity);
   if(logo){
     const image=document.createElement('img');image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';
     image.addEventListener('load',()=>avatar.classList.add('has-logo'),{once:true});
@@ -1387,14 +1409,14 @@ function renderDetailMatches(matches,network,version){
    }
   const copy=document.createElement('span');copy.className='detail-match-copy';
   const name=document.createElement('strong');name.textContent=(item.name||'Unnamed token')+' ('+(item.symbol||'?')+')';
-  const address=document.createElement('small');address.textContent=item.address;
+  const address=document.createElement('small');address.textContent=NETWORKS[item.network].label+' · '+item.address;
   copy.append(name,address);
   const badge=document.createElement('span');badge.className='detail-match-badge';
-  if(item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'){badge.textContent='OFFICIAL CONTRACT';badge.classList.add('verified')}
-  else if(item.identity?.status==='REGISTRY_MATCHED'){badge.textContent='REGISTRY MATCH';badge.classList.add('verified')}
-  else badge.textContent='NOT VERIFIED';
+  if(item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'){badge.textContent=NETWORKS[item.network].label+' · OFFICIAL CONTRACT';badge.classList.add('verified')}
+  else if(item.identity?.status==='REGISTRY_MATCHED'){badge.textContent=NETWORKS[item.network].label+' · REGISTRY MATCH';badge.classList.add('verified')}
+  else badge.textContent=NETWORKS[item.network].label+' · NOT VERIFIED';
   option.append(avatar,copy,badge);
-  option.addEventListener('click',()=>{if(version!==searchVersion)return;activateDetail(item.address,network,{identity:item.identity,logoUrl:item.logoUrl})});
+  option.addEventListener('click',()=>{if(version!==searchVersion)return;activateDetail(item.address,item.network,{identity:item.identity,logoUrl:item.logoUrl})});
   container.append(option);
  }
  container.hidden=container.childElementCount===0;
