@@ -91,6 +91,17 @@ async function build(address){
    burnAddressBalance:onChain(t.fields.burnAddressBalance),
    burnAddressPct:burnAddressPercent(t.totalSupplyRaw,t.burnAddressRaw,t.block,t.address)
  },'Pinned-block on-chain supply and standard burn address balances.');
+ // Supplemental issuer custody evidence is not a circulation calculation.
+ // It is strictly bound to the issuer-documented ONDO wallet and a pinned
+ // Ethereum token balance. Other tokens and main supply rows are unchanged.
+ const issuerContext=await require('./issuer-supply-context').inspect({
+  network:'ethereum',chainId:1,address:t.address,block:t.block,
+  token:t.token,totalSupplyRaw:t.totalSupplyRaw
+ });
+ if(issuerContext){
+  supply.researchNotes=issuerContext.researchNotes;
+  supply.supplementalEvidence=issuerContext.observations;
+ }
  const goPlusHolders=goPlusHolderResult.status==='fulfilled'?goPlusHolderResult.value:{};
  const holders=copyFields(h,['holderCount','largestWalletPct','top10Pct','top20Pct'],
   'Blockscout source-ranked pinned balances where reconciled; GoPlus top-wallet samples are SOURCE_REPORTED only, not on-chain rank proofs.');

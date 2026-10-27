@@ -629,6 +629,20 @@ function render(report){
        if(typeof note!=='string')continue;
        const context=document.createElement('p');context.className='proof-entry';context.textContent=note.slice(0,600);proofList.append(context);
       }
+      // Show independently sourced custody context only as supporting proof.
+      // Never promote it into circulation/unlock metrics or the 4-field tally.
+      if(spec.id==='supply'&&Array.isArray(card.supplementalEvidence))
+       for(const extra of card.supplementalEvidence.slice(0,3)){
+        if(extra?.kind!=='ISSUER_DISCLOSED_WALLET_CURRENT_CUSTODY'||
+           extra?.sourceUrl!=='https://blog.ondo.foundation/ondo-foundation-group-wallet-address-disclosure/'||
+           extra.address!=='0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3')continue;
+        const item=document.createElement('div');item.className='proof-entry';
+        const link=document.createElement('a');link.textContent='Issuer wallet disclosure (Ondo Foundation)';
+        link.href=extra.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';
+        const scope=document.createElement('p');scope.className='proof-scope';
+        scope.textContent=extra.limitation||'Wallet custody is not verified circulating supply.';
+        item.append(link,scope);proofList.append(item);
+       }
       for(const [key,label] of spec.fields){
         const field=card.fields[key];if(!field)continue;
         const block=document.createElement('div');block.className='proof-entry';

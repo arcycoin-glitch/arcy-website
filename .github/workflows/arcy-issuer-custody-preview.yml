@@ -1,0 +1,28 @@
+name: ARCY issuer custody source isolation
+on:
+  pull_request:
+    paths:
+      - 'search/server/lib/issuer-supply-context.js'
+      - 'search/server/lib/data-engine.js'
+      - 'search/server/lib/report.js'
+      - 'search/index.html'
+      - 'test/issuer-supply-*.test.js'
+      - 'scripts/audit-issuer-preview.cjs'
+      - '.github/workflows/arcy-issuer-custody-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate chain, contract, block, source and final card format
+        run: node --test test/issuer-supply-context.test.js test/issuer-supply-format.test.js
+# Protected Vercel Preview API requires the authenticated owner's Vercel session.
+# Public CI must never ask for or store bypass tokens. Separate live acceptance
+# is performed with the connected authenticated Vercel deployment inspector.
