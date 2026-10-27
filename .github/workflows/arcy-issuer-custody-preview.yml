@@ -1,0 +1,25 @@
+name: ARCY issuer custody Preview acceptance
+on:
+  pull_request:
+    paths:
+      - 'search/server/lib/issuer-supply-context.js'
+      - 'search/server/lib/report.js'
+      - 'search/index.html'
+      - 'scripts/audit-issuer-preview.cjs'
+      - '.github/workflows/arcy-issuer-custody-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify real ONDO issuer wallet context and USDC isolation on Preview
+        env:
+          ARCY_AUDIT_PREVIEW_URL: https://arcy-official-4d14dzsv6-arcy3.vercel.app
+        run: node scripts/audit-issuer-preview.cjs
