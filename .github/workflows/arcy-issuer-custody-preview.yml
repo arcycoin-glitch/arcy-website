@@ -1,10 +1,12 @@
-name: ARCY issuer custody Preview acceptance
+name: ARCY issuer custody source isolation
 on:
   pull_request:
     paths:
       - 'search/server/lib/issuer-supply-context.js'
+      - 'search/server/lib/data-engine.js'
       - 'search/server/lib/report.js'
       - 'search/index.html'
+      - 'test/issuer-supply-*.test.js'
       - 'scripts/audit-issuer-preview.cjs'
       - '.github/workflows/arcy-issuer-custody-preview.yml'
   workflow_dispatch:
@@ -19,7 +21,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify real ONDO issuer wallet context and USDC isolation on Preview
-        env:
-          ARCY_AUDIT_PREVIEW_URL: https://arcy-official-4d14dzsv6-arcy3.vercel.app
-        run: node scripts/audit-issuer-preview.cjs
+      - name: Validate chain, contract, block, source and final card format
+        run: node --test test/issuer-supply-context.test.js test/issuer-supply-format.test.js
+# Protected Vercel Preview API requires the authenticated owner's Vercel session.
+# Public CI must never ask for or store bypass tokens. Separate live acceptance
+# is performed with the connected authenticated Vercel deployment inspector.
