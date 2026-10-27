@@ -39,7 +39,9 @@ test('typeahead is debounced, cancels stale requests and keeps official selectio
  assert.match(source,/},340\)/);
  assert.match(source,/suggestController\.abort\(\)/);
  assert.match(source,/generation!==suggestGeneration/);
- assert.match(source,/item\.network!==selected\|\|item\.chainId!==SUGGEST_CHAIN_IDS\[selected\]/);
+ assert.match(source,/selected!=='all'&&item\.network!==selected/);
+ assert.match(source,/item\.chainId!==SUGGEST_CHAIN_IDS\[item\.network\]/);
+ assert.match(source,/item\.network\+'\:'\+item\.address\.toLowerCase\(\)/);
  assert.match(source,/suggestBox\.append\(addCandidate\(item,item\.network\)\)/);
  assert.match(source,/event\.key==='ArrowDown'/);
  assert.match(source,/event\.key==='Escape'/);
@@ -50,7 +52,9 @@ test('official typeahead merges only artwork from a matching exact-chain contrac
  assert.match(source,/const existing=unique\.get\(key\)/);
  assert.match(source,/if\(!existing\.logoUrl&&typeof item\.logoUrl==='string'\)/);
  assert.match(source,/unique\.set\(key,\{\.\.\.existing,logoUrl:item\.logoUrl\}\)/);
- assert.match(source,/item\.network!==selected\|\|item\.chainId!==SUGGEST_CHAIN_IDS\[selected\]/);
+ assert.match(source,/selected!=='all'&&item\.network!==selected/);
+ assert.match(source,/item\.chainId!==SUGGEST_CHAIN_IDS\[item\.network\]/);
+ assert.match(source,/item\.network\+'\:'\+item\.address\.toLowerCase\(\)/);
 });
 test('typeahead has an isolated responsive overlay and cannot modify unlock modules',()=>{
  assert.match(css,/#search \.home-search-suggest\{/);
