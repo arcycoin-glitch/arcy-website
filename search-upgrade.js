@@ -41,8 +41,9 @@
  }
  if(!section||!header||section.querySelector('.home-search'))return;
 
- const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
+ const networks=[['all','All networks','ALL'],['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
  const NETWORK_MARKUP=Object.freeze({
+  all:'🌐',
   // Arc uses the original file already referenced by the approved detail
   // page. Robinhood Chain must use ONLY a symbol from its own brand kit, not
   // the Robinhood brokerage master logo or a home-drawn imitation.
@@ -57,11 +58,11 @@
  const wordmark=document.createElement('div');wordmark.className='home-search-wordmark';
  const arcy=document.createElement('span');arcy.className='home-search-arcy';arcy.append(document.createTextNode('ARC'));const y=document.createElement('span');y.className='home-search-y';y.textContent='Y';arcy.append(y);
  const searchBrand=document.createElement('span');searchBrand.className='home-search-search';searchBrand.textContent='SEARCH';wordmark.append(arcy,searchBrand);brand.append(owl,wordmark);
- const intro=document.createElement('p');intro.className='home-search-intro';intro.textContent='Multichain token research. Search a name, ticker, or exact contract.';
+ const intro=document.createElement('p');intro.className='home-search-intro';intro.textContent='Search Arc, Ethereum and Robinhood with one query. Select a chain-specific contract to research.';
  const picker=document.createElement('div');picker.className='home-network-picker';picker.id='homeNetworkPicker';
  const pickerLabel=document.createElement('span');pickerLabel.className='home-field-label';pickerLabel.textContent='NETWORK';
  const segments=document.createElement('div');segments.className='home-network-segments';segments.setAttribute('role','group');segments.setAttribute('aria-label','Choose blockchain network');
- let selected='arc';
+ let selected='all';
  const options=new Map();
  function setNetwork(id,focus=false){
   if(!options.has(id))return;
@@ -80,7 +81,7 @@
    setNetwork(id);
    results.replaceChildren();results.hidden=true;
    scheduleSuggestions();
-   state.textContent='Searching '+label+' only. Enter a token name, ticker or exact contract.';
+   state.textContent=id==='all'?'One search across Arc, Ethereum and Robinhood.':'Searching '+label+' only. Enter a token name, ticker or exact contract.';
   });
   option.addEventListener('keydown',event=>{
    if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
@@ -90,7 +91,7 @@
   });
   options.set(id,option);segments.append(option);
  }
- picker.append(pickerLabel,segments);setNetwork('arc');
+ picker.append(pickerLabel,segments);setNetwork('all');
 
  const form=document.createElement('form');form.className='home-search-form';form.noValidate=true;
  const inputWrap=document.createElement('label');inputWrap.className='home-search-input-wrap';inputWrap.htmlFor='homeSearchQuery';
@@ -238,7 +239,7 @@
  };
  function matchedOfficial(query){
   const q=query.toLocaleLowerCase('en-US');
-  const matches=OFFICIAL_SUGGESTIONS.filter(row=>row[0]===selected&&(row[2].toLowerCase().includes(q)||row[3].toLowerCase().includes(q)));
+  const matches=OFFICIAL_SUGGESTIONS.filter(row=>(selected==='all'||row[0]===selected)&&(row[2].toLowerCase().includes(q)||row[3].toLowerCase().includes(q)));
   matches.sort((a,b)=>{
    const score=row=>(row[0]===selected?0:4)+
     (row[3].toLowerCase()===q?0:row[3].toLowerCase().startsWith(q)?1:row[2].toLowerCase().startsWith(q)?2:3);
@@ -254,7 +255,7 @@
   const unique=new Map();
   for(const item of matchedOfficial(query))unique.set(item.network+':'+item.address,item);
   for(const item of remote){
-   if(!item||item.network!==selected||item.chainId!==SUGGEST_CHAIN_IDS[selected]||
+   if(!item||(selected!=='all'&&item.network!==selected)||item.chainId!==SUGGEST_CHAIN_IDS[item.network]||
       !addressPattern.test(item.address||''))continue;
    const key=item.network+':'+item.address.toLowerCase();
    if(unique.has(key)){
@@ -292,7 +293,7 @@
     if(!response.ok)return;
     const body=await response.json();
     if(generation!==suggestGeneration||network!==selected||input.value.trim()!==query||
-       !body||body.ok!==true||body.network!==network||body.chainId!==SUGGEST_CHAIN_IDS[network]||
+       !body||body.ok!==true||body.network!==network||(network==='all'?body.chainId!==null:body.chainId!==SUGGEST_CHAIN_IDS[network])||
        !Array.isArray(body.matches))return;
     showSuggestions(query,body.matches.slice(0,12));
    }catch(_){/* Preserve instant known suggestions if the live source is offline. */}
@@ -320,20 +321,29 @@
  form.addEventListener('submit',async event=>{
   event.preventDefault();cancelSuggestions();hideSuggestions();results.replaceChildren();results.hidden=true;const query=input.value.trim();
   if(!query){state.textContent='Enter a token name, symbol or full contract address.';input.focus();return}
-  if(addressPattern.test(query)){location.assign(detailPath(selected,query));return}
+  if(addressPattern.test(query)){
+   if(selected!=='all'){location.assign(detailPath(selected,query));return}
+   state.textContent='The same address can exist on multiple networks. Select a network below to verify the contract.';
+   for(const [network,label] of networks.filter(row=>row[0]!=='all')){
+    const link=document.createElement('a');link.className='home-search-result';
+    link.href=detailPath(network,query);link.textContent=label+' · '+query+' →';
+    results.append(link);
+   }
+   results.hidden=false;return;
+  }
   if(query.length<2||query.length>48){state.textContent='Enter at least 2 characters (maximum 48).';return}
-  submit.disabled=true;input.disabled=true;state.textContent='Searching '+networks.find(x=>x[0]===selected)[1]+' sources…';
+  submit.disabled=true;input.disabled=true;state.textContent=selected==='all'?'Searching Arc, Ethereum and Robinhood…':'Searching '+networks.find(x=>x[0]===selected)[1]+' sources…';
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
   try{
    const response=await fetch('/api/search?action=discover&chain='+encodeURIComponent(selected)+'&q='+encodeURIComponent(query),{headers:{accept:'application/json'},signal:controller.signal,credentials:'same-origin'});
    const body=await response.json().catch(()=>null);
    if(!response.ok||!body||body.ok!==true||body.network!==selected||!Array.isArray(body.matches))throw Error(body?.reason||body?.error||'Search sources are temporarily unavailable.');
-   if(!body.matches.length){state.textContent='No '+networks.find(x=>x[0]===selected)[1]+' matches. Check the network or try the full contract address.';return}
-   for(const candidate of body.matches.slice(0,12)){
-    if(!candidate||candidate.network!==selected||candidate.chainId!==({arc:5042,ethereum:1,robinhood:4663})[selected]||!addressPattern.test(candidate.address||''))continue;
-    results.append(addCandidate(candidate,selected));
+   if(!body.matches.length){state.textContent=selected==='all'?'No matches across Arc, Ethereum or Robinhood. Try another ticker.':'No '+networks.find(x=>x[0]===selected)[1]+' matches. Check the network or try the full contract address.';return}
+   for(const candidate of body.matches.slice(0,24)){
+    if(!candidate||(selected!=='all'&&candidate.network!==selected)||candidate.chainId!==SUGGEST_CHAIN_IDS[candidate.network]||!addressPattern.test(candidate.address||''))continue;
+    results.append(addCandidate(candidate,candidate.network));
    }
-   results.hidden=results.childElementCount===0;state.textContent=results.hidden?'No valid '+networks.find(x=>x[0]===selected)[1]+' candidates returned.':'Select a candidate to open its separate, exact-contract research page.';
+   results.hidden=results.childElementCount===0;state.textContent=results.hidden?'No valid contract candidates returned.':'Select a chain-labeled contract to open its exact-network research page.'+(body.providerError?' Some optional indexers are unavailable.':'');
   }catch(error){state.textContent=error.name==='AbortError'?'Search timed out. Try again shortly.':'Search unavailable: '+String(error.message||'upstream error').slice(0,130)}
   finally{clearTimeout(timeout);submit.disabled=false;input.disabled=false}
  });
