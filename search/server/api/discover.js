@@ -12,10 +12,11 @@ module.exports=async function handler(req,res){
   return res.status(400).json({ok:false,error:'VALID_QUERY_REQUIRED'});
  const q=normalizeQuery(p.q);
  if(!q)return res.status(400).json({ok:false,error:'VALID_QUERY_REQUIRED'});
+ const all=p.chain==='all';
  let network;
- try{network=service.parseChain(p.chain)}catch{return res.status(400).json({ok:false,error:'UNSUPPORTED_CHAIN'})}
+ if(!all){try{network=service.parseChain(p.chain)}catch{return res.status(400).json({ok:false,error:'UNSUPPORTED_CHAIN'})}}
  if(!enforce(req,res))return;
- try{return res.status(200).json(await service.discover({network,query:q}))}
+ try{return res.status(200).json(all?await service.discoverAll({query:q}):await service.discover({network,query:q}))}
  catch{return res.status(502).json({ok:false,network,error:'TOKEN_DISCOVERY_UNAVAILABLE',
   reason:'Exact-network discovery sources did not respond with usable results.'})}
 };

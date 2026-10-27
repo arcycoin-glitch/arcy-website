@@ -41,8 +41,9 @@
  }
  if(!section||!header||section.querySelector('.home-search'))return;
 
- const networks=[['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
+ const networks=[['all','All 3 Networks','ALL'],['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
  const NETWORK_MARKUP=Object.freeze({
+  all:'🌐',
   // Arc uses the original file already referenced by the approved detail
   // page. Robinhood Chain must use ONLY a symbol from its own brand kit, not
   // the Robinhood brokerage master logo or a home-drawn imitation.
@@ -53,15 +54,18 @@
  const setMark=(el,id)=>{el.innerHTML=NETWORK_MARKUP[id]||'';el.dataset.network=id;};
  const app=document.createElement('section');app.className='home-search';app.setAttribute('aria-label','ARCY Search token discovery');
  const brand=document.createElement('div');brand.className='home-search-brand notranslate';brand.setAttribute('aria-label','ARCY SEARCH');brand.setAttribute('translate','no');
- const owl=document.createElement('img');owl.className='home-search-owl';owl.src='/search/assets/arcy-owl-reference.webp';owl.width=320;owl.height=217;owl.alt='';owl.decoding='async';
+ const brandIcon=document.createElement('span');brandIcon.className='home-search-brand-icon';brandIcon.setAttribute('aria-hidden','true');brandIcon.textContent='⌕';
  const wordmark=document.createElement('div');wordmark.className='home-search-wordmark';
  const arcy=document.createElement('span');arcy.className='home-search-arcy';arcy.append(document.createTextNode('ARC'));const y=document.createElement('span');y.className='home-search-y';y.textContent='Y';arcy.append(y);
- const searchBrand=document.createElement('span');searchBrand.className='home-search-search';searchBrand.textContent='SEARCH';wordmark.append(arcy,searchBrand);brand.append(owl,wordmark);
- const intro=document.createElement('p');intro.className='home-search-intro';intro.textContent='Multichain token research. Search a name, ticker, or exact contract.';
+ const searchBrand=document.createElement('span');searchBrand.className='home-search-search';searchBrand.textContent='SEARCH';wordmark.append(arcy,searchBrand);brand.append(brandIcon,wordmark);
+ const brandRow=document.createElement('div');brandRow.className='home-search-brand-row';
+ const chainCount=document.createElement('span');chainCount.className='home-search-chain-count';chainCount.textContent='3 Networks';
+ brandRow.append(brand,chainCount);
+ const intro=document.createElement('p');intro.className='home-search-intro';intro.textContent='Research tokens across Arc, Ethereum & Robinhood.';
  const picker=document.createElement('div');picker.className='home-network-picker';picker.id='homeNetworkPicker';
  const pickerLabel=document.createElement('span');pickerLabel.className='home-field-label';pickerLabel.textContent='NETWORK';
  const segments=document.createElement('div');segments.className='home-network-segments';segments.setAttribute('role','group');segments.setAttribute('aria-label','Choose blockchain network');
- let selected='arc';
+ let selected='all';
  const options=new Map();
  function setNetwork(id,focus=false){
   if(!options.has(id))return;
@@ -73,14 +77,14 @@
   const option=document.createElement('button');option.type='button';option.className='home-network-option';option.dataset.network=id;
   option.setAttribute('aria-pressed','false');option.setAttribute('aria-label',label);
   const badge=document.createElement('span');badge.className='home-network-mark';badge.setAttribute('aria-hidden','true');setMark(badge,id);badge.hidden=false;
-  const name=document.createElement('span');name.className='home-network-option-name';name.textContent=label;
+  const name=document.createElement('span');name.className='home-network-option-name';name.textContent=id==='robinhood'?'Robinhood':label;
   option.append(badge,name);
   option.addEventListener('click',()=>{
    if(selected===id)return;
    setNetwork(id);
    results.replaceChildren();results.hidden=true;
    scheduleSuggestions();
-   state.textContent='Searching '+label+' only. Enter a token name, ticker or exact contract.';
+   state.textContent=id==='all'?'One search across Arc, Ethereum and Robinhood.':'Searching '+label+' only. Enter a token name, ticker or exact contract.';
   });
   option.addEventListener('keydown',event=>{
    if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
@@ -90,19 +94,22 @@
   });
   options.set(id,option);segments.append(option);
  }
- picker.append(pickerLabel,segments);setNetwork('arc');
+ picker.append(segments);setNetwork('all');
 
  const form=document.createElement('form');form.className='home-search-form';form.noValidate=true;
  const inputWrap=document.createElement('label');inputWrap.className='home-search-input-wrap';inputWrap.htmlFor='homeSearchQuery';
  const glass=document.createElement('span');glass.className='home-search-glass';glass.setAttribute('aria-hidden','true');glass.textContent='⌕';
  const input=document.createElement('input');input.id='homeSearchQuery';input.name='q';input.type='search';input.autocomplete='off';input.spellcheck=false;input.maxLength=48;input.placeholder='Token name, ticker or 0x contract address';input.setAttribute('aria-label','Token name, ticker or contract address');inputWrap.append(glass,input);
- const submit=document.createElement('button');submit.type='submit';submit.className='home-search-submit';submit.textContent='SEARCH / SCAN';form.append(inputWrap,submit);
- const state=document.createElement('p');state.className='home-search-state';state.id='homeSearchState';state.setAttribute('role','status');state.setAttribute('aria-live','polite');state.textContent='Exact contracts, source-backed candidates and 20 research checks.';
+ const submit=document.createElement('button');submit.type='submit';submit.className='home-search-submit';submit.textContent='SEARCH / SCAN  →';form.append(inputWrap,picker,submit);
+ const state=document.createElement('p');state.className='home-search-state';state.id='homeSearchState';state.setAttribute('role','status');state.setAttribute('aria-live','polite');state.textContent='';
  const results=document.createElement('div');results.className='home-search-results';results.hidden=true;results.setAttribute('aria-label','Matching tokens');
 
  const attribution=document.createElement('p');attribution.className='home-search-attribution home-market-pending';attribution.textContent='When enabled, market prices, liquidity and volume are source-reported from cited pools and may be incomplete. Unsupported checks remain NOT VERIFIED.';
  const robinhoodNotice=document.createElement('p');robinhoodNotice.className='home-search-disclaimer';robinhoodNotice.textContent='Independent research tool. Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.';
- app.append(brand,intro,picker,form,state,results,attribution,robinhoodNotice);header.after(app);
+ const notes=document.createElement('details');notes.className='home-search-notes';
+ const notesLabel=document.createElement('summary');notesLabel.textContent='Data coverage & verification notes';
+ notes.append(notesLabel,attribution);
+ app.append(brandRow,intro,form,state,results,notes,robinhoodNotice);header.after(app);
  document.documentElement.classList.add('search-upgraded');
  document.querySelectorAll('a[href="#search"]').forEach(link=>link.setAttribute('href','#search'));
 
@@ -238,7 +245,7 @@
  };
  function matchedOfficial(query){
   const q=query.toLocaleLowerCase('en-US');
-  const matches=OFFICIAL_SUGGESTIONS.filter(row=>row[0]===selected&&(row[2].toLowerCase().includes(q)||row[3].toLowerCase().includes(q)));
+  const matches=OFFICIAL_SUGGESTIONS.filter(row=>(selected==='all'||row[0]===selected)&&(row[2].toLowerCase().includes(q)||row[3].toLowerCase().includes(q)));
   matches.sort((a,b)=>{
    const score=row=>(row[0]===selected?0:4)+
     (row[3].toLowerCase()===q?0:row[3].toLowerCase().startsWith(q)?1:row[2].toLowerCase().startsWith(q)?2:3);
@@ -254,7 +261,7 @@
   const unique=new Map();
   for(const item of matchedOfficial(query))unique.set(item.network+':'+item.address,item);
   for(const item of remote){
-   if(!item||item.network!==selected||item.chainId!==SUGGEST_CHAIN_IDS[selected]||
+   if(!item||(selected!=='all'&&item.network!==selected)||item.chainId!==SUGGEST_CHAIN_IDS[item.network]||
       !addressPattern.test(item.address||''))continue;
    const key=item.network+':'+item.address.toLowerCase();
    if(unique.has(key)){
@@ -292,7 +299,7 @@
     if(!response.ok)return;
     const body=await response.json();
     if(generation!==suggestGeneration||network!==selected||input.value.trim()!==query||
-       !body||body.ok!==true||body.network!==network||body.chainId!==SUGGEST_CHAIN_IDS[network]||
+       !body||body.ok!==true||body.network!==network||(network==='all'?body.chainId!==null:body.chainId!==SUGGEST_CHAIN_IDS[network])||
        !Array.isArray(body.matches))return;
     showSuggestions(query,body.matches.slice(0,12));
    }catch(_){/* Preserve instant known suggestions if the live source is offline. */}
@@ -320,20 +327,29 @@
  form.addEventListener('submit',async event=>{
   event.preventDefault();cancelSuggestions();hideSuggestions();results.replaceChildren();results.hidden=true;const query=input.value.trim();
   if(!query){state.textContent='Enter a token name, symbol or full contract address.';input.focus();return}
-  if(addressPattern.test(query)){location.assign(detailPath(selected,query));return}
+  if(addressPattern.test(query)){
+   if(selected!=='all'){location.assign(detailPath(selected,query));return}
+   state.textContent='The same address can exist on multiple networks. Select a network below to verify the contract.';
+   for(const [network,label] of networks.filter(row=>row[0]!=='all')){
+    const link=document.createElement('a');link.className='home-search-result';
+    link.href=detailPath(network,query);link.textContent=label+' · '+query+' →';
+    results.append(link);
+   }
+   results.hidden=false;return;
+  }
   if(query.length<2||query.length>48){state.textContent='Enter at least 2 characters (maximum 48).';return}
-  submit.disabled=true;input.disabled=true;state.textContent='Searching '+networks.find(x=>x[0]===selected)[1]+' sources…';
+  submit.disabled=true;input.disabled=true;state.textContent=selected==='all'?'Searching Arc, Ethereum and Robinhood…':'Searching '+networks.find(x=>x[0]===selected)[1]+' sources…';
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
   try{
    const response=await fetch('/api/search?action=discover&chain='+encodeURIComponent(selected)+'&q='+encodeURIComponent(query),{headers:{accept:'application/json'},signal:controller.signal,credentials:'same-origin'});
    const body=await response.json().catch(()=>null);
    if(!response.ok||!body||body.ok!==true||body.network!==selected||!Array.isArray(body.matches))throw Error(body?.reason||body?.error||'Search sources are temporarily unavailable.');
-   if(!body.matches.length){state.textContent='No '+networks.find(x=>x[0]===selected)[1]+' matches. Check the network or try the full contract address.';return}
-   for(const candidate of body.matches.slice(0,12)){
-    if(!candidate||candidate.network!==selected||candidate.chainId!==({arc:5042,ethereum:1,robinhood:4663})[selected]||!addressPattern.test(candidate.address||''))continue;
-    results.append(addCandidate(candidate,selected));
+   if(!body.matches.length){state.textContent=selected==='all'?'No matches across Arc, Ethereum or Robinhood. Try another ticker.':'No '+networks.find(x=>x[0]===selected)[1]+' matches. Check the network or try the full contract address.';return}
+   for(const candidate of body.matches.slice(0,24)){
+    if(!candidate||(selected!=='all'&&candidate.network!==selected)||candidate.chainId!==SUGGEST_CHAIN_IDS[candidate.network]||!addressPattern.test(candidate.address||''))continue;
+    results.append(addCandidate(candidate,candidate.network));
    }
-   results.hidden=results.childElementCount===0;state.textContent=results.hidden?'No valid '+networks.find(x=>x[0]===selected)[1]+' candidates returned.':'Select a candidate to open its separate, exact-contract research page.';
+   results.hidden=results.childElementCount===0;state.textContent=results.hidden?'No valid contract candidates returned.':'Select a chain-labeled contract to open its exact-network research page.'+(body.providerError?' Some optional indexers are unavailable.':'');
   }catch(error){state.textContent=error.name==='AbortError'?'Search timed out. Try again shortly.':'Search unavailable: '+String(error.message||'upstream error').slice(0,130)}
   finally{clearTimeout(timeout);submit.disabled=false;input.disabled=false}
  });

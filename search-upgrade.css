@@ -135,7 +135,7 @@ html.search-upgraded #search .home-search{max-width:850px;margin-inline:auto}
 /* Mobile-first network switcher: no overlay, no remote brand images, search stays visible. */
 #search .home-network-picker{position:static;margin:0 0 12px}
 #search .home-network-segments{
- display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;
  padding:5px;border:1px solid #29495c;border-radius:14px;background:#051724;
 }
 #search .home-network-segments .home-network-option{
@@ -231,4 +231,154 @@ html.search-upgraded .nav #siteLinks a:focus-visible{outline:2px solid var(--nav
  #search .home-search-suggest .home-search-result{grid-template-columns:32px minmax(0,1fr) auto;gap:7px}
  #search .home-search-suggest .home-search-result code{display:none}
  #search .home-search-suggest .home-result-status{font-size:8px}
+}
+
+/* Unified search only: keep all four network filters readable on narrow phones. */
+#search .home-network-segments .home-network-mark[data-network="all"]{display:grid;place-items:center;font-size:20px}
+@media(max-width:420px){
+ #search .home-network-segments{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #search .home-network-segments .home-network-option{flex-direction:row;gap:6px;min-height:43px;font-size:11px}
+ #search .home-network-segments .home-network-mark{width:23px;height:23px}
+}
+
+
+/* V8 compact premium discovery — limited to home Search, both desktop and mobile.
+   Single combined search, exact chain logos; no API/analysis/card changes. */
+html.search-upgraded #search .home-search{
+ box-sizing:border-box;width:100%;max-width:930px;
+ padding:clamp(16px,2.2vw,25px);border-color:#31566b;
+ border-radius:19px;background:linear-gradient(155deg,#0d293b 0%,#071b2a 100%);
+ box-shadow:0 18px 46px rgba(0,0,0,.25)
+}
+#search .home-search-brand-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px;min-width:0}
+#search .home-search-brand{display:flex;align-items:center;min-width:0;gap:9px;margin:0}
+#search .home-search-brand-icon{
+ display:grid;place-items:center;flex:none;width:29px;height:29px;
+ color:#53d8ee;font-size:31px;line-height:1;font-weight:700
+}
+#search .home-search-wordmark{font-size:clamp(19px,2.5vw,26px);gap:5px;letter-spacing:-.035em}
+#search .home-search-chain-count{
+ flex:none;color:#a5becc;font-size:11px;font-weight:700;letter-spacing:.01em;white-space:nowrap
+}
+#search .home-search-intro{max-width:none;margin:0 0 13px;font-size:12px;line-height:1.45;color:#9ab8c7}
+html.search-upgraded #search .home-search-form{
+ display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto;
+ gap:10px;width:100%;margin:0;position:relative
+}
+#search .home-search-input-wrap{
+ grid-column:1;grid-row:1;min-width:0;min-height:47px;max-height:55px;
+ padding:0 13px;border:1px solid #3b6275;border-radius:12px;
+ background:#081c2a;box-shadow:none
+}
+#search .home-search-form input{font-size:12px;line-height:1.35}
+#search .home-search-form input::placeholder{color:#7d99a8}
+#search .home-search-glass{font-size:25px}
+#search .home-network-picker{
+ grid-column:1;grid-row:2;position:relative;margin:0;
+ border:1px solid #29485a;border-radius:13px;
+ background:linear-gradient(160deg,#122b3b,#0e2432);padding:7px
+}
+#search .home-network-segments{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:5px;padding:0;margin:0;background:none;border:0;border-radius:0
+}
+#search .home-network-segments .home-network-option{
+ display:flex;flex-direction:row;justify-content:center;align-items:center;
+ box-sizing:border-box;min-width:0;min-height:41px;gap:6px;
+ padding:6px 8px;border:1px solid #34566a;border-radius:9px;
+ background:#0b2231;color:#c7dce6;font-size:11px;font-weight:700;
+ line-height:1.15;letter-spacing:0;box-shadow:none;white-space:normal
+}
+#search .home-network-segments .home-network-option[aria-pressed=true]{
+ border-color:#53cfe1;background:linear-gradient(145deg,#134356,#103447);
+ color:#f1fdff;box-shadow:inset 0 0 0 1px rgba(73,205,226,.12)
+}
+#search .home-network-segments .home-network-option[data-network=all]{
+ grid-column:1/-1;justify-content:flex-start;min-height:39px;
+ padding-inline:11px;background:transparent;border-color:transparent;
+ text-align:left;color:#dbeef4
+}
+#search .home-network-segments .home-network-option[data-network=all][aria-pressed=true]{
+ background:rgba(65,184,211,.07);border-color:rgba(67,176,199,.21)
+}
+#search .home-network-segments .home-network-option[data-network=all][aria-pressed=true]::after{
+ content:"✓";display:grid;place-items:center;width:20px;height:20px;
+ margin-left:auto;border:2px solid #73d6b3;border-radius:50%;
+ color:#84e4bf;font-size:12px;line-height:1
+}
+#search .home-network-segments .home-network-option-name{
+ min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ font-size:inherit;line-height:1.15
+}
+#search .home-network-segments .home-network-mark{
+ display:grid;place-items:center;flex:none;width:21px;height:21px;
+ border:0;border-radius:5px;background:transparent;overflow:visible
+}
+#search .home-network-segments .home-network-mark img,
+#search .home-network-segments .home-network-mark[data-network=arc] img{
+ display:block;width:21px;height:21px;max-width:100%;
+ object-fit:contain;object-position:center;filter:none
+}
+#search .home-network-segments .home-network-mark[data-network=robinhood]{
+ background:transparent;border-color:transparent
+}
+#search .home-network-segments .home-network-mark[data-network=all]{
+ display:grid;place-items:center;font-size:20px
+}
+#search .home-search-submit{
+ grid-column:1;grid-row:3;box-sizing:border-box;
+ width:100%;min-width:0;min-height:47px;padding:10px 14px;
+ border-radius:11px;border:1px solid #52d8e1;
+ background:linear-gradient(110deg,#50c8e0,#33cfc7);
+ color:#062635;font-size:12px;font-weight:850;letter-spacing:.025em
+}
+#search .home-search-state{min-height:0;margin:7px 0 0;line-height:1.5}
+#search .home-search-state:empty{display:none}
+#search .home-search-results{margin-top:8px}
+#search .home-search-notes{margin:8px 0 0;color:#8daab8;font-size:10px;line-height:1.45}
+#search .home-search-notes>summary{width:fit-content;cursor:pointer;color:#90b6c7;font-size:10px}
+#search .home-search-notes>summary:focus-visible{outline:2px solid #60d5e7;outline-offset:3px}
+#search .home-search-attribution{display:block;max-width:700px;margin:6px 0 0;font-size:10px;line-height:1.5;text-decoration:none}
+#search .home-search-disclaimer{margin-top:6px;color:#839daa;font-size:9px;line-height:1.5}
+#search .home-search-suggest{top:54px;left:0;right:0}
+@media(min-width:1024px){
+ html.search-upgraded #search .home-search{max-width:930px;padding:24px 27px}
+ html.search-upgraded #search .home-search-form{
+  display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto;gap:12px
+ }
+ html.search-upgraded #search .home-search-submit{width:100%;min-width:0}
+ html.search-upgraded #search .home-network-picker{width:100%}
+}
+@media(max-width:560px){
+ html.search-upgraded #search{padding-top:10px;padding-bottom:24px}
+ html.search-upgraded #search .app{padding:12px 10px}
+ html.search-upgraded #search .home-search{padding:17px 13px;border-radius:17px}
+ #search .home-search-wordmark{font-size:clamp(19px,5.2vw,23px)}
+ #search .home-search-chain-count{font-size:10px}
+ #search .home-search-intro{font-size:11px;margin-bottom:12px}
+ #search .home-search-form{gap:9px}
+ #search .home-search-input-wrap{min-height:46px}
+ #search .home-search-submit{min-height:46px}
+ #search .home-network-segments .home-network-option{min-height:42px}
+ #search .home-search-disclaimer{font-size:9px}
+}
+@media(max-width:360px){
+ html.search-upgraded #search .home-search{padding-inline:10px}
+ #search .home-search-brand-icon{width:25px;font-size:26px}
+ #search .home-search-brand{gap:6px}
+ #search .home-search-wordmark{font-size:19px}
+ #search .home-search-chain-count{font-size:10px}
+ #search .home-network-segments .home-network-option{
+  flex-direction:row;gap:4px;padding:5px 3px;min-height:43px;font-size:10px
+ }
+ #search .home-network-segments .home-network-mark{
+  flex:none;width:17px;height:17px
+ }
+ #search .home-network-segments .home-network-mark img,
+ #search .home-network-segments .home-network-mark[data-network=arc] img{
+  width:17px;height:17px
+ }
+ #search .home-network-segments .home-network-option[data-network=all]{
+  min-height:38px;padding-inline:8px;font-size:11px
+ }
 }

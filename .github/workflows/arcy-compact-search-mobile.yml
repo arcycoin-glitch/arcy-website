@@ -1,0 +1,28 @@
+name: ARCY compact Search responsive browser checks
+on:
+  pull_request:
+    paths:
+      - 'search-upgrade.js'
+      - 'search-upgrade.css'
+      - 'scripts/audit-home-search-layout.cjs'
+      - '.github/workflows/arcy-compact-search-mobile.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  responsive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned isolated Chromium automation
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Check 320/360/390/430/768/1024/1440 and unified PONS navigation
+        run: node scripts/audit-home-search-layout.cjs
