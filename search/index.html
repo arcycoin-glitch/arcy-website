@@ -1132,9 +1132,9 @@ function chainChanged(){
  cancelPending();clearMatches();$('asset').replaceChildren();clearIdentity();render(null);
  $('address').value='';
  const label=NETWORKS[selected()].label;
- $('address').placeholder='Search '+label+' token name, ticker or 0x contract';
- $('state').textContent='Selected '+label+'. Contract identity and evidence must match this exact chain.';
- $('networkNote').textContent=label+' · Mainnet · Read only';
+ $('address').placeholder=selected()==='all'?'Search token name, ticker or 0x contract':'Search '+label+' token name, ticker or 0x contract';
+ $('state').textContent=selected()==='all'?'Search Arc, Ethereum and Robinhood together. Choose the exact chain and address to research.':'Selected '+label+'. Contract identity and evidence must match this exact chain.';
+ $('networkNote').textContent=selected()==='all'?'All networks · Separate contracts, no cross-chain data mixing':label+' · Mainnet · Read only';
 }
 function requestController(){
  if(activeController)activeController.abort();
@@ -1279,6 +1279,22 @@ function safeCandidateImage(raw){
      (key==='format'?!/^(auto|webp|png|jpeg|jpg|avif)$/i.test(value):!/^[0-9]{1,4}$/.test(value)))return null;
   return u.href;
  }catch{return null}
+}
+function showAddressNetworks(address,{detail=false,version=searchVersion}={}){
+ // The same EVM address can exist on several chains. An address alone
+ // cannot safely identify one network, so require explicit selection.
+ const container=$(detail?'detailMatches':'matches');container.replaceChildren();
+ const hint=document.createElement('p');hint.className='candidate-warning';
+ hint.textContent='A contract address can exist on multiple networks. Choose the network before verifying this exact address.';
+ container.append(hint);
+ for(const chain of ['arc','ethereum','robinhood']){
+  const option=document.createElement('button');option.type='button';
+  option.className=detail?'detail-match':'candidate';
+  option.textContent=NETWORKS[chain].label+' · '+address.slice(0,8)+'…'+address.slice(-6)+' →';
+  option.addEventListener('click',()=>{if(version!==searchVersion)return;activateDetail(address,chain)});
+  container.append(option);
+ }
+ container.hidden=false;
 }
 function showCandidates(data,network,version){
  const container=$('matches');container.replaceChildren();
@@ -1429,10 +1445,13 @@ async function searchFromDetail(event){
  const request=++detailSearchGeneration;
  if(!Object.hasOwn(NETWORKS,network)){ $('detailSearchStatus').textContent='Select a supported network.';return }
  if(!query){$('detailSearchStatus').textContent='Enter a name, ticker or full contract address.';$('detailSearchQuery').focus();return}
- if(EVM_ADDRESS.test(query)){activateDetail(query.toLowerCase(),network);return}
+ if(EVM_ADDRESS.test(query)){if(network==='all'){
+  showAddressNetworks(query.toLowerCase(),{detail:true,version:searchVersion});
+  $('detailSearchStatus').textContent='Choose the network where this contract is deployed.';
+ }else activateDetail(query.toLowerCase(),network);return}
  if(query.length<2||query.length>48||/^0x/i.test(query)){$('detailSearchStatus').textContent='Enter 2–48 characters or a full contract address.';return}
  const version=searchVersion,button=$('detailSearchSubmit');button.disabled=true;
- $('detailSearchStatus').textContent='Searching '+NETWORKS[network].label+' first-party sources…';
+ $('detailSearchStatus').textContent=network==='all'?'Searching Arc, Ethereum and Robinhood…':'Searching '+NETWORKS[network].label+' first-party sources…';
  try{
   const response=await fetch('/api/search?action=discover&'+new URLSearchParams({q:query,chain:network}),{cache:'no-store',headers:{accept:'application/json'}});
   const data=await response.json();
@@ -1440,7 +1459,8 @@ async function searchFromDetail(event){
   if(!response.ok||data.ok!==true||data.network!==network||data.chainId!==NETWORKS[network].id||!Array.isArray(data.matches))
    throw Error(data.reason||data.error||'First-party token source unavailable');
   const count=renderDetailMatches(data.matches,network,version);
-  $('detailSearchStatus').textContent=count?count+' candidate(s) · Select one to replace this analysis.':'No first-party '+NETWORKS[network].label+' match. Try a full contract address.';
+  $('detailSearchStatus').textContent=count?count+' contract candidate(s) across '+(network==='all'?'three networks':NETWORKS[network].label)+'. Select one to research.':
+   (network==='all'?'No matching contracts found across the three networks.':'No first-party '+NETWORKS[network].label+' match.')+' Try another ticker or exact contract.';
  }catch(error){
   if(request===detailSearchGeneration&&version===searchVersion)
    $('detailSearchStatus').textContent='Search unavailable: '+String(error.message||'source error').slice(0,120);
@@ -1450,11 +1470,17 @@ async function searchOrScan(){
  const q=$('address').value.trim(),network=selected();
  cancelPending();
  const version=searchVersion;clearMatches();
- if(EVM_ADDRESS.test(q)){activateDetail(q,network);return}
+ if(EVM_ADDRESS.test(q)){
+  if(network==='all'){
+   showAddressNetworks(q.toLowerCase(),{version});
+   $('state').textContent='Select the exact network for this contract address. Addresses alone do not identify a blockchain.';
+  }else activateDetail(q,network);
+  return;
+ }
  if(q.length<2||q.length>48||/^0x/i.test(q)){
   $('state').textContent='Enter a token name (2–48 characters) or a full contract address.';return;
  }
- $('go').disabled=true;$('state').textContent='Finding '+NETWORKS[network].label+' candidates…';
+ $('go').disabled=true;$('state').textContent=network==='all'?'Searching token indexes across Arc, Ethereum and Robinhood…':'Finding '+NETWORKS[network].label+' candidates…';
  $('asset').replaceChildren();clearIdentity();render(null);
  const controller=requestController();
  try{
@@ -1464,9 +1490,9 @@ async function searchOrScan(){
   if(version!==searchVersion||network!==selected())return;
   if(!response.ok||data.ok!==true||data.chainId!==NETWORKS[network].id||
    data.network!==network||!Array.isArray(data.matches))throw Error(data.error||'Discovery source unavailable');
-  if(!data.matches.length){$('state').textContent='No '+NETWORKS[network].label+' candidates found. Try the full contract address.';return}
+  if(!data.matches.length){$('state').textContent=network==='all'?'No candidates found on Arc, Ethereum or Robinhood. Try another ticker.':'No '+NETWORKS[network].label+' candidates found. Try the full contract address.';return}
   showCandidates(data,network,version);
-  $('state').textContent=data.matches.length+' matching contract(s). Verified issuers show one primary result; unverified names show all candidates.';
+  $('state').textContent=data.matches.length+' contract candidate(s)'+(network==='all'?' across three networks':'')+'. Always verify the selected chain and full contract address.'+(data.providerError?' Some optional indexers are unavailable.':'');
  }catch(error){
   if(version===searchVersion&&network===selected()&&!controller.signal.aborted)
    $('state').textContent='Token search unavailable: '+String(error.message).slice(0,140);
