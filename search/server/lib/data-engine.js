@@ -96,8 +96,8 @@ function formatCard(cardId,raw,cfg,context){
    e.block===context.block&&e.sourceUrl===
     'https://blog.ondo.foundation/ondo-foundation-group-wallet-address-disclosure/'&&
    e.method==='balanceOf(issuer-disclosed custody wallet)'&&
-   /^\\d+$/.test(String(e.rawBalance||''))&&
-   /^\\d+(?:\\.\\d+)?$/.test(String(e.balance||''))&&
+   /^\d+$/.test(String(e.rawBalance||''))&&
+   /^\d+(?:\.\d+)?$/.test(String(e.balance||''))&&
    Number.isInteger(e.decimals)&&e.decimals>=0&&e.decimals<=36).slice(0,1):[];
  const issuerNotes=disclosed.length&&Array.isArray(raw.researchNotes)?
   raw.researchNotes.filter(x=>typeof x==='string'&&x.startsWith('Ondo Foundation disclosed a locked-token custody wallet')&&x.length<600).slice(0,1):[];
