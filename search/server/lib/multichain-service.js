@@ -105,11 +105,7 @@ async function discover({network='ethereum',query}){
 
 
 const SEARCH_NETWORKS=Object.freeze(['arc','ethereum','robinhood']);
-async function discoverAll({query}){
- if(typeof query!=='string'||query.length<2||query.length>48)throw Error('Invalid unified token query');
- // Keep each network source-scoped. A failing indexer on one chain must not
- // hide valid contract candidates on the other two chains.
- const outcomes=await Promise.allSettled(SEARCH_NETWORKS.map(network=>discover({network,query})));
+function combineDiscoveryResults(query,outcomes){
  const errors=[],matches=[],counts={arc:0,ethereum:0,robinhood:0},seen=new Set();
  let healthy=0;
  for(let i=0;i<outcomes.length;i++){
@@ -145,5 +141,11 @@ async function discoverAll({query}){
   source:'Independent issuer registries, explorer indexes and DEX candidates per chain',
   note:'Identical names on different networks are independent contracts. Ticker matches and logos do not prove token identity or safety.'};
 }
+async function discoverAll({query}){
+ if(typeof query!=='string'||query.length<2||query.length>48)throw Error('Invalid unified token query');
+ // An unavailable optional indexer on one network does not suppress matches elsewhere.
+ const outcomes=await Promise.allSettled(SEARCH_NETWORKS.map(network=>discover({network,query})));
+ return combineDiscoveryResults(query,outcomes);
+}
 
-module.exports={parseChain,report,token,discover,discoverAll,engine};
+module.exports={parseChain,report,token,discover,discoverAll,combineDiscoveryResults,engine};
