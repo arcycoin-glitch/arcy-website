@@ -49,6 +49,6 @@ test('discovery retains explicit issuer checks and visible symbol fallbacks',()=
  assert.match(home,/issuerArtwork\(network,candidate\.address,candidate\.identity\)/);
  assert.match(home,/candidate\.identity\?\.status==='REGISTRY_MATCHED'/);
  assert.match(home,/home-token-placeholder/);
- assert.match(detail,/displayLogo\(item\.logoUrl,network,item\.address,item\.identity\)/);
+ assert.match(detail,/displayLogo\(item\.logoUrl,(?:sourceNetwork|item\.network),item\.address,item\.identity\)/);
  assert.match(detail,/displayLogo\(chosenLogo\|\|asset\.logoUrl,network,data\.address,data\.tokenIdentity\)/);
 });
