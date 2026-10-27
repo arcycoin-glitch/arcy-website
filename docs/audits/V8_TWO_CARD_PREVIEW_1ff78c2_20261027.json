@@ -1,0 +1,1912 @@
+{
+  "auditDate": "2026-10-27",
+  "testedCommit": "1ff78c255ae2452b9f1b02ccea27c4e8e7ff7a66",
+  "preview": {
+    "url": "https://arcy-official-ii4ligzsm-arcy3.vercel.app",
+    "id": "dpl_JBmihWU5LUjTnK33yFMq3GHb7LRR",
+    "target": "preview",
+    "ready": true
+  },
+  "production": {
+    "unchanged": true,
+    "sha": "adeddc74ac752b4cbf20ca98fd7e21eeddf850c2",
+    "id": "dpl_F1xFqHY2Se7oVNin9MrsNHbvqtsS"
+  },
+  "coverage": {
+    "mechanicsSourcedBefore": 33,
+    "mechanicsSourcedAfter": 34,
+    "mechanicsPolicyCompleteBefore": 26,
+    "mechanicsPolicyCompleteAfter": 27,
+    "supplySourcedBefore": 18,
+    "supplySourcedAfter": 18,
+    "denominatorPerCard": 36,
+    "note": "Source-backed availability and policy completeness are distinct. Transfer-only fees do not establish buy/sell or all-pool taxes; getter observations do not establish all privileges."
+  },
+  "tests": {
+    "exactCommitFocused": {
+      "pass": 44,
+      "fail": 0
+    },
+    "inheritedFullBaseline": {
+      "pass": 521,
+      "fail": 14,
+      "total": 535
+    },
+    "candidateFull": {
+      "pass": 524,
+      "fail": 14,
+      "total": 538,
+      "newFailureNames": []
+    },
+    "actualBrowser": {
+      "checks": 18,
+      "failures": 0,
+      "desktop": 1440,
+      "mobile": 390,
+      "apiMocks": false,
+      "renderObserverUsed": true
+    },
+    "responsive": [
+      {
+        "width": 320,
+        "pass": true
+      },
+      {
+        "width": 360,
+        "pass": true
+      },
+      {
+        "width": 390,
+        "pass": true
+      },
+      {
+        "width": 430,
+        "pass": true
+      },
+      {
+        "width": 768,
+        "pass": true
+      },
+      {
+        "width": 1024,
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "pass": true
+      }
+    ],
+    "independentPinnedRpc": {
+      "pass": 9,
+      "total": 9
+    },
+    "arcyOriginal": {
+      "searchBlock": "0x1acee24",
+      "originalBlock": "0x1acee33",
+      "buy": 3,
+      "sell": 3,
+      "transfer": 0,
+      "searchValue": "Buy 3% · Sell 3% · Transfer 0%",
+      "pass": true
+    }
+  },
+  "tokens": [
+    {
+      "name": "arc-ARCY",
+      "network": "arc",
+      "chainId": 5042,
+      "address": "0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b",
+      "beforeBlock": "0x1acdef5",
+      "previewBlock": "0x1acecdf",
+      "before": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Buy 3% · Sell 3% · Transfer 0%",
+            "dataState": "DATA_FOUND",
+            "status": "SOURCE_REPORTED",
+            "source": "Sourcify bytecode-matched reviewed V4 hook + Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdef5"
+            ],
+            "scope": "Primary subject is the token; subsequent storage values, implementation addresses and authority addresses retain their distinct original meanings."
+          },
+          "mintCapability": {
+            "value": "NONE DETECTED ✓",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdef5"
+            ],
+            "scope": "Nonzero portal is assigned only after the one-shot initialization guard. No subsequent public mint entry point exists in this exact runtime. This is not a statement about external hook/portal powers."
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0x9c07a97364e59afe744fdbe55951df929bd5d90e",
+            "dataState": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdef5"
+            ],
+            "scope": "Getter-reported observation only; actual admin rights and other roles are not established."
+          },
+          "contractArchitecture": {
+            "value": "EIP-1167 minimal proxy",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdef5"
+            ],
+            "scope": "Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1000000000",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdef5"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "26952979.84370369845294272",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdef5"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "preview": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Buy 3% · Sell 3% · Transfer 0%",
+            "dataState": "DATA_FOUND",
+            "status": "SOURCE_REPORTED",
+            "source": "Sourcify bytecode-matched reviewed V4 hook + Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecdf"
+            ],
+            "scope": "Primary subject is the token; subsequent storage values, implementation addresses and authority addresses retain their distinct original meanings."
+          },
+          "mintCapability": {
+            "value": "NONE DETECTED ✓",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecdf"
+            ],
+            "scope": "Nonzero portal is assigned only after the one-shot initialization guard. No subsequent public mint entry point exists in this exact runtime. This is not a statement about external hook/portal powers."
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0x9c07a97364e59afe744fdbe55951df929bd5d90e",
+            "dataState": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecdf"
+            ],
+            "scope": "Getter-reported observation only; actual admin rights and other roles are not established."
+          },
+          "contractArchitecture": {
+            "value": "EIP-1167 minimal proxy",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecdf"
+            ],
+            "scope": "Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1000000000",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecdf"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "26952979.84370369845294272",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecdf"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "mechanicsPolicyCompleteBefore": 4,
+      "mechanicsPolicyCompleteAfter": 4,
+      "rpcCrosscheck": {
+        "name": "arc-ARCY",
+        "network": "arc",
+        "address": "0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b",
+        "chainId": 5042,
+        "block": "0x1acecdf",
+        "totalSupplyRaw": "1000000000000000000000000000",
+        "deadRaw": "26952979843703698452942720",
+        "zeroRaw": "0",
+        "decimals": 18,
+        "ms": 531,
+        "pass": true
+      }
+    },
+    {
+      "name": "arc-TOLLY",
+      "network": "arc",
+      "chainId": 5042,
+      "address": "0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+      "beforeBlock": "0x1acdef5",
+      "previewBlock": "0x1acecee",
+      "before": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Buy 0% · Sell 0% · Transfer 0%",
+            "dataState": "DATA_FOUND",
+            "status": "SOURCE_REPORTED",
+            "source": "Sourcify bytecode-matched reviewed source",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdef5"
+            ],
+            "scope": "Primary subject is the token; subsequent storage values, implementation addresses and authority addresses retain their distinct original meanings."
+          },
+          "mintCapability": {
+            "value": false,
+            "dataState": "DATA_FOUND",
+            "status": "NOT_DETECTED",
+            "source": "Sourcify bytecode-matched reviewed source",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdef5"
+            ],
+            "scope": "Primary subject is the token; subsequent storage values, implementation addresses and authority addresses retain their distinct original meanings."
+          },
+          "ownerAdmin": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "OWNER_ADMIN_NOT_VERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdef5"
+            ],
+            "scope": "No reachable DELEGATECALL, CALLCODE or SELFDESTRUCT; all JUMPDESTs are roots, metadata retained. External forwarding, permissions and future governance remain separate."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1000000000",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdef5"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "63505571.832496403764113562",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdef5"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "preview": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecee"
+            ],
+            "scope": "Full token transfer value is retained. The immutable anti-snipe max-wallet rule can revert transfers; it is not a tax. External pool fees remain separate."
+          },
+          "mintCapability": {
+            "value": "NONE DETECTED ✓",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecee"
+            ],
+            "scope": "The only _mint call is in the constructor; no runtime issuance entry point exists. This does not claim external pool or launchpad control is absent."
+          },
+          "ownerAdmin": {
+            "value": "Pool setup completed",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecee"
+            ],
+            "scope": "The reviewed setPool entry point now reverts because pool is nonzero. No token owner, admin roles or further configuration setters exist in this runtime. External pad/pool permissions are not audited."
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecee"
+            ],
+            "scope": "No reachable DELEGATECALL, CALLCODE or SELFDESTRUCT; all JUMPDESTs are roots, metadata retained. External forwarding, permissions and future governance remain separate."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1000000000",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecee"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "63505571.832496403764113562",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecee"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "mechanicsPolicyCompleteBefore": 2,
+      "mechanicsPolicyCompleteAfter": 3,
+      "rpcCrosscheck": {
+        "name": "arc-TOLLY",
+        "network": "arc",
+        "address": "0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+        "chainId": 5042,
+        "block": "0x1acecee",
+        "totalSupplyRaw": "1000000000000000000000000000",
+        "deadRaw": "63505571832496403764113562",
+        "zeroRaw": "0",
+        "decimals": 18,
+        "ms": 182,
+        "pass": true
+      }
+    },
+    {
+      "name": "arc-cirBTC",
+      "network": "arc",
+      "chainId": 5042,
+      "address": "0x171a4217b86a807a64eb94757db6849fb4bdbaa0",
+      "beforeBlock": "0x1acdeff",
+      "previewBlock": "0x1acecf6",
+      "before": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Buy 0% · Sell 0% · Transfer 0%",
+            "dataState": "DATA_FOUND",
+            "status": "SOURCE_REPORTED",
+            "source": "Sourcify",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdeff"
+            ],
+            "scope": "Primary subject is the token; subsequent storage values, implementation addresses and authority addresses retain their distinct original meanings."
+          },
+          "mintCapability": {
+            "value": "Allowance-limited mint",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdeff"
+            ],
+            "scope": "Configured minters mint within allowance; masterMinter configures them. Paused/blacklist checks apply. No complete minter list or executable mint simulation claimed."
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xbc22a4c5f2c1cdb50e2f55dbf9b5f73417d2e6cf",
+            "dataState": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdeff"
+            ],
+            "scope": "Getter-reported observation only; actual admin rights and other roles are not established."
+          },
+          "contractArchitecture": {
+            "value": "Legacy implementation slot",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdeff"
+            ],
+            "scope": "Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "5313.19783359",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdeff"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "0",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acdeff"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "preview": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecf6"
+            ],
+            "scope": "Token transfer moves full value; blacklist/pause restrictions can revert. Pool/hook fees are separate."
+          },
+          "mintCapability": {
+            "value": "Allowance-limited mint",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecf6"
+            ],
+            "scope": "Configured minters mint within allowance; masterMinter configures them. Paused/blacklist checks apply. No complete minter list or executable mint simulation claimed."
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xbc22a4c5f2c1cdb50e2f55dbf9b5f73417d2e6cf",
+            "dataState": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecf6"
+            ],
+            "scope": "Getter-reported observation only; actual admin rights and other roles are not established."
+          },
+          "contractArchitecture": {
+            "value": "Legacy implementation slot",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecf6"
+            ],
+            "scope": "Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "5313.19783359",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecf6"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "0",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Arc RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1acecf6"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "mechanicsPolicyCompleteBefore": 3,
+      "mechanicsPolicyCompleteAfter": 3,
+      "rpcCrosscheck": {
+        "name": "arc-cirBTC",
+        "network": "arc",
+        "address": "0x171a4217b86a807a64eb94757db6849fb4bdbaa0",
+        "chainId": 5042,
+        "block": "0x1acecf6",
+        "totalSupplyRaw": "531319783359",
+        "deadRaw": "0",
+        "zeroRaw": "0",
+        "decimals": 8,
+        "ms": 172,
+        "pass": true
+      }
+    },
+    {
+      "name": "ethereum-USDT",
+      "network": "ethereum",
+      "chainId": 1,
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "beforeBlock": "0x1910b4c",
+      "previewBlock": "0x1910bd5",
+      "before": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4c"
+            ],
+            "scope": "fee=min(amount*bps/10000, maximumFee). Owner can set bps<20 and maxFee<50 tokens. Rounding/cap changes effective rate. No sender exemption in reviewed transfer path; blacklist/pause can revert. DEX/hook fees separate."
+          },
+          "mintCapability": {
+            "value": "Owner-authorized issuance",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4c"
+            ],
+            "scope": "Source issue() increases balances/supply under onlyOwner; no claim of successful execution now."
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+            "dataState": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4c"
+            ],
+            "scope": "Observed authority getter; zero owner never establishes complete renouncement."
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4c"
+            ],
+            "scope": "No reachable DELEGATECALL, CALLCODE or SELFDESTRUCT; all JUMPDESTs are roots, metadata retained. External forwarding, permissions and future governance remain separate."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "88301265725.970534",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4c"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "73521.881178",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4c"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "preview": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910bd5"
+            ],
+            "scope": "fee=min(amount*bps/10000, maximumFee). Owner can set bps<20 and maxFee<50 tokens. Rounding/cap changes effective rate. No sender exemption in reviewed transfer path; blacklist/pause can revert. DEX/hook fees separate."
+          },
+          "mintCapability": {
+            "value": "Owner-authorized issuance",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910bd5"
+            ],
+            "scope": "Source issue() increases balances/supply under onlyOwner; no claim of successful execution now."
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+            "dataState": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910bd5"
+            ],
+            "scope": "Observed authority getter; zero owner never establishes complete renouncement."
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910bd5"
+            ],
+            "scope": "No reachable DELEGATECALL, CALLCODE or SELFDESTRUCT; all JUMPDESTs are roots, metadata retained. External forwarding, permissions and future governance remain separate."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "88301265725.970534",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910bd5"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "73521.881178",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910bd5"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "mechanicsPolicyCompleteBefore": 3,
+      "mechanicsPolicyCompleteAfter": 3,
+      "rpcCrosscheck": {
+        "name": "ethereum-USDT",
+        "network": "ethereum",
+        "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "chainId": 1,
+        "block": "0x1910bd5",
+        "totalSupplyRaw": "88301265725970534",
+        "deadRaw": "26992832786",
+        "zeroRaw": "46529048392",
+        "decimals": 6,
+        "ms": 695,
+        "pass": true
+      }
+    },
+    {
+      "name": "ethereum-USDC",
+      "network": "ethereum",
+      "chainId": 1,
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "beforeBlock": "0x1910b4d",
+      "previewBlock": "0x1910bd6",
+      "before": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4d"
+            ],
+            "scope": "Token transfer moves full value; blacklist/pause restrictions can revert. Pool/hook fees are separate."
+          },
+          "mintCapability": {
+            "value": "Allowance-limited mint",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4d"
+            ],
+            "scope": "Configured minters mint within allowance; masterMinter configures them. Paused/blacklist checks apply. No complete minter list or executable mint simulation claimed."
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xfcb19e6a322b27c06842a71e8c725399f049ae3a",
+            "dataState": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4d"
+            ],
+            "scope": "Observed admin storage, not proof that all privileges are enumerated."
+          },
+          "contractArchitecture": {
+            "value": "Legacy implementation slot",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4d"
+            ],
+            "scope": "Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "47436589689.678218",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4d"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "57361.123908",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4d"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "preview": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910bd6"
+            ],
+            "scope": "Token transfer moves full value; blacklist/pause restrictions can revert. Pool/hook fees are separate."
+          },
+          "mintCapability": {
+            "value": "Allowance-limited mint",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910bd6"
+            ],
+            "scope": "Configured minters mint within allowance; masterMinter configures them. Paused/blacklist checks apply. No complete minter list or executable mint simulation claimed."
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xfcb19e6a322b27c06842a71e8c725399f049ae3a",
+            "dataState": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910bd6"
+            ],
+            "scope": "Observed admin storage, not proof that all privileges are enumerated."
+          },
+          "contractArchitecture": {
+            "value": "Legacy implementation slot",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910bd6"
+            ],
+            "scope": "Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "47446176323.090156",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910bd6"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "57361.123908",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910bd6"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "mechanicsPolicyCompleteBefore": 3,
+      "mechanicsPolicyCompleteAfter": 3,
+      "rpcCrosscheck": {
+        "name": "ethereum-USDC",
+        "network": "ethereum",
+        "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "chainId": 1,
+        "block": "0x1910bd6",
+        "totalSupplyRaw": "47446176323090156",
+        "deadRaw": "57361123908",
+        "zeroRaw": "0",
+        "decimals": 6,
+        "ms": 264,
+        "pass": true
+      }
+    },
+    {
+      "name": "ethereum-ONDO",
+      "network": "ethereum",
+      "chainId": 1,
+      "address": "0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3",
+      "beforeBlock": "0x1910b4d",
+      "previewBlock": "0x1910be4",
+      "before": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4d"
+            ],
+            "scope": "Full-value transfer/transferFrom, subject to transfer-role and investor vesting restrictions; restrictions can revert and are not deductions."
+          },
+          "mintCapability": {
+            "value": "Role-gated mint",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4d"
+            ],
+            "scope": "Source allows MINTER_ROLE issuance within uint96 bounds; role holders may be revoked. Current membership/executable mint not claimed."
+          },
+          "ownerAdmin": {
+            "value": "AccessControl role authority",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4d"
+            ],
+            "scope": "Verified role-based authority model, not a complete member list or a no-owner/renouncement claim. Transfer and timelock roles are distinct."
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4d"
+            ],
+            "scope": "No reachable DELEGATECALL, CALLCODE or SELFDESTRUCT; all JUMPDESTs are roots, metadata retained. External forwarding, permissions and future governance remain separate."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "10000000000",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4d"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "7.58920005054417826",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910b4d"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "preview": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910be4"
+            ],
+            "scope": "Full-value transfer/transferFrom, subject to transfer-role and investor vesting restrictions; restrictions can revert and are not deductions."
+          },
+          "mintCapability": {
+            "value": "Role-gated mint",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910be4"
+            ],
+            "scope": "Source allows MINTER_ROLE issuance within uint96 bounds; role holders may be revoked. Current membership/executable mint not claimed."
+          },
+          "ownerAdmin": {
+            "value": "AccessControl role authority",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910be4"
+            ],
+            "scope": "Verified role-based authority model, not a complete member list or a no-owner/renouncement claim. Transfer and timelock roles are distinct."
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910be4"
+            ],
+            "scope": "No reachable DELEGATECALL, CALLCODE or SELFDESTRUCT; all JUMPDESTs are roots, metadata retained. External forwarding, permissions and future governance remain separate."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "10000000000",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910be4"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "7.58920005054417826",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Ethereum RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x1910be4"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "mechanicsPolicyCompleteBefore": 3,
+      "mechanicsPolicyCompleteAfter": 3,
+      "rpcCrosscheck": {
+        "name": "ethereum-ONDO",
+        "network": "ethereum",
+        "address": "0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3",
+        "chainId": 1,
+        "block": "0x1910be4",
+        "totalSupplyRaw": "10000000000000000000000000000",
+        "deadRaw": "7589200050544178260",
+        "zeroRaw": "0",
+        "decimals": 18,
+        "ms": 235,
+        "pass": true
+      }
+    },
+    {
+      "name": "robinhood-LINK",
+      "network": "robinhood",
+      "chainId": 4663,
+      "address": "0x492641f648a4986844848e0befe66d14817bce34",
+      "beforeBlock": "0x5e831f8",
+      "previewBlock": "0x5e8745c",
+      "before": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "INSUFFICIENT_EVIDENCE",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "mintCapability": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "INSUFFICIENT_EVIDENCE",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xf09afe78d3c7d359b334d7cb88995751f7ec5e13",
+            "dataState": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e831f8"
+            ],
+            "scope": null
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e831f8"
+            ],
+            "scope": "No reachable DELEGATECALL, CALLCODE or SELFDESTRUCT; all JUMPDESTs are roots, metadata retained. External forwarding, permissions and future governance remain separate."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1010.119218623411434723",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e831f8"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "INSUFFICIENT_EVIDENCE",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "0",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e831f8"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "preview": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "INSUFFICIENT_EVIDENCE",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "mintCapability": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "INSUFFICIENT_EVIDENCE",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xf09afe78d3c7d359b334d7cb88995751f7ec5e13",
+            "dataState": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8745c"
+            ],
+            "scope": null
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8745c"
+            ],
+            "scope": "No reachable DELEGATECALL, CALLCODE or SELFDESTRUCT; all JUMPDESTs are roots, metadata retained. External forwarding, permissions and future governance remain separate."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1010.119218623411434723",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8745c"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "INSUFFICIENT_EVIDENCE",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "0",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8745c"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "mechanicsPolicyCompleteBefore": 2,
+      "mechanicsPolicyCompleteAfter": 2,
+      "rpcCrosscheck": {
+        "name": "robinhood-LINK",
+        "network": "robinhood",
+        "address": "0x492641f648a4986844848e0befe66d14817bce34",
+        "chainId": 4663,
+        "block": "0x5e8745c",
+        "totalSupplyRaw": "1010119218623411434723",
+        "deadRaw": "0",
+        "zeroRaw": "0",
+        "decimals": 18,
+        "ms": 865,
+        "pass": true
+      }
+    },
+    {
+      "name": "robinhood-TSLA",
+      "network": "robinhood",
+      "chainId": 4663,
+      "address": "0x322f0929c4625ed5bad873c95208d54e1c003b2d",
+      "beforeBlock": "0x5e831f8",
+      "previewBlock": "0x5e8746b",
+      "before": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e831f8"
+            ],
+            "scope": "Base-unit transfers have no deduction; pause/block restrictions may revert. UI multiplier/rebase display is not a tax; DEX/hook fees unknown."
+          },
+          "mintCapability": {
+            "value": "Registry MINTER_ROLE mint",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e831f8"
+            ],
+            "scope": "Reviewed mint requires external registry MINTER_ROLE, unpaused state and unblocked accounts. Current role members and executable mint are not claimed."
+          },
+          "ownerAdmin": {
+            "value": "Access registry: 0xe10b6f6b275de231345c20d14ab812db62151b00",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e831f8"
+            ],
+            "scope": "External registry controls mint/burn, pause, blocked accounts, metadata and UI multiplier roles; not an ownership-renouncement claim."
+          },
+          "contractArchitecture": {
+            "value": "Reviewed immutable beacon proxy",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e831f8"
+            ],
+            "scope": "Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "10517.24422",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e831f8"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "INSUFFICIENT_EVIDENCE",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "0.086051206085377017",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e831f8"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "preview": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8746b"
+            ],
+            "scope": "Base-unit transfers have no deduction; pause/block restrictions may revert. UI multiplier/rebase display is not a tax; DEX/hook fees unknown."
+          },
+          "mintCapability": {
+            "value": "Registry MINTER_ROLE mint",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8746b"
+            ],
+            "scope": "Reviewed mint requires external registry MINTER_ROLE, unpaused state and unblocked accounts. Current role members and executable mint are not claimed."
+          },
+          "ownerAdmin": {
+            "value": "Access registry: 0xe10b6f6b275de231345c20d14ab812db62151b00",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8746b"
+            ],
+            "scope": "External registry controls mint/burn, pause, blocked accounts, metadata and UI multiplier roles; not an ownership-renouncement claim."
+          },
+          "contractArchitecture": {
+            "value": "Reviewed immutable beacon proxy",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8746b"
+            ],
+            "scope": "Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "10251.35623",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8746b"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "INSUFFICIENT_EVIDENCE",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "0.086051206085377017",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8746b"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "mechanicsPolicyCompleteBefore": 3,
+      "mechanicsPolicyCompleteAfter": 3,
+      "rpcCrosscheck": {
+        "name": "robinhood-TSLA",
+        "network": "robinhood",
+        "address": "0x322f0929c4625ed5bad873c95208d54e1c003b2d",
+        "chainId": 4663,
+        "block": "0x5e8746b",
+        "totalSupplyRaw": "10251356230000000000000",
+        "deadRaw": "86051206085377017",
+        "zeroRaw": "0",
+        "decimals": 18,
+        "ms": 473,
+        "pass": true
+      }
+    },
+    {
+      "name": "robinhood-PONS",
+      "network": "robinhood",
+      "chainId": 4663,
+      "address": "0x39dbed3a2bd333467115de45665cc57f813c4571",
+      "beforeBlock": "0x5e83203",
+      "previewBlock": "0x5e8747f",
+      "before": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e83203"
+            ],
+            "scope": "All permitted transfers move full value. Launch buy limits/exemptions can revert; poolFee is a configured V3 fee, not an ERC20 tax or proof of current trading fees."
+          },
+          "mintCapability": {
+            "value": "NONE DETECTED ✓",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e83203"
+            ],
+            "scope": "No external post-construction issuance path in this exact non-delegating implementation."
+          },
+          "ownerAdmin": {
+            "value": "Launch factory controls",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e83203"
+            ],
+            "scope": "Factory controls initial-buy recipient exemption. Deployer metadata is not ownership; transfer limits and expiry remain distinct from taxes."
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e83203"
+            ],
+            "scope": "No reachable DELEGATECALL, CALLCODE or SELFDESTRUCT; all JUMPDESTs are roots, metadata retained. External forwarding, permissions and future governance remain separate."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1000000000",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e83203"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "INSUFFICIENT_EVIDENCE",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "327903752.487776856644785187",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e83203"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "preview": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8747f"
+            ],
+            "scope": "All permitted transfers move full value. Launch buy limits/exemptions can revert; poolFee is a configured V3 fee, not an ERC20 tax or proof of current trading fees."
+          },
+          "mintCapability": {
+            "value": "NONE DETECTED ✓",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8747f"
+            ],
+            "scope": "No external post-construction issuance path in this exact non-delegating implementation."
+          },
+          "ownerAdmin": {
+            "value": "Launch factory controls",
+            "dataState": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8747f"
+            ],
+            "scope": "Factory controls initial-buy recipient exemption. Deployer metadata is not ownership; transfer limits and expiry remain distinct from taxes."
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood Chain RPC / contract evidence",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8747f"
+            ],
+            "scope": "No reachable DELEGATECALL, CALLCODE or SELFDESTRUCT; all JUMPDESTs are roots, metadata retained. External forwarding, permissions and future governance remain separate."
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1000000000",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8747f"
+            ],
+            "scope": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "INSUFFICIENT_EVIDENCE",
+            "proofBlocks": [],
+            "scope": null
+          },
+          "burnAddressBalance": {
+            "value": "327906831.600902270509623768",
+            "dataState": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "source": "Robinhood RPC",
+            "reasonCode": null,
+            "proofBlocks": [
+              "0x5e8747f"
+            ],
+            "scope": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "dataState": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "source": null,
+            "reasonCode": "NO_VERIFIED_NEXT_UNLOCK",
+            "proofBlocks": [],
+            "scope": null
+          }
+        }
+      },
+      "mechanicsPolicyCompleteBefore": 3,
+      "mechanicsPolicyCompleteAfter": 3,
+      "rpcCrosscheck": {
+        "name": "robinhood-PONS",
+        "network": "robinhood",
+        "address": "0x39dbed3a2bd333467115de45665cc57f813c4571",
+        "chainId": 4663,
+        "block": "0x5e8747f",
+        "totalSupplyRaw": "1000000000000000000000000000",
+        "deadRaw": "327906831600902270509623768",
+        "zeroRaw": "0",
+        "decimals": 18,
+        "ms": 438,
+        "pass": true
+      }
+    }
+  ]
+}
