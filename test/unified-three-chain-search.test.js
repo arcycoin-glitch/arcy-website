@@ -71,3 +71,14 @@ test('existing unified search frontend code is valid JavaScript and both entrypo
  const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
  for(const [,script] of scripts)if(script.trim())new vm.Script(script,{filename:'search/index.html inline'});
 });
+
+test('previously live-indexed PONS remains findable on Robinhood when optional providers time out',()=>{
+ const hints=require('../search/server/lib/prefix-catalog');
+ const data=hints.discover('robinhood','PONS');
+ assert.equal(data.length,1);
+ assert.equal(data[0].address,ADDR);
+ assert.equal(data[0].chainId,4663);
+ assert.equal(data[0].identityVerified,false);
+ assert.equal(data[0].registryMatched,false);
+ assert.equal(hints.discover('arc','PONS').length,0);
+});
