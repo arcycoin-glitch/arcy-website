@@ -41,7 +41,7 @@
  }
  if(!section||!header||section.querySelector('.home-search'))return;
 
- const networks=[['all','All networks','ALL'],['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
+ const networks=[['all','All 3 Networks','ALL'],['arc','Arc','ARC'],['ethereum','Ethereum','ETH'],['robinhood','Robinhood Chain','RH']];
  const NETWORK_MARKUP=Object.freeze({
   all:'🌐',
   // Arc uses the original file already referenced by the approved detail
@@ -54,11 +54,14 @@
  const setMark=(el,id)=>{el.innerHTML=NETWORK_MARKUP[id]||'';el.dataset.network=id;};
  const app=document.createElement('section');app.className='home-search';app.setAttribute('aria-label','ARCY Search token discovery');
  const brand=document.createElement('div');brand.className='home-search-brand notranslate';brand.setAttribute('aria-label','ARCY SEARCH');brand.setAttribute('translate','no');
- const owl=document.createElement('img');owl.className='home-search-owl';owl.src='/search/assets/arcy-owl-reference.webp';owl.width=320;owl.height=217;owl.alt='';owl.decoding='async';
+ const brandIcon=document.createElement('span');brandIcon.className='home-search-brand-icon';brandIcon.setAttribute('aria-hidden','true');brandIcon.textContent='⌕';
  const wordmark=document.createElement('div');wordmark.className='home-search-wordmark';
  const arcy=document.createElement('span');arcy.className='home-search-arcy';arcy.append(document.createTextNode('ARC'));const y=document.createElement('span');y.className='home-search-y';y.textContent='Y';arcy.append(y);
- const searchBrand=document.createElement('span');searchBrand.className='home-search-search';searchBrand.textContent='SEARCH';wordmark.append(arcy,searchBrand);brand.append(owl,wordmark);
- const intro=document.createElement('p');intro.className='home-search-intro';intro.textContent='Search Arc, Ethereum and Robinhood with one query. Select a chain-specific contract to research.';
+ const searchBrand=document.createElement('span');searchBrand.className='home-search-search';searchBrand.textContent='SEARCH';wordmark.append(arcy,searchBrand);brand.append(brandIcon,wordmark);
+ const brandRow=document.createElement('div');brandRow.className='home-search-brand-row';
+ const chainCount=document.createElement('span');chainCount.className='home-search-chain-count';chainCount.textContent='3 Networks';
+ brandRow.append(brand,chainCount);
+ const intro=document.createElement('p');intro.className='home-search-intro';intro.textContent='Research tokens across Arc, Ethereum & Robinhood.';
  const picker=document.createElement('div');picker.className='home-network-picker';picker.id='homeNetworkPicker';
  const pickerLabel=document.createElement('span');pickerLabel.className='home-field-label';pickerLabel.textContent='NETWORK';
  const segments=document.createElement('div');segments.className='home-network-segments';segments.setAttribute('role','group');segments.setAttribute('aria-label','Choose blockchain network');
@@ -74,7 +77,7 @@
   const option=document.createElement('button');option.type='button';option.className='home-network-option';option.dataset.network=id;
   option.setAttribute('aria-pressed','false');option.setAttribute('aria-label',label);
   const badge=document.createElement('span');badge.className='home-network-mark';badge.setAttribute('aria-hidden','true');setMark(badge,id);badge.hidden=false;
-  const name=document.createElement('span');name.className='home-network-option-name';name.textContent=label;
+  const name=document.createElement('span');name.className='home-network-option-name';name.textContent=id==='robinhood'?'Robinhood':label;
   option.append(badge,name);
   option.addEventListener('click',()=>{
    if(selected===id)return;
@@ -91,19 +94,22 @@
   });
   options.set(id,option);segments.append(option);
  }
- picker.append(pickerLabel,segments);setNetwork('all');
+ picker.append(segments);setNetwork('all');
 
  const form=document.createElement('form');form.className='home-search-form';form.noValidate=true;
  const inputWrap=document.createElement('label');inputWrap.className='home-search-input-wrap';inputWrap.htmlFor='homeSearchQuery';
  const glass=document.createElement('span');glass.className='home-search-glass';glass.setAttribute('aria-hidden','true');glass.textContent='⌕';
  const input=document.createElement('input');input.id='homeSearchQuery';input.name='q';input.type='search';input.autocomplete='off';input.spellcheck=false;input.maxLength=48;input.placeholder='Token name, ticker or 0x contract address';input.setAttribute('aria-label','Token name, ticker or contract address');inputWrap.append(glass,input);
- const submit=document.createElement('button');submit.type='submit';submit.className='home-search-submit';submit.textContent='SEARCH / SCAN';form.append(inputWrap,submit);
- const state=document.createElement('p');state.className='home-search-state';state.id='homeSearchState';state.setAttribute('role','status');state.setAttribute('aria-live','polite');state.textContent='Exact contracts, source-backed candidates and 20 research checks.';
+ const submit=document.createElement('button');submit.type='submit';submit.className='home-search-submit';submit.textContent='SEARCH / SCAN  →';form.append(inputWrap,picker,submit);
+ const state=document.createElement('p');state.className='home-search-state';state.id='homeSearchState';state.setAttribute('role','status');state.setAttribute('aria-live','polite');state.textContent='';
  const results=document.createElement('div');results.className='home-search-results';results.hidden=true;results.setAttribute('aria-label','Matching tokens');
 
  const attribution=document.createElement('p');attribution.className='home-search-attribution home-market-pending';attribution.textContent='When enabled, market prices, liquidity and volume are source-reported from cited pools and may be incomplete. Unsupported checks remain NOT VERIFIED.';
  const robinhoodNotice=document.createElement('p');robinhoodNotice.className='home-search-disclaimer';robinhoodNotice.textContent='Independent research tool. Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.';
- app.append(brand,intro,picker,form,state,results,attribution,robinhoodNotice);header.after(app);
+ const notes=document.createElement('details');notes.className='home-search-notes';
+ const notesLabel=document.createElement('summary');notesLabel.textContent='Data coverage & verification notes';
+ notes.append(notesLabel,attribution);
+ app.append(brandRow,intro,form,state,results,notes,robinhoodNotice);header.after(app);
  document.documentElement.classList.add('search-upgraded');
  document.querySelectorAll('a[href="#search"]').forEach(link=>link.setAttribute('href','#search'));
 
