@@ -1,0 +1,1122 @@
+{
+  "date": "2026-10-27",
+  "testedSha": "27c5ca71f321b14395d6c1ef31880837d7d92741",
+  "preview": "https://arcy-official-4sp5rzoy2-arcy3.vercel.app",
+  "baselineApplicationSha": "d7cb0d0a6fce0539d7764f2ae5117a636208d4f3",
+  "preservedCurrentProductionSha": "a691b70a9893ea91ea23c2a2dea0417114be61f5",
+  "tests": {
+    "focusedPass": 72,
+    "full": {
+      "pass": 552,
+      "total": 566,
+      "historicalFailures": 14,
+      "newFailures": 0
+    },
+    "browser": {
+      "pass": 18,
+      "total": 18,
+      "errors": [],
+      "widths": [
+        {
+          "width": 320,
+          "pass": true
+        },
+        {
+          "width": 360,
+          "pass": true
+        },
+        {
+          "width": 390,
+          "pass": true
+        },
+        {
+          "width": 430,
+          "pass": true
+        },
+        {
+          "width": 768,
+          "pass": true
+        },
+        {
+          "width": 1024,
+          "pass": true
+        },
+        {
+          "width": 1440,
+          "pass": true
+        }
+      ]
+    }
+  },
+  "counts": {
+    "mechanicsRecordedBaseline": 34,
+    "mechanicsLocalAfter": 36,
+    "mechanicsIntegrationPreviewDesktop": 35,
+    "mechanicsIntegrationPreviewMobile": 35,
+    "supplyBaseline": 18,
+    "supplyAfter": 18,
+    "denominator": 36,
+    "warning": "Sourced availability is not full buy/sell fee verification. The missing TOLLY owner row is an Arc RPC_RATE_LIMIT, also seen on unchanged production."
+  },
+  "pairedTolly": [
+    {
+      "origin": "https://www.arcyusdc.xyz",
+      "status": 200,
+      "block": "0x1ad9f5f",
+      "owner": null,
+      "state": "NOT_VERIFIED",
+      "failures": [
+        {
+          "source": "Arc RPC",
+          "method": "eth_call",
+          "address": "0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+          "block": "0x1ad9f5f",
+          "reason": "RPC_RATE_LIMIT"
+        }
+      ]
+    },
+    {
+      "origin": "https://arcy-official-4sp5rzoy2-arcy3.vercel.app",
+      "status": 200,
+      "block": "0x1ad9f5f",
+      "owner": "Pool setup completed",
+      "state": "DATA_FOUND"
+    }
+  ],
+  "arcy": {
+    "searchBlock": "0x1ada022",
+    "originalBlock": "0x1ada02d",
+    "buy": 3,
+    "sell": 3,
+    "transfer": 0,
+    "searchValue": "Buy 3% · Sell 3% · Transfer 0%",
+    "pass": true
+  },
+  "tokens": [
+    {
+      "name": "arc-ARCY",
+      "address": "0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b",
+      "width": 1440,
+      "block": "0x1ad9ceb",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Buy 3% · Sell 3% · Transfer 0%",
+            "state": "DATA_FOUND",
+            "status": "SOURCE_REPORTED"
+          },
+          "mintCapability": {
+            "value": "NONE DETECTED ✓",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0x9c07a97364e59afe744fdbe55951df929bd5d90e",
+            "state": "DATA_FOUND",
+            "status": "GETTER_REPORTED"
+          },
+          "contractArchitecture": {
+            "value": "EIP-1167 minimal proxy",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1000000000",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "PROVIDER_DISABLED_LICENSE_UNVERIFIED"
+          },
+          "burnAddressBalance": {
+            "value": "27921688.82967170463598735",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "arc-TOLLY",
+      "address": "0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+      "width": 1440,
+      "block": "0x1ad9cf8",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "NONE DETECTED ✓",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "ownerAdmin": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "OWNER_ADMIN_NOT_VERIFIED"
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1000000000",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "PROVIDER_DISABLED_LICENSE_UNVERIFIED"
+          },
+          "burnAddressBalance": {
+            "value": "63608542.569662721786448387",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "arc-cirBTC",
+      "address": "0x171a4217b86a807a64eb94757db6849fb4bdbaa0",
+      "width": 1440,
+      "block": "0x1ad9d04",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "Allowance-limited mint",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xbc22a4c5f2c1cdb50e2f55dbf9b5f73417d2e6cf",
+            "state": "DATA_FOUND",
+            "status": "GETTER_REPORTED"
+          },
+          "contractArchitecture": {
+            "value": "Legacy implementation slot",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "5313.19783359",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "PROVIDER_DISABLED_LICENSE_UNVERIFIED"
+          },
+          "burnAddressBalance": {
+            "value": "0",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "ethereum-USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "width": 1440,
+      "block": "0x1911352",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "mintCapability": {
+            "value": "Owner-authorized issuance",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+            "state": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "reason": null
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "88301265725.970534",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "reason": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "ISSUER_CIRCULATION_PERMISSION_REQUIRED"
+          },
+          "burnAddressBalance": {
+            "value": "73521.881178",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "reason": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "ethereum-USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "width": 1440,
+      "block": "0x1911353",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "Allowance-limited mint",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xfcb19e6a322b27c06842a71e8c725399f049ae3a",
+            "state": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "reason": null
+          },
+          "contractArchitecture": {
+            "value": "Legacy implementation slot",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "47446163698.528108",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "reason": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "PROVIDER_DISABLED_LICENSE_UNVERIFIED"
+          },
+          "burnAddressBalance": {
+            "value": "57461.123908",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "reason": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "ethereum-ONDO",
+      "address": "0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3",
+      "width": 1440,
+      "block": "0x1911354",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "Role-gated mint",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "AccessControl role authority",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "10000000000",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "reason": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "PROVIDER_DISABLED_LICENSE_UNVERIFIED"
+          },
+          "burnAddressBalance": {
+            "value": "7.58920005054417826",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "reason": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "robinhood-LINK",
+      "address": "0x492641f648a4986844848e0befe66d14817bce34",
+      "width": 1440,
+      "block": "0x5ebd1c2",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "Role-gated mint",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "Owner-governed mint/burn roles",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1010.119218623411434723",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "INSUFFICIENT_EVIDENCE"
+          },
+          "burnAddressBalance": {
+            "value": "0",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "robinhood-TSLA",
+      "address": "0x322f0929c4625ed5bad873c95208d54e1c003b2d",
+      "width": 1440,
+      "block": "0x5ebd1d7",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "Registry MINTER_ROLE mint",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "Access registry: 0xe10b6f6b275de231345c20d14ab812db62151b00",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "contractArchitecture": {
+            "value": "Reviewed immutable beacon proxy",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "10295.81512",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "INSUFFICIENT_EVIDENCE"
+          },
+          "burnAddressBalance": {
+            "value": "0.086051206085377017",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "robinhood-PONS",
+      "address": "0x39dbed3a2bd333467115de45665cc57f813c4571",
+      "width": 1440,
+      "block": "0x5ebd1e6",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "NONE DETECTED ✓",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "ownerAdmin": {
+            "value": "Launch factory controls",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1000000000",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "INSUFFICIENT_EVIDENCE"
+          },
+          "burnAddressBalance": {
+            "value": "327946390.44110754334131054",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "arc-ARCY",
+      "address": "0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b",
+      "width": 390,
+      "block": "0x1ad9d57",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Buy 3% · Sell 3% · Transfer 0%",
+            "state": "DATA_FOUND",
+            "status": "SOURCE_REPORTED"
+          },
+          "mintCapability": {
+            "value": "NONE DETECTED ✓",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0x9c07a97364e59afe744fdbe55951df929bd5d90e",
+            "state": "DATA_FOUND",
+            "status": "GETTER_REPORTED"
+          },
+          "contractArchitecture": {
+            "value": "EIP-1167 minimal proxy",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1000000000",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "PROVIDER_DISABLED_LICENSE_UNVERIFIED"
+          },
+          "burnAddressBalance": {
+            "value": "27921688.82967170463598735",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "arc-TOLLY",
+      "address": "0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+      "width": 390,
+      "block": "0x1ad9d63",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "NONE DETECTED ✓",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "ownerAdmin": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "OWNER_ADMIN_NOT_VERIFIED"
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1000000000",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "PROVIDER_DISABLED_LICENSE_UNVERIFIED"
+          },
+          "burnAddressBalance": {
+            "value": "63608542.569662721786448387",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "arc-cirBTC",
+      "address": "0x171a4217b86a807a64eb94757db6849fb4bdbaa0",
+      "width": 390,
+      "block": "0x1ad9d69",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "Allowance-limited mint",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xbc22a4c5f2c1cdb50e2f55dbf9b5f73417d2e6cf",
+            "state": "DATA_FOUND",
+            "status": "GETTER_REPORTED"
+          },
+          "contractArchitecture": {
+            "value": "Legacy implementation slot",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "5313.19783359",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "PROVIDER_DISABLED_LICENSE_UNVERIFIED"
+          },
+          "burnAddressBalance": {
+            "value": "0",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "ethereum-USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "width": 390,
+      "block": "0x1911356",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "mintCapability": {
+            "value": "Owner-authorized issuance",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+            "state": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "reason": null
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "88301265725.970534",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "reason": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "ISSUER_CIRCULATION_PERMISSION_REQUIRED"
+          },
+          "burnAddressBalance": {
+            "value": "73521.881178",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "reason": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "ethereum-USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "width": 390,
+      "block": "0x1911357",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "Allowance-limited mint",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "owner() getter: 0xfcb19e6a322b27c06842a71e8c725399f049ae3a",
+            "state": "DATA_FOUND",
+            "status": "GETTER_REPORTED",
+            "reason": null
+          },
+          "contractArchitecture": {
+            "value": "Legacy implementation slot",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "47446047954.947254",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "reason": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "PROVIDER_DISABLED_LICENSE_UNVERIFIED"
+          },
+          "burnAddressBalance": {
+            "value": "57461.123908",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "reason": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "ethereum-ONDO",
+      "address": "0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3",
+      "width": 390,
+      "block": "0x1911358",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "Role-gated mint",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "AccessControl role authority",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "10000000000",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "reason": null
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "PROVIDER_DISABLED_LICENSE_UNVERIFIED"
+          },
+          "burnAddressBalance": {
+            "value": "7.58920005054417826",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN",
+            "reason": null
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "robinhood-LINK",
+      "address": "0x492641f648a4986844848e0befe66d14817bce34",
+      "width": 390,
+      "block": "0x5ebd3aa",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "Role-gated mint",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "Owner-governed mint/burn roles",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1010.119218623411434723",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "INSUFFICIENT_EVIDENCE"
+          },
+          "burnAddressBalance": {
+            "value": "0",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "robinhood-TSLA",
+      "address": "0x322f0929c4625ed5bad873c95208d54e1c003b2d",
+      "width": 390,
+      "block": "0x5ebd3be",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "Registry MINTER_ROLE mint",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "ownerAdmin": {
+            "value": "Access registry: 0xe10b6f6b275de231345c20d14ab812db62151b00",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "contractArchitecture": {
+            "value": "Reviewed immutable beacon proxy",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "10295.81512",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "INSUFFICIENT_EVIDENCE"
+          },
+          "burnAddressBalance": {
+            "value": "0.086051206085377017",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    },
+    {
+      "name": "robinhood-PONS",
+      "address": "0x39dbed3a2bd333467115de45665cc57f813c4571",
+      "width": 390,
+      "block": "0x5ebd3d3",
+      "cards": {
+        "mechanics": {
+          "tradingTaxes": {
+            "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "mintCapability": {
+            "value": "NONE DETECTED ✓",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE"
+          },
+          "ownerAdmin": {
+            "value": "Launch factory controls",
+            "state": "DATA_FOUND",
+            "status": "VERIFIED_SOURCE_AND_STATE"
+          },
+          "contractArchitecture": {
+            "value": "NON-PROXY · runtime verified",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          }
+        },
+        "supply": {
+          "totalSupply": {
+            "value": "1000000000",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "circulatingSupply": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "INSUFFICIENT_EVIDENCE"
+          },
+          "burnAddressBalance": {
+            "value": "327946390.44110754334131054",
+            "state": "DATA_FOUND",
+            "status": "ON_CHAIN"
+          },
+          "nextUnlock": {
+            "value": null,
+            "state": "NOT_VERIFIED",
+            "status": "NOT_VERIFIED",
+            "reason": "NO_VERIFIED_NEXT_UNLOCK"
+          }
+        }
+      }
+    }
+  ],
+  "runtimeProof": {
+    "chainId": 4663,
+    "network": "robinhood",
+    "address": "0x492641f648a4986844848e0befe66d14817bce34",
+    "block": "0x5ebaa02",
+    "method": "Recompiled onlyMinter execution + pinned exact role membership",
+    "observedAt": "2026-10-27T14:59:06.308Z",
+    "verificationStatus": "VERIFIED_SOURCE_AND_STATE",
+    "sourceUrl": "https://sourcify.dev/server/v2/contract/421614/0xa8c0c11bf64af62cdca6f93d3769b88bdd7cb93d?fields=all",
+    "sourceDigest": "817024e6aba5757bf907b1fccd09ee06cc83ed2caf620f3ec7e9463a70fe6558",
+    "sourceRetrievedAt": null,
+    "implementation": "0x492641f648a4986844848e0befe66d14817bce34",
+    "runtimeMatch": "LOCALLY_RECOMPILED_EXACT_RUNTIME_IMMUTABLES_ONLY",
+    "runtimeReview": {
+      "compiler": "0.8.19+commit.7dd6d404",
+      "optimizerRuns": 26000,
+      "evmVersion": "paris",
+      "metadataHash": "none",
+      "normalizedRuntimeSha256": "f7d5d6b4b79d57aa53c042cabe1dc571d89908566c23cf0d698566235f7ed593",
+      "sourceDigest": "817024e6aba5757bf907b1fccd09ee06cc83ed2caf620f3ec7e9463a70fe6558",
+      "referenceChainId": 421614,
+      "referenceAddress": "0xa8c0c11bf64af62cdca6f93d3769b88bdd7cb93d",
+      "compiledContract": "src/v0.8/shared/token/ERC677/BurnMintERC677.sol:BurnMintERC677",
+      "decimals": 18,
+      "maxSupplyRaw": "1000000000000000000000000000",
+      "scope": "Reference supplies source dependencies only; local parent-contract recompilation matches this exact deployed runtime. No constructor/storage or cross-chain token identity equivalence is assumed."
+    },
+    "profile": "RECOMPILED_ROLE_BURN_MINT",
+    "scope": "These current members satisfy isMinter at the pinned block. Source mint increases supply subject to recipient and optional cap checks. No mint transaction was executed; owner may grant/revoke roles.",
+    "minters": [
+      "0x3201a20d2a33820c0dac8bc93c4819755c2a8c7f"
+    ],
+    "maxSupplyRaw": "1000000000000000000000000000"
+  },
+  "sourcePermission": "Tether public display remains unapproved and disabled; research value NOT counted"
+}

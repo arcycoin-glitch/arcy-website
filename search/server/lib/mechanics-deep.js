@@ -17,6 +17,7 @@ const SLOTS=Object.freeze({
 });
 // Reviewed full-source fingerprints, NEVER token addresses, names or selectors alone.
 const PROFILES=Object.freeze({
+ [require('./mechanics-compiled-runtime').DIGEST]:'RECOMPILED_ROLE_BURN_MINT',
  '2fe87a0ede258f1d3827f837a1a42c860542e346867f64fe5c89fdb7feefe90b':'FIXED_SUPPLY_POOL_SETUP',
  '9799263b22d762e31d781b80bcf9efa38e24917e39a5d75c683ad04f80ce5965':'CAPPED_FEE_LEGACY_TOKEN',
  '292fad46b97e1b50bd191dfd857de081abfb199ad96ff02a055124da4a708cf2':'TIMED_CAPPED_MINTER',
@@ -39,6 +40,8 @@ function validateSource(d,{chainId,address,code}){
  return {abi:d.abi,digest:digest(d.sources),runtimeMatch:d.runtimeMatch,compilation:d.compilation,immutableReferences:d.runtimeBytecode.immutableReferences};
 }
 async function sourceFor(cfg,address,code,diagnostics){
+ const compiled=require('./mechanics-compiled-runtime').match(code);
+ if(compiled)return compiled;
  const url='https://sourcify.dev/server/v2/contract/'+cfg.chainId+'/'+address+'?fields=abi,sources,compilation,runtimeBytecode';
  try{const body=await reader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{validateSource(d,{chainId:cfg.chainId,address,code});return true;}});return {...validateSource(body,{chainId:cfg.chainId,address,code}),url,retrievedAt:new Date(reader.observedAt(url)).toISOString()};}
  catch(e){diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason:e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':/SOURCE_/.test(e.message)?e.message:'SOURCE_API_FAILED'});return null;}
@@ -127,7 +130,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
  const resolved=boundTarget&&(target===address?nonDelegating(code):targetCode&&(nonDelegating(targetCode)||reviewedImplementation));
  const source=resolved?implementationSource:null;
  if(!resolved)diagnostics.push({reason:'IMPLEMENTATION_EXECUTION_UNRESOLVED'});
- const sourceProof=source?{sourceUrl:source.url,sourceDigest:source.digest,sourceRetrievedAt:source.retrievedAt,implementation:target,runtimeMatch:source.runtimeMatch}:{};
+ const sourceProof=source?{sourceUrl:source.url,sourceDigest:source.digest,sourceRetrievedAt:source.retrievedAt,implementation:target,runtimeMatch:source.runtimeMatch,...(source.runtimeReview?{runtimeReview:source.runtimeReview}:{})}:{};
  if(source){
   const getters=['owner','getOwner','admin','getAdmin','authority','masterMinter','pauser','blacklister','pendingOwner'];
   await Promise.all(getters.filter(n=>abiFn(source,n+'()','address')).map(async name=>{const value=addressWord(await call(address,name+'()'));if(value){details.observations.push({method:name+'()',value,...sourceProof,block,scope:name==='pendingOwner'?'Pending address; not active owner.':'ABI-matched getter; permission semantics not implied.'});if(!fields.ownerAdmin&&name!=='pendingOwner')fields.ownerAdmin=fact(name+'(): '+value,'Verified ABI + pinned getter',{...sourceProof,scope:'Observed authority getter; zero owner never establishes complete renouncement.'},'GETTER_REPORTED');}}));
@@ -157,6 +160,22 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
   const profile=PROFILES[source.digest];details.reviewedProfile=profile||null;
   if(profile){
    const proof={...sourceProof,profile,scope:'Reviewed complete source matched to pinned deployed bytecode; token-level transfer mechanics only. DEX pool/hook fees are NOT VERIFIED; no trade simulation was performed.'};
+   if(profile==='RECOMPILED_ROLE_BURN_MINT'&&source.runtimeReview){
+    fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Locally recompiled complete ERC677 transfer execution',{
+     ...proof,coverage:'TOKEN_TRANSFER_ONLY',scope:'Exact runtime proof: full token transfer amount reaches recipient; transferAndCall callback/restrictions can revert. Pool/router/hook fees are not established.'},'VERIFIED_SOURCE');
+    const cap=await word(address,'maxSupply()'),members=decodeArray(await call(address,'getMinters()'));
+    if(cap&&BigInt(cap).toString()===source.runtimeReview.maxSupplyRaw&&members){
+     const inspected=members.slice(0,4);
+     const membership=await Promise.all(inspected.map(member=>word(address,'isMinter(address)',member.slice(2).padStart(64,'0'))));
+     if(membership.every(x=>x&&BigInt(x)===1n))fields.mintCapability=fact('Role-gated mint','Recompiled onlyMinter execution + pinned exact role membership',{
+      ...proof,minters:inspected,reportedMemberCount:members.length,maxSupplyRaw:BigInt(cap).toString(),scope:'These up to four current members satisfy isMinter at the pinned block. Source mint increases supply subject to recipient and optional cap checks. No mint transaction was executed; owner may grant/revoke roles.'},'VERIFIED_SOURCE_AND_STATE');
+    }
+    const owner=details.observations.find(x=>x.method==='owner()'&&x.sourceDigest===source.digest)?.value;
+    if(owner)fields.ownerAdmin=fact('Owner-governed mint/burn roles','Recompiled onlyOwner role management + pinned owner()',{
+     ...proof,owner,scope:'This owner can grant/revoke mint and burn roles in the exact reviewed runtime. Full external bridge, timelock/multisig membership and DEX governance are not inferred.'},'VERIFIED_SOURCE_AND_STATE');
+    details.observations.push({method:'Recompiled burn/mint role model',block,...sourceProof,
+     scope:'onlyOwner grants/revokes mint and burn roles; onlyBurner gates supply-reducing burn/burnFrom. Cap0 means no source cap. This proves capability, not an actual burn, buyback or bridge-reserve amount.'});
+   }
    if(profile==='FIXED_SUPPLY_POOL_SETUP'){
     fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed constructor-only mint and full-value ERC20 _update',{...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'Full token transfer value is retained. The immutable anti-snipe max-wallet rule can revert transfers; it is not a tax. External pool fees remain separate.'},'VERIFIED_SOURCE');
     fields.mintCapability=fact('NONE DETECTED ✓','Reviewed complete constructor-only mint execution',{...proof,scope:'The only _mint call is in the constructor; no runtime issuance entry point exists. This does not claim external pool or launchpad control is absent.'},'VERIFIED_SOURCE');

@@ -129,3 +129,9 @@ test('generic token source digest never protects unproved buy/sell rates against
  const x=fixture({source:{digest:profile('FIXED_SUPPLY_POOL_SETUP'),abi:[]}});x.options.network='arc';
  for(const proof of [{source:'Sourcify',sourceDigest:'token-only'},{source:'Arc RPC',hookSourceDigest:'unreviewed',hook:B}]){const old={value:'Buy 0% · Sell 0% · Transfer 0%',dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'Sourcify',evidence:[{address:A,chainId:5042,block,...proof}]};const r=await m.enrich({...x.options,card:{fields:{tradingTaxes:old}}});assert.equal(r.fields.tradingTaxes.value,'Transfer 0% · DEX/hook fees NOT VERIFIED');assert(r.fields.tradingTaxes.evidence.some(e=>e.retainedFrom),'prior observation remains inspectable, not silently discarded');}
 });
+
+test('locally reviewed role runtime requires pinned membership/cap; selectors alone cannot establish mint',async()=>{
+ const role='0x'+word(32).slice(2)+word(1).slice(2)+addr(B).slice(2),source={digest:profile('RECOMPILED_ROLE_BURN_MINT'),abi:[fn('owner')],runtimeReview:{maxSupplyRaw:'1000'}};
+ for(const confirmed of[true,false]){const x=fixture({source,calls:{[m.selector('owner()')]:addr(C),[m.selector('maxSupply()')]:word(1000),[m.selector('getMinters()')]:role,[m.selector('isMinter(address)')+B.slice(2).padStart(64,'0')]:word(confirmed?1:0)}});const r=await m.inspect(x.options);assert.equal(Boolean(r.fields.mintCapability),confirmed);assert.match(r.fields.tradingTaxes.value,/Transfer 0%/);assert.equal(r.fields.ownerAdmin.evidence[0].owner,C);assert.match(r.fields.ownerAdmin.value,/Owner-governed/);}
+ const x=fixture({source:{...source,runtimeReview:null}});const r=await m.inspect(x.options);assert.equal(r.fields.mintCapability,undefined);assert.equal(r.fields.tradingTaxes,undefined);
+});
