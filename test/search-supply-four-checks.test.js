@@ -55,7 +55,7 @@ test('source-reported date must be future and exact; invalid or missing proof st
  assert.equal(checks.eventTime('2020-01-01T00:00:00Z'),null);
  assert.equal(checks.eventTime('2099-02-31T00:00:00Z'),null,'calendar rollovers are invalid');
  const future='2099-03-12T00:00:00Z';
- assert.equal(checks.sourceSchedule('arc',address,{value:{date:future,amount:'150000'},dataState:'DATA_FOUND',status:'ONCHAIN_VERIFIED',evidence:[{source:'Exact vesting getter'}]},'Vesting','Verified scoped funded event').value,future);
+ assert.equal(checks.sourceSchedule('arc',address,{value:{date:future,amount:'150000'},dataState:'DATA_FOUND',status:'ONCHAIN_VERIFIED',evidence:[{source:'Exact vesting getter',address,chainId:5042}]},'Vesting','Verified scoped funded event').value,future);
  assert.equal(checks.sourceSchedule('arc',address,{value:{date:future,amount:'150000'},dataState:'DATA_FOUND',status:'ONCHAIN_VERIFIED',evidence:[]},'Vesting','Missing proof'),null);
  assert.equal(checks.sourceSchedule('arc',address,{value:{date:'2020-01-01T00:00:00Z',amount:'150000'},dataState:'DATA_FOUND',status:'ONCHAIN_VERIFIED',evidence:[{}]},'Vesting','Expired'),null);
 });

@@ -38,9 +38,18 @@ function eventTime(text,now=Date.now()){
 }
 function sourceSchedule(network,address,record,source,scope){
  if(!record||record.dataState!=='DATA_FOUND'||!eventTime(record.value?.date))return null;
+ const cfg=chain(network);
+ if(!ADDRESS.test(address)||!Array.isArray(record.evidence)||!record.evidence.length)return null;
+ // Source success alone is not token identity. Require an exact token subject
+ // and reject conflicting explicit chain/token bindings, even in another item.
+ const subjects=e=>['token','address','contract'].filter(k=>e?.[k]!==undefined).map(k=>e[k]);
+ if(!record.evidence.some(e=>subjects(e).some(s=>typeof s==='string'&&s.toLowerCase()===address.toLowerCase()))||
+  record.evidence.some(e=>e?.chainId!==undefined&&e.chainId!==cfg.chainId||
+   e?.network!==undefined&&e.network!==network||
+   subjects(e).some(s=>typeof s!=='string'||s.toLowerCase()!==address.toLowerCase())))return null;
  const amount=record.value?.amount;
  const numberOK=(typeof amount==='string'&&/^\d+(?:\.\d+)?$/.test(amount)||typeof amount==='number'&&Number.isFinite(amount))&&Number(amount)>0;
- if(!numberOK||!Array.isArray(record.evidence)||record.evidence.length===0)return null;
+ if(!numberOK)return null;
  const proof={method:'contract-exact source-reported future unlock',date:record.value.date,eventAmount:String(amount),
   scope,sourceType:record.status,sourceEvidence:record.evidence.slice(0,3)};
  const link=record.evidence.find(x=>/^https:\/\//.test(x?.sourceUrl||x?.url||''));

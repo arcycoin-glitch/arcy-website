@@ -17,6 +17,7 @@ const SLOTS=Object.freeze({
 });
 // Reviewed full-source fingerprints, NEVER token addresses, names or selectors alone.
 const PROFILES=Object.freeze({
+ '2fe87a0ede258f1d3827f837a1a42c860542e346867f64fe5c89fdb7feefe90b':'FIXED_SUPPLY_POOL_SETUP',
  '9799263b22d762e31d781b80bcf9efa38e24917e39a5d75c683ad04f80ce5965':'CAPPED_FEE_LEGACY_TOKEN',
  '292fad46b97e1b50bd191dfd857de081abfb199ad96ff02a055124da4a708cf2':'TIMED_CAPPED_MINTER',
  '3424b81acc01fc833b18f1e2341511fe1bffdd065376112ef979243834e13ba4':'WARD_AUTH_TOKEN',
@@ -156,6 +157,16 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
   const profile=PROFILES[source.digest];details.reviewedProfile=profile||null;
   if(profile){
    const proof={...sourceProof,profile,scope:'Reviewed complete source matched to pinned deployed bytecode; token-level transfer mechanics only. DEX pool/hook fees are NOT VERIFIED; no trade simulation was performed.'};
+   if(profile==='FIXED_SUPPLY_POOL_SETUP'){
+    fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed constructor-only mint and full-value ERC20 _update',{...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'Full token transfer value is retained. The immutable anti-snipe max-wallet rule can revert transfers; it is not a tax. External pool fees remain separate.'},'VERIFIED_SOURCE');
+    fields.mintCapability=fact('NONE DETECTED ✓','Reviewed complete constructor-only mint execution',{...proof,scope:'The only _mint call is in the constructor; no runtime issuance entry point exists. This does not claim external pool or launchpad control is absent.'},'VERIFIED_SOURCE');
+    const pad=addressWord(await call(address,'pad()')),poolRaw=await call(address,'pool()');
+    if(pad&&WORD.test(poolRaw||'')&&/^0x0{24}[0-9a-f]{40}$/i.test(poolRaw)){
+     const pool=addressWord(poolRaw);
+     fields.ownerAdmin=fact(pool?'Pool setup completed':'Pad pool-setup authority','Reviewed only-pad one-time setPool + pinned pad/pool getters',{...proof,pad,pool:pool||'0x'+'0'.repeat(40),scope:pool?'The reviewed setPool entry point now reverts because pool is nonzero. No token owner, admin roles or further configuration setters exist in this runtime. External pad/pool permissions are not audited.':'Pad may call setPool once while pool is zero, adding that pool to the immutable-window max-wallet exemptions. No token owner or general admin role exists; do not label all control absent.'},'VERIFIED_SOURCE_AND_STATE');
+    }
+    details.observations.push({method:'Reviewed fixed-supply launch control paths',block,...sourceProof,pad,scope:'setPool is the only privileged runtime configuration path. Anti-snipe deadline/maxWallet are immutable; exemptions cannot be generally edited. Internal ERC20 burn is not externally exposed. Buyback and pool fees are not established.'});
+   }
    if(profile==='INITIALIZED_REWARD_LAUNCH_TOKEN'){
     fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed full-value ERC20 _update + bounded, caught reward-share callbacks',{...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'The complete reviewed token source deducts no transfer tax. isExempt affects reward shares, not transfer fees. External pool/hook fees and buyback operations are not established.'},'VERIFIED_SOURCE');
     const portal=addressWord(await call(address,'portal()'));
@@ -212,9 +223,11 @@ function originalTradeScopeIsBroader(field,{network,address,block}){
  // Buy/sell values from the existing reviewed Arc route are not superseded by
  // a token-transfer-only finding from the newly reviewed implementation.
  if(!/\bBuy\s+\d+(?:\.\d+)?%\s*·\s*Sell\s+\d+(?:\.\d+)?%/.test(field.value))return false;
+ const reviewedHook=require('../../../lib/mechanics-hook').reviewed;
  return Array.isArray(field.evidence)&&field.evidence.some(e=>
   e?.chainId===5042&&e.address?.toLowerCase()===address&&e.block===block&&
-  (/Sourcify|Arc RPC/.test(e.source||'')||e.hookSourceDigest||e.sourceDigest));
+  e.hookSourceDigest===reviewedHook.hook&&e.portalSourceDigest===reviewedHook.portal&&
+  ADDRESS.test(e.hook||'')&&['REVIEWED_COMPILER_TEMPLATE_IMMUTABLES_ONLY','match','exact_match'].includes(e.runtimeMatch));
 }
 function onlyTokenTransfer(field){
  return field?.evidence?.some(e=>e?.coverage==='TOKEN_TRANSFER_ONLY')||
