@@ -73,7 +73,7 @@ async function build(address){
  const [marketResult,controlResult,holderResult,circulatingResult,securityResult,goPlusHolderResult]=await Promise.allSettled([
   marketWork,controls,
   holderWork,
-  circulation.inspect(t.address,t.fields.totalSupply.value),
+  circulation.inspect(t.address,t.fields.totalSupply.value,{block:t.block}),
   securityWork,
   security.inspectHolders('ethereum',t.address)
  ]);
