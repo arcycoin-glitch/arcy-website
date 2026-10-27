@@ -103,4 +103,49 @@ async function discover({network='ethereum',query}){
   note:'Official contract matches require exact chain+address identity. DEX pools and explorer names are NOT VERIFIED issuer identities. Names, logos and market activity do not establish investment safety.'};
 }
 
-module.exports={parseChain,report,token,discover,engine};
+
+const SEARCH_NETWORKS=Object.freeze(['arc','ethereum','robinhood']);
+function combineDiscoveryResults(query,outcomes){
+ const errors=[],matches=[],counts={arc:0,ethereum:0,robinhood:0},seen=new Set();
+ let healthy=0;
+ for(let i=0;i<outcomes.length;i++){
+  const network=SEARCH_NETWORKS[i],outcome=outcomes[i];
+  if(outcome.status!=='fulfilled'||outcome.value?.ok!==true){
+   errors.push(network);continue;
+  }
+  healthy++;
+  const result=outcome.value,expected=chains.chain(network).chainId;
+  if(result.providerError)errors.push(network);
+  for(const item of Array.isArray(result.matches)?result.matches.slice(0,20):[]){
+   if(item?.network!==network||item.chainId!==expected||
+      !/^0x[0-9a-f]{40}$/i.test(item.address||''))continue;
+   const key=network+':'+item.address.toLowerCase();
+   if(seen.has(key)||counts[network]>=12)continue;
+   seen.add(key);counts[network]++;
+   matches.push({...item,address:item.address.toLowerCase()});
+  }
+ }
+ if(!healthy)throw Error('All network discovery providers unavailable');
+ const exact=s=>String(s||'').toLowerCase()===query.toLowerCase();
+ const confidence=i=>i.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?2:
+  i.identity?.status==='REGISTRY_MATCHED'?1:0;
+ // Stable ranking, but preserve every chain label and contract identity.
+ matches.sort((a,b)=>{
+  const rank=x=>(exact(x.symbol)||exact(x.name)?4:0)+confidence(x)*2;
+  return rank(b)-rank(a)||SEARCH_NETWORKS.indexOf(a.network)-SEARCH_NETWORKS.indexOf(b.network);
+ });
+ return {ok:true,query,network:'all',chainId:null,
+  networks:[...SEARCH_NETWORKS],matches:matches.slice(0,36),counts,
+  unavailableNetworks:[...new Set(errors)],
+  providerError:errors.length>0,
+  source:'Independent issuer registries, explorer indexes and DEX candidates per chain',
+  note:'Identical names on different networks are independent contracts. Ticker matches and logos do not prove token identity or safety.'};
+}
+async function discoverAll({query}){
+ if(typeof query!=='string'||query.length<2||query.length>48)throw Error('Invalid unified token query');
+ // An unavailable optional indexer on one network does not suppress matches elsewhere.
+ const outcomes=await Promise.allSettled(SEARCH_NETWORKS.map(network=>discover({network,query})));
+ return combineDiscoveryResults(query,outcomes);
+}
+
+module.exports={parseChain,report,token,discover,discoverAll,combineDiscoveryResults,engine};

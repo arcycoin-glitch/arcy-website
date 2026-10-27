@@ -341,18 +341,19 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 </div>
 <div class="network"><span class="network-label">NETWORK</span>
 <div class="network-picker" id="networkPicker">
-  <input type="hidden" id="chain" value="arc">
+  <input type="hidden" id="chain" value="all">
   <button type="button" id="chainTrigger" class="network-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="chainMenu" aria-label="Select token network">
-    <span id="currentChainLogo" class="chain-mark chain-arc"><img src="/search/assets/arc-network-mark.svg" alt="" loading="eager" referrerpolicy="no-referrer"/></span>
-    <span id="currentChainName" class="network-trigger-name">Arc</span>
+    <span id="currentChainLogo" class="chain-mark chain-all">🌐</span>
+    <span id="currentChainName" class="network-trigger-name">All networks</span>
     <svg class="chain-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
   <div class="network-menu" id="chainMenu" role="listbox" aria-label="Token network" hidden>
-    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="true" id="chainOptionArc"><span class="chain-mark chain-arc"><img src="/search/assets/arc-network-mark.svg" alt="" loading="eager" referrerpolicy="no-referrer"/></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="all" aria-selected="true" id="chainOptionAll"><span class="chain-mark chain-all">🌐</span><span>All networks</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="false" id="chainOptionArc"><span class="chain-mark chain-arc"><img src="/search/assets/arc-network-mark.svg" alt="" loading="eager" referrerpolicy="no-referrer"/></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
     <button type="button" class="chain-option" role="option" data-chain="ethereum" aria-selected="false" id="chainOptionEthereum"><span class="chain-mark chain-ethereum"><img src="/search/assets/ethereum-mark.svg" alt="" loading="lazy" decoding="async"/></span><span>Ethereum</span><span class="chain-check" aria-hidden="true"></span></button>
     <button type="button" class="chain-option" role="option" data-chain="robinhood" aria-selected="false" id="chainOptionRobinhood"><span class="chain-mark chain-robinhood"><img src="/search/assets/robinhood-chain-mark.svg" alt="" loading="lazy" decoding="async"/></span><span>Robinhood Chain</span><span class="chain-check" aria-hidden="true"></span></button>
   </div>
-</div><span id="networkNote">Results never mix token data from different networks.</span></div>
+</div><span id="networkNote">One search across three networks. Contract evidence never mixes across chains.</span></div>
 <div class="search">
   <div class="search-input-wrap">
     <span class="search-glass" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none"><circle cx="12.5" cy="12.5" r="8" stroke="currentColor" stroke-width="2.4"/><path d="m18.5 18.5 6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span>
@@ -362,7 +363,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 </div>
 <div class="trust-line" aria-label="Research standards"><span>◈ Exact contracts</span><span>▤ Verified sources</span><span>▥ 20 research checks</span></div>
 <div id="matches" class="results" hidden aria-live="polite"></div>
-<p id="state" role="status" aria-live="polite">Select a network, then search a token name, symbol, or contract. Name matches are not issuer verification.</p>
+<p id="state" role="status" aria-live="polite">Search Arc, Ethereum and Robinhood together. Every result retains its exact chain and contract identity.</p>
 <nav class="home-entry-links" aria-label="ARCY search shortcuts">
  <a href="/search/token/arc/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">Research ARCY token ↗</a>
 </nav>
@@ -385,6 +386,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
       </div>
     </div>
     <div id="detailNetworkShortcuts" class="detail-network-shortcuts" role="group" aria-label="Choose a token search network">
+      <button type="button" data-detail-chain="all" aria-pressed="false">🌐 All networks</button>
       <button type="button" data-detail-chain="arc" aria-pressed="false"><img class="detail-network-icon" src="/search/assets/arc-network-mark.svg" alt="" loading="lazy" decoding="async"/>Arc</button>
       <button type="button" data-detail-chain="ethereum" aria-pressed="false"><img class="detail-network-icon" src="/search/assets/ethereum-mark.svg" alt="" loading="lazy" decoding="async"/>Ethereum</button>
       <button type="button" data-detail-chain="robinhood" aria-pressed="false"><img class="detail-network-icon" src="/search/assets/robinhood-chain-mark.svg" alt="" loading="lazy" decoding="async"/>Robinhood Chain</button>
@@ -392,7 +394,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
   <form id="detailSearchForm" class="detail-search" role="search" aria-label="Search another token">
     <label class="detail-search-network" for="detailSearchChain"><span>NETWORK</span>
       <select id="detailSearchChain" name="chain" aria-label="Search network">
-        <option value="arc">Arc</option><option value="ethereum">Ethereum</option><option value="robinhood">Robinhood Chain</option>
+        <option value="all">All networks</option><option value="arc">Arc</option><option value="ethereum">Ethereum</option><option value="robinhood">Robinhood Chain</option>
       </select>
     </label>
     <label class="detail-search-query" for="detailSearchQuery"><span>SEARCH ANOTHER TOKEN</span>
@@ -727,7 +729,7 @@ render(null);
 $('deepResearch').open=true;
 
 const EVM_ADDRESS=/^0x[0-9a-fA-F]{40}$/;
-const NETWORKS={arc:{id:5042,label:'Arc',explorer:'https://explorer.arc.io'},ethereum:{id:1,label:'Ethereum',explorer:'https://eth.blockscout.com'},robinhood:{id:4663,label:'Robinhood Chain',explorer:'https://robinhoodchain.blockscout.com'}};
+const NETWORKS={all:{id:null,label:'All networks',explorer:null},arc:{id:5042,label:'Arc',explorer:'https://explorer.arc.io'},ethereum:{id:1,label:'Ethereum',explorer:'https://eth.blockscout.com'},robinhood:{id:4663,label:'Robinhood Chain',explorer:'https://robinhoodchain.blockscout.com'}};
 let searchVersion=0,activeController=null,chartController=null,chartGeneration=0,activeChartRange='30D',verifiedDaily30=null,detailSearchGeneration=0;
 const CHART_RANGES=Object.freeze({
  '4H':{label:'15-minute',interval:'15m',duration:'4 hours'},
@@ -743,7 +745,7 @@ function setChartRange(range){
  }
 }
 const selected=()=>$('chain').value;
-const NETWORK_ICON_MARKUP=Object.freeze({"arc":"<img src=\"/search/assets/arc-network-mark.svg\" alt=\"\" loading=\"lazy\" decoding=\"async\"/>","ethereum":"<img src=\"/search/assets/ethereum-mark.svg\" alt=\"\" loading=\"lazy\" decoding=\"async\"/>","robinhood":"<img src=\"/search/assets/robinhood-chain-mark.svg\" alt=\"\" loading=\"lazy\" decoding=\"async\"/>"});
+const NETWORK_ICON_MARKUP=Object.freeze({"all":"🌐","arc":"<img src=\"/search/assets/arc-network-mark.svg\" alt=\"\" loading=\"lazy\" decoding=\"async\"/>","ethereum":"<img src=\"/search/assets/ethereum-mark.svg\" alt=\"\" loading=\"lazy\" decoding=\"async\"/>","robinhood":"<img src=\"/search/assets/robinhood-chain-mark.svg\" alt=\"\" loading=\"lazy\" decoding=\"async\"/>"});
 function syncNetworkPicker(){
  const network=selected();
  if(!Object.hasOwn(NETWORKS,network))return;
@@ -1130,9 +1132,9 @@ function chainChanged(){
  cancelPending();clearMatches();$('asset').replaceChildren();clearIdentity();render(null);
  $('address').value='';
  const label=NETWORKS[selected()].label;
- $('address').placeholder='Search '+label+' token name, ticker or 0x contract';
- $('state').textContent='Selected '+label+'. Contract identity and evidence must match this exact chain.';
- $('networkNote').textContent=label+' · Mainnet · Read only';
+ $('address').placeholder=selected()==='all'?'Search token name, ticker or 0x contract':'Search '+label+' token name, ticker or 0x contract';
+ $('state').textContent=selected()==='all'?'Search Arc, Ethereum and Robinhood together. Choose the exact chain and address to research.':'Selected '+label+'. Contract identity and evidence must match this exact chain.';
+ $('networkNote').textContent=selected()==='all'?'All networks · Separate contracts, no cross-chain data mixing':label+' · Mainnet · Read only';
 }
 function requestController(){
  if(activeController)activeController.abort();
@@ -1278,10 +1280,27 @@ function safeCandidateImage(raw){
   return u.href;
  }catch{return null}
 }
+function showAddressNetworks(address,{detail=false,version=searchVersion}={}){
+ // The same EVM address can exist on several chains. An address alone
+ // cannot safely identify one network, so require explicit selection.
+ const container=$(detail?'detailMatches':'matches');container.replaceChildren();
+ const hint=document.createElement('p');hint.className='candidate-warning';
+ hint.textContent='A contract address can exist on multiple networks. Choose the network before verifying this exact address.';
+ container.append(hint);
+ for(const chain of ['arc','ethereum','robinhood']){
+  const option=document.createElement('button');option.type='button';
+  option.className=detail?'detail-match':'candidate';
+  option.textContent=NETWORKS[chain].label+' · '+address.slice(0,8)+'…'+address.slice(-6)+' →';
+  option.addEventListener('click',()=>{if(version!==searchVersion)return;activateDetail(address,chain)});
+  container.append(option);
+ }
+ container.hidden=false;
+}
 function showCandidates(data,network,version){
  const container=$('matches');container.replaceChildren();
  const candidates=data.matches.filter(item=>
-  item.chainId===NETWORKS[network].id&&item.network===network&&EVM_ADDRESS.test(item.address));
+  EVM_ADDRESS.test(item.address||'')&&Object.hasOwn(NETWORKS,item.network)&&item.network!=='all'&&
+  item.chainId===NETWORKS[item.network].id&&(network==='all'||item.network===network));
  const query=$('address').value.trim().toLocaleLowerCase('en-US');
  const exact=item=>String(item.symbol||'').toLowerCase()===query||
   String(item.name||'').toLowerCase()===query;
@@ -1304,7 +1323,8 @@ function showCandidates(data,network,version){
   const art=document.createElement('span');art.className='candidate-logo';
   const initials=String(item.symbol||item.name||'?').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'?';
   art.textContent=initials;
-  const logo=displayLogo(item.logoUrl,network,item.address,item.identity);
+  const sourceNetwork=item.network;
+  const logo=displayLogo(item.logoUrl,sourceNetwork,item.address,item.identity);
   if(logo){
    const img=document.createElement('img');
    img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
@@ -1319,7 +1339,7 @@ function showCandidates(data,network,version){
   const status=item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?' · OFFICIAL CONTRACT MATCHED':
    item.identity?.status==='REGISTRY_MATCHED'?' · ROBINHOOD STOCK TOKEN REGISTRY MATCHED':
    ' · Identity NOT VERIFIED';
-  meta.textContent=item.address.slice(0,8)+'…'+item.address.slice(-6)+' · '+(item.source||'Indexed candidate');
+  meta.textContent=NETWORKS[sourceNetwork].label+' · '+item.address.slice(0,8)+'…'+item.address.slice(-6)+' · '+(item.source||'Indexed candidate');
   info.append(title,meta);
   const badge=document.createElement('span');badge.className='candidate-badge';
   badge.textContent=item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?'✓ Official':
@@ -1328,16 +1348,36 @@ function showCandidates(data,network,version){
   if(!item.identity||item.identity.status==='NOT_VERIFIED')badge.classList.add('unknown');
   info.append(badge);detail.append(art,info);
   const choose=document.createElement('span');choose.textContent='→';choose.className='scan-label';
-  option.setAttribute('aria-label',(item.name||item.symbol||'Token')+' · '+NETWORKS[network].label+' · contract '+item.address+' · '+badge.textContent);
+  option.setAttribute('aria-label',(item.name||item.symbol||'Token')+' · '+NETWORKS[sourceNetwork].label+' · contract '+item.address+' · '+badge.textContent);
   if(official(item))option.classList.add('official');
   option.append(detail,choose);
   option.addEventListener('click',()=>{
    if(version!==searchVersion||network!==selected())return;
-   activateDetail(item.address,network,{identity:item.identity,logoUrl:item.logoUrl});
+   activateDetail(item.address,sourceNetwork,{identity:item.identity,logoUrl:item.logoUrl});
   });
   return option;
  }
- if(trustedMain){
+ if(network==='all'){
+  // All-network results remain visible by chain rather than silently
+  // choosing a ticker on one network. Each button carries its own identity.
+  for(const chain of ['arc','ethereum','robinhood']){
+   const group=candidates.filter(item=>item.network===chain);
+   if(!group.length)continue;
+   const section=document.createElement('div');section.className='candidate-list';
+   const title=document.createElement('p');title.className='candidate-footnote';
+   title.textContent=NETWORKS[chain].label+' · '+group.length+' contract candidate(s)';
+   section.append(title);
+   for(const item of group.slice(0,4))section.append(candidateElement(item,item===main));
+   if(group.length>4){
+    const extra=document.createElement('details');extra.className='candidate-extra';
+    const summary=document.createElement('summary');summary.textContent='Show '+(group.length-4)+' more on '+NETWORKS[chain].label;
+    const list=document.createElement('div');list.className='candidate-extra-list';
+    for(const item of group.slice(4))list.append(candidateElement(item));
+    extra.append(summary,list);section.append(extra);
+   }
+   container.append(section);
+  }
+ }else if(trustedMain){
   // Project-authenticated or exact issuer-registry address: one main card by default.
   container.append(candidateElement(main,true));
   const others=candidates.filter(item=>item.address.toLowerCase()!==main.address.toLowerCase());
@@ -1372,11 +1412,11 @@ function showCandidates(data,network,version){
 function renderDetailMatches(matches,network,version){
  const container=$('detailMatches');container.replaceChildren();
  for(const item of matches.slice(0,8)){
-  if(item.network!==network||item.chainId!==NETWORKS[network].id||!EVM_ADDRESS.test(item.address||''))continue;
+  if((network!=='all'&&item.network!==network)||!Object.hasOwn(NETWORKS,item.network)||item.network==='all'||item.chainId!==NETWORKS[item.network].id||!EVM_ADDRESS.test(item.address||''))continue;
   const option=document.createElement('button');option.type='button';option.className='detail-match';
   const avatar=document.createElement('span');avatar.className='detail-match-avatar';
   avatar.textContent=String(item.symbol||item.name||'?').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'?';
-  const logo=displayLogo(item.logoUrl,network,item.address,item.identity);
+  const logo=displayLogo(item.logoUrl,item.network,item.address,item.identity);
   if(logo){
     const image=document.createElement('img');image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';
     image.addEventListener('load',()=>avatar.classList.add('has-logo'),{once:true});
@@ -1385,14 +1425,14 @@ function renderDetailMatches(matches,network,version){
    }
   const copy=document.createElement('span');copy.className='detail-match-copy';
   const name=document.createElement('strong');name.textContent=(item.name||'Unnamed token')+' ('+(item.symbol||'?')+')';
-  const address=document.createElement('small');address.textContent=item.address;
+  const address=document.createElement('small');address.textContent=NETWORKS[item.network].label+' · '+item.address;
   copy.append(name,address);
   const badge=document.createElement('span');badge.className='detail-match-badge';
-  if(item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'){badge.textContent='OFFICIAL CONTRACT';badge.classList.add('verified')}
-  else if(item.identity?.status==='REGISTRY_MATCHED'){badge.textContent='REGISTRY MATCH';badge.classList.add('verified')}
-  else badge.textContent='NOT VERIFIED';
+  if(item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'){badge.textContent=NETWORKS[item.network].label+' · OFFICIAL CONTRACT';badge.classList.add('verified')}
+  else if(item.identity?.status==='REGISTRY_MATCHED'){badge.textContent=NETWORKS[item.network].label+' · REGISTRY MATCH';badge.classList.add('verified')}
+  else badge.textContent=NETWORKS[item.network].label+' · NOT VERIFIED';
   option.append(avatar,copy,badge);
-  option.addEventListener('click',()=>{if(version!==searchVersion)return;activateDetail(item.address,network,{identity:item.identity,logoUrl:item.logoUrl})});
+  option.addEventListener('click',()=>{if(version!==searchVersion)return;activateDetail(item.address,item.network,{identity:item.identity,logoUrl:item.logoUrl})});
   container.append(option);
  }
  container.hidden=container.childElementCount===0;
@@ -1405,10 +1445,13 @@ async function searchFromDetail(event){
  const request=++detailSearchGeneration;
  if(!Object.hasOwn(NETWORKS,network)){ $('detailSearchStatus').textContent='Select a supported network.';return }
  if(!query){$('detailSearchStatus').textContent='Enter a name, ticker or full contract address.';$('detailSearchQuery').focus();return}
- if(EVM_ADDRESS.test(query)){activateDetail(query.toLowerCase(),network);return}
+ if(EVM_ADDRESS.test(query)){if(network==='all'){
+  showAddressNetworks(query.toLowerCase(),{detail:true,version:searchVersion});
+  $('detailSearchStatus').textContent='Choose the network where this contract is deployed.';
+ }else activateDetail(query.toLowerCase(),network);return}
  if(query.length<2||query.length>48||/^0x/i.test(query)){$('detailSearchStatus').textContent='Enter 2–48 characters or a full contract address.';return}
  const version=searchVersion,button=$('detailSearchSubmit');button.disabled=true;
- $('detailSearchStatus').textContent='Searching '+NETWORKS[network].label+' first-party sources…';
+ $('detailSearchStatus').textContent=network==='all'?'Searching Arc, Ethereum and Robinhood…':'Searching '+NETWORKS[network].label+' first-party sources…';
  try{
   const response=await fetch('/api/search?action=discover&'+new URLSearchParams({q:query,chain:network}),{cache:'no-store',headers:{accept:'application/json'}});
   const data=await response.json();
@@ -1416,7 +1459,8 @@ async function searchFromDetail(event){
   if(!response.ok||data.ok!==true||data.network!==network||data.chainId!==NETWORKS[network].id||!Array.isArray(data.matches))
    throw Error(data.reason||data.error||'First-party token source unavailable');
   const count=renderDetailMatches(data.matches,network,version);
-  $('detailSearchStatus').textContent=count?count+' candidate(s) · Select one to replace this analysis.':'No first-party '+NETWORKS[network].label+' match. Try a full contract address.';
+  $('detailSearchStatus').textContent=count?count+' contract candidate(s) across '+(network==='all'?'three networks':NETWORKS[network].label)+'. Select one to research.':
+   (network==='all'?'No matching contracts found across the three networks.':'No first-party '+NETWORKS[network].label+' match.')+' Try another ticker or exact contract.';
  }catch(error){
   if(request===detailSearchGeneration&&version===searchVersion)
    $('detailSearchStatus').textContent='Search unavailable: '+String(error.message||'source error').slice(0,120);
@@ -1426,11 +1470,17 @@ async function searchOrScan(){
  const q=$('address').value.trim(),network=selected();
  cancelPending();
  const version=searchVersion;clearMatches();
- if(EVM_ADDRESS.test(q)){activateDetail(q,network);return}
+ if(EVM_ADDRESS.test(q)){
+  if(network==='all'){
+   showAddressNetworks(q.toLowerCase(),{version});
+   $('state').textContent='Select the exact network for this contract address. Addresses alone do not identify a blockchain.';
+  }else activateDetail(q,network);
+  return;
+ }
  if(q.length<2||q.length>48||/^0x/i.test(q)){
   $('state').textContent='Enter a token name (2–48 characters) or a full contract address.';return;
  }
- $('go').disabled=true;$('state').textContent='Finding '+NETWORKS[network].label+' candidates…';
+ $('go').disabled=true;$('state').textContent=network==='all'?'Searching token indexes across Arc, Ethereum and Robinhood…':'Finding '+NETWORKS[network].label+' candidates…';
  $('asset').replaceChildren();clearIdentity();render(null);
  const controller=requestController();
  try{
@@ -1440,9 +1490,9 @@ async function searchOrScan(){
   if(version!==searchVersion||network!==selected())return;
   if(!response.ok||data.ok!==true||data.chainId!==NETWORKS[network].id||
    data.network!==network||!Array.isArray(data.matches))throw Error(data.error||'Discovery source unavailable');
-  if(!data.matches.length){$('state').textContent='No '+NETWORKS[network].label+' candidates found. Try the full contract address.';return}
+  if(!data.matches.length){$('state').textContent=network==='all'?'No candidates found on Arc, Ethereum or Robinhood. Try another ticker.':'No '+NETWORKS[network].label+' candidates found. Try the full contract address.';return}
   showCandidates(data,network,version);
-  $('state').textContent=data.matches.length+' matching contract(s). Verified issuers show one primary result; unverified names show all candidates.';
+  $('state').textContent=data.matches.length+' contract candidate(s)'+(network==='all'?' across three networks':'')+'. Always verify the selected chain and full contract address.'+(data.providerError?' Some optional indexers are unavailable.':'');
  }catch(error){
   if(version===searchVersion&&network===selected()&&!controller.signal.aborted)
    $('state').textContent='Token search unavailable: '+String(error.message).slice(0,140);

@@ -4,7 +4,10 @@
 const CANDIDATES=Object.freeze([
  Object.freeze({network:'arc',chainId:5042,address:'0xf76b1d00bd3d63a37246b5f512074e864010e33d',
   name:'Polly',symbol:'POLL',observedAt:'2026-10-19',
-  source:'Previously observed Arc DEX token-index candidate (19 Oct 2026; identity NOT VERIFIED)'})
+  source:'Previously observed Arc DEX token-index candidate (19 Oct 2026; identity NOT VERIFIED)'}),
+ Object.freeze({network:'robinhood',chainId:4663,address:'0x39dbed3a2bd333467115de45665cc57f813c4571',
+  name:'Pons',symbol:'PONS',observedAt:'2026-10-27',
+  source:'Previously observed Robinhood DEX token-index candidate (27 Oct 2026; issuer identity NOT VERIFIED)'})
 ]);
 function discover(network,query){
  const needle=String(query||'').normalize('NFKC').trim().toLowerCase();
