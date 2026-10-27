@@ -84,7 +84,28 @@ function formatCard(cardId,raw,cfg,context){
     }
     return [key,field];
    })) : null;
- return {...(auxiliarySupply?{context:auxiliarySupply}:{}),...(holderCandidates.length?{holderCandidates}:{}),researchNotes:require('./research-notes').notes(cardId,fields),fields,status:count===keys.length?'SOURCE_BACKED':
+ // Optional issuer-sourced custody evidence may accompany Supply without
+ // changing any of the four metrics. Reject everything except the exact
+ // disclosed Ethereum ONDO address, source, observed wallet and analysis block.
+ const disclosed=cardId==='supply'&&cfg.id==='ethereum'&&context?.address===
+  '0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3'&&Array.isArray(raw?.supplementalEvidence)?
+  raw.supplementalEvidence.filter(e=>
+   e?.kind==='ISSUER_DISCLOSED_WALLET_CURRENT_CUSTODY'&&
+   e.chainId===1&&e.network==='ethereum'&&e.address===context.address&&
+   e.wallet==='0x677fd4ed8ae623f2f625deb2d64f2070e46ca1a1'&&
+   e.block===context.block&&e.sourceUrl===
+    'https://blog.ondo.foundation/ondo-foundation-group-wallet-address-disclosure/'&&
+   e.method==='balanceOf(issuer-disclosed custody wallet)'&&
+   /^\\d+$/.test(String(e.rawBalance||''))&&
+   /^\\d+(?:\\.\\d+)?$/.test(String(e.balance||''))&&
+   Number.isInteger(e.decimals)&&e.decimals>=0&&e.decimals<=36).slice(0,1):[];
+ const issuerNotes=disclosed.length&&Array.isArray(raw.researchNotes)?
+  raw.researchNotes.filter(x=>typeof x==='string'&&x.startsWith('Ondo Foundation disclosed a locked-token custody wallet')&&x.length<600).slice(0,1):[];
+ return {...(auxiliarySupply?{context:auxiliarySupply}:{}),
+  ...(holderCandidates.length?{holderCandidates}:{}),
+  ...(disclosed.length?{supplementalEvidence:disclosed}:{}),
+  researchNotes:[...require('./research-notes').notes(cardId,fields),...issuerNotes],
+  fields,status:count===keys.length?'SOURCE_BACKED':
   count>0?'PARTIAL_EVIDENCE':
   statuses.includes('SOURCE_API_FAILED')?'SOURCE_API_FAILED':'NOT_VERIFIED',
   description:typeof raw?.description==='string'?raw.description.slice(0,250):'Only chain-matched evidence is displayed.'};
