@@ -341,18 +341,19 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 </div>
 <div class="network"><span class="network-label">NETWORK</span>
 <div class="network-picker" id="networkPicker">
-  <input type="hidden" id="chain" value="arc">
+  <input type="hidden" id="chain" value="all">
   <button type="button" id="chainTrigger" class="network-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="chainMenu" aria-label="Select token network">
-    <span id="currentChainLogo" class="chain-mark chain-arc"><img src="/search/assets/arc-network-mark.svg" alt="" loading="eager" referrerpolicy="no-referrer"/></span>
-    <span id="currentChainName" class="network-trigger-name">Arc</span>
+    <span id="currentChainLogo" class="chain-mark chain-all">🌐</span>
+    <span id="currentChainName" class="network-trigger-name">All networks</span>
     <svg class="chain-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
   <div class="network-menu" id="chainMenu" role="listbox" aria-label="Token network" hidden>
-    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="true" id="chainOptionArc"><span class="chain-mark chain-arc"><img src="/search/assets/arc-network-mark.svg" alt="" loading="eager" referrerpolicy="no-referrer"/></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="all" aria-selected="true" id="chainOptionAll"><span class="chain-mark chain-all">🌐</span><span>All networks</span><span class="chain-check" aria-hidden="true"></span></button>
+    <button type="button" class="chain-option" role="option" data-chain="arc" aria-selected="false" id="chainOptionArc"><span class="chain-mark chain-arc"><img src="/search/assets/arc-network-mark.svg" alt="" loading="eager" referrerpolicy="no-referrer"/></span><span>Arc</span><span class="chain-check" aria-hidden="true"></span></button>
     <button type="button" class="chain-option" role="option" data-chain="ethereum" aria-selected="false" id="chainOptionEthereum"><span class="chain-mark chain-ethereum"><img src="/search/assets/ethereum-mark.svg" alt="" loading="lazy" decoding="async"/></span><span>Ethereum</span><span class="chain-check" aria-hidden="true"></span></button>
     <button type="button" class="chain-option" role="option" data-chain="robinhood" aria-selected="false" id="chainOptionRobinhood"><span class="chain-mark chain-robinhood"><img src="/search/assets/robinhood-chain-mark.svg" alt="" loading="lazy" decoding="async"/></span><span>Robinhood Chain</span><span class="chain-check" aria-hidden="true"></span></button>
   </div>
-</div><span id="networkNote">Results never mix token data from different networks.</span></div>
+</div><span id="networkNote">One search across three networks. Contract evidence never mixes across chains.</span></div>
 <div class="search">
   <div class="search-input-wrap">
     <span class="search-glass" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none"><circle cx="12.5" cy="12.5" r="8" stroke="currentColor" stroke-width="2.4"/><path d="m18.5 18.5 6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span>
@@ -362,7 +363,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
 </div>
 <div class="trust-line" aria-label="Research standards"><span>◈ Exact contracts</span><span>▤ Verified sources</span><span>▥ 20 research checks</span></div>
 <div id="matches" class="results" hidden aria-live="polite"></div>
-<p id="state" role="status" aria-live="polite">Select a network, then search a token name, symbol, or contract. Name matches are not issuer verification.</p>
+<p id="state" role="status" aria-live="polite">Search Arc, Ethereum and Robinhood together. Every result retains its exact chain and contract identity.</p>
 <nav class="home-entry-links" aria-label="ARCY search shortcuts">
  <a href="/search/token/arc/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">Research ARCY token ↗</a>
 </nav>
@@ -385,6 +386,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
       </div>
     </div>
     <div id="detailNetworkShortcuts" class="detail-network-shortcuts" role="group" aria-label="Choose a token search network">
+      <button type="button" data-detail-chain="all" aria-pressed="false">🌐 All networks</button>
       <button type="button" data-detail-chain="arc" aria-pressed="false"><img class="detail-network-icon" src="/search/assets/arc-network-mark.svg" alt="" loading="lazy" decoding="async"/>Arc</button>
       <button type="button" data-detail-chain="ethereum" aria-pressed="false"><img class="detail-network-icon" src="/search/assets/ethereum-mark.svg" alt="" loading="lazy" decoding="async"/>Ethereum</button>
       <button type="button" data-detail-chain="robinhood" aria-pressed="false"><img class="detail-network-icon" src="/search/assets/robinhood-chain-mark.svg" alt="" loading="lazy" decoding="async"/>Robinhood Chain</button>
@@ -392,7 +394,7 @@ header .return-arcy:hover,header .return-arcy:focus-visible{
   <form id="detailSearchForm" class="detail-search" role="search" aria-label="Search another token">
     <label class="detail-search-network" for="detailSearchChain"><span>NETWORK</span>
       <select id="detailSearchChain" name="chain" aria-label="Search network">
-        <option value="arc">Arc</option><option value="ethereum">Ethereum</option><option value="robinhood">Robinhood Chain</option>
+        <option value="all">All networks</option><option value="arc">Arc</option><option value="ethereum">Ethereum</option><option value="robinhood">Robinhood Chain</option>
       </select>
     </label>
     <label class="detail-search-query" for="detailSearchQuery"><span>SEARCH ANOTHER TOKEN</span>
@@ -727,7 +729,7 @@ render(null);
 $('deepResearch').open=true;
 
 const EVM_ADDRESS=/^0x[0-9a-fA-F]{40}$/;
-const NETWORKS={arc:{id:5042,label:'Arc',explorer:'https://explorer.arc.io'},ethereum:{id:1,label:'Ethereum',explorer:'https://eth.blockscout.com'},robinhood:{id:4663,label:'Robinhood Chain',explorer:'https://robinhoodchain.blockscout.com'}};
+const NETWORKS={all:{id:null,label:'All networks',explorer:null},arc:{id:5042,label:'Arc',explorer:'https://explorer.arc.io'},ethereum:{id:1,label:'Ethereum',explorer:'https://eth.blockscout.com'},robinhood:{id:4663,label:'Robinhood Chain',explorer:'https://robinhoodchain.blockscout.com'}};
 let searchVersion=0,activeController=null,chartController=null,chartGeneration=0,activeChartRange='30D',verifiedDaily30=null,detailSearchGeneration=0;
 const CHART_RANGES=Object.freeze({
  '4H':{label:'15-minute',interval:'15m',duration:'4 hours'},
@@ -743,7 +745,7 @@ function setChartRange(range){
  }
 }
 const selected=()=>$('chain').value;
-const NETWORK_ICON_MARKUP=Object.freeze({"arc":"<img src=\"/search/assets/arc-network-mark.svg\" alt=\"\" loading=\"lazy\" decoding=\"async\"/>","ethereum":"<img src=\"/search/assets/ethereum-mark.svg\" alt=\"\" loading=\"lazy\" decoding=\"async\"/>","robinhood":"<img src=\"/search/assets/robinhood-chain-mark.svg\" alt=\"\" loading=\"lazy\" decoding=\"async\"/>"});
+const NETWORK_ICON_MARKUP=Object.freeze({"all":"🌐","arc":"<img src=\"/search/assets/arc-network-mark.svg\" alt=\"\" loading=\"lazy\" decoding=\"async\"/>","ethereum":"<img src=\"/search/assets/ethereum-mark.svg\" alt=\"\" loading=\"lazy\" decoding=\"async\"/>","robinhood":"<img src=\"/search/assets/robinhood-chain-mark.svg\" alt=\"\" loading=\"lazy\" decoding=\"async\"/>"});
 function syncNetworkPicker(){
  const network=selected();
  if(!Object.hasOwn(NETWORKS,network))return;
