@@ -68,9 +68,21 @@ test('Arc mechanics cannot replace strong first-party ARCY 3/3 taxes with confli
  assert.match(source,/existing.dataState==='DATA_FOUND'\?existing:/);
  assert.match(source,/isARCY&&key==='tradingTaxes'\?existing:/);
 });
-test('Upstream 403 cannot produce any fabricated fee or owner values',async()=>{
+test('Upstream 403 cannot produce any fabricated fee or owner values and is classified as a provider failure',async()=>{
  const f=await gp.inspect('robinhood',tsla,{fetcher:async()=>({ok:false,status:403})});
- for(const v of Object.values(f))assert.equal(v.dataState,'NOT_VERIFIED');
+ assert.deepEqual(Object.keys(f).sort(),['contractArchitecture','mintCapability','ownerAdmin','tradingTaxes']);
+ for(const v of Object.values(f)){
+  // A provider failure is not insufficient evidence and never a value.
+  assert.equal(v.dataState,'SOURCE_API_FAILED');assert.equal(v.status,'NOT_VERIFIED');
+  assert.equal(v.reasonCode,'SECURITY_SOURCE_API_FAILED');assert.equal(v.value,null);assert.deepEqual(v.evidence,[]);
+ }
+ const h=await gp.inspectHolders('robinhood',tsla,{fetcher:async()=>{throw Error('private-upstream-detail')}});
+ for(const v of Object.values(h)){assert.equal(v.dataState,'SOURCE_API_FAILED');assert.equal(v.value,null);}
+ assert(!JSON.stringify(h).includes('private-upstream-detail'));
+});
+test('a valid GoPlus response without a field remains NOT_VERIFIED, distinct from a provider failure',async()=>{
+ const f=await gp.inspect('robinhood',tsla,{fetcher:async()=>new Response(JSON.stringify({code:1,result:{}}),{status:200})});
+ for(const v of Object.values(f)){assert.equal(v.dataState,'NOT_VERIFIED');assert.equal(v.value,null);}
 });
 test('Correct GoPlus chain and contract used for Robinhood',async()=>{
  let u;

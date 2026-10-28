@@ -128,7 +128,7 @@ async function holders({address}={}){
  // Explorer-reported count is separately sourced, never presented as full whale proof.
 
  if(reported)return {...signed,
-  description:'Arc Blockscout current holder count; whale metrics require signed, reconciled COMPLETE publication.',
+  description:'Arc explorer source-reported current holder count; whale metrics require signed, reconciled COMPLETE publication.',
   fields:{...signed.fields,holderCount:reported}};
  // Arc Blockscout can return 403. GoPlus explicitly supports chain 5042,
  // but its limited ranked sample must NEVER be called an on-chain verified census.

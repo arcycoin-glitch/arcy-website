@@ -27,11 +27,22 @@ test('stale Blockscout balances are replaced by locally ranked pinned RPC candid
  assert.doesNotMatch(proof.method,/Blockscout.*values/i);
 });
 
-test('ranked holder metrics fail closed for zero, malformed or supply-exceeding pinned balances',()=>{
+test('ranked holder metrics preserve positive pinned candidates but withhold incomplete top 20',()=>{
  const page=holders.parsePage({items:rows},token);
  const zero=Array(21).fill(1n);zero[4]=0n;
- assert.equal(holders.evaluate(page,zero,100000n,'0x1234',token,1000).reasonCode,
-  'INVALID_PINNED_CANDIDATE_BALANCE');
+ const recovered=holders.evaluate(page,zero,100000n,'0x1234',token,1000);
+ assert.equal(recovered.ok,true);
+ assert.equal(recovered.holderCandidates.length,20);
+ assert.equal(recovered.fields.top20Pct.status,'SOURCE_REPORTED_RPC_RECONCILED');
+ assert.equal(recovered.fields.top20Pct.evidence[0].discardedZeroBalanceCandidates,1);
+ const twoZeros=zero.slice();twoZeros[5]=0n;
+ const partial=holders.evaluate(page,twoZeros,100000n,'0x1234',token,1000);
+ assert.equal(partial.ok,true);
+ assert.equal(partial.fields.top10Pct.dataState,'DATA_FOUND');
+ assert.equal(partial.fields.top20Pct.dataState,'NOT_VERIFIED');
+ const tooFew=Array(21).fill(0n);tooFew.fill(1n,0,9);
+ assert.equal(holders.evaluate(page,tooFew,100000n,'0x1234',token,1000).reasonCode,
+  'INSUFFICIENT_POSITIVE_PINNED_CANDIDATES');
  const tooLarge=Array(21).fill(1n);tooLarge[0]=100001n;
  assert.equal(holders.evaluate(page,tooLarge,100000n,'0x1234',token,1000).reasonCode,
   'INVALID_PINNED_CANDIDATE_BALANCE');
