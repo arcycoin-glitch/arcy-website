@@ -9,11 +9,22 @@ function resolveRpcUrl(value){
   return url.toString();
 }
 const RPC_URL=resolveRpcUrl(process.env.ETH_RPC_URL||'https://ethereum-rpc.publicnode.com');
+const DEFAULT_FALLBACK='https://eth.drpc.org';
+function providers(env=process.env){
+ const primary=resolveRpcUrl(env.ETH_RPC_URL||'https://ethereum-rpc.publicnode.com');
+ const backup=env.ETH_RPC_FALLBACK_URL==='disabled'?null:
+  resolveRpcUrl(env.ETH_RPC_FALLBACK_URL||DEFAULT_FALLBACK);
+ return backup&&backup!==primary?[primary,backup]:[primary];
+}
 const BURN=['0x0000000000000000000000000000000000000000','0x000000000000000000000000000000000000dead'];
 const ADDRESS=/^0x[0-9a-fA-F]{40}$/;
 const {readJson}=require('./http');
 let rpcId=0;
-async function rawRpc(method,params,{timeoutMs=12000}={}){
+function retryable(error){
+ return Boolean(error?.retryable)||[403,429,502,503,504].includes(error?.httpStatus)||
+  error?.code==='RPC_RATE_LIMIT'||['TypeError','AbortError','TimeoutError'].includes(error?.name);
+}
+async function rawRpc(endpoint,method,params,{timeoutMs=12000}={}){
   const id=++rpcId;
   // Ref-counted timeout: Node's unref'd AbortSignal.timeout can leave promises unresolved in CI.
   const controller=new AbortController();
@@ -23,14 +34,13 @@ async function rawRpc(method,params,{timeoutMs=12000}={}){
   try{
    for(let attempt=0;;attempt++){
     try{
-     response=await fetch(RPC_URL,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id,method,params}),signal:controller.signal});
+     response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id,method,params}),signal:controller.signal});
      if(!response.ok){await response.body?.cancel?.();throw Object.assign(Error('Ethereum RPC HTTP '+response.status),{httpStatus:response.status,code:'RPC_HTTP_ERROR'})}
      result=await readJson(response,1024*1024);
      if([-32005,-32016].includes(result?.error?.code))throw Object.assign(Error('Ethereum RPC rate limited'),{code:'RPC_RATE_LIMIT'});
      break;
     }catch(error){
-     const retryable=[429,502,503,504].includes(error.httpStatus)||error.code==='RPC_RATE_LIMIT'||error.name==='TypeError';
-     if(attempt>=1||!retryable||controller.signal.aborted)throw error;
+     if(attempt>=1||!retryable(error)||controller.signal.aborted)throw error;
      const raw=response?.headers?.get?.('retry-after');
      const retry=raw?(Number.isFinite(Number(raw))?Number(raw)*1000:Date.parse(raw)-Date.now()):250;
      const delay=Math.max(250,Number.isFinite(retry)?retry:250);
@@ -44,8 +54,21 @@ async function rawRpc(method,params,{timeoutMs=12000}={}){
   if(!Object.hasOwn(result,'result'))throw Error('Ethereum RPC response missing result: '+method);
   return result.result;
 }
-function rpc(method,params,options={}){
- return require('./analysis-scope').read('ethereum',RPC_URL,method,params,options,()=>rawRpc(method,params,options));
+function requestAt(endpoint,method,params,options={}){
+ return require('./analysis-scope').read('ethereum',endpoint,method,params,options,()=>rawRpc(endpoint,method,params,options));
+}
+async function rpc(method,params,options={}){
+ const scope=require('./analysis-scope'),pinned=scope.pinnedProvider('ethereum');
+ const endpoints=pinned?[pinned]:providers();let last;
+ for(let i=0;i<endpoints.length;i++){
+  try{
+   if(i>0&&method!=='eth_chainId')require('./chains').verifyChainId('ethereum',await requestAt(endpoints[i],'eth_chainId',[],options));
+   const value=await requestAt(endpoints[i],method,params,options);
+   if(i>0&&method==='eth_chainId')require('./chains').verifyChainId('ethereum',value);
+   return value;
+  }catch(error){last=error;if(!retryable(error))throw error;}
+ }
+ throw last;
 }
 function uint(hex){
   if(typeof hex!=='string'||!/^0x[0-9a-fA-F]{64}$/.test(hex))throw Error('Invalid 32-byte ABI result');
@@ -68,16 +91,17 @@ function abiString(hex){
 }
 const status=(value,method,block)=>({value,status:'ON_CHAIN',source:'Ethereum RPC',method,block});
 const unknown=reason=>({value:null,status:'NOT_VERIFIED',source:null,reason});
-async function inspect(address){
-  if(!ADDRESS.test(address))throw Error('Invalid Ethereum contract address');
+async function inspectAt(endpoint,address){
+  const callRpc=(method,params)=>requestAt(endpoint,method,params);
+  const chain=await callRpc('eth_chainId',[]);
+  require('./chains').verifyChainId('ethereum',chain);
+  const block=await callRpc('eth_blockNumber',[]);
+  if(!/^0x[0-9a-f]+$/i.test(block))throw Error('Invalid Ethereum block');
   const normalized=address.toLowerCase();
-  const chain=await rpc('eth_chainId',[]);
-  if(Number(BigInt(chain))!==CHAIN_ID)throw Error('RPC chain ID is not Ethereum mainnet');
-  const block=await rpc('eth_blockNumber',[]);
-  const code=await rpc('eth_getCode',[normalized,block]);
+  const code=await callRpc('eth_getCode',[normalized,block]);
   if(code==='0x')throw Error('No contract deployed at this address');
   if(typeof code!=='string'||!/^0x[0-9a-fA-F]+$/.test(code))throw Error('Invalid contract bytecode');
-  const call=data=>rpc('eth_call',[{to:normalized,data},block]);
+  const call=data=>callRpc('eth_call',[{to:normalized,data},block]);
   // All getters use the already verified chain, code and pinned block.
   const [s,d,addresses,names]=await Promise.all([
     call('0x18160ddd'),call('0x313ce567'),
@@ -99,4 +123,16 @@ async function inspect(address){
     methodology:'Read-only calls at one Ethereum block. Burn balance is current custody at 0x0 and 0xdead; not lifetime burned or verified buyback activity.'
   };
 }
-module.exports={CHAIN_ID,BURN,ADDRESS,RPC_URL,resolveRpcUrl,rpc,uint,units,abiString,inspect};
+async function inspect(address){
+ if(!ADDRESS.test(address))throw Error('Invalid Ethereum contract address');
+ let last;
+ for(const endpoint of providers()){
+  try{
+   const result=await inspectAt(endpoint,address);
+   require('./analysis-scope').pinProvider('ethereum',endpoint);
+   return result;
+  }catch(error){last=error;if(!retryable(error))throw error;}
+ }
+ throw last;
+}
+module.exports={CHAIN_ID,BURN,ADDRESS,RPC_URL,resolveRpcUrl,providers,retryable,requestAt,rpc,uint,units,abiString,inspect,inspectAt};

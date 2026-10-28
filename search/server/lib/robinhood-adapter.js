@@ -145,20 +145,20 @@ async function mechanics({address,base}){
  }
  return require('./mechanics-deep').enrich({network:'robinhood',address,block:base.block,rpc,card:{description:'On-chain getters and chain-specific GoPlus security observations; not a complete privilege or upgradeability audit.',
   fields:{
-   tradingTaxes:observed.tradingTaxes?.dataState==='DATA_FOUND'?observed.tradingTaxes:
-    NO('No contract-matched trading-tax report.'),
-   mintCapability:observed.mintCapability?.dataState==='DATA_FOUND'?observed.mintCapability:
-    NO('Mint permission is unverified; absent getter does not prove no minting.'),
+   tradingTaxes:require('./goplus-evidence').mergeMissing(
+    NO('No contract-matched trading-tax report.'),observed.tradingTaxes),
+   mintCapability:require('./goplus-evidence').mergeMissing(
+    NO('Mint permission is unverified; absent getter does not prove no minting.'),observed.mintCapability),
    ownerAdmin:owner?evidence('owner() getter: '+owner,'Robinhood RPC',{...proof,method:'owner()'},'GETTER_REPORTED'):
     extra.ownerAdmin?.dataState==='DATA_FOUND'?extra.ownerAdmin:
-    observed.ownerAdmin?.dataState==='DATA_FOUND'?observed.ownerAdmin:
-    NO('No source-confirmed owner/admin model; absence of owner getter does not prove renouncement.'),
+    require('./goplus-evidence').mergeMissing(
+     NO('No source-confirmed owner/admin model; absence of owner getter does not prove renouncement.'),observed.ownerAdmin),
    contractArchitecture:implementation?evidence('EIP-1967 implementation: '+implementation,'Robinhood RPC',{
     ...proof,method:'EIP-1967 implementation storage',scope:'Does not prove all upgrade permissions.'},'ON_CHAIN'):
     cloneArchitecture?cloneArchitecture:runtimeArchitecture?runtimeArchitecture:
     extra.contractArchitecture?.dataState==='DATA_FOUND'?extra.contractArchitecture:
-    observed.contractArchitecture?.dataState==='DATA_FOUND'?observed.contractArchitecture:
-    NO('EIP-1967 implementation not established; other proxy designs may exist.')
+    require('./goplus-evidence').mergeMissing(
+     NO('EIP-1967 implementation not established; other proxy designs may exist.'),observed.contractArchitecture)
   }}});
 }
 async function inspectCard({base,cardId,address}){

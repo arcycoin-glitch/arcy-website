@@ -39,12 +39,16 @@ function validateSource(d,{chainId,address,code}){
  if(!Array.isArray(d.abi)||!d.abi.every(f=>f&&typeof f.type==='string'&&(f.type!=='function'||typeof f.name==='string'&&Array.isArray(f.inputs)&&Array.isArray(f.outputs)&&[...f.inputs,...f.outputs].every(p=>typeof p?.type==='string')))||!d.sources||!Object.keys(d.sources).length||!Object.values(d.sources).every(x=>typeof x?.content==='string'))throw Error('SOURCE_SCHEMA_INVALID');
  return {abi:d.abi,digest:digest(d.sources),runtimeMatch:d.runtimeMatch,compilation:d.compilation,immutableReferences:d.runtimeBytecode.immutableReferences};
 }
-async function sourceFor(cfg,address,code,diagnostics){
+async function sourceFor(cfg,address,code,diagnostics,{sourceReader=reader}={}){
  const compiled=require('./mechanics-compiled-runtime').match(code);
  if(compiled)return compiled;
  const url='https://sourcify.dev/server/v2/contract/'+cfg.chainId+'/'+address+'?fields=abi,sources,compilation,runtimeBytecode';
- try{const body=await reader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{validateSource(d,{chainId:cfg.chainId,address,code});return true;}});return {...validateSource(body,{chainId:cfg.chainId,address,code}),url,retrievedAt:new Date(reader.observedAt(url)).toISOString()};}
- catch(e){diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason:e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':/SOURCE_/.test(e.message)?e.message:'SOURCE_API_FAILED'});return null;}
+ try{const body=await sourceReader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{validateSource(d,{chainId:cfg.chainId,address,code});return true;}});const observed=sourceReader.observedAt?.(url);return {...validateSource(body,{chainId:cfg.chainId,address,code}),source:'Sourcify',url,retrievedAt:new Date(Number.isFinite(observed)?observed:Date.now()).toISOString()};}
+ catch(e){diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason:e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':/SOURCE_/.test(e.message)?e.message:'SOURCE_API_FAILED'});}
+ const explorer=require('./mechanics-explorer-source');
+ if(!explorer.config(cfg)){diagnostics.push({source:'Blockscout fallback',address,chainId:cfg.chainId,reason:'EXPLORER_UNSUPPORTED_NETWORK'});return null;}
+ try{return await explorer.lookup(cfg,address,code,{reader:sourceReader});}
+ catch(e){diagnostics.push({source:'Blockscout',address,chainId:cfg.chainId,reason:e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':/^EXPLORER_/.test(e.code||'')?e.code:'SOURCE_API_FAILED'});return null;}
 }
 function abiFn(source,signature,type){
  const name=signature.slice(0,signature.indexOf('(')),inputs=signature.slice(signature.indexOf('(')+1,-1).split(',').filter(Boolean);
@@ -84,22 +88,22 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
    if(facets){const codes=await Promise.all(facets.map(deployed));if(codes.every(Boolean))details.observations.push({method:'facetAddresses()',facets,block,runtimeCodeHash,scope:'Diamond candidate only. Reported facet bytecode exists; actual selector routing/upgrade authority remains NOT VERIFIED.'});}
   }
  }
- const outer=await sourcePromise;if(outer)details.sources.push({address,digest:outer.digest,url:outer.url,retrievedAt:outer.retrievedAt});
- if(reviewedLegacy(outer?.digest)&&kind==='Legacy implementation slot'){
+ const outer=await sourcePromise;if(outer)details.sources.push({address,digest:outer.digest,url:outer.url,retrievedAt:outer.retrievedAt,source:outer.source,runtimeMatch:outer.runtimeMatch,scope:outer.scope});
+ if(!outer?.attestationOnly&&reviewedLegacy(outer?.digest)&&kind==='Legacy implementation slot'){
   admin=addressWord(await safe('eth_getStorageAt',[address,SLOTS.legacyAdmin,block]));
   if(admin)details.observations.push({method:'Reviewed legacy proxy upgrade authority',admin,block,sourceUrl:outer.url,sourceDigest:outer.digest,status:'VERIFIED_SOURCE_AND_STATE',scope:'Reviewed admin slot gates changeAdmin, upgradeTo and upgradeToAndCall. Token owner and implementation roles are separate; key ownership and complete multisig membership are not inferred.'});
  }
  let beaconBinding=false;
  const template=require('./mechanics-reviewed-v4').immutableBeacon(code);
- if(outer?.digest===REVIEWED_BEACON_PROXY||template){
+ if((!outer?.attestationOnly&&outer?.digest===REVIEWED_BEACON_PROXY)||template){
   if(template)details.runtimeTemplate=template;
-  const refs=outer?.digest===REVIEWED_BEACON_PROXY?Object.values(outer.immutableReferences||{}).flat():[template];
+  const refs=!outer?.attestationOnly&&outer?.digest===REVIEWED_BEACON_PROXY?Object.values(outer.immutableReferences||{}).flat():[template];
   if(refs.length===1&&refs[0].length===32&&Number.isInteger(refs[0].start)&&refs[0].start>=0&&refs[0].start*2+64<=code.length-2){
    const actual=addressWord('0x'+code.slice(2+refs[0].start*2,2+refs[0].start*2+64));
    const beaconCode=await deployed(actual);
    if(actual&&beaconCode){
     const beaconSource=await sourceLoader(cfg,actual,beaconCode,diagnostics);
-    if(beaconSource&&Object.hasOwn(require('./mechanics-reviewed-v4').BEACON_SOURCES,beaconSource.digest)){
+    if(beaconSource&&!beaconSource.attestationOnly&&Object.hasOwn(require('./mechanics-reviewed-v4').BEACON_SOURCES,beaconSource.digest)){
      details.sources.push({address:actual,digest:beaconSource.digest,url:beaconSource.url,retrievedAt:beaconSource.retrievedAt});
      if(beacon!==actual)diagnostics.push({reason:'BEACON_SLOT_IMMUTABLE_MISMATCH'});
      beacon=actual;
@@ -118,19 +122,19 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
   if(beacon){const owner=addressWord(await call(beacon,'owner()'));if(owner&&!fields.ownerAdmin)fields.ownerAdmin=fact('Beacon owner() getter: '+owner,'Pinned beacon owner() getter',{beacon,implementation:target,scope:'Getter-reported, not a proof of complete authority.'},'GETTER_REPORTED');}
  }
  const implementationSource=target!==address&&targetCode?await sourceLoader(cfg,target,targetCode,diagnostics):outer;
- if(implementationSource&&target!==address)details.sources.push({address:target,digest:implementationSource.digest,url:implementationSource.url,retrievedAt:implementationSource.retrievedAt});
+ if(implementationSource&&target!==address)details.sources.push({address:target,digest:implementationSource.digest,url:implementationSource.url,retrievedAt:implementationSource.retrievedAt,source:implementationSource.source,runtimeMatch:implementationSource.runtimeMatch,scope:implementationSource.scope});
  // Unknown delegated target cannot inherit an outer ABI as token implementation evidence.
- const reviewedSlotProxy=outer&&Object.hasOwn(require('./mechanics-reviewed-v4').PROXY_SOURCES,outer.digest)&&kind==='EIP-1967 implementation';
- const boundTarget=target===address||Boolean(clone)||reviewedLegacy(outer?.digest)&&kind==='Legacy implementation slot'||beaconBinding||reviewedSlotProxy;
+ const reviewedSlotProxy=outer&&!outer.attestationOnly&&Object.hasOwn(require('./mechanics-reviewed-v4').PROXY_SOURCES,outer.digest)&&kind==='EIP-1967 implementation';
+ const boundTarget=target===address||Boolean(clone)||(!outer?.attestationOnly&&reviewedLegacy(outer?.digest)&&kind==='Legacy implementation slot')||beaconBinding||reviewedSlotProxy;
  if(kind&&targetCode){
   if(boundTarget)await publishProxy();
   else details.observations.push({method:'Unbound proxy storage candidate',implementation:target,admin,beacon,block,scope:'Storage/getter observations only. The outer execution path is not reviewed/bound; proxy architecture, upgradeability and admin authority remain unverified.'});
  }
- const reviewedImplementation=implementationSource&&Object.hasOwn(PROFILES,implementationSource.digest);
+ const reviewedImplementation=implementationSource&&!implementationSource.attestationOnly&&Object.hasOwn(PROFILES,implementationSource.digest);
  const resolved=boundTarget&&(target===address?nonDelegating(code):targetCode&&(nonDelegating(targetCode)||reviewedImplementation));
  const source=resolved?implementationSource:null;
  if(!resolved)diagnostics.push({reason:'IMPLEMENTATION_EXECUTION_UNRESOLVED'});
- const sourceProof=source?{sourceUrl:source.url,sourceDigest:source.digest,sourceRetrievedAt:source.retrievedAt,implementation:target,runtimeMatch:source.runtimeMatch,...(source.runtimeReview?{runtimeReview:source.runtimeReview}:{})}:{};
+ const sourceProof=source?{sourceUrl:source.url,sourceDigest:source.digest,sourceRetrievedAt:source.retrievedAt,implementation:target,runtimeMatch:source.runtimeMatch,...(source.source?{verificationSource:source.source}:{}),...(source.attestationOnly?{attestationScope:source.scope}:{}),...(source.runtimeReview?{runtimeReview:source.runtimeReview}:{})}:{};
  if(source){
   const getters=['owner','getOwner','admin','getAdmin','authority','masterMinter','pauser','blacklister','pendingOwner'];
   await Promise.all(getters.filter(n=>abiFn(source,n+'()','address')).map(async name=>{const value=addressWord(await call(address,name+'()'));if(value){details.observations.push({method:name+'()',value,...sourceProof,block,scope:name==='pendingOwner'?'Pending address; not active owner.':'ABI-matched getter; permission semantics not implied.'});if(!fields.ownerAdmin&&name!=='pendingOwner')fields.ownerAdmin=fact(name+'(): '+value,'Verified ABI + pinned getter',{...sourceProof,scope:'Observed authority getter; zero owner never establishes complete renouncement.'},'GETTER_REPORTED');}}));
@@ -157,7 +161,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
     for(let i=0;i<Math.min(Number(n>4n?4n:n),4);i++){const member=addressWord(await call(address,'getRoleMember(bytes32,uint256)',role.slice(2)+BigInt(i).toString(16).padStart(64,'0')));if(!member)continue;const has=await word(address,'hasRole(bytes32,address)',role.slice(2)+member.slice(2).padStart(64,'0'));if(has&&BigInt(has)===1n){details.observations.push({method:'hasRole',role:name,member,value:true,block,...sourceProof});if(!fields.ownerAdmin)fields.ownerAdmin=fact(name+': '+member,'Verified ABI + enumerated role membership',{...sourceProof,role:name,roleId:role,member,scope:'Confirmed membership only. Role execution semantics and other roles not inferred.'},'GETTER_REPORTED');}}
    }
   }
-  const profile=PROFILES[source.digest];details.reviewedProfile=profile||null;
+  const profile=source.attestationOnly?null:PROFILES[source.digest];details.reviewedProfile=profile||null;
   if(profile){
    const proof={...sourceProof,profile,scope:'Reviewed complete source matched to pinned deployed bytecode; token-level transfer mechanics only. DEX pool/hook fees are NOT VERIFIED; no trade simulation was performed.'};
    if(profile==='RECOMPILED_ROLE_BURN_MINT'&&source.runtimeReview){
@@ -272,4 +276,4 @@ async function enrich(options){
   for(const [key,field]of Object.entries(fields))if(field?.dataState!=='DATA_FOUND')fields[key]={...field,analysisDiagnostics:result.details,evidence:[...(field?.evidence||[]),{method:'Unresolved Mechanics evidence',chainId:chain(options.network).chainId,network:options.network,address:options.address,block:options.block,...result.details}]};
  return {...card,fields};
 }
-module.exports={inspect,enrich,validateSource,digest,abiFn,decodeArray,PROFILES,SLOTS,selector};
+module.exports={inspect,enrich,sourceFor,validateSource,digest,abiFn,decodeArray,PROFILES,SLOTS,selector};

@@ -6,7 +6,11 @@ const schema=require('../schema');
 const {chain}=require('./chains');
 const {safeLogoUrl}=require('./token-image');
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
-const VALID_STATES=new Set(['DATA_FOUND','NOT_VERIFIED','SOURCE_API_FAILED']);
+// Preserve why evidence is missing. None of these non-data states may carry a
+// usable value, but a source outage is different from an unsupported adapter
+// or a responsive source that has no record for this exact token.
+const VALID_STATES=new Set(['DATA_FOUND','NOT_VERIFIED','SOURCE_HAS_NO_DATA',
+ 'UNSUPPORTED','SOURCE_API_FAILED','RPC_FAILED']);
 const SCHEMA_KEYS=new Map(schema.map(c=>[c.id,c.fields.map(([key])=>key)]));
 function missing(reason='Reliable evidence unavailable.',reasonCode='INSUFFICIENT_EVIDENCE',network=null){
  return {value:null,status:'NOT_VERIFIED',dataState:'NOT_VERIFIED',source:null,
@@ -107,7 +111,10 @@ function formatCard(cardId,raw,cfg,context){
   researchNotes:[...require('./research-notes').notes(cardId,fields),...issuerNotes],
   fields,status:count===keys.length?'SOURCE_BACKED':
   count>0?'PARTIAL_EVIDENCE':
-  statuses.includes('SOURCE_API_FAILED')?'SOURCE_API_FAILED':'NOT_VERIFIED',
+  statuses.includes('RPC_FAILED')?'RPC_FAILED':
+  statuses.includes('SOURCE_API_FAILED')?'SOURCE_API_FAILED':
+  statuses.includes('UNSUPPORTED')?'UNSUPPORTED':
+  statuses.includes('SOURCE_HAS_NO_DATA')?'SOURCE_HAS_NO_DATA':'NOT_VERIFIED',
   description:typeof raw?.description==='string'?raw.description.slice(0,250):'Only chain-matched evidence is displayed.'};
 }
 // A failed provider call is not the same as a source reporting no evidence.

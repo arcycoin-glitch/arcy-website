@@ -23,6 +23,22 @@ function productionUseAllowed(){
 function missing(reason,code='SECURITY_SOURCE_UNAVAILABLE'){
  return {value:null,dataState:'NOT_VERIFIED',status:'NOT_VERIFIED',reason,reasonCode:code,source:null,evidence:[]};
 }
+function failedFields(keys){
+ return Object.fromEntries(keys.map(key=>[key,{
+  ...missing('GoPlus could not be reached or returned an invalid response; no conclusion about this token can be drawn.',
+   'SECURITY_SOURCE_API_FAILED'),dataState:'SOURCE_API_FAILED',source:'GoPlus Security'
+ }]));
+}
+function mergeMissing(primary,secondary){
+ if(primary?.dataState==='DATA_FOUND')return primary;
+ if(secondary?.dataState==='DATA_FOUND')return secondary;
+ if(['SOURCE_API_FAILED','SOURCE_HAS_NO_DATA'].includes(secondary?.dataState)&&
+    !['SOURCE_API_FAILED','RPC_FAILED'].includes(primary?.dataState)){
+  return {...secondary,attempts:[{source:primary?.source||null,
+   dataState:primary?.dataState||'NOT_VERIFIED',reasonCode:primary?.reasonCode||'INSUFFICIENT_EVIDENCE'}]};
+ }
+ return primary;
+}
 const bool=v=>v==='1'?true:v==='0'?false:null;
 function providerChainMatches(body,network){
  const declared=body?.chainId??body?.chain_id;
@@ -104,8 +120,19 @@ async function inspect(network,address,{fetcher=global.fetch,now=Date.now()}={})
   'tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'
  ].map(key=>[key,missing('GoPlus public production use is disabled pending written commercial permission and required attribution.','PROVIDER_DISABLED_LICENSE_UNVERIFIED')]));
  const url=ORIGIN+NETWORKS[network]+'?contract_addresses='+encodeURIComponent(token);
- try{return parse(await json(url,{fetcher,now}),network,token,{now})}
- catch{return parse(null,network,token,{now})}
+ try{
+  const body=await json(url,{fetcher,now}),fields=parse(body,network,token,{now});
+  // Only a structurally valid, chain-compatible successful response can say
+  // the provider supplied no field. A malformed or conflicting identity stays
+  // unverified; an exception is reported separately as a provider failure.
+  if(providerChainMatches(body,network)&&(body?.code===1||body?.code==='1')&&
+     body.result&&typeof body.result==='object'&&!Array.isArray(body.result)){
+   for(const [key,field] of Object.entries(fields))if(field.dataState!=='DATA_FOUND')
+    fields[key]={...field,dataState:'SOURCE_HAS_NO_DATA',reasonCode:'SECURITY_SOURCE_HAS_NO_DATA',source:'GoPlus Security'};
+  }
+  return fields;
+ }
+ catch{return failedFields(['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'])}
 }
 function parseHolders(body,network,rawAddress,{now=Date.now()}={}){
  if(!Object.hasOwn(NETWORKS,network)||typeof rawAddress!=='string'||!ADDRESS.test(rawAddress))
@@ -158,6 +185,6 @@ async function inspectHolders(network,address,{fetcher=global.fetch,now=Date.now
  try{
   const url=ORIGIN+NETWORKS[network]+'?contract_addresses='+encodeURIComponent(token);
   return parseHolders(await json(url,{fetcher,now}),network,token,{now});
- }catch{return parseHolders(null,network,token,{now})}
+ }catch{return failedFields(['holderCount','largestWalletPct','top10Pct','top20Pct'])}
 }
-module.exports={NETWORKS,bool,fraction,parse,inspect,parseHolders,inspectHolders,productionUseAllowed};
+module.exports={NETWORKS,bool,fraction,parse,inspect,parseHolders,inspectHolders,productionUseAllowed,mergeMissing};

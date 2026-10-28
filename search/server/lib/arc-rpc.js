@@ -44,9 +44,11 @@ async function rawRequestAt(endpoint,method,params,{timeoutMs=11000}={}){
   }
   body=await readJson(response,1024*1024);
  }finally{clearTimeout(timer)}
- if(!body||typeof body!=='object'||Array.isArray(body)||body.jsonrpc!=='2.0'||
-  body.id!==id||body.error||!Object.hasOwn(body,'result'))
-  throw Object.assign(Error('Arc RPC invalid response'),{retryable:true});
+ if(!body||typeof body!=='object'||Array.isArray(body)||body.jsonrpc!=='2.0'||body.id!==id)
+  throw Error('Arc RPC response identity mismatch');
+ if(body.error)throw Object.assign(Error('Arc RPC method failed'),{
+  code:'RPC_METHOD_FAILED',retryable:[-32005,-32016].includes(body.error.code)});
+ if(!Object.hasOwn(body,'result'))throw Error('Arc RPC result missing');
  return body.result;
 }
 function requestAt(endpoint,method,params,options={}){
@@ -55,7 +57,8 @@ function requestAt(endpoint,method,params,options={}){
 // Standalone read-only RPC calls also fail over, but pin-sensitive token scans
 // use inspectAt() below to avoid combining two providers in one snapshot.
 async function rpc(method,params,opts={}){
- const endpoints=providers();
+ const pinned=require('./analysis-scope').pinnedProvider('arc');
+ const endpoints=pinned?[pinned]:providers();
  let last;
  for(let i=0;i<endpoints.length;i++){
   try{
@@ -134,7 +137,7 @@ async function inspectToken({address}){
  const endpoints=providers();
  let last;
  for(const endpoint of endpoints){
-  try{return await inspectAt(endpoint,normalized)}
+  try{const result=await inspectAt(endpoint,normalized);require('./analysis-scope').pinProvider('arc',endpoint);return result}
   catch(error){
    last=error;
    // A wrong chain, bad contract, invalid data or invalid provider response
