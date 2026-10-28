@@ -86,11 +86,10 @@ test('PRO fallback uses a secret only on server; never puts it in evidence or er
  const key='proapi_EXAMPLE_SAFE_TESTING_KEY',seen=[];
  const result=await read.fetchCount(ADDRESS,{key,fetcher:async url=>{
   seen.push(url);
-  if(seen.length===1)return new Response('',{status:403});
   return new Response(JSON.stringify({token_holders_count:3456}));
  }});
- assert.equal(seen.length,2);
- assert.equal(new URL(seen[1]).searchParams.get('apikey'),key);
+ assert.equal(seen.length,1);
+ assert.equal(new URL(seen[0]).searchParams.get('apikey'),key);
  assert.equal(result.value,3456);
  assert.equal(result.source,'Blockscout PRO Robinhood');
  assert.equal(JSON.stringify(result).includes(key),false);

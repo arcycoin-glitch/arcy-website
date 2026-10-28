@@ -37,12 +37,16 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
  const token=address.toLowerCase();
  try{
   const publicUrl=BASE+token+'/holders';
-  const endpoints=[publicUrl];
-  if(typeof key==='string'&&API_KEY.test(key)){
+  const endpoints=[];
+  const hasKey=typeof key==='string'&&API_KEY.test(key);
+  // Blockscout has required Pro API credentials since July 2026. When
+  // present, try the authenticated endpoint FIRST, not a known 403.
+  if(hasKey){
    const pro=new URL(PRO+token+'/holders');
    pro.searchParams.set('apikey',key);
    endpoints.push(pro.href);
   }
+  endpoints.push(publicUrl);
   let response=null,sourceUrl=null,lastStatus=null;
   for(const url of endpoints){
    try{
@@ -51,7 +55,9 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
     response=attempt;sourceUrl=url.replace(/[?].*$/,'');break;
    }catch{} // Another approved Blockscout endpoint may remain available.
   }
-  if(!response)return unavailable(lastStatus===null?'BLOCKSCOUT_HOLDERS_REQUEST_FAILED':'BLOCKSCOUT_HOLDERS_HTTP_'+lastStatus);
+  if(!response)return unavailable(!hasKey&&lastStatus===403?
+   'BLOCKSCOUT_CREDENTIALS_REQUIRED':
+   lastStatus===null?'BLOCKSCOUT_HOLDERS_REQUEST_FAILED':'BLOCKSCOUT_HOLDERS_HTTP_'+lastStatus);
   const ranked=rows(await readJson(response,1024*1024));
   if(!ranked)return unavailable('BLOCKSCOUT_HOLDERS_SCHEMA_INVALID');
   if(ranked.length===0)return unavailable('BLOCKSCOUT_HOLDERS_EMPTY');

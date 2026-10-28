@@ -77,6 +77,11 @@ async function holder({address,base}){
   if(reported[key]?.dataState==='DATA_FOUND')fields[key]=reported[key];
  }
  if(ranked){
+  // A 403 without the free Blockscout Pro key is an authentication gap,
+  // not proof that the token has no holders. Keep every field unverified.
+  if(ranked.reasonCode==='BLOCKSCOUT_CREDENTIALS_REQUIRED'&&
+     fields.holderCount?.dataState!=='DATA_FOUND')
+   fields.holderCount=NO('Blockscout requires a free authenticated Pro API key. No holder count can be inferred.','BLOCKSCOUT_CREDENTIALS_REQUIRED');
   // Prefer the complete pinned-census count over a live explorer estimate.
   if(ranked.holderCount?.dataState==='DATA_FOUND')fields.holderCount=ranked.holderCount;
   for(const key of ['largestWalletPct','top10Pct','top20Pct'])
