@@ -18,9 +18,9 @@
   },
   "current": {
     "files": {
-      "index.html": "d7794d7ddf7dd468c3b6543354fddddc73dda813aa8a71b9fbd9409e1a6f386f",
+      "index.html": "9272b6c7bf0b5c22a8807e3ebd30b3a08b586a0af04718009442c12632994da2",
       "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
-      "api/unlocks.js": "b4b72f3c40b47185e3ae4dd2d5449306276dbf80c6b9cc556507d66c7922d41b",
+      "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885",
       "api/pulse.js": "71a081d8f1a3b0b84bd706a2f5a1f5727af49c8643be8cfee1bfee4dc7bc4cc0",
       "scripts/holder-worker.cjs": "edd384ae947bd50df061b4eff050f4f4c99771eee3dd754b225245e800672f90"
     },
@@ -30,5 +30,22 @@
       "validateSource": "54ec59c41ec1b5b0fd7bb7f6d58f29b3ebd35b23914909b58ba9cc59bbd6125c",
       "enrich": "f89f85aeb04656b8caa39a10ec6909ebe12cd9da83d281a2109a8632535f6787"
     }
-  }
+  },
+  "approvedChanges": [
+    {
+      "date": "2026-10-29",
+      "files": [
+        "api/unlocks.js",
+        "index.html"
+      ],
+      "reason": "Token Unlocks source reviewed evidence, signed snapshot suppression, row provenance, single-publisher note while preserving existing Verify navigation and app DOM."
+    },
+    {
+      "date": "2026-10-29",
+      "files": [
+        "api/unlocks.js"
+      ],
+      "reason": "Audit filtered third-party calendar rows by project/date/amount with explicit quarantine reasons for each skipped event rather than silently omitting."
+    }
+  ]
 }
