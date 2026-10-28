@@ -379,7 +379,7 @@ html.search-upgraded #search .home-search-form{
   width:17px;height:17px
  }
  #search .home-network-segments .home-network-option[data-network=all]{
-  min-height:38px;padding-inline:8px;font-size:11px
+  min-height:39px;padding-inline:8px;font-size:11px
  }
 }
 
@@ -408,7 +408,7 @@ html.search-upgraded #search .home-search-form{gap:7px;grid-template-rows:auto a
  min-height:39px;padding:5px 6px;gap:5px;border-radius:8px;font-size:11px;
 }
 #search .home-network-segments .home-network-option[data-network=all]{
- min-height:33px;padding:4px 8px
+ min-height:39px;padding:4px 8px
 }
 #search .home-network-segments .home-network-option[data-network=all][aria-pressed=true]::after{
  height:17px;width:17px;font-size:10px
@@ -440,7 +440,7 @@ html.search-upgraded #search .home-search-form{gap:7px;grid-template-rows:auto a
  #search .home-search-input-wrap{height:43px;min-height:43px;max-height:43px}
  #search .home-search-submit{min-height:44px}
  #search .home-network-segments .home-network-option{min-height:40px}
- #search .home-network-segments .home-network-option[data-network=all]{min-height:35px}
+ #search .home-network-segments .home-network-option[data-network=all]{min-height:39px}
  #search .home-search-disclaimer{font-size:8.5px}
 }
 @media(max-width:360px){
@@ -451,5 +451,5 @@ html.search-upgraded #search .home-search-form{gap:7px;grid-template-rows:auto a
  #search .home-network-segments .home-network-mark{width:17px;height:17px}
  #search .home-network-segments .home-network-mark img,
  #search .home-network-segments .home-network-mark[data-network=arc] img{width:17px;height:17px}
- #search .home-network-segments .home-network-option[data-network=all]{font-size:10px;min-height:35px}
+ #search .home-network-segments .home-network-option[data-network=all]{font-size:10px;min-height:39px}
 }
