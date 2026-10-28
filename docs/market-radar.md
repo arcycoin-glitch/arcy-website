@@ -12,7 +12,7 @@ Public source rendering and client JSON endpoint are locked unless ALL three env
 - MARKET_RADAR_PUBLIC_DISPLAY_APPROVED=true (active paid CoinGecko commercial license with attribution)
 - MARKET_RADAR_JSON_DELIVERY_APPROVED=true (appropriate permission/contractual confirmation for delivery of the bounded JSON response; standard display rights do not necessarily authorize a programmatic data feed)
 
-Without approvals, GET /api/market-radar?network=arc|ethereum|robinhood returns HTTP 503 RADAR_NOT_CONFIGURED. The UI displays an honest source-unavailable/license status rather than imaginary rankings. NO live production rollout or enabling of these flags without verifying terms. Do not use the existing public GeckoTerminal API for a third-party public ranking feed without first confirming permitted publication rights.
+Without approvals, GET /api/search?action=radar&chain=arc|ethereum|robinhood returns HTTP 503 RADAR_NOT_CONFIGURED. The UI displays an honest source-unavailable/license status rather than imaginary rankings. NO live production rollout or enabling of these flags without verifying terms. Do not use the existing public GeckoTerminal API for a third-party public ranking feed without first confirming permitted publication rights.
 
 Paid endpoint:
 https://pro-api.coingecko.com/api/v3/onchain/networks/{arc|eth|robinhood}/pools?sort=h24_volume_usd_desc&include=base_token,quote_token&page=1 (and page=2 if necessary).

@@ -73,7 +73,7 @@ test('Three chain endpoint paths, source identity and timestamp are stable',asyn
  }
 });
 test('API denies public data before license and never contacts provider',async()=>{
- const handler=require('../api/market-radar');
+ const handler=require('../search/server/api/radar');
  let status=0,reply=null,headers={};
  const res={setHeader(k,v){headers[k]=v;return this},status(code){status=code;return this},
  json(v){reply=v;return this}};
@@ -82,10 +82,10 @@ test('API denies public data before license and never contacts provider',async()
   delete process.env.MARKET_RADAR_PUBLIC_DISPLAY_APPROVED;
   delete process.env.MARKET_RADAR_JSON_DELIVERY_APPROVED;
   delete process.env.COINGECKO_PRO_API_KEY;
-  await handler({method:'GET',query:{network:'arc'}},res);
+  await handler({method:'GET',query:{chain:'arc'}},res);
   assert.equal(status,503);assert.equal(reply.error,'RADAR_NOT_CONFIGURED');
   assert.equal(headers['Cache-Control'],'no-store');
-  await handler({method:'GET',query:{network:'bsc'}},res);
+  await handler({method:'GET',query:{chain:'bsc'}},res);
   assert.equal(status,400);
  }finally{
   for(const [name,value] of Object.entries({MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:previous.display,

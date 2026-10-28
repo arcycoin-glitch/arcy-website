@@ -98,7 +98,7 @@
    const ctl=new AbortController(),timeout=setTimeout(()=>ctl.abort(),12000);
    let response,body;
    try{
-    response=await fetch('/api/market-radar?network='+encodeURIComponent(network),{signal:ctl.signal,cache:'no-store',headers:{accept:'application/json'}});
+    response=await fetch('/api/search?action=radar&chain='+encodeURIComponent(network),{signal:ctl.signal,cache:'no-store',headers:{accept:'application/json'}});
     body=await response.json();
    }finally{clearTimeout(timeout)}
    if(mine!==sequence)return;

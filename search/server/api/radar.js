@@ -1,11 +1,12 @@
 'use strict';
-// Isolated, opt-in endpoint. Avoid changing the existing token report or Pulse router.
-const radar=require('../lib/market-radar');
-module.exports=async function handler(req,res){
+// Radar is mounted as an action under the EXISTING /api/search function.
+// No new Vercel Serverless Function (Hobby plan limit: 12).
+const radar=require('../../../lib/market-radar');
+module.exports=async function(req,res){
  res.setHeader('X-Content-Type-Options','nosniff');
  res.setHeader('Cache-Control','no-store');
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
- const network=req.query?.network;
+ const network=req.query?.chain;
  if(typeof network!=='string'||!Object.hasOwn(radar.IDS,network))
   return res.status(400).json({ok:false,error:'INVALID_NETWORK'});
  const enabled=process.env.MARKET_RADAR_PUBLIC_DISPLAY_APPROVED==='true'&&
