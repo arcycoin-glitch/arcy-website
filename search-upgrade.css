@@ -456,3 +456,64 @@ html.search-upgraded #search .home-search-form{gap:7px;grid-template-rows:auto a
 
 /* Responsive acceptance: preserve a full 44px+ CTA touch target at every width. */
 #search .home-search-submit,html.search-upgraded #search .home-search-submit{min-height:44px}
+
+/* Desktop-only full-width SEARCH section.
+   The late compact V8 rules above previously re-imposed 960px/760px caps,
+   overriding the existing 1400px desktop correction.
+   This block deliberately never applies below 1024px; mobile/tablet and
+   hero, Burn, Pulse, search logic and report cards remain untouched. */
+@media (min-width:1024px){
+ html.search-upgraded #search>.wrap{
+  box-sizing:border-box;
+  width:min(1640px,calc(100% - clamp(40px,8.8vw,160px)));
+  max-width:1640px;
+  margin-inline:auto;
+ }
+ html.search-upgraded #search .app{
+  box-sizing:border-box;
+  width:100%;
+  max-width:none;
+  padding:12px 0;
+  margin-inline:auto;
+ }
+ html.search-upgraded #search .home-search{
+  box-sizing:border-box;
+  width:100%;
+  max-width:none;
+  margin-inline:auto;
+  padding:clamp(22px,2.5vw,38px) clamp(24px,3vw,50px);
+  border-radius:20px;
+ }
+ html.search-upgraded #search .home-search-brand-row{margin-bottom:12px}
+ html.search-upgraded #search .home-search-wordmark{
+  font-size:clamp(30px,2.8vw,44px);
+ }
+ html.search-upgraded #search .home-search-intro{
+  font-size:clamp(12px,1vw,15px);
+  line-height:1.55;
+  margin-bottom:18px;
+ }
+ html.search-upgraded #search .home-search-form{
+  width:100%;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto auto auto;
+  gap:12px;
+ }
+ html.search-upgraded #search .home-search-input-wrap{
+  height:54px;
+  min-height:54px;
+  max-height:54px;
+ }
+ html.search-upgraded #search .home-search-form input{font-size:14px}
+ html.search-upgraded #search .home-network-picker{width:100%}
+ html.search-upgraded #search .home-network-segments .home-network-option{
+  min-height:47px;
+  font-size:13px;
+ }
+ html.search-upgraded #search .home-search-submit{
+  width:100%;
+  min-height:51px;
+  font-size:13px;
+ }
+ html.search-upgraded #search .home-search-results{width:100%}
+}
