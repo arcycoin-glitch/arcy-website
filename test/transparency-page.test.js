@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
-const html=read('transparency.html'),site=read('v8-premium.js');
+const html=read('transparency.html'),site=read('v8-premium.js'),home=read('index.html');
 const contract='0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b';
 test('transparency page exposes independent evidence paths and exact Arc contract',()=>{
  assert.match(html,/Transparency &amp;/);
@@ -33,6 +33,9 @@ test('site navigation makes evidence accessible without rewriting research UI',(
  assert.match(site,/proof\.href='\/transparency\.html'/);
  assert.match(site,/links\.insertBefore\(verify,github\|\|null\)/);
  assert.match(site,/a\.social-icon\[href="https:\/\/x\.com\/Arcy_usdc"\]/);
+ assert.match(home,/<a href="\/transparency\.html">Verify<\/a>/);
+ assert.match(home,/href="\/transparency\.html">Transparency &amp; Verification<\/a>/);
+ assert.doesNotMatch(home,/https:\/\/x\.com\/Arcy_usdc/);
  assert.match(site,/const pulse=document\.getElementById\('pulse'\)/);
  assert.match(site,/ensureChainCardArt/);
  assert.match(site,/v8-eth-card-art/);
