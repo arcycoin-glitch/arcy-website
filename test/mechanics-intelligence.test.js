@@ -12,10 +12,13 @@ test('active multichain card hides one architecture and reveals two complete row
  for(const value of ['Buy 100.1% · Sell 0% · Transfer 0%','Buy 101% · Sell 0% · Transfer 0%']){taxes.fields.tradingTaxes.value=value;assert.equal(policy.assess(taxes,context).visible,false);}
  assert.equal(policy.assess(null,context).visible,false);
 });
-test('visibility never counts wrong chain, contract, block, external report or unlabeled historical data',()=>{
- for(const mutate of [f=>f.chainId=5042,f=>f.network='arc',f=>f.evidence[0].address='0x'+'2'.repeat(40),f=>f.evidence[0].block='0x124',f=>f.status='SOURCE_REPORTED',f=>f.evidence=[],f=>f.freshness={state:'LAST_VERIFIED'}]){
+test('visibility rejects wrong chain, contract, block and unlabeled historical evidence; provider reports stay separate',()=>{
+ for(const mutate of [f=>f.chainId=5042,f=>f.network='arc',f=>f.evidence[0].address='0x'+'2'.repeat(40),f=>f.evidence[0].block='0x124',f=>f.evidence=[],f=>f.freshness={state:'LAST_VERIFIED'}]){
   const f=fact('Buy 0% · Sell 0% · Transfer 0%');mutate(f);assert.equal(policy.assess({fields:{tradingTaxes:f}},context).visible,false);
  }
+ const reported=fact('Buy 0% · Sell 0% · Transfer 0%');reported.status='SOURCE_REPORTED';
+ const sourceObservation=policy.assess({fields:{tradingTaxes:reported}},context);
+ assert.equal(sourceObservation.visible,true);assert.equal(sourceObservation.completeRows,0);assert.equal(sourceObservation.sourceReportedCount,1);
  const f=fact('Buy 0% · Sell 0% · Transfer 0%');f.freshness={state:'LAST_VERIFIED',observedAt:'2026-10-01T00:00:00Z'};f.evidence[0].block='0x1';assert.equal(policy.assess({fields:{tradingTaxes:f}},context).visible,true);
  f.status='UNVERIFIED';assert.equal(policy.assess({fields:{tradingTaxes:f}},context).visible,false);
 });

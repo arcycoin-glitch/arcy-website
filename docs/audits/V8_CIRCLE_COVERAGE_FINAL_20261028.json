@@ -1,0 +1,1198 @@
+{
+  "mode": "read-only public providers; no credentials; no deployment",
+  "results": [
+    {
+      "network": "arc",
+      "symbol": "ARCY",
+      "address": "0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b",
+      "block": "0x1b01495",
+      "ms": 7615,
+      "mechanics": {
+        "tradingTaxes": {
+          "dataState": "DATA_FOUND",
+          "status": "SOURCE_REPORTED",
+          "reasonCode": null,
+          "source": "Sourcify bytecode-matched reviewed V4 hook + Arc RPC",
+          "value": "Buy 3% · Sell 3% · Transfer 0%",
+          "freshness": null
+        },
+        "mintCapability": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE_AND_STATE",
+          "reasonCode": null,
+          "source": "Arc RPC / contract evidence",
+          "value": "NONE DETECTED ✓",
+          "freshness": {
+            "block": "0x1b01495",
+            "retrievedAt": "2026-10-28T14:02:09.947Z"
+          }
+        },
+        "ownerAdmin": {
+          "dataState": "DATA_FOUND",
+          "status": "GETTER_REPORTED",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "owner() getter: 0x9c07a97364e59afe744fdbe55951df929bd5d90e",
+          "freshness": null
+        },
+        "contractArchitecture": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC / contract evidence",
+          "value": "EIP-1167 minimal proxy",
+          "freshness": {
+            "block": "0x1b01495",
+            "retrievedAt": "2026-10-28T14:02:09.944Z"
+          }
+        }
+      },
+      "supply": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "1000000000",
+          "freshness": null
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "27921688.82967170463598735",
+          "freshness": null
+        },
+        "nextUnlock": {
+          "dataState": "SOURCE_API_FAILED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "UNLOCK_SOURCE_FAILED",
+          "source": null,
+          "value": null,
+          "freshness": null
+        }
+      },
+      "supplyContext": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "1000000000",
+          "freshness": null
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "27921688.82967170463598735",
+          "freshness": null
+        },
+        "burnAddressPct": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN_DERIVED",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": 2.7921688829671703,
+          "freshness": null
+        }
+      }
+    },
+    {
+      "network": "ethereum",
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "block": "0x1912def",
+      "ms": 10704,
+      "mechanics": {
+        "tradingTaxes": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE_AND_STATE",
+          "reasonCode": null,
+          "source": "Ethereum RPC / contract evidence",
+          "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+          "freshness": {
+            "block": "0x1912def",
+            "retrievedAt": "2026-10-28T14:02:04.693Z"
+          }
+        },
+        "mintCapability": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE_AND_STATE",
+          "reasonCode": null,
+          "source": "Ethereum RPC / contract evidence",
+          "value": "Owner-authorized issuance",
+          "freshness": {
+            "block": "0x1912def",
+            "retrievedAt": "2026-10-28T14:02:04.693Z"
+          }
+        },
+        "ownerAdmin": {
+          "dataState": "DATA_FOUND",
+          "status": "GETTER_REPORTED",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "owner() getter: 0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:04.004Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "contractArchitecture": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC / contract evidence",
+          "value": "NON-PROXY · runtime verified",
+          "freshness": {
+            "block": "0x1912def",
+            "retrievedAt": "2026-10-28T14:02:04.218Z"
+          }
+        }
+      },
+      "supply": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "88301265725.970534",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:13.114Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "ISSUER_CIRCULATION_PERMISSION_REQUIRED",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "73526.881178",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:13.114Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "nextUnlock": {
+          "dataState": "SOURCE_HAS_NO_DATA",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "NO_SOURCE_REPORTED_SCHEDULE",
+          "source": null,
+          "value": null,
+          "freshness": null
+        }
+      },
+      "supplyContext": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "88301265725.970534",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:13.114Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "ISSUER_CIRCULATION_PERMISSION_REQUIRED",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "73526.881178",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:13.114Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "burnAddressPct": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN_DERIVED",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": 0.00008326820750925522,
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:13.114Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        }
+      }
+    },
+    {
+      "network": "robinhood",
+      "symbol": "AAPL",
+      "address": "0xaf3d76f1834a1d425780943c99ea8a608f8a93f9",
+      "block": "0x5f7d231",
+      "ms": 4056,
+      "mechanics": {
+        "tradingTaxes": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE",
+          "reasonCode": null,
+          "source": "Robinhood Chain RPC / contract evidence",
+          "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+          "freshness": {
+            "block": "0x5f7d231",
+            "retrievedAt": "2026-10-28T14:02:06.262Z"
+          }
+        },
+        "mintCapability": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE_AND_STATE",
+          "reasonCode": null,
+          "source": "Robinhood Chain RPC / contract evidence",
+          "value": "Registry MINTER_ROLE mint",
+          "freshness": {
+            "block": "0x5f7d231",
+            "retrievedAt": "2026-10-28T14:02:06.262Z"
+          }
+        },
+        "ownerAdmin": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE_AND_STATE",
+          "reasonCode": null,
+          "source": "Robinhood Chain RPC / contract evidence",
+          "value": "Access registry: 0xe10b6f6b275de231345c20d14ab812db62151b00",
+          "freshness": {
+            "block": "0x5f7d231",
+            "retrievedAt": "2026-10-28T14:02:06.262Z"
+          }
+        },
+        "contractArchitecture": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood Chain RPC / contract evidence",
+          "value": "Reviewed immutable beacon proxy",
+          "freshness": {
+            "block": "0x5f7d231",
+            "retrievedAt": "2026-10-28T14:02:05.651Z"
+          }
+        }
+      },
+      "supply": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": "11535.40011975",
+          "freshness": null
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "INSUFFICIENT_EVIDENCE",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": "0.130054010686331981",
+          "freshness": null
+        },
+        "nextUnlock": {
+          "dataState": "UNSUPPORTED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "UNLOCK_ADAPTER_UNSUPPORTED",
+          "source": null,
+          "value": null,
+          "freshness": null
+        }
+      },
+      "supplyContext": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": "11535.40011975",
+          "freshness": null
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "INSUFFICIENT_EVIDENCE",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": "0.130054010686331981",
+          "freshness": null
+        },
+        "burnAddressPct": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN_DERIVED",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": 0.001127433893373701,
+          "freshness": null
+        }
+      }
+    },
+    {
+      "network": "arc",
+      "symbol": "ARGUS",
+      "address": "0xece5ca8bf9220718e5727754026757512212cb3c",
+      "block": "0x1b014a9",
+      "ms": 2615,
+      "mechanics": {
+        "tradingTaxes": {
+          "dataState": "DATA_FOUND",
+          "status": "SOURCE_REPORTED",
+          "reasonCode": null,
+          "source": "Sourcify",
+          "value": "Buy 1% · Sell 1% · Transfer 0%",
+          "freshness": null
+        },
+        "mintCapability": {
+          "dataState": "DATA_FOUND",
+          "status": "NOT_DETECTED",
+          "reasonCode": null,
+          "source": "Sourcify",
+          "value": false,
+          "freshness": null
+        },
+        "ownerAdmin": {
+          "dataState": "DATA_FOUND",
+          "status": "GETTER_REPORTED",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "owner() getter: 0x7d613c6316ede9d257f3bf512777cb4ea4a6bee4",
+          "freshness": null
+        },
+        "contractArchitecture": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC / contract evidence",
+          "value": "EIP-1167 minimal proxy",
+          "freshness": {
+            "block": "0x1b014a9",
+            "retrievedAt": "2026-10-28T14:02:15.443Z"
+          }
+        }
+      },
+      "supply": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "1000000000",
+          "freshness": null
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "75315303.225722153460258124",
+          "freshness": null
+        },
+        "nextUnlock": {
+          "dataState": "SOURCE_HAS_NO_DATA",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "UNLOCK_SOURCE_HAS_NO_DATA",
+          "source": null,
+          "value": null,
+          "freshness": null
+        }
+      },
+      "supplyContext": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "1000000000",
+          "freshness": null
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "75315303.225722153460258124",
+          "freshness": null
+        },
+        "burnAddressPct": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN_DERIVED",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": 7.531530322572215,
+          "freshness": null
+        }
+      }
+    },
+    {
+      "network": "ethereum",
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "block": "0x1912df1",
+      "ms": 10382,
+      "mechanics": {
+        "tradingTaxes": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE",
+          "reasonCode": null,
+          "source": "Ethereum RPC / contract evidence",
+          "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+          "freshness": {
+            "block": "0x1912df1",
+            "retrievedAt": "2026-10-28T14:02:15.343Z"
+          }
+        },
+        "mintCapability": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE_AND_STATE",
+          "reasonCode": null,
+          "source": "Ethereum RPC / contract evidence",
+          "value": "Allowance-limited mint",
+          "freshness": {
+            "block": "0x1912df1",
+            "retrievedAt": "2026-10-28T14:02:15.343Z"
+          }
+        },
+        "ownerAdmin": {
+          "dataState": "DATA_FOUND",
+          "status": "GETTER_REPORTED",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "owner() getter: 0xfcb19e6a322b27c06842a71e8c725399f049ae3a",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:14.507Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "contractArchitecture": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC / contract evidence",
+          "value": "Legacy implementation slot",
+          "freshness": {
+            "block": "0x1912df1",
+            "retrievedAt": "2026-10-28T14:02:15.110Z"
+          }
+        }
+      },
+      "supply": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "47513714296.496247",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:23.499Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "circulatingSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "SOURCE_REPORTED",
+          "reasonCode": null,
+          "source": "Circle issuer Ethereum USDC circulation",
+          "value": "47513363099.958817",
+          "freshness": {
+            "state": "SOURCE_REPORTED",
+            "observedAt": "2026-10-28T14:01:01.655Z",
+            "sourceAsOf": "2026-10-28T14:01:01.655Z",
+            "retrievedAt": "2026-10-28T14:02:14.673Z",
+            "ageMs": 73018,
+            "basis": "Circle publication time; not the RPC analysis block."
+          },
+          "evidence": [
+            {
+              "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "chainId": 1,
+              "network": "ethereum",
+              "sourceUrl": "https://api.circle.com/v1/stablecoins",
+              "identitySourceUrl": "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+              "methodologySourceUrl": "https://www.circle.com/blog/circle-api-update-stabilizing-usdc-supply-data",
+              "sourceAsOf": "2026-10-28T14:01:01.655Z",
+              "sourceChain": "ETH",
+              "rpcComparisonBlock": "0x1912df1",
+              "rpcTotalSupplyRaw": "47513714296496247",
+              "issuerMinusRpcRaw": "-351196537430",
+              "decimals": 6,
+              "method": "Circle USDC ETH publication mapped to Circle-listed Ethereum mainnet contract; separate pinned totalSupply observation",
+              "scope": "Issuer-reported Ethereum circulation at sourceAsOf, not on-chain circulating supply at the scan block. RPC total supply is a different-time observation, not independent proof of circulation; mint/redemption may make it lower or higher. No global-chain totals or derived burn exclusions."
+            }
+          ]
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "57461.123908",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:23.499Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "nextUnlock": {
+          "dataState": "SOURCE_HAS_NO_DATA",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "NO_SOURCE_REPORTED_SCHEDULE",
+          "source": null,
+          "value": null,
+          "freshness": null
+        }
+      },
+      "supplyContext": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "47513714296.496247",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:23.499Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "circulatingSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "SOURCE_REPORTED",
+          "reasonCode": null,
+          "source": "Circle issuer Ethereum USDC circulation",
+          "value": "47513363099.958817",
+          "freshness": {
+            "state": "SOURCE_REPORTED",
+            "observedAt": "2026-10-28T14:01:01.655Z",
+            "sourceAsOf": "2026-10-28T14:01:01.655Z",
+            "retrievedAt": "2026-10-28T14:02:14.673Z",
+            "ageMs": 73018,
+            "basis": "Circle publication time; not the RPC analysis block."
+          },
+          "evidence": [
+            {
+              "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "chainId": 1,
+              "network": "ethereum",
+              "sourceUrl": "https://api.circle.com/v1/stablecoins",
+              "identitySourceUrl": "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+              "methodologySourceUrl": "https://www.circle.com/blog/circle-api-update-stabilizing-usdc-supply-data",
+              "sourceAsOf": "2026-10-28T14:01:01.655Z",
+              "sourceChain": "ETH",
+              "rpcComparisonBlock": "0x1912df1",
+              "rpcTotalSupplyRaw": "47513714296496247",
+              "issuerMinusRpcRaw": "-351196537430",
+              "decimals": 6,
+              "method": "Circle USDC ETH publication mapped to Circle-listed Ethereum mainnet contract; separate pinned totalSupply observation",
+              "scope": "Issuer-reported Ethereum circulation at sourceAsOf, not on-chain circulating supply at the scan block. RPC total supply is a different-time observation, not independent proof of circulation; mint/redemption may make it lower or higher. No global-chain totals or derived burn exclusions."
+            }
+          ]
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "57461.123908",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:23.499Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "burnAddressPct": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN_DERIVED",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": 0.00012093587032457552,
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:23.500Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        }
+      }
+    },
+    {
+      "network": "robinhood",
+      "symbol": "TSLA",
+      "address": "0x322f0929c4625ed5bad873c95208d54e1c003b2d",
+      "block": "0x5f7d2b1",
+      "ms": 4050,
+      "mechanics": {
+        "tradingTaxes": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE",
+          "reasonCode": null,
+          "source": "Robinhood Chain RPC / contract evidence",
+          "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+          "freshness": {
+            "block": "0x5f7d2b1",
+            "retrievedAt": "2026-10-28T14:02:17.073Z"
+          }
+        },
+        "mintCapability": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE_AND_STATE",
+          "reasonCode": null,
+          "source": "Robinhood Chain RPC / contract evidence",
+          "value": "Registry MINTER_ROLE mint",
+          "freshness": {
+            "block": "0x5f7d2b1",
+            "retrievedAt": "2026-10-28T14:02:17.073Z"
+          }
+        },
+        "ownerAdmin": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE_AND_STATE",
+          "reasonCode": null,
+          "source": "Robinhood Chain RPC / contract evidence",
+          "value": "Access registry: 0xe10b6f6b275de231345c20d14ab812db62151b00",
+          "freshness": {
+            "block": "0x5f7d2b1",
+            "retrievedAt": "2026-10-28T14:02:17.073Z"
+          }
+        },
+        "contractArchitecture": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood Chain RPC / contract evidence",
+          "value": "Reviewed immutable beacon proxy",
+          "freshness": {
+            "block": "0x5f7d2b1",
+            "retrievedAt": "2026-10-28T14:02:16.431Z"
+          }
+        }
+      },
+      "supply": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": "11364.21317",
+          "freshness": null
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "INSUFFICIENT_EVIDENCE",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": "0.086051206085377017",
+          "freshness": null
+        },
+        "nextUnlock": {
+          "dataState": "UNSUPPORTED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "UNLOCK_ADAPTER_UNSUPPORTED",
+          "source": null,
+          "value": null,
+          "freshness": null
+        }
+      },
+      "supplyContext": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": "11364.21317",
+          "freshness": null
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "INSUFFICIENT_EVIDENCE",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": "0.086051206085377017",
+          "freshness": null
+        },
+        "burnAddressPct": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN_DERIVED",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": 0.0007572121782486505,
+          "freshness": null
+        }
+      }
+    },
+    {
+      "network": "arc",
+      "symbol": "USDT-Arc",
+      "address": "0x3b0d0f9825850d3ab1491253b86c4cc26ff1250a",
+      "block": "0x1b014bd",
+      "ms": 3127,
+      "mechanics": {
+        "tradingTaxes": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "TAX_NOT_VERIFIED",
+          "source": null,
+          "value": null,
+          "freshness": null
+        },
+        "mintCapability": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "MINT_NOT_VERIFIED",
+          "source": null,
+          "value": null,
+          "freshness": null
+        },
+        "ownerAdmin": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "OWNER_ADMIN_NOT_VERIFIED",
+          "source": null,
+          "value": null,
+          "freshness": null
+        },
+        "contractArchitecture": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC / contract evidence",
+          "value": "NON-PROXY · runtime verified",
+          "freshness": {
+            "block": "0x1b014bd",
+            "retrievedAt": "2026-10-28T14:02:25.073Z"
+          }
+        }
+      },
+      "supply": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "1000000000",
+          "freshness": null
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "0.000000000000656859",
+          "freshness": null
+        },
+        "nextUnlock": {
+          "dataState": "SOURCE_HAS_NO_DATA",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "UNLOCK_SOURCE_HAS_NO_DATA",
+          "source": null,
+          "value": null,
+          "freshness": null
+        }
+      },
+      "supplyContext": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "1000000000",
+          "freshness": null
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": "0.000000000000656859",
+          "freshness": null
+        },
+        "burnAddressPct": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN_DERIVED",
+          "reasonCode": null,
+          "source": "Arc RPC",
+          "value": 6.56859e-20,
+          "freshness": null
+        }
+      }
+    },
+    {
+      "network": "ethereum",
+      "symbol": "UNI",
+      "address": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+      "block": "0x1912df1",
+      "ms": 4343,
+      "mechanics": {
+        "tradingTaxes": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE",
+          "reasonCode": null,
+          "source": "Ethereum RPC / contract evidence",
+          "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+          "freshness": {
+            "block": "0x1912df1",
+            "retrievedAt": "2026-10-28T14:02:25.542Z"
+          }
+        },
+        "mintCapability": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE_AND_STATE",
+          "reasonCode": null,
+          "source": "Ethereum RPC / contract evidence",
+          "value": "Capped / time-gated minter",
+          "freshness": {
+            "block": "0x1912df1",
+            "retrievedAt": "2026-10-28T14:02:25.989Z"
+          }
+        },
+        "ownerAdmin": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE_AND_STATE",
+          "reasonCode": null,
+          "source": "Ethereum RPC / contract evidence",
+          "value": "Minter authority: 0x1a9c8182c09f50c8318d769245bea52c32be35bc",
+          "freshness": {
+            "block": "0x1912df1",
+            "retrievedAt": "2026-10-28T14:02:25.989Z"
+          }
+        },
+        "contractArchitecture": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC / contract evidence",
+          "value": "NON-PROXY · runtime verified",
+          "freshness": {
+            "block": "0x1912df1",
+            "retrievedAt": "2026-10-28T14:02:25.103Z"
+          }
+        }
+      },
+      "supply": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "1000000000",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:27.850Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "113319581.213802937903387397",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:27.850Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "nextUnlock": {
+          "dataState": "SOURCE_HAS_NO_DATA",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "NO_SOURCE_REPORTED_SCHEDULE",
+          "source": null,
+          "value": null,
+          "freshness": null
+        }
+      },
+      "supplyContext": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "1000000000",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:27.850Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "PROVIDER_DISABLED_LICENSE_UNVERIFIED",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": "113319581.213802937903387397",
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:27.850Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        },
+        "burnAddressPct": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN_DERIVED",
+          "reasonCode": null,
+          "source": "Ethereum RPC",
+          "value": 11.331958121380294,
+          "freshness": {
+            "retrievedAt": "2026-10-28T14:02:27.850Z",
+            "ageMs": 0,
+            "basis": "Time since this provider response was retrieved; upstream publication time may be unavailable."
+          }
+        }
+      }
+    },
+    {
+      "network": "robinhood",
+      "symbol": "LINK",
+      "address": "0x492641f648a4986844848e0befe66d14817bce34",
+      "block": "0x5f7d314",
+      "ms": 3161,
+      "mechanics": {
+        "tradingTaxes": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE",
+          "reasonCode": null,
+          "source": "Robinhood Chain RPC / contract evidence",
+          "value": "Transfer 0% · DEX/hook fees NOT VERIFIED",
+          "freshness": {
+            "block": "0x5f7d314",
+            "retrievedAt": "2026-10-28T14:02:25.401Z"
+          }
+        },
+        "mintCapability": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE_AND_STATE",
+          "reasonCode": null,
+          "source": "Robinhood Chain RPC / contract evidence",
+          "value": "Role-gated mint",
+          "freshness": {
+            "block": "0x5f7d314",
+            "retrievedAt": "2026-10-28T14:02:26.107Z"
+          }
+        },
+        "ownerAdmin": {
+          "dataState": "DATA_FOUND",
+          "status": "VERIFIED_SOURCE_AND_STATE",
+          "reasonCode": null,
+          "source": "Robinhood Chain RPC / contract evidence",
+          "value": "Owner-governed mint/burn roles",
+          "freshness": {
+            "block": "0x5f7d314",
+            "retrievedAt": "2026-10-28T14:02:26.107Z"
+          }
+        },
+        "contractArchitecture": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood Chain RPC / contract evidence",
+          "value": "NON-PROXY · runtime verified",
+          "freshness": {
+            "block": "0x5f7d314",
+            "retrievedAt": "2026-10-28T14:02:25.400Z"
+          }
+        }
+      },
+      "supply": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": "1010.119218623411434723",
+          "freshness": null
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "INSUFFICIENT_EVIDENCE",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": "0",
+          "freshness": null
+        },
+        "nextUnlock": {
+          "dataState": "UNSUPPORTED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "UNLOCK_ADAPTER_UNSUPPORTED",
+          "source": null,
+          "value": null,
+          "freshness": null
+        }
+      },
+      "supplyContext": {
+        "totalSupply": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": "1010.119218623411434723",
+          "freshness": null
+        },
+        "circulatingSupply": {
+          "dataState": "NOT_VERIFIED",
+          "status": "NOT_VERIFIED",
+          "reasonCode": "INSUFFICIENT_EVIDENCE",
+          "source": null,
+          "value": null,
+          "freshness": null,
+          "evidence": []
+        },
+        "burnAddressBalance": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": "0",
+          "freshness": null
+        },
+        "burnAddressPct": {
+          "dataState": "DATA_FOUND",
+          "status": "ON_CHAIN_DERIVED",
+          "reasonCode": null,
+          "source": "Robinhood RPC",
+          "value": 0,
+          "freshness": null
+        }
+      }
+    }
+  ]
+}

@@ -70,7 +70,12 @@ async function arcNext(base){
   i===0?'Funded next installment in a metadata-linked vesting contract; this is not proof of complete vesting coverage or arbitrary release restrictions.':
     'Issuer-reported schedule selected through exact token contract metadata; enforcement and all other unlocks are not proven.') : null).filter(Boolean);
  verified.sort((a,b)=>Date.parse(a.value)-Date.parse(b.value));
- return verified[0]||baseline('arc').nextUnlock;
+ if(verified[0])return verified[0];
+ const failed=options.some(o=>o.status==='rejected'||o.value?.dataState==='SOURCE_API_FAILED'||o.value?.dataState==='RPC_FAILED');
+ if(failed)return {...unknown('arc','One or more Arc unlock sources failed; no schedule conclusion is possible.','UNLOCK_SOURCE_FAILED'),dataState:'SOURCE_API_FAILED'};
+ if(options.every(o=>o.value?.dataState==='SOURCE_HAS_NO_DATA'))
+  return {...unknown('arc','The configured contract-linked sources returned no matching unlock schedule. This does not prove that none exists.','UNLOCK_SOURCE_HAS_NO_DATA'),dataState:'SOURCE_HAS_NO_DATA'};
+ return baseline('arc').nextUnlock;
 }
 async function arcNonburnableZero(base){
  // Prove zero only for a reviewed EXACT source whose immutable implementation
@@ -115,6 +120,10 @@ async function inspect({network,base}){
      {sourceUrl:proof.sourceUrl,reviewedAt:proof.reviewedAt,eventAmount:amount,
       scope:'Exact Ethereum token-contract match; schedule source-reported, not proof of global vesting completeness or on-chain execution.'},'SOURCE_REPORTED');
   }
+  else if(reviewed?.reasonCode==='NO_SOURCE_REPORTED_SCHEDULE')
+   result.nextUnlock={...unknown(network,'The reviewed schedule dataset has no record for this contract. This does not prove that no unlock exists.','NO_SOURCE_REPORTED_SCHEDULE'),dataState:'SOURCE_HAS_NO_DATA'};
+ }else if(network==='robinhood'){
+  result.nextUnlock={...unknown(network,'A contract-matched Robinhood Chain unlock schedule adapter is not implemented.','UNLOCK_ADAPTER_UNSUPPORTED'),dataState:'UNSUPPORTED'};
  }
  result.nextUnlock=require('./unlock-windows').attach(result.nextUnlock,{network,address:base.address});
  return result;

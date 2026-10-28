@@ -495,17 +495,23 @@ function displayBurnShare(value){
 function render(report){
   const preserve=arguments[1]?.preserve===true;
   const open=new Set(preserve?[...document.querySelectorAll('#cards details[open]')].map(d=>(d.closest('[data-card-id]')?.dataset.cardId||'root')+':'+d.className):[]);
+  const mechanicsAssessment=ARCYMechanicsPolicy.assess(report?.cards?.mechanics,report||{});
+  const mechanicsKeys=['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'];
+  const renderable=(cardId,key,field)=>field?.dataState==='DATA_FOUND'&&field.value!==null&&field.value!==undefined&&
+   (cardId!=='mechanics'||mechanicsAssessment.displayRows[mechanicsKeys.indexOf(key)]===true);
   const root=$('cards');
   root.replaceChildren();
   const withoutEvidence=[];
   const count=$('evidenceCount');count.textContent='20 checks · Sources, risks and evidence';
   if(report&&report.cards){
    let valid=0,historical=0,total=0;
-   for(const card of Object.values(report.cards)){
-    for(const data of Object.values(card.fields||{})){
+   for(const spec of displayDefinitions){
+    const card=report.cards[spec.id];
+    for(const [key] of spec.fields){
+     const data=card?.fields?.[key];
      total++;
-     if(isCurrentEvidence(data))valid++;
-     else if(data?.dataState==='DATA_FOUND'&&data.value!==null&&data.value!==undefined)historical++;
+     if(renderable(spec.id,key,data)&&isCurrentEvidence(data))valid++;
+     else if(renderable(spec.id,key,data))historical++;
     }
    }
    const sourceBacked=valid+historical;
@@ -515,19 +521,12 @@ function render(report){
   }
   for(const spec of displayDefinitions){
     const card=report?.cards?.[spec.id];
-    if(spec.id==='mechanics'){
-     const eligibility=ARCYMechanicsPolicy.assess(card,report||{});
-     if(!eligibility.visible){
-      count.textContent+=' · '+eligibility.reason;
-      continue;
-     }
-    }
     const section=document.createElement('section');
     section.className='card';section.dataset.cardId=spec.id;
     section.style.setProperty('--accent',spec.accent);
     const present=spec.fields.filter(([key])=>{
      const d=card?.fields?.[key];
-     return d?.dataState==='DATA_FOUND'&&d.value!==null&&d.value!==undefined;
+     return renderable(spec.id,key,d);
     }).length;
     if(report&&present===0&&spec.id!=='supply')section.classList.add('card-empty');
     const title=document.createElement('h2');
@@ -550,14 +549,20 @@ function render(report){
        label;
       const result=document.createElement('div');result.className='result';
       const value=document.createElement('b');
-      const missing=!data||data.dataState!=='DATA_FOUND'||data.value===null||data.value===undefined;
+      const missing=!renderable(spec.id,key,data);
       value.className=missing?'no':'';
       const kind=key==='valuation'?data?.kind:null;
-      const displayed=!report?'—':missing?'NOT VERIFIED':key==='nextUnlock'&&typeof data.value==='string'&&/^\d{4}-\d{2}-\d{2}T/.test(data.value)&&Number.isFinite(Date.parse(data.value))?
+      const displayed=!report?'—':missing?ARCYMechanicsPolicy.unavailableLabel(data):key==='nextUnlock'&&typeof data.value==='string'&&/^\d{4}-\d{2}-\d{2}T/.test(data.value)&&Number.isFinite(Date.parse(data.value))?
        new Date(data.value).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):metricFormat.display(data.value,key,key==='valuation'?null:kind);
       value.textContent=displayed;
       value.title=data?.reason||data?.source||'';
       result.append(value);
+      if(report&&!missing&&spec.id==='mechanics'){
+       const i=mechanicsKeys.indexOf(key);
+       const qualifier=mechanicsAssessment.partialRows[i]?'VERIFIED TOKEN TRANSFER ONLY':
+        mechanicsAssessment.sourceReportedRows[i]?'SOURCE REPORTED':null;
+       if(qualifier){const note=document.createElement('small');note.className='reason';note.textContent=qualifier;result.append(note)}
+      }
       if(report&&!missing&&spec.id==='supply'&&key==='nextUnlock'){
        const event=data?.evidence?.find(p=>typeof p?.eventAmount==='string'&&/^[0-9]+(?:[.][0-9]+)?$/.test(p.eventAmount)&&Number(p.eventAmount)>0);
        if(event){
@@ -583,7 +588,7 @@ function render(report){
       }
       if(report&&missing){
        const why=document.createElement('div');why.className='reason';
-       why.textContent=shortReason(data);
+       why.textContent=data?.dataState==='DATA_FOUND'?'Evidence is not validated for this contract and analysis block.':shortReason(data);
        result.append(why);
       }
       row.append(name,result);
@@ -606,14 +611,16 @@ function render(report){
     const status=document.createElement('div');
     status.className='meta statusLine';
     const state=document.createElement('span');
-    const proven=card?Object.values(card.fields||{}).filter(isCurrentEvidence).length:0;
-    const rawProven=card?Object.values(card.fields||{}).filter(f=>f?.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined).length:0;
+    const shown=spec.fields.map(([key])=>({key,field:card?.fields?.[key]})).filter(x=>renderable(spec.id,x.key,x.field));
+    const proven=shown.filter(x=>isCurrentEvidence(x.field)).length;
+    const rawProven=shown.length;
     const historical=rawProven-proven;
     state.textContent=!card?'NOT SCANNED':proven===spec.fields.length?'ALL 4 FIELDS SOURCE-BACKED':
      proven>0?'PARTIALLY SOURCE-BACKED':historical>0?'HISTORICAL EVIDENCE ONLY':'NO SOURCE-BACKED FIELDS';
     if(spec.id==='mechanics'){
-     const assessment=ARCYMechanicsPolicy.assess(card,report||{});
-     state.textContent=historical?'LAST VERIFIED EVIDENCE':assessment.completeRows===4?'VERIFIED CONTRACT EVIDENCE':'PARTIAL VERIFIED EVIDENCE · '+assessment.completeRows+'/4 complete rows';
+     const assessment=mechanicsAssessment;
+     state.textContent=historical?'LAST VERIFIED EVIDENCE':assessment.completeRows===4?'VERIFIED CONTRACT EVIDENCE':
+      rawProven?'EVIDENCE · '+assessment.completeRows+' VERIFIED · '+assessment.partialCount+' SCOPED · '+assessment.sourceReportedCount+' SOURCE REPORTED':'NO SOURCE-BACKED FIELDS';
     }
     status.append(state);
     if(card){
@@ -647,17 +654,21 @@ function render(report){
        }
       for(const [key,label] of spec.fields){
         const field=card.fields[key];if(!field)continue;
+        const usable=renderable(spec.id,key,field);
+        const mechanicsIndex=spec.id==='mechanics'?mechanicsKeys.indexOf(key):-1;
         const block=document.createElement('div');block.className='proof-entry';
         const header=document.createElement('div');header.className='proof-entry-head';
         const fieldTitle=document.createElement('strong');fieldTitle.textContent=label;
         const stage=document.createElement('span');stage.className='proof-state';
         const historical=isHistoricalEvidence(field);
-        stage.textContent=historical?'HISTORICAL':field.status==='SOURCE_REPORTED_RPC_RECONCILED'?'RPC CHECKED · CANDIDATES':
-         field.dataState==='DATA_FOUND'?'SOURCE BACKED':'NOT VERIFIED';
-        if(historical||field.dataState!=='DATA_FOUND')stage.classList.add('unverified');
+        stage.textContent=!usable?ARCYMechanicsPolicy.unavailableLabel(field):historical?'HISTORICAL':
+         mechanicsIndex>=0&&mechanicsAssessment.partialRows[mechanicsIndex]?'VERIFIED · TRANSFER ONLY':
+         field.status==='SOURCE_REPORTED_RPC_RECONCILED'?'RPC CHECKED · CANDIDATES':
+         field.status==='SOURCE_REPORTED'?'SOURCE REPORTED':'SOURCE BACKED';
+        if(historical||!usable||field.status==='SOURCE_REPORTED')stage.classList.add('unverified');
         header.append(fieldTitle,stage);block.append(header);
         const source=document.createElement('p');
-        const proof=Array.isArray(field.evidence)?field.evidence[0]:null;
+        const proof=usable&&Array.isArray(field.evidence)?field.evidence[0]:null;
         const anchor=proof?.block||proof?.atBlock||null;
         source.textContent=(field.source||'Source unavailable')+
          (typeof anchor==='string'&&/^0x[0-9a-f]+$/i.test(anchor)?' · Block '+BigInt(anchor).toString():'');
@@ -668,12 +679,12 @@ function render(report){
          note.style.cssText='margin:4px 0 8px;font-size:11px;line-height:1.45;color:#9bb2c3';
          block.append(note);
         }
-        if(field.dataState==='DATA_FOUND'){
+        if(usable){
          const raw=document.createElement('p');raw.className='proof-value';
          raw.textContent='Full value: '+metricFormat.full(field.value,key,key==='valuation'?field.kind:null);
          block.append(raw);
         }else{
-         const why=document.createElement('p');why.textContent=shortReason(field);block.append(why);
+         const why=document.createElement('p');why.textContent=field.dataState==='DATA_FOUND'?'Evidence is not validated for this contract and analysis block.':shortReason(field);block.append(why);
         }
         const url=typeof proof?.sourceUrl==='string'?proof.sourceUrl:
          typeof proof?.url==='string'?proof.url:null;

@@ -288,7 +288,7 @@ async function mechanics({address,base}){
     // GoPlus currently reports 0% taxes for ARCY, contrary to the project's
     // reviewed 3%/3% source. Never silently overwrite with conflicting claims.
     isARCY&&key==='tradingTaxes'?existing:
-    detected[key]?.dataState==='DATA_FOUND'?detected[key]:existing
+    require('./goplus-evidence').mergeMissing(existing,detected[key])
   ]));
  }
  const expanded=await require('./mechanics-deep').enrich({network:'arc',address,block:base.block,rpc:rpcClient.rpc,
