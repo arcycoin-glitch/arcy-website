@@ -5,6 +5,7 @@
 const schema=require('../schema');
 const {chain}=require('./chains');
 const {safeLogoUrl}=require('./token-image');
+const derived=require('./derived-metrics');
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
 const VALID_STATES=new Set(['DATA_FOUND','NOT_VERIFIED','SOURCE_API_FAILED']);
 const SCHEMA_KEYS=new Map(schema.map(c=>[c.id,c.fields.map(([key])=>key)]));
@@ -32,8 +33,14 @@ function formatCard(cardId,raw,cfg,context){
  const keys=SCHEMA_KEYS.get(cardId);
  if(!keys)throw Error('Invalid card');
  const source=raw&&typeof raw==='object'&&raw.fields&&typeof raw.fields==='object'?raw.fields:{};
+ // Derive display-only metrics from the already received source snapshot.
+ // The originals (including exact issuer circulation and unlock research)
+ // remain available for existing research context and audit consumers.
+ const identity={network:cfg.id,chainId:cfg.chainId,address:context?.address,block:context?.block};
+ const visible=cardId==='supply'?{...source,...derived.supply(source,identity)}:
+  cardId==='liquidity'?{...source,liquidityTurnover24h:derived.liquidity(source,identity)}:source;
  const fields=Object.fromEntries(keys.map(key=>{
-  const field=validateField(source[key],cfg),proof=field.evidence?.[0];
+  const field=validateField(visible[key],cfg),proof=field.evidence?.[0];
   // Auxiliary implementation/authority observations may name other addresses;
   // the primary metric proof must never explicitly name a different token.
   const identity=proof?.address||proof?.token||proof?.contract;

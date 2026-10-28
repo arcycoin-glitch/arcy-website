@@ -44,5 +44,5 @@ test('empty, malformed, out-of-range or RPC timeout cannot yield supply informat
 test('issuer note never changes four primary source-checked fields',()=>{
  const s=require('../search/server/schema');
  assert.deepEqual(s.find(x=>x.id==='supply').fields.map(([k])=>k),
- ['totalSupply','circulatingSupply','burnAddressBalance','nextUnlock']);
+ ['totalSupply','nonBurnSupply','burnAddressBalance','burnAddressPct']);
 });

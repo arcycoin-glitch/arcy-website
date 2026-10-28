@@ -126,14 +126,22 @@ test('Chart endpoint returns a rights-pending state and never calls a market pro
 test('Five research-card coverage statuses distinguish full 4/4 from partial and absent',()=>{
  const engine=require('../search/server/lib/data-engine');
  const cfg={id:'ethereum',chainId:1};
+ const context={network:'ethereum',chainId:1,address:'0x'+'a'.repeat(40),block:'0x177'};
  const field=value=>({value,dataState:'DATA_FOUND',status:'SOURCE_REPORTED',
   chainId:1,network:'ethereum',source:'Exact-chain source',evidence:[{sourceUrl:'https://example.org/'}]});
- const source={fields:{totalSupply:field(1000000),circulatingSupply:field('750000'),
-  burnAddressBalance:field('25000'),nextUnlock:field('2099-01-01T00:00:00Z')}};
- const good=engine.formatCard('supply',source,cfg);
+ const pinned=(value,method)=>({value,dataState:'DATA_FOUND',status:'ON_CHAIN',
+  chainId:1,network:'ethereum',source:'Ethereum RPC',
+  evidence:[{address:context.address,chainId:1,block:context.block,method}]});
+ const source={fields:{totalSupply:pinned('1000000','totalSupply()'),
+  burnAddressBalance:pinned('25000','balanceOf(zero/dead)'),
+  circulatingSupply:field('750000'),nextUnlock:field('2099-01-01T00:00:00Z')}};
+ const good=engine.formatCard('supply',source,cfg,context);
  assert.equal(good.status,'SOURCE_BACKED');
  assert.equal(Object.values(good.fields).filter(x=>x.dataState==='DATA_FOUND').length,4);
- assert.equal(good.context.totalSupply.value,1000000);
+ assert.equal(good.context.totalSupply.value,'1000000');
+ assert.equal(good.fields.nonBurnSupply.value,'975000');
+ assert.equal(good.fields.burnAddressPct.value,2.5);
+ assert.equal(good.context.circulatingSupply.value,'750000','issuer circulation stays context only');
  assert.equal(Object.keys(good.fields).length,4);
  const partial=engine.formatCard('supply',{fields:{burnAddressBalance:field('25000')}},cfg);
  assert.equal(partial.status,'PARTIAL_EVIDENCE');

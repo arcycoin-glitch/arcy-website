@@ -37,7 +37,7 @@ async function supply(base){
  // Search must not bridge into it while commercial-use scope is unresolved.
  const circ=NO('No permitted, exact-contract circulating-supply source is currently approved. Total supply is not circulating supply.','PROVIDER_DISABLED_LICENSE_UNVERIFIED');
  const supplyResearch=await require('./supply-insights').inspect({network:'arc',base});
- return {description:'Four source-checked token supply research indicators; total and dead-address balances are retained only as supporting on-chain context.',fields:{...supplyResearch,
+ return {description:'On-chain total, supply outside zero/dead addresses, current burn-address custody and its percentage. Outside burn addresses does not mean circulating or unlocked supply.',fields:{...supplyResearch,
   totalSupply:proof(base.totalSupply,'Arc RPC',{...details,method:'totalSupply()'},'ON_CHAIN'),
   circulatingSupply:circ,
   burnAddressBalance:burned===null?NO('Pinned zero/dead address reads failed.','BURN_BALANCE_READ_FAILED'):

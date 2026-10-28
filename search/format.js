@@ -8,7 +8,7 @@
  const NUMERIC=/^([+-]?)(\d+)(?:\.(\d+))?$/;
  const SUFFIXES=[{power:3,suffix:'K'},{power:6,suffix:'M'},
   {power:9,suffix:'B'},{power:12,suffix:'T'},{power:15,suffix:'Q'}];
- const isPercent=key=>/^(change24h|largestWalletPct|top10Pct|top20Pct|burnAddressPct)$/.test(key);
+ const isPercent=key=>/^(change24h|largestWalletPct|top10Pct|top20Pct|burnAddressPct|liquidityTurnover24h)$/.test(key);
  const isUsd=key=>/^(liquidityUsd|volume24h|valuation|priceUsd)$/.test(key);
  const label=kind=>kind==='MARKET_CAP'?'Market Cap ':kind==='FDV'?'FDV ':kind?kind+' ':'';
  function parseNumeric(value){

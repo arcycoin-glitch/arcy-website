@@ -48,7 +48,7 @@ async function supply(base){
  const precision=10n**80n;
  const share=base.burnAddressRaw===null||raw<=0n||BigInt(base.burnAddressRaw)>raw?null:
   Number((BigInt(base.burnAddressRaw)*100n*precision+raw/2n)/raw)/1e80;
- return {description:'Four evidence-reviewed supply indicators; dead-address holdings retained as supporting context only.',
+ return {description:'On-chain supply, outside-burn-address quantity and burn custody/share. Not a verified circulating supply or lifetime burn total.',
  fields:{...supplyResearch,
   totalSupply:evidence(base.totalSupply,'Robinhood RPC',{...proof,method:'totalSupply()'},'ON_CHAIN'),
   circulatingSupply:NO('No source-confirmed, contract-matched circulating supply for Robinhood Chain.'),
