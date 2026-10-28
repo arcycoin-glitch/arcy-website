@@ -453,3 +453,6 @@ html.search-upgraded #search .home-search-form{gap:7px;grid-template-rows:auto a
  #search .home-network-segments .home-network-mark[data-network=arc] img{width:17px;height:17px}
  #search .home-network-segments .home-network-option[data-network=all]{font-size:10px;min-height:39px}
 }
+
+/* Responsive acceptance: preserve a full 44px+ CTA touch target at every width. */
+#search .home-search-submit,html.search-upgraded #search .home-search-submit{min-height:44px}
