@@ -1,0 +1,34 @@
+{
+  "description": "Approved fingerprints for preservation tests. pr26 = facts captured once from PR #26 head 7c1faf7 (data/search-mechanics-deep, never merged into main). current = approved production state; refresh with `node scripts/approved-baseline.cjs --write` only inside a reviewed PR that intentionally changes a protected file.",
+  "pr26": {
+    "commit": "7c1faf7baa920581f9216b3403a208d5317665b5",
+    "capturedAt": "2026-10-28T22:06:19.009Z",
+    "validateSourceSha256": "54ec59c41ec1b5b0fd7bb7f6d58f29b3ebd35b23914909b58ba9cc59bbd6125c",
+    "profiles": {
+      "9799263b22d762e31d781b80bcf9efa38e24917e39a5d75c683ad04f80ce5965": "CAPPED_FEE_LEGACY_TOKEN",
+      "292fad46b97e1b50bd191dfd857de081abfb199ad96ff02a055124da4a708cf2": "TIMED_CAPPED_MINTER",
+      "3424b81acc01fc833b18f1e2341511fe1bffdd065376112ef979243834e13ba4": "WARD_AUTH_TOKEN",
+      "5f75f27c6b98783b82c28164831948668e502ee20bd302aaaeff35c74dbda664": "ALLOWANCE_MINTER_TOKEN",
+      "82f4da21cdb0464ca580be2847548393fa678d7e06310fc169d74663ede571fd": "REGISTRY_AUTH_TOKEN"
+    }
+  },
+  "approvedFrom": {
+    "mainCommit": "42096934523dc4523387692a588e80af5998eea4",
+    "note": "plus this PR: api/pulse.js keeps last signed edition provenance"
+  },
+  "current": {
+    "files": {
+      "index.html": "c71c4b3b59363e89aac639cfabf7103fa447bf36271c269f6240ff5cc2a67dbb",
+      "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
+      "api/unlocks.js": "b4b72f3c40b47185e3ae4dd2d5449306276dbf80c6b9cc556507d66c7922d41b",
+      "api/pulse.js": "71a081d8f1a3b0b84bd706a2f5a1f5727af49c8643be8cfee1bfee4dc7bc4cc0",
+      "scripts/holder-worker.cjs": "edd384ae947bd50df061b4eff050f4f4c99771eee3dd754b225245e800672f90"
+    },
+    "searchIndexWithoutScripts": "a095530dae90cdc047b3cf9372f23592e7eacdd1184d44785ad1328e5c955ccb",
+    "schema": "8abad7b06f58e3710595ef35823a0f4a4d6288dfdfa343bfd47367953c180633",
+    "mechanics": {
+      "validateSource": "54ec59c41ec1b5b0fd7bb7f6d58f29b3ebd35b23914909b58ba9cc59bbd6125c",
+      "enrich": "f89f85aeb04656b8caa39a10ec6909ebe12cd9da83d281a2109a8632535f6787"
+    }
+  }
+}
