@@ -67,6 +67,22 @@ test('summary separates VERIFIED from SOURCE_REPORTED per network, card and fiel
  assert.equal(s.byNetwork.arc.applicableFields,0);assert.equal(s.byNetwork.arc.verifiedPct,null);
  assert.match(s.sampleWarning,/Fewer than 30/);
 });
+test('historical holder evidence is not misrepresented as fresh verified coverage',()=>{
+ const result={network:'arc',symbol:'ARCY',
+  mechanics:fullCard('mechanics',found('ON_CHAIN')),
+  holders:fullCard('holders',found('HISTORICAL_ONCHAIN_VERIFIED')),
+  supply:fullCard('supply',missing('NO_VERIFIED_NEXT_UNLOCK'))};
+ const s=audit.summarize([result]);
+ assert.equal(s.overall.applicableFields,12);
+ assert.equal(s.overall.verified,8,'historical fields remain truthfully categorized as historical verified');
+ assert.equal(s.overall.historicalVerified,4);
+ assert.equal(s.overall.verifiedExcludingHistorical,4);
+ assert.equal(s.overall.verifiedExcludingHistoricalPct,33.33);
+ assert.equal(s.byNetworkCard.arc.holders.verifiedPct,100);
+ assert.equal(s.byNetworkCard.arc.holders.verifiedExcludingHistoricalPct,0);
+ assert.match(s.historicalNotice,/not proof/i);
+});
+
 test('registry not-applicable fields leave the denominator, but a found value is never hidden',()=>{
  const na={state:'NOT_APPLICABLE_BY_REGISTRY'};
  const base={network:'robinhood',symbol:'TSLA',mechanics:fullCard('mechanics',found('ON_CHAIN')),holders:fullCard('holders',found('ON_CHAIN')),

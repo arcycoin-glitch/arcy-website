@@ -133,20 +133,26 @@ function blockNumber(hex) {
 
 // ---- Coverage summary ------------------------------------------------------
 function emptyBucket() {
-  return {applicableFields: 0, notApplicableFields: 0, verified: 0, sourceReported: 0, unclassified: 0, missing: 0,
+  return {applicableFields: 0, notApplicableFields: 0, verified: 0, historicalVerified: 0, sourceReported: 0, unclassified: 0, missing: 0,
     missingReasons: Object.fromEntries(REASON_CLASSES.map(r => [r, 0])), verifiedSubtiers: {}, sourceReportedSubtiers: {}};
 }
 function pct(n, d) { return d ? Math.round(n * 10000 / d) / 100 : null; }
 function finish(bucket) {
   return {...bucket,
     verifiedPct: pct(bucket.verified, bucket.applicableFields),
+    verifiedExcludingHistorical: bucket.verified - bucket.historicalVerified,
+    verifiedExcludingHistoricalPct: pct(bucket.verified - bucket.historicalVerified, bucket.applicableFields),
     sourceReportedPct: pct(bucket.sourceReported, bucket.applicableFields),
     anyEvidencePct: pct(bucket.verified + bucket.sourceReported + bucket.unclassified, bucket.applicableFields)};
 }
 function add(bucket, entry) {
   if (entry.applicability === 'NOT_APPLICABLE_BY_REGISTRY') { bucket.notApplicableFields++; return; }
   bucket.applicableFields++;
-  if (entry.tier === 'VERIFIED') { bucket.verified++; bucket.verifiedSubtiers[entry.subtier] = (bucket.verifiedSubtiers[entry.subtier] || 0) + 1; }
+  if (entry.tier === 'VERIFIED') {
+    bucket.verified++;
+    if (entry.subtier === 'ONCHAIN_HISTORICAL') bucket.historicalVerified++;
+    bucket.verifiedSubtiers[entry.subtier] = (bucket.verifiedSubtiers[entry.subtier] || 0) + 1;
+  }
   else if (entry.tier === 'SOURCE_REPORTED') { bucket.sourceReported++; bucket.sourceReportedSubtiers[entry.subtier] = (bucket.sourceReportedSubtiers[entry.subtier] || 0) + 1; }
   else if (entry.tier === 'UNCLASSIFIED') bucket.unclassified++;
   else { bucket.missing++; bucket.missingReasons[entry.reasonClass]++; }
@@ -205,6 +211,7 @@ function summarize(results, schemaKeys = FALLBACK_SCHEMA) {
     byNetworkCard: map(byNetworkCard, cards => map(cards, finish)),
     byNetworkCardField: map(byNetworkCardField, cards => map(cards, fields => map(fields, finish))),
     notMeasured,
+    historicalNotice: 'Verified includes historical on-chain snapshots. verifiedExcludingHistoricalPct removes these stale-time-unknown observations; it is not proof that every remaining field is real-time.',
     sampleWarning: Object.values(tokensByNetwork).some(n => n < 30) ?
       'Fewer than 30 tokens on at least one network: results describe this cohort only and are not a representative coverage estimate.' : null
   };

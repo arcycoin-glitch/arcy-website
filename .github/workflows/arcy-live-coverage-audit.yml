@@ -32,7 +32,7 @@ jobs:
           } else {
             const d=JSON.parse(fs.readFileSync(p,'utf8')),c=d.coverage;
             console.log('Audit commit:', d.run.git.sha, 'UTC:',d.run.startedAt,'to',d.run.finishedAt);
-            console.log('Counts:',JSON.stringify({tokens:c.tokensByNetwork,verified:c.overall.verified,sourceReported:c.overall.sourceReported,missing:c.overall.missing,applicable:c.overall.applicableFields,verifiedPct:c.overall.verifiedPct,missingReasons:c.overall.missingReasons}));
+            console.log('Counts:',JSON.stringify({tokens:c.tokensByNetwork,verified:c.overall.verified,sourceReported:c.overall.sourceReported,missing:c.overall.missing,applicable:c.overall.applicableFields,verifiedPct:c.overall.verifiedPct,verifiedExcludingHistoricalPct:c.overall.verifiedExcludingHistoricalPct,historicalVerified:c.overall.historicalVerified,missingReasons:c.overall.missingReasons}));
             for(const n of ['arc','ethereum','robinhood']){
               console.log(n,JSON.stringify({coverage:c.byNetwork[n],cards:c.byNetworkCard[n]}));
             }
@@ -40,6 +40,38 @@ jobs:
               console.log('token',JSON.stringify({chain:r.network,symbol:r.symbol,block:r.blockNumber,error:r.error||null,holderCount:r.holders?.holderCount?.status||null,top10:r.holders?.top10Pct?.status||null}));
             }
           }
+          NODE
+      - name: Read-only diagnosis of failed USDT and Robinhood LINK reports
+        run: |
+          node - <<'NODE'
+          const audit=require('./scripts/coverage-audit.cjs');
+          audit.sanitizeEnv(process.env,'clean');
+          const service=require('./search/server/lib/multichain-service');
+          const targets=[
+            {network:'ethereum',symbol:'USDT',address:'0xdac17f958d2ee523a2206206994597c13d831ec7'},
+            {network:'robinhood',symbol:'LINK',address:'0x492641f648a4986844848e0befe66d14817bce34'}
+          ];
+          const safeError=e=>({name:String(e?.name||'Error').slice(0,40),
+            code:String(e?.code||'NO_CODE').slice(0,80),
+            message:audit.redact(String(e?.message||'').slice(0,180),[])});
+          (async()=>{
+            for(const t of targets){
+              try{
+                await service.report({network:t.network,address:t.address});
+                console.log('REPORT_OK',t.network,t.symbol);
+              }catch(e){
+                console.log('REPORT_ERROR',t.network,t.symbol,JSON.stringify(safeError(e)));
+                try{
+                  const token=t.network==='ethereum'?
+                    await require('./search/server/lib/eth').inspect(t.address):
+                    await require('./search/server/lib/robinhood-rpc').inspectToken({address:t.address});
+                  console.log('TOKEN_INSPECTION_OK',t.network,t.symbol,token.block);
+                }catch(inner){
+                  console.log('TOKEN_INSPECTION_ERROR',t.network,t.symbol,JSON.stringify(safeError(inner)));
+                }
+              }
+            }
+          })().catch(e=>{console.log('DIAGNOSTIC_ERROR',JSON.stringify(safeError(e)));process.exitCode=1});
           NODE
       - uses: actions/upload-artifact@v4
         if: always()
