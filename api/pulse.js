@@ -83,6 +83,10 @@ function response(value,audit,{archive=false}={}){
 }
 let transientCache=null;
 let transientPromise=null;
+function withLastSigned(value,saved){
+ if(!saved||value?.audit?.lastSuccessful)return value;
+ return {...value,audit:{...(value?.audit||{}),lastSuccessful:{number:saved.number,status:saved.status,generatedAt:saved.generatedAt}}};
+}
 async function currentTransient(now){
  const cycle=edition.cycle(now);
  if(transientCache&&transientCache.week===cycle.start&&transientCache.expiresAt>now)return transientCache.value;
@@ -121,7 +125,9 @@ async function handler(req,res){
    }
    return res.status(200).json(response(saved,await client.audit()));}
   const latest=await currentTransient(now);
-  return res.status(200).json(latest.status==='updated'||latest.recentCards?.length?response(latest,null):latest);
+  // Keep the provenance of the last signed edition when the current cycle has
+  // no verified research yet; its headlines stay archival and are not shown.
+  return res.status(200).json(latest.status==='updated'||latest.recentCards?.length?response(latest,null):withLastSigned(latest,saved));
  }
  // Even with provider outages, visitors receive three useful source-led
  // sections and ARCY Take; no headlines are forged or recycled as current.
@@ -142,3 +148,6 @@ module.exports=async(req,res)=>{
  const proxy=Object.create(res);proxy.setHeader=res.setHeader.bind(res);proxy.status=n=>{res.status(n);return proxy;};proxy.json=async data=>res.json({...data,[refreshing?'networkRefresh':'chains']:await extra});return handler(req,proxy);
 };
 module.exports.threeSections=threeSections;
+// Test isolation only: the per-instance transient review cache must not leak
+// between independent test scenarios.
+module.exports.resetTransientCache=()=>{transientCache=null;transientPromise=null;};
