@@ -14,11 +14,11 @@
   },
   "approvedFrom": {
     "mainCommit": "42096934523dc4523387692a588e80af5998eea4",
-    "note": "plus this PR: api/pulse.js keeps last signed edition provenance"
+    "note": "This PR intentionally adds static navigation/footer references to /transparency.html and removes the retired X account icon; all other homepage bytes are preserved. Protected baseline fingerprint refreshed for this reviewed scope."
   },
   "current": {
     "files": {
-      "index.html": "c71c4b3b59363e89aac639cfabf7103fa447bf36271c269f6240ff5cc2a67dbb",
+      "index.html": "d7794d7ddf7dd468c3b6543354fddddc73dda813aa8a71b9fbd9409e1a6f386f",
       "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
       "api/unlocks.js": "b4b72f3c40b47185e3ae4dd2d5449306276dbf80c6b9cc556507d66c7922d41b",
       "api/pulse.js": "71a081d8f1a3b0b84bd706a2f5a1f5727af49c8643be8cfee1bfee4dc7bc4cc0",
