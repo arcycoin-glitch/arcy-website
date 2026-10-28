@@ -6,7 +6,7 @@ const handlers=Object.freeze({
  progress:require('../../search/server/api/progress'),
  token:require('../../search/server/api/token'),
  chart:require('../../search/server/api/chart'),
- radar:require('../../search/server/api/radar')
+ radar:(req,res)=>require('../../search/server/api/radar')(req,res)
 });
 const KEYS=Object.freeze({
  health:[],
