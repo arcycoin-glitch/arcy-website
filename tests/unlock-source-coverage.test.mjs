@@ -29,3 +29,5 @@ check('API and worker use the same source review matcher',()=>{assert.match(audi
 check('API declares unverified execution and cross-ecosystem calendar',()=>{assert.match(audit,/executionStatus:'NOT_VERIFIED'/);assert.match(audit,/CROSS_ECOSYSTEM/);assert.match(audit,/chainFilterApplied:false/);assert.match(audit,/independentPublishers: 1/)});
 check('homepage discloses all rankings belong to one publisher',()=>{assert.match(ui,/j\.coverage\?\.independentPublishers===1/);assert.match(ui,/publisherNote/)});
 check('logo API requires an actual configured key',()=>{assert.match(audit,/if \(!process\.env\.CMC_API_KEY\) return \{\}/);assert.match(worker,/if \(!process\.env\.CMC_API_KEY\) return \{\}/)});
+
+check('suppressed source rows retain review reasons for public audit',()=>{assert.match(audit,/quarantined\.set\(key/);assert.match(worker,/quarantined\.set\(key/);assert.match(audit,/quarantined: merged\.quarantined/);assert.match(worker,/quarantined: merged\.quarantined/)});
