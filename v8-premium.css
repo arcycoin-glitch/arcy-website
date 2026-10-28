@@ -108,6 +108,14 @@ body>.nav .v8-nav-search{color:#28dbef;font-size:inherit;letter-spacing:-.04em}
 #pulse .pulse-take>b{grid-column:1;grid-row:1/4;font-size:clamp(20px,2.1vw,30px);letter-spacing:-.03em;color:#f1f7fb;border-right:1px solid #966c3155;padding:17px 20px 17px 0}
 #pulse .pulse-take>p,#pulse .pulse-take>small,#pulse .pulse-take>a{grid-column:2}
 #pulse .v8-eth-card-art{position:absolute;right:16px;bottom:62px;width:78px;height:108px;object-fit:contain;opacity:.22;pointer-events:none;filter:drop-shadow(0 0 15px #478dff)}
+
+/* Pulse network watermarks: identical geometry to ETH; only network tint varies. */
+#pulse .v8-arc-card-art,#pulse .v8-robinhood-card-art{position:absolute;right:16px;bottom:62px;width:78px;height:108px;object-fit:contain;opacity:.2;pointer-events:none;z-index:0}
+#pulse .v8-arc-card-art{filter:drop-shadow(0 0 15px #f4b85d)}
+#pulse .v8-robinhood-card-art{filter:drop-shadow(0 0 15px #74c89a)}
+#pulse #pulse-panel-arc .pulse-card p,#pulse #pulse-panel-arc .pulse-card h4,
+#pulse #pulse-panel-robinhood .pulse-card p,#pulse #pulse-panel-robinhood .pulse-card h4{position:relative;z-index:1;max-width:80%}
+
 #pulse #pulse-panel-ethereum .pulse-card p,#pulse #pulse-panel-ethereum .pulse-card h4{position:relative;z-index:1;max-width:80%}
 @media(max-width:1100px){#hero .v8-hologram{display:none}#pulse .pulse-chain-selector button{min-width:130px}#pulse #pulse-panel-arc>.head{max-width:74%}#pulse .v8-pulse-owl{top:-75px;width:29%}}
 @media(max-width:850px){#hero{grid-template-columns:minmax(0,1fr);min-height:0}#hero .hero-energy{max-width:540px}#hero>div:first-child>p{max-width:610px}#burn .burn-lab-scene{aspect-ratio:1.08}#pulse .v8-pulse-owl{display:none}#pulse #pulse-panel-arc>.head{max-width:100%;min-height:0}#pulse .pulse-take{grid-template-columns:minmax(150px,28%) minmax(0,1fr);column-gap:18px}}
