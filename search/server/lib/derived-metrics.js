@@ -80,7 +80,15 @@ function comparable(a,b,context){
  const x=a.evidence[0],y=b.evidence[0];
  // Both values must be based on one provider snapshot and same pool set.
  const u=x.url??x.sourceUrl,v=y.url??y.sourceUrl;
- if(typeof u!=='string'||u!==v||!/^https:\/\//.test(u))return false;
+ if(typeof u==='string'||typeof v==='string'){
+  if(typeof u!=='string'||u!==v||!/^https:\/\//.test(u))return false;
+ }else{
+  // The existing Arc legacy DexScreener market adapter returns one
+  // exact-contract pool dataset with no URL in compact evidence. The two
+  // metrics must share the same marked pool-dataset scope AND retrieval time.
+  if(a.source!=='DexScreener'||x.scope!=='Exact-contract source-returned pool dataset, not an exhaustive chain-wide inventory.'||
+   x.scope!==y.scope||typeof x.checkedAt!=='string'||x.checkedAt!==y.checkedAt)return false;
+ }
  if(x.fetchedAt!==undefined||y.fetchedAt!==undefined){
   if(!x.fetchedAt||x.fetchedAt!==y.fetchedAt)return false;
  }

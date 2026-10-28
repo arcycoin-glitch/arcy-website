@@ -30,9 +30,11 @@ test('supply formatter retains ONLY chain/contract/block-bound official custody 
  assert.equal(card.supplementalEvidence.length,1);
  assert.equal(card.supplementalEvidence[0].sourceUrl,record.sourceUrl);
  assert(card.researchNotes.some(n=>n.startsWith('Ondo Foundation disclosed')));
- assert.deepEqual(Object.keys(card.fields),['totalSupply','circulatingSupply','burnAddressBalance','nextUnlock']);
- assert(card.fields.circulatingSupply.dataState==='NOT_VERIFIED');
- assert(card.fields.nextUnlock.dataState==='NOT_VERIFIED');
+ assert.deepEqual(Object.keys(card.fields),['totalSupply','nonBurnSupply','burnAddressBalance','burnAddressPct']);
+ assert(card.fields.nonBurnSupply.dataState==='NOT_VERIFIED');
+ assert(card.fields.burnAddressPct.dataState==='NOT_VERIFIED');
+ // Issuer custody proof must never replace missing pinned total/burn metrics.
+ assert(!('circulatingSupply' in card.fields));
  assert.equal(card.status,'NOT_VERIFIED');
 });
 test('formatter rejects other tokens, networks, stale source blocks or altered evidence address',async()=>{

@@ -96,6 +96,20 @@ test('24h tracked volume / liquidity is computed only for matching snapshots and
   assert.equal(format.display(rendered.fields.burnAddressPct?.value??2.79,'burnAddressPct'),'2.79%');
  }
 });
+test('Legacy Arc DexScreener same exact-pool dataset recovers 24h turnover without invented pool URL',()=>{
+ const ctx=context('arc'),proof={chainId:5042,address:ADDRESS,
+  scope:'Exact-contract source-returned pool dataset, not an exhaustive chain-wide inventory.',
+  checkedAt:'2026-10-28T18:25:48.095Z'};
+ const mk=value=>({value,status:'MARKET_API_VERIFIED',dataState:'DATA_FOUND',source:'DexScreener',
+  network:'arc',chainId:5042,evidence:[{...proof}]});
+ const ok=metrics.liquidity({liquidityUsd:mk(49236.06),volume24h:mk(12396.70)},ctx);
+ assert.equal(ok.dataState,'DATA_FOUND');
+ assert.ok(Math.abs(ok.value-25.1781)<0.001);
+ assert.equal(ok.evidence[0].sourceUrl,undefined,'No fake provider URI is inserted');
+ assert.equal(metrics.liquidity({liquidityUsd:mk(100),volume24h:{...mk(10),
+  evidence:[{...proof,checkedAt:'2026-10-28T18:25:49Z'}]}},ctx).dataState,'NOT_VERIFIED');
+});
+
 test('Positive source-scoped turnover is not a fake liquidity safety rating',()=>{
  const ctx=context('ethereum');
  const r=metrics.liquidity({liquidityUsd:market(2500,ctx),volume24h:market(10000,ctx)},ctx);
