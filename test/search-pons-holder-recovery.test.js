@@ -124,3 +124,15 @@ test('PONS does not invent a top-10 sample from fewer than ten positive pinned c
  assert.equal(out.reasonCode,'BLOCKSCOUT_RANK_BELOW_TEN_ROWS');
  assert.equal(out.top10Pct,undefined);
 });
+
+test('PONS reads a now-positive wallet even when its earlier explorer balance was zero',async()=>{
+ const addresses=Array.from({length:20},(_,i)=>wallet(i+1));
+ const items=addresses.map((a,i)=>({address:a,value:String(i===19?0:200-i)}));
+ const pinned=new Map(addresses.map(a=>[a,50n]));
+ const out=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'2000',key:'',
+  fetcher:async()=>json({items}),rpcCall:rpcBalances(pinned)});
+ assert.equal(out.reasonCode,undefined);
+ assert.equal(out.top20Pct.dataState,'DATA_FOUND');
+ assert.equal(out.top20Pct.status,'SOURCE_REPORTED_RPC_RECONCILED');
+ assert.equal(out.top20Pct.evidence[0].discardedZeroBalanceCandidates,0);
+});
