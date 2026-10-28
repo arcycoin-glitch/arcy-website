@@ -1,0 +1,47 @@
+/* Market Radar isolated within token detail: 20-card metrics and charts unchanged. */
+#tokenDetail .arcy-radar-switcher{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 20px}
+#tokenDetail .arcy-radar-view-button{min-height:49px;border:1px solid #2a5166;background:#091925;border-radius:14px;color:#b8d4e0;font-size:13px;font-weight:750;cursor:pointer}
+#tokenDetail .arcy-radar-view-button[aria-pressed=true]{border-color:#46d9eb;color:#effcff;background:linear-gradient(115deg,#123e52,#112536)}
+#tokenDetail .arcy-radar-view-button:focus-visible,#tokenDetail .arcy-radar-network:focus-visible,#tokenDetail .arcy-radar-page:focus-visible,#tokenDetail .arcy-radar-row:focus-visible{outline:2px solid #ffa64b;outline-offset:3px}
+#tokenDetail.arcy-radar-active > :not(.arcy-radar-switcher):not(.arcy-radar-panel){display:none!important}
+#tokenDetail .arcy-radar-panel[hidden]{display:none!important}
+#tokenDetail .arcy-radar-panel{border:1px solid #224456;border-radius:19px;background:linear-gradient(135deg,#0a2130,#071521);padding:clamp(16px,3.5vw,28px);color:#e9f7ff}
+#tokenDetail .arcy-radar-panel h2{font-size:clamp(19px,3vw,26px);margin:0 0 6px}
+#tokenDetail .arcy-radar-intro{color:#9ebfcb;font-size:12px;margin:0 0 20px}
+#tokenDetail .arcy-radar-networks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#tokenDetail .arcy-radar-network{min-height:43px;border:1px solid #345568;border-radius:10px;background:#091d2c;color:#b5d5e0;font-weight:700;font-size:12px;cursor:pointer}
+#tokenDetail .arcy-radar-network[aria-pressed=true]{border-color:#39d9df;color:white;background:#144057}
+#tokenDetail .arcy-radar-status{min-height:20px;margin:15px 0 12px;color:#98bbc8;font-size:12px}
+#tokenDetail .arcy-radar-rows{display:grid;gap:7px}
+#tokenDetail .arcy-radar-row{display:grid;grid-template-columns:25px minmax(115px,1.1fr) minmax(150px,1.1fr) 76px 14px;align-items:center;gap:12px;min-height:68px;padding:9px 13px;border:1px solid rgba(76,137,158,.25);border-radius:13px;background:#0b2433;color:#e9f9ff;text-decoration:none}
+#tokenDetail .arcy-radar-row:hover{background:#15384a;border-color:#40d6e9}
+#tokenDetail .arcy-radar-rank{font-size:14px;color:#91b6c3;font-variant-numeric:tabular-nums}
+#tokenDetail .arcy-radar-identity,#tokenDetail .arcy-radar-stat-block{display:flex;min-width:0;flex-direction:column;gap:4px}
+#tokenDetail .arcy-radar-ticker{font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tokenDetail .arcy-radar-token-name{font-size:11px;color:#83adbc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tokenDetail .arcy-radar-primary{font-size:14px;font-weight:750;font-variant-numeric:tabular-nums}
+#tokenDetail .arcy-radar-secondary{font-size:10px;color:#8aafbe;white-space:nowrap}
+#tokenDetail .arcy-radar-change{font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+#tokenDetail .arcy-radar-change.positive{color:#70dfbf}
+#tokenDetail .arcy-radar-change.negative{color:#ff9f9f}
+#tokenDetail .arcy-radar-arrow{text-align:right;font-size:20px;color:#77b7c8}
+#tokenDetail .arcy-radar-pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px}
+#tokenDetail .arcy-radar-pager[hidden]{display:none}
+#tokenDetail .arcy-radar-page{min-height:39px;border-radius:10px;border:1px solid #2a5363;background:#0a2431;color:#d6f6ff;padding:7px 12px;font-size:11px;cursor:pointer}
+#tokenDetail .arcy-radar-page:disabled{opacity:.4;cursor:not-allowed}
+#tokenDetail .arcy-radar-page-status{color:#9bbfcf;font-size:11px;text-align:center}
+#tokenDetail .arcy-radar-disclaimer{margin:15px 0 7px;font-size:11px;line-height:1.6;color:#91b0bc}
+#tokenDetail .arcy-radar-credit{font-size:11px;color:#6edce8}
+@media(max-width:640px){
+ #tokenDetail .arcy-radar-switcher{gap:7px;margin:0 0 13px}
+ #tokenDetail .arcy-radar-view-button{min-height:45px;font-size:11px}
+ #tokenDetail .arcy-radar-networks{gap:5px}
+ #tokenDetail .arcy-radar-network{font-size:10px;padding:5px 3px}
+ #tokenDetail .arcy-radar-row{grid-template-columns:18px minmax(66px,.8fr) minmax(92px,1.1fr) 59px 8px;gap:6px;min-height:66px;padding:7px 8px}
+ #tokenDetail .arcy-radar-ticker{font-size:12px}
+ #tokenDetail .arcy-radar-token-name{font-size:9px}
+ #tokenDetail .arcy-radar-primary{font-size:11px}
+ #tokenDetail .arcy-radar-secondary{font-size:9px;white-space:normal;line-height:1.45}
+ #tokenDetail .arcy-radar-change{font-size:10px}
+ #tokenDetail .arcy-radar-page{padding:6px 8px}
+}
