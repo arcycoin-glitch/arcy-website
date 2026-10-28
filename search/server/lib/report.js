@@ -49,10 +49,10 @@ async function build(address){
  const t=await inspectToken(address);
  require('./progress').identity('ethereum',t);
  const onChain=x=>x?.status==='ON_CHAIN'?evidence.found(x.value,'Ethereum RPC',[{method:x.method,block:t.block,address:t.address}],'ON_CHAIN'):evidence.unknown(x?.reason||'No on-chain verification available.');
- const earlySupply=evidence.card({...supplyInsights.baseline('ethereum'),totalSupply:onChain(t.fields.totalSupply),circulatingSupply:evidence.unknown('Exact-contract circulation evidence pending.'),burnAddressBalance:onChain(t.fields.burnAddressBalance),burnAddressPct:burnAddressPercent(t.totalSupplyRaw,t.burnAddressRaw,t.block,t.address)},'Pinned-block on-chain supply and standard burn address balances.');
+ const earlySupply=evidence.card({...supplyInsights.baseline('ethereum'),totalSupply:onChain(t.fields.totalSupply),circulatingSupply:evidence.unknown('Exact-contract circulation evidence pending.'),burnAddressBalance:onChain(t.fields.burnAddressBalance),burnAddressPct:burnAddressPercent(t.totalSupplyRaw,t.burnAddressRaw,t.block,t.address)},'Pinned-block supply and current zero/dead-address custody. Outside-burn supply is NOT verified circulating supply.');
  require('./progress').card('ethereum',t,'supply',earlySupply);
  const marketWork=market.inspect(t.address,t.block).then(m=>{
-  const liquidity=copyFields(m,['liquidityUsd','volume24h','dexPairCount','lpStatus'],'Exact-matched source-reported market data. LP permissions remain unverified.');
+  const liquidity=copyFields(m,['liquidityUsd','volume24h','dexPairCount','lpStatus'],'Exact-contract source-reported pool liquidity and 24h trading volume. A derived turnover ratio is not LP lock/exit safety proof.');
   const activity=copyFields(m,['priceUsd','valuation','change24h','volume24h'],'Exact-contract source-reported market observations.');
   activity.fields.valuation=require('./valuation').normalize(activity.fields.valuation,activity.fields.priceUsd,t,'ethereum');
   require('./progress').card('ethereum',t,'liquidity',liquidity);require('./progress').card('ethereum',t,'activity',activity);return m;
@@ -90,7 +90,7 @@ async function build(address){
    circulatingSupply:circ,
    burnAddressBalance:onChain(t.fields.burnAddressBalance),
    burnAddressPct:burnAddressPercent(t.totalSupplyRaw,t.burnAddressRaw,t.block,t.address)
- },'Pinned-block on-chain supply and standard burn address balances.');
+ },'Pinned-block supply and current zero/dead-address custody. Outside-burn supply is NOT verified circulating supply.');
  // Supplemental issuer custody evidence is not a circulation calculation.
  // It is strictly bound to the issuer-documented ONDO wallet and a pinned
  // Ethereum token balance. Other tokens and main supply rows are unchanged.
@@ -112,10 +112,17 @@ async function build(address){
  if(Array.isArray(h.holderCandidates)&&h.holderCandidates.length)holders.holderCandidates=h.holderCandidates;
  if(Object.values(holders.fields).some(f=>f.dataState==='DATA_FOUND'))
   holders.status='PARTIAL_EVIDENCE';
- const liquidity=copyFields(m,['liquidityUsd','volume24h','dexPairCount','lpStatus'],'Exact-matched source-reported market data. LP permissions remain unverified.');
+ const liquidity=copyFields(m,['liquidityUsd','volume24h','dexPairCount','lpStatus'],'Exact-contract source-reported pool liquidity and 24h trading volume. A derived turnover ratio is not LP lock/exit safety proof.');
  const activity=copyFields(m,['priceUsd','valuation','change24h','volume24h'],'Primary base-token market values from exact Ethereum pairs; source-reported.');
  activity.fields.valuation=require('./valuation').normalize(activity.fields.valuation,activity.fields.priceUsd,t,'ethereum');
  const mechanics=await mechanicsWork;
+ const derived=require('./derived-metrics');
+ supply.fields.nonBurnSupply=derived.supply(supply.fields,{
+  network:'ethereum',chainId:1,address:t.address,block:t.block
+ }).nonBurnSupply;
+ liquidity.fields.liquidityTurnover24h=derived.liquidity(liquidity.fields,{
+  network:'ethereum',chainId:1,address:t.address,block:t.block
+ });
  const cards={supply,holders,liquidity,activity,mechanics};
  for(const d of schema){
    if(!cards[d.id])throw Error('Missing required card '+d.id);

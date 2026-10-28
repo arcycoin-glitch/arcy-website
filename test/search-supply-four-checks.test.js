@@ -17,7 +17,7 @@ test('existing Search second-page supply card has exactly four requested fields,
  assert.equal(schema.length,5);
  assert.equal(schema.reduce((n,card)=>n+card.fields.length,0),20);
  const supply=schema.find(card=>card.id==='supply');
- assert.deepEqual(supply.fields,[['totalSupply','Total Supply'],['circulatingSupply','Circulating Supply'],['burnAddressBalance','Burn Address Balance'],['nextUnlock','Next Unlock']]);
+ assert.deepEqual(supply.fields,[['totalSupply','Total Supply'],['nonBurnSupply','Outside Burn Addresses'],['burnAddressBalance','Burn Address Balance'],['burnAddressPct','Burn-Address Share']]);
  const html=fs.readFileSync(path.join(__dirname,'../search/index.html'),'utf8');
  assert.match(html,/id="deepResearch"/);
  assert.match(html,/id="cards" class="grid"/);
@@ -40,11 +40,12 @@ test('on-chain supply and burn-address custody are visible as primary metrics, w
  const fields={...unknown('arc'),verifiedBurned:fact('0'),nextUnlock:fact('2099-02-01T00:00:00Z'),
   totalSupply:fact('1000000'),burnAddressBalance:fact('200000'),burnAddressPct:fact(20)};
  const card=engine.formatCard('supply',{fields}, {id:'arc',chainId:5042},base('arc',5042));
- assert.deepEqual(Object.keys(card.fields),['totalSupply','circulatingSupply','burnAddressBalance','nextUnlock']);
+ assert.deepEqual(Object.keys(card.fields),['totalSupply','nonBurnSupply','burnAddressBalance','burnAddressPct']);
  assert.equal(card.fields.totalSupply.value,'1000000');
  assert.equal(card.fields.burnAddressBalance.value,'200000');
- assert.equal(card.fields.circulatingSupply.dataState,'NOT_VERIFIED');
- assert.equal(card.fields.nextUnlock.value,'2099-02-01T00:00:00Z');
+ assert.equal(card.fields.nonBurnSupply.dataState,'NOT_VERIFIED','source-reported fixtures cannot become on-chain derived supply');
+ assert.equal(card.fields.burnAddressPct.dataState,'NOT_VERIFIED','only exact pinned on-chain quantities may prove the visible burn share');
+ assert.equal(card.context.circulatingSupply.dataState,'NOT_VERIFIED','Circulating research remains available as supplemental context');
  assert.equal(card.context.totalSupply.value,'1000000');
  assert.equal(card.context.burnAddressBalance.value,'200000');
  assert.equal(card.context.burnAddressPct.value,20);
@@ -89,5 +90,6 @@ test('new visible supply rows fail closed on a wrong contract or wrong on-chain 
  const card=engine.formatCard('supply',{fields},{id:'arc',chainId:5042},base('arc',5042));
  assert.equal(card.fields.totalSupply.dataState,'NOT_VERIFIED');
  assert.equal(card.fields.burnAddressBalance.dataState,'NOT_VERIFIED');
- assert.equal(card.fields.circulatingSupply.value,'70');
+ assert.equal(card.context.circulatingSupply.value,'70','source-reported issuer circulation remains in supplemental context, not the public derived metric');
+ assert.equal(card.fields.nonBurnSupply.dataState,'NOT_VERIFIED');
 });
