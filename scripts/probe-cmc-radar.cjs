@@ -26,4 +26,16 @@ async function get(path){
     ' withVolume='+rows.filter(r=>Number(r.quote?.[0]?.volume_24h)>0).length);
   }catch(e){console.log('PAIR '+slug+' ERROR '+String(e.message).slice(0,140))}
  }
+}
+ for(const network of ['arc','ethereum','robinhood-chain']){
+  for(const dex of ['uniswap-v3','uniswap-v4','uniswap','pons','ramses-v3']){
+   try{
+    const path='/v4/dex/spot-pairs/latest?network_slug='+network+'&dex_slug='+dex+'&sort=volume_24h&sort_dir=desc&limit=20';
+    const x=await get(path),rows=Array.isArray(x.body.data)?x.body.data:[];
+    const msg=String(x.body.status?.error_message||'').slice(0,65);
+    const ok=rows.filter(row=>/^0x[0-9a-f]{40}$/i.test(row.base_asset_contract_address)).length;
+    console.log('DEX '+network+' / '+dex+' HTTP='+x.http+' code='+x.body.status?.error_code+' msg='+msg+' rows='+rows.length+' validContracts='+ok);
+   }catch(e){console.log('DEX '+network+' / '+dex+' ERROR='+String(e.message).slice(0,110))}
+  }
+ }
 })();
