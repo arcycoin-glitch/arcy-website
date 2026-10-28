@@ -57,7 +57,7 @@ test('PONS pinned RPC unavailable or invalid source rows cannot generate concent
  const items=addresses.map((a,i)=>({address:a,value:String(200-i)}));
  const zero=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'5000',
   fetcher:async()=>json({items}),rpcCall:async()=>('0x'+'0'.repeat(64))});
- assert.equal(zero.reasonCode,'BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED');
+ assert.equal(zero.reasonCode,'BLOCKSCOUT_RANK_NO_POSITIVE_PINNED_BALANCES');
  const duplicates=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'5000',
   fetcher:async()=>json({items:[...items.slice(0,19),items[0]]})});
  assert.equal(duplicates.reasonCode,'BLOCKSCOUT_HOLDERS_SCHEMA_INVALID');
@@ -97,4 +97,30 @@ test('PONS rank rejects blocked Blockscout endpoints without inventing wallet co
  assert.equal(calls,2);
  assert.equal(r.reasonCode,'BLOCKSCOUT_HOLDERS_HTTP_403');
  assert.equal(r.top10Pct,undefined);
+});
+
+test('PONS retains pinned top-10 candidate evidence when one indexed wallet exits before the report block',async()=>{
+ const addresses=Array.from({length:20},(_,i)=>wallet(i+1));
+ const items=addresses.map((a,i)=>({address:a,value:String(i===19?0:200-i)}));
+ const pinned=new Map(addresses.map((a,i)=>[a,i===19?0n:100n]));
+ const out=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'3000',key:'',
+  fetcher:async()=>json({items}),rpcCall:rpcBalances(pinned)});
+ assert.equal(out.reasonCode,undefined);
+ assert.equal(out.largestWalletPct.dataState,'DATA_FOUND');
+ assert.equal(out.top10Pct.status,'SOURCE_REPORTED_RPC_RECONCILED');
+ assert.equal(out.top20Pct,undefined);
+ assert.equal(out.holderCount,undefined);
+ assert.equal(out.top10Pct.evidence[0].discardedZeroBalanceCandidates,1);
+ assert.equal(out.top10Pct.evidence[0].matchedWallets,19);
+ assert.equal(out.top10Pct.evidence[0].censusComplete,false);
+});
+
+test('PONS does not invent a top-10 sample from fewer than ten positive pinned candidates',async()=>{
+ const addresses=Array.from({length:20},(_,i)=>wallet(i+1));
+ const items=addresses.map((a,i)=>({address:a,value:String(200-i)}));
+ const pinned=new Map(addresses.map((a,i)=>[a,i<9?100n:0n]));
+ const out=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'3000',key:'',
+  fetcher:async()=>json({items}),rpcCall:rpcBalances(pinned)});
+ assert.equal(out.reasonCode,'BLOCKSCOUT_RANK_BELOW_TEN_ROWS');
+ assert.equal(out.top10Pct,undefined);
 });
