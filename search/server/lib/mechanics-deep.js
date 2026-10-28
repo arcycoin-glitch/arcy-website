@@ -25,6 +25,8 @@ const PROFILES=Object.freeze({
  '5f75f27c6b98783b82c28164831948668e502ee20bd302aaaeff35c74dbda664':'ALLOWANCE_MINTER_TOKEN',
  '82f4da21cdb0464ca580be2847548393fa678d7e06310fc169d74663ede571fd':'REGISTRY_AUTH_TOKEN',
  'f4abba6aa7071125168a9b9ea39cdfd08f01835d3c59aa74c55173c71e50daa1':'INITIALIZED_REWARD_LAUNCH_TOKEN',
+ // Exact source and pinned runtime verified for Arc LaunchToken.sol (POLL).
+ '7efbe9dc6a4a5b3d698f0d876e29844422bc000da755223e04738ff11dd13802':'FIXED_SUPPLY_BURNABLE_LAUNCH',
  'd8d6edfc12f71433b5efe6ab623af4db5b160750902daa4f08fe337865087ceb':'ALLOWANCE_MINTER_TOKEN',
  ...require('./mechanics-reviewed-v4').PROFILES
 });
@@ -175,6 +177,23 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
      ...proof,owner,scope:'This owner can grant/revoke mint and burn roles in the exact reviewed runtime. Full external bridge, timelock/multisig membership and DEX governance are not inferred.'},'VERIFIED_SOURCE_AND_STATE');
     details.observations.push({method:'Recompiled burn/mint role model',block,...sourceProof,
      scope:'onlyOwner grants/revokes mint and burn roles; onlyBurner gates supply-reducing burn/burnFrom. Cap0 means no source cap. This proves capability, not an actual burn, buyback or bridge-reserve amount.'});
+   }
+   if(profile==='FIXED_SUPPLY_BURNABLE_LAUNCH'){
+    // Source-verified LaunchToken inherits OZ ERC20 and ERC20Burnable without
+    // transfer overrides. Constructor is the ONLY _mint call and creator /
+    // launchpad immutable getters confer no token-level authority.
+    fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED',
+     'Reviewed full-value OpenZeppelin ERC20 transfer; no tax overrides',
+     {...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,
+      scope:'The verified token source has no transfer-tax deduction or mutable token fee setter. This does NOT establish buy/sell swap fees, pool fees or third-party hook charges.'},'VERIFIED_SOURCE');
+    fields.mintCapability=fact('NONE DETECTED ✓',
+     'Verified constructor-only _mint; no runtime mint entry point',
+     {...proof,scope:'Initial supply is minted once at deployment to launchpad. The runtime exposes burn and burnFrom only for reducing supply; no future token issuance interface exists in this exact source.'},'VERIFIED_SOURCE');
+    fields.ownerAdmin=fact('No token owner/admin · creator and launchpad are informational',
+     'Reviewed complete token runtime and immutable constructor assignments',
+     {...proof,scope:'The only creator and launchpad getters are immutable informational addresses; neither has an authorization modifier or a token-level owner/admin setter. Independent launchpad/pool contracts can have separate privileges and are NOT audited here.'},'VERIFIED_SOURCE');
+    details.observations.push({method:'Reviewed fixed-supply burnable launch token',
+     block,...sourceProof,scope:'Source digest and pinned bytecode matched. Constructor-only mint; token transfers full value; voluntary burn available; no owner/admin. External DEX/hook fees, liquidity controls and launchpad governance require separate verification.'});
    }
    if(profile==='FIXED_SUPPLY_POOL_SETUP'){
     fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed constructor-only mint and full-value ERC20 _update',{...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'Full token transfer value is retained. The immutable anti-snipe max-wallet rule can revert transfers; it is not a tax. External pool fees remain separate.'},'VERIFIED_SOURCE');
