@@ -29,6 +29,7 @@ const targets=[
     const content=String(obj.content||'');
     if(!content)continue;
     console.log('FILE',file,'length',content.length);
+    if(file==='contracts/LaunchToken.sol')console.log('COMPLETE_LAUNCH_TOKEN_SOURCE',JSON.stringify(content));
     // Reviewed snippets are bounded, with exact line references.
     const lines=content.split('\n');
     const patterns=/\b(contract|function|modifier)\s+[A-Za-z0-9_]+|\b(_mint|mint\(|transfer\(|_update\(|_transfer\(|onlyOwner|onlyRole|tax|fee|blacklist|owner|renounce)\b/i;
