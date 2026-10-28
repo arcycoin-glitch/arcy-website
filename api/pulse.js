@@ -23,7 +23,7 @@ function threeSections(raw,{status='updated',cycle=null}={}){
   used.add(item.url);
   return {...item,kind:defaults[slot].kind,verifiedCurrentWeek:true,contentType:'VERIFIED_DEVELOPMENT'};
  };
- return [choose(['week'],0),choose(['new','watch'],1),choose(['unlock','reality'],2)];
+ return [choose(['week'],0),choose(['new','watch'],1),choose(['unlock','reality','watch','new'],2)];
 }
 function response(value,audit,{archive=false}={}){
  const previousWeek=Array.isArray(value.recentCards)?value.recentCards.filter(item=>item?.contentType==='RECENT_VERIFIED'&&item?.verifiedCurrentWeek===false&&typeof item.url==='string'&&item.url.startsWith('https://')&&Number.isFinite(Date.parse(item.publishedAt))&&Date.parse(item.publishedAt)>=Date.parse(value.cycle?.start||'')-604800000&&Date.parse(item.publishedAt)<Date.parse(value.cycle?.start||'')):[];
@@ -46,6 +46,18 @@ function response(value,audit,{archive=false}={}){
  const display=archive?value.cards:recentThree.length&&value.status==='quiet_week'?
    [...recentThree,...fallback.ITEMS.slice(recentThree.length).map(x=>({...x,publishedAt:null,verifiedCurrentWeek:false,contentType:'SOURCE_GUIDE'}))].slice(0,3):
    threeSections(value.cards,{status:value.status,cycle:value.cycle});
+ // Display-only: use source-dated previous-week project news for unfilled slots.
+ // Never label this historical context as current-week, and never rewrite the signed archive.
+ if(!archive&&value.status==='updated'&&recentThree.length){
+  const used=new Set(display.filter(x=>x?.url).map(x=>x.url));
+  for(let i=0;i<display.length;i++){
+   if(display[i]?.contentType!=='SOURCE_GUIDE')continue;
+   const older=recentThree.find(x=>x.url&&!used.has(x.url));
+   if(!older)break;used.add(older.url);
+   display[i]={...older,kind:display[i].kind,verifiedCurrentWeek:false,contentType:'RECENT_VERIFIED',
+    summary:'Published '+older.publishedAt.slice(0,10)+' · Previous-week official project report. Not a new announcement this week.'};
+  }
+ }
  const neutralTake=fallback.fallback().take;
  const hasBitquery=display.some(c=>c.url?.includes('bitquery.io/investigations/arc-blockchain-first-month'));
  const hasGateway=display.some(c=>c.url?.includes('community.arc.io/public/videos/move-supported-non-usdc'));
@@ -59,7 +71,7 @@ function response(value,audit,{archive=false}={}){
   isCurrentWeekResearch:display.some(card=>card.verifiedCurrentWeek===true),
   hasRecentVerifiedResearch:display.some(card=>card.contentType==='RECENT_VERIFIED'),
   contentNotice:display.some(card=>card.verifiedCurrentWeek===true)?
-   'Current-week articles have dated source evidence; remaining cards may be source guides.':
+   display.some(c=>c.contentType==='RECENT_VERIFIED')?'Current-week developments plus clearly dated previous-week context; past reports are not new announcements.':'Current-week articles have dated source evidence; remaining cards may be source guides.':
    display.some(card=>card.contentType==='RECENT_VERIFIED')?'No current-week developments verified yet. These are dated reports from the previous week, not new announcements.':
    'No dated current-week research is verified. Source guides are not news or evidence of activity.',
   cycle:value.cycle,cards:display,
