@@ -6,6 +6,8 @@ function parse(){
 }
 async function inspect(address,totalSupply,options={}){
  if(!ADDRESS.test(address))return unknown('Invalid Ethereum contract address.','INVALID_ADDRESS');
+ const circle=await require('./circle-circulating').inspect(address,totalSupply,options);
+ if(circle)return circle;
  const issuer=await require('./issuer-circulating').inspect(address,totalSupply,options);
  if(issuer)return issuer;
  return parse();
