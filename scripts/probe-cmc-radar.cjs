@@ -26,7 +26,6 @@ async function get(path){
     ' withVolume='+rows.filter(r=>Number(r.quote?.[0]?.volume_24h)>0).length);
   }catch(e){console.log('PAIR '+slug+' ERROR '+String(e.message).slice(0,140))}
  }
-}
  for(const network of ['arc','ethereum','robinhood-chain']){
   for(const dex of ['uniswap-v3','uniswap-v4','uniswap','pons','ramses-v3']){
    try{
