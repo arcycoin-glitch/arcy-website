@@ -8,32 +8,61 @@ function resolveRpcUrl(value){
   if(url.username||url.password||!(url.protocol==='https:'||(url.protocol==='http:'&&loopback)))throw Error('ETH_RPC_URL must use HTTPS (or loopback HTTP) and cannot contain URL credentials');
   return url.toString();
 }
-const RPC_URL=resolveRpcUrl(process.env.ETH_RPC_URL||'https://ethereum-rpc.publicnode.com');
+const DEFAULT_RPC='https://ethereum-rpc.publicnode.com';
+const RPC_URL=resolveRpcUrl(process.env.ETH_RPC_URL||DEFAULT_RPC);
 const BURN=['0x0000000000000000000000000000000000000000','0x000000000000000000000000000000000000dead'];
 const ADDRESS=/^0x[0-9a-fA-F]{40}$/;
 const {readJson}=require('./http');
+// One total wall-clock budget per read, shared by every provider attempt.
+const DEFAULT_READ_BUDGET_MS=12000;
+// One total budget for a complete pinned token snapshot, shared by providers.
+const DEFAULT_INSPECT_BUDGET_MS=24000;
 let rpcId=0;
-async function rawRpc(method,params,{timeoutMs=12000}={}){
+// A secondary provider is OPT-IN only. No third-party endpoint is activated
+// unless an operator explicitly configures ETH_RPC_FALLBACK_URL.
+function providers(env=process.env){
+ const primary=resolveRpcUrl(env.ETH_RPC_URL||DEFAULT_RPC);
+ const raw=env.ETH_RPC_FALLBACK_URL;
+ const backup=!raw||raw==='disabled'?null:resolveRpcUrl(raw);
+ return backup&&backup!==primary?[primary,backup]:[primary];
+}
+// Same-provider retry: transient overload only.
+function sameProviderRetryable(error){
+ return [429,502,503,504].includes(error?.httpStatus)||error?.code==='RPC_RATE_LIMIT'||error?.name==='TypeError';
+}
+// Independent-provider failover: availability failures only. Identity,
+// schema and method errors (for example reverted getters) are never retried
+// elsewhere, so they cannot be laundered into apparent evidence.
+function retryable(error){
+ if(error?.code==='RPC_BUDGET_EXHAUSTED')return false;
+ return sameProviderRetryable(error)||error?.httpStatus===403||
+  ['AbortError','TimeoutError'].includes(error?.name)||error?.code==='RPC_TIMEOUT';
+}
+function budgetExhausted(){
+ return Object.assign(Error('Ethereum RPC total timeout budget exhausted'),{code:'RPC_BUDGET_EXHAUSTED',name:'TimeoutError'});
+}
+async function rawRpc(endpoint,method,params,{deadline}={}){
   const id=++rpcId;
+  const remaining=deadline-Date.now();
+  if(!Number.isFinite(remaining)||remaining<=0)throw budgetExhausted();
   // Ref-counted timeout: Node's unref'd AbortSignal.timeout can leave promises unresolved in CI.
   const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(new DOMException('RPC request timed out','TimeoutError')),timeoutMs);
+  const timer=setTimeout(()=>controller.abort(new DOMException('RPC request timed out','TimeoutError')),remaining);
   let response,result;
-  const deadline=Date.now()+timeoutMs;
   try{
    for(let attempt=0;;attempt++){
     try{
-     response=await fetch(RPC_URL,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id,method,params}),signal:controller.signal});
+     response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id,method,params}),signal:controller.signal});
      if(!response.ok){await response.body?.cancel?.();throw Object.assign(Error('Ethereum RPC HTTP '+response.status),{httpStatus:response.status,code:'RPC_HTTP_ERROR'})}
      result=await readJson(response,1024*1024);
      if([-32005,-32016].includes(result?.error?.code))throw Object.assign(Error('Ethereum RPC rate limited'),{code:'RPC_RATE_LIMIT'});
      break;
     }catch(error){
-     const retryable=[429,502,503,504].includes(error.httpStatus)||error.code==='RPC_RATE_LIMIT'||error.name==='TypeError';
-     if(attempt>=1||!retryable||controller.signal.aborted)throw error;
+     if(attempt>=1||!sameProviderRetryable(error)||controller.signal.aborted)throw error;
      const raw=response?.headers?.get?.('retry-after');
      const retry=raw?(Number.isFinite(Number(raw))?Number(raw)*1000:Date.parse(raw)-Date.now()):250;
      const delay=Math.max(250,Number.isFinite(retry)?retry:250);
+     // A Retry-After beyond the SHARED budget fails closed for this provider.
      if(Date.now()+delay>=deadline)throw error;
      await new Promise(resolve=>setTimeout(resolve,delay));
     }
@@ -44,8 +73,33 @@ async function rawRpc(method,params,{timeoutMs=12000}={}){
   if(!Object.hasOwn(result,'result'))throw Error('Ethereum RPC response missing result: '+method);
   return result.result;
 }
-function rpc(method,params,options={}){
- return require('./analysis-scope').read('ethereum',RPC_URL,method,params,options,()=>rawRpc(method,params,options));
+function requestAt(endpoint,method,params,options={},deadline){
+ return require('./analysis-scope').read('ethereum',endpoint,method,params,options,()=>rawRpc(endpoint,method,params,{deadline}));
+}
+function verifiedChain(raw){
+ if(typeof raw!=='string'||!/^0x[0-9a-f]+$/i.test(raw)||Number(BigInt(raw))!==CHAIN_ID)
+  throw Object.assign(Error('RPC chain ID is not Ethereum mainnet'),{code:'CHAIN_ID_MISMATCH'});
+ return raw;
+}
+// options.timeoutMs is the TOTAL budget for this read across all providers.
+async function rpc(method,params,options={}){
+ const budget=Number.isFinite(options.timeoutMs)&&options.timeoutMs>0?options.timeoutMs:DEFAULT_READ_BUDGET_MS;
+ const deadline=Date.now()+budget;
+ // Inside one report, reads stay on the provider that produced its snapshot.
+ const pinned=require('./analysis-scope').pinnedProvider('ethereum');
+ const endpoints=pinned?[pinned]:providers();
+ let last;
+ for(let i=0;i<endpoints.length;i++){
+  if(i>0&&Date.now()>=deadline)break;
+  try{
+   // An unpinned secondary provider must prove chain 1 before answering.
+   if(i>0&&method!=='eth_chainId')verifiedChain(await requestAt(endpoints[i],'eth_chainId',[],options,deadline));
+   const value=await requestAt(endpoints[i],method,params,options,deadline);
+   if(i>0&&method==='eth_chainId')verifiedChain(value);
+   return value;
+  }catch(error){last=error;if(!retryable(error))throw error;}
+ }
+ throw last||budgetExhausted();
 }
 function uint(hex){
   if(typeof hex!=='string'||!/^0x[0-9a-fA-F]{64}$/.test(hex))throw Error('Invalid 32-byte ABI result');
@@ -68,16 +122,18 @@ function abiString(hex){
 }
 const status=(value,method,block)=>({value,status:'ON_CHAIN',source:'Ethereum RPC',method,block});
 const unknown=reason=>({value:null,status:'NOT_VERIFIED',source:null,reason});
-async function inspect(address){
-  if(!ADDRESS.test(address))throw Error('Invalid Ethereum contract address');
+async function inspectAt(endpoint,address,deadline){
   const normalized=address.toLowerCase();
-  const chain=await rpc('eth_chainId',[]);
-  if(Number(BigInt(chain))!==CHAIN_ID)throw Error('RPC chain ID is not Ethereum mainnet');
-  const block=await rpc('eth_blockNumber',[]);
-  const code=await rpc('eth_getCode',[normalized,block]);
+  // Every read of this snapshot uses one provider and the shared deadline.
+  const read=(method,params)=>requestAt(endpoint,method,params,{},deadline);
+  const chain=await read('eth_chainId',[]);
+  if(typeof chain!=='string'||!/^0x[0-9a-f]+$/i.test(chain)||Number(BigInt(chain))!==CHAIN_ID)throw Error('RPC chain ID is not Ethereum mainnet');
+  const block=await read('eth_blockNumber',[]);
+  if(typeof block!=='string'||!/^0x[0-9a-f]+$/i.test(block))throw Error('Invalid Ethereum block');
+  const code=await read('eth_getCode',[normalized,block]);
   if(code==='0x')throw Error('No contract deployed at this address');
   if(typeof code!=='string'||!/^0x[0-9a-fA-F]+$/.test(code))throw Error('Invalid contract bytecode');
-  const call=data=>rpc('eth_call',[{to:normalized,data},block]);
+  const call=data=>read('eth_call',[{to:normalized,data},block]);
   // All getters use the already verified chain, code and pinned block.
   const [s,d,addresses,names]=await Promise.all([
     call('0x18160ddd'),call('0x313ce567'),
@@ -99,4 +155,21 @@ async function inspect(address){
     methodology:'Read-only calls at one Ethereum block. Burn balance is current custody at 0x0 and 0xdead; not lifetime burned or verified buyback activity.'
   };
 }
-module.exports={CHAIN_ID,BURN,ADDRESS,RPC_URL,resolveRpcUrl,rpc,uint,units,abiString,inspect};
+// A whole snapshot is retried on an independent provider only after an
+// availability failure, within ONE total budget. Reads are never mixed.
+async function inspect(address,{timeoutMs=DEFAULT_INSPECT_BUDGET_MS}={}){
+  if(!ADDRESS.test(address))throw Error('Invalid Ethereum contract address');
+  const deadline=Date.now()+(Number.isFinite(timeoutMs)&&timeoutMs>0?timeoutMs:DEFAULT_INSPECT_BUDGET_MS);
+  const endpoints=providers();
+  let last;
+  for(let i=0;i<endpoints.length;i++){
+   if(i>0&&Date.now()>=deadline)break;
+   try{
+    const result=await inspectAt(endpoints[i],address,deadline);
+    require('./analysis-scope').pinProvider('ethereum',endpoints[i]);
+    return result;
+   }catch(error){last=error;if(!retryable(error))throw error;}
+  }
+  throw last||budgetExhausted();
+}
+module.exports={CHAIN_ID,BURN,ADDRESS,RPC_URL,DEFAULT_READ_BUDGET_MS,DEFAULT_INSPECT_BUDGET_MS,resolveRpcUrl,providers,retryable,requestAt,rpc,uint,units,abiString,inspect,inspectAt};

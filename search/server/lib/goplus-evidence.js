@@ -23,6 +23,14 @@ function productionUseAllowed(){
 function missing(reason,code='SECURITY_SOURCE_UNAVAILABLE'){
  return {value:null,dataState:'NOT_VERIFIED',status:'NOT_VERIFIED',reason,reasonCode:code,source:null,evidence:[]};
 }
+// A transport/HTTP/parse failure is a provider failure, not a statement that
+// the token lacks evidence. No value is ever produced on this path.
+function failedFields(keys){
+ return Object.fromEntries(keys.map(key=>[key,{
+  ...missing('GoPlus could not be reached or returned an invalid response; no conclusion about this token can be drawn.',
+   'SECURITY_SOURCE_API_FAILED'),dataState:'SOURCE_API_FAILED',source:'GoPlus Security'
+ }]));
+}
 const bool=v=>v==='1'?true:v==='0'?false:null;
 function providerChainMatches(body,network){
  const declared=body?.chainId??body?.chain_id;
@@ -105,7 +113,7 @@ async function inspect(network,address,{fetcher=global.fetch,now=Date.now()}={})
  ].map(key=>[key,missing('GoPlus public production use is disabled pending written commercial permission and required attribution.','PROVIDER_DISABLED_LICENSE_UNVERIFIED')]));
  const url=ORIGIN+NETWORKS[network]+'?contract_addresses='+encodeURIComponent(token);
  try{return parse(await json(url,{fetcher,now}),network,token,{now})}
- catch{return parse(null,network,token,{now})}
+ catch{return failedFields(['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'])}
 }
 function parseHolders(body,network,rawAddress,{now=Date.now()}={}){
  if(!Object.hasOwn(NETWORKS,network)||typeof rawAddress!=='string'||!ADDRESS.test(rawAddress))
@@ -158,6 +166,6 @@ async function inspectHolders(network,address,{fetcher=global.fetch,now=Date.now
  try{
   const url=ORIGIN+NETWORKS[network]+'?contract_addresses='+encodeURIComponent(token);
   return parseHolders(await json(url,{fetcher,now}),network,token,{now});
- }catch{return parseHolders(null,network,token,{now})}
+ }catch{return failedFields(['holderCount','largestWalletPct','top10Pct','top20Pct'])}
 }
-module.exports={NETWORKS,bool,fraction,parse,inspect,parseHolders,inspectHolders,productionUseAllowed};
+module.exports={NETWORKS,bool,fraction,parse,inspect,parseHolders,inspectHolders,productionUseAllowed,failedFields};

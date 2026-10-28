@@ -61,7 +61,7 @@ test('Robinhood ranked holders publish only when Blockscout top 20 match pinned 
  assert.equal(good.top20Pct.evidence[0].chainId,4663);
  const mismatch=await holderRank.fetchRank(ADDRESS,{block,totalSupplyRaw:'1000',
   fetcher:async()=>new Response(JSON.stringify({items:rows})),rpcCall:async()=> '0x'+'0'.repeat(64)});
- assert.equal(mismatch.reasonCode,'BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED');
+ assert.equal(mismatch.reasonCode,'BLOCKSCOUT_RANK_NO_POSITIVE_PINNED_BALANCES');
  assert.equal(holderRank.rows({items:[rows[1],rows[0]]}),null);
 });
 test('Robinhood Blockscout holder count has bounded exact contract validation',()=>{
