@@ -1,0 +1,50 @@
+name: ARCY Search live public evidence coverage (read only)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/arcy-live-coverage-audit.yml'
+      - 'scripts/coverage-audit.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit-nine-token:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Measure 9 real contract reports (3 per chain)
+        run: |
+          mkdir -p artifacts
+          node scripts/coverage-audit.cjs . artifacts/live-coverage-9.json --env=clean
+      - name: Summarize verified coverage and missing reasons
+        if: always()
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const p='artifacts/live-coverage-9.json';
+          if(!fs.existsSync(p)){
+            console.log('No completed audit capture.');process.exitCode=1;
+          } else {
+            const d=JSON.parse(fs.readFileSync(p,'utf8')),c=d.coverage;
+            console.log('Audit commit:', d.run.git.sha, 'UTC:',d.run.startedAt,'to',d.run.finishedAt);
+            console.log('Counts:',JSON.stringify({tokens:c.tokensByNetwork,verified:c.overall.verified,sourceReported:c.overall.sourceReported,missing:c.overall.missing,applicable:c.overall.applicableFields,verifiedPct:c.overall.verifiedPct,missingReasons:c.overall.missingReasons}));
+            for(const n of ['arc','ethereum','robinhood']){
+              console.log(n,JSON.stringify({coverage:c.byNetwork[n],cards:c.byNetworkCard[n]}));
+            }
+            for(const r of d.results){
+              console.log('token',JSON.stringify({chain:r.network,symbol:r.symbol,block:r.blockNumber,error:r.error||null,holderCount:r.holders?.holderCount?.status||null,top10:r.holders?.top10Pct?.status||null}));
+            }
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: arcy-live-coverage-nine-token
+          path: artifacts/live-coverage-9.json
+          if-no-files-found: warn
+          retention-days: 7
