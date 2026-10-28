@@ -22,7 +22,9 @@ const tokens = [
 function compact(fields) {
   return Object.fromEntries(Object.entries(fields || {}).map(([key, f]) => [key, {
     dataState: f?.dataState || null, status: f?.status || null,
-    reasonCode: f?.reasonCode || null, source: f?.source || null
+    reasonCode: f?.reasonCode || null, source: f?.source || null,
+    value: f?.value ?? null, freshness: f?.freshness || null,
+    ...(key==='circulatingSupply'?{evidence:f?.evidence||[]}:{} )
   }]));
 }
 async function run([network,symbol,address]) {
