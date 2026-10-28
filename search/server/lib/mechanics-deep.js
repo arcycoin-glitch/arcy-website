@@ -44,7 +44,27 @@ async function sourceFor(cfg,address,code,diagnostics){
  if(compiled)return compiled;
  const url='https://sourcify.dev/server/v2/contract/'+cfg.chainId+'/'+address+'?fields=abi,sources,compilation,runtimeBytecode';
  try{const body=await reader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{validateSource(d,{chainId:cfg.chainId,address,code});return true;}});return {...validateSource(body,{chainId:cfg.chainId,address,code}),url,retrievedAt:new Date(reader.observedAt(url)).toISOString()};}
- catch(e){diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason:e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':/SOURCE_/.test(e.message)?e.message:'SOURCE_API_FAILED'});return null;}
+ catch(e){
+  diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,
+   reason:e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':
+    /SOURCE_/.test(e.message)?e.message:'SOURCE_API_FAILED'});
+  // Sourcify covers only part of Arc/Robinhood's deployed token universe.
+  // Consult authenticated Blockscout's COMPLETE verified source, but accept
+  // it only if its published deployed bytecode matches this pinned RPC code.
+  // Unverified/partial/twin source and bare ABI are deliberately rejected.
+  try{
+   const verified=await require('./blockscout-mechanics-source').load({
+    network:cfg.id,address,code,reader});
+   if(verified)return verified;
+   diagnostics.push({source:'Blockscout PRO',address,chainId:cfg.chainId,
+    reason:process.env.BLOCKSCOUT_API_KEY?'NO_EXACT_BYTECODE_MATCHED_SOURCE':'BLOCKSCOUT_CREDENTIALS_REQUIRED'});
+  }catch(error){
+   diagnostics.push({source:'Blockscout PRO',address,chainId:cfg.chainId,
+    reason:error?.httpStatus===429?'SOURCE_RATE_LIMIT':
+     error?.httpStatus===403?'SOURCE_ACCESS_DENIED':'SOURCE_API_FAILED'});
+  }
+  return null;
+ }
 }
 function abiFn(source,signature,type){
  const name=signature.slice(0,signature.indexOf('(')),inputs=signature.slice(signature.indexOf('(')+1,-1).split(',').filter(Boolean);
