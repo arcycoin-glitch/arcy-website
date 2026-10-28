@@ -491,8 +491,14 @@ function isCurrentEvidence(field){
 function displayBurnShare(value){
  const percentage=Number(value);
  if(typeof value!=='number'||!Number.isFinite(percentage)||percentage<0||percentage>100)return 'NOT VERIFIED';
- if(percentage>0&&percentage<0.0001)return '<0.0001%';
- return percentage.toFixed(4).replace(/0+$/,'').replace(/\.$/,'')+'%';
+ // Tiny positive custody is real but below the 4-decimal display: show up to
+ // 12 decimals (3 significant digits) without scientific notation, and below
+ // 1e-12% a bound rather than a misleading 0%. Never round <100% up to 100%.
+ if(percentage>0&&percentage<1e-12)return '<0.000000000001%';
+ if(percentage>0&&percentage<0.0001)return Number(percentage.toPrecision(3)).toFixed(12).replace(/0+$/,'').replace(/\.$/,'')+'%';
+ const shown=percentage.toFixed(4).replace(/0+$/,'').replace(/\.$/,'');
+ if(percentage<100&&shown==='100')return '>99.9999%';
+ return shown+'%';
 }
 function render(report){
   const preserve=arguments[1]?.preserve===true;

@@ -142,6 +142,15 @@ test('burn share rejects invalid data and never emits scientific notation or mis
  for(const n of [-1,NaN,Infinity,101,null,'0.1'])assert.equal(display(n),'NOT VERIFIED');
 });
 
+test('burn share keeps the existing 4-decimal display for ordinary values and never rounds a partial burn up to 100%',()=>{
+ const html=fs.readFileSync('search/index.html','utf8'),body=html.slice(html.indexOf('function displayBurnShare('),html.indexOf('function render(report)'));
+ const display=new Function(body+';return displayBurnShare;')();
+ assert.equal(display(2.6952979843703698),'2.6953%');assert.equal(display(26.952979843703698),'26.953%');assert.equal(display(0.0001),'0.0001%');
+ assert.equal(display(1.23456e-5),'0.0000123%');assert.equal(display(1e-12),'0.000000000001%');
+ assert.equal(display(99.99996),'>99.9999%');assert.equal(display(99.99994),'99.9999%');
+ for(const n of [1e-15,1e-9,1.23456e-5,99.99996])assert.doesNotMatch(display(n),/e[+-]?\d/i,'no scientific notation');
+});
+
 test('warm validated art survives another thumbnail exhausting the aggregate deadline, without new HTTP reads',async()=>{
  const logos=require('../search/server/lib/search-logo'),images=require('../search/server/lib/logo-validation'),art=require('./helpers/logo-artwork.cjs');
  const saved=global.fetch,warm='https://cdn.dexscreener.com/cms/images/v4-warm.png';let warmReads=0;

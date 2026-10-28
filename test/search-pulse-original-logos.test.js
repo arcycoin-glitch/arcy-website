@@ -57,29 +57,52 @@ test('three Pulse slots preserve dated exact-cycle stories without reusing quiet
  assert.equal(missing.length,3);
  assert.notEqual(missing[0].title,'Unsupported');
 });
+// Hermetic: the current-cycle review is stubbed, never a live network call, and
+// the per-instance transient cache is reset so scenarios cannot leak.
 test('stale signed Pulse is not relabeled as the current weekly headline',async()=>{
- const old=client.latest;
+ const old=client.latest,orig=edition.generate;
  const oldEdition={number:3,status:'updated',generatedAt:'2026-10-06T10:00:00.000Z',
   cycle:{start:'2026-10-05T00:00:00.000Z'},cards:[{kind:'week',title:'Old event'}]};
  try{
+  pulse.resetTransientCache();
   client.latest=async()=>oldEdition;
+  edition.generate=async()=>{throw Object.assign(Error('No current source'),{code:'PULSE_DISCOVERY_UNAVAILABLE'})};
   const res=response();await pulse({method:'GET',query:{},headers:{}},res);
   assert.equal(res.code,200);assert.equal(res.body.status,'source_pending');
   assert.equal(res.body.cards.length,3);
-  assert.equal(res.body.audit.lastSuccessful.number,3);
+  assert.equal(res.body.audit.lastSuccessful.number,3,'the last signed edition stays visible as provenance');
   assert.ok(res.body.cards.every(x=>x.title!=='Old event'));
- }finally{client.latest=old}
+  assert.ok(res.body.cards.every(x=>x.verifiedCurrentWeek===false&&x.contentType==='SOURCE_GUIDE'));
+ }finally{client.latest=old;edition.generate=orig;pulse.resetTransientCache()}
+});
+test('stale signed Pulse with fresh verified current-cycle research shows only the current cycle',async()=>{
+ const old=client.latest,orig=edition.generate,period=edition.cycle(),start=new Date(period.start).toISOString(),end=new Date(period.end).toISOString();
+ const oldEdition={number:3,status:'updated',generatedAt:'2026-10-06T10:00:00.000Z',cycle:{start:'2026-10-05T00:00:00.000Z'},cards:[{kind:'week',title:'Old event'}]};
+ const fresh={number:edition.number(),status:'updated',generatedAt:new Date().toISOString(),cycle:{start,end},trigger:'transient',
+  cards:[{kind:'week',owner:'OFFICIAL ARC',title:'Current verified Arc development',summary:'Dated first-party report.',url:'https://www.arc.io/blog/current',publishedAt:start,verifiedCurrentWeek:true}],take:'Current take',sources:[],audit:{}};
+ try{
+  pulse.resetTransientCache();
+  client.latest=async()=>oldEdition;edition.generate=async()=>fresh;
+  const res=response();await pulse({method:'GET',query:{},headers:{}},res);
+  assert.equal(res.body.status,'updated');assert.equal(res.body.number,edition.number());assert.notEqual(res.body.number,3);
+  assert.equal(res.body.cycle.start,start);
+  assert.ok(res.body.cards.every(x=>x.title!=='Old event'),'the archived headline is never relabeled as current');
+  assert.equal(res.body.cards.filter(x=>x.verifiedCurrentWeek===true).length,1);
+  assert.equal(res.body.cards.length,3);
+ }finally{client.latest=old;edition.generate=orig;pulse.resetTransientCache()}
 });
 test('provider failure yields three truthful Pulse slots and never 503 with empty cards',async()=>{
  const old=client.latest,orig=edition.generate;
  try{
+  pulse.resetTransientCache();
   client.latest=async()=>null;
   edition.generate=async()=>{throw Object.assign(Error('No current source'),{code:'PULSE_DISCOVERY_UNAVAILABLE'})};
   const res=response();await pulse({method:'GET',query:{},headers:{}},res);
   assert.equal(res.code,200);assert.equal(res.body.ok,true);
   assert.equal(res.body.cards.length,3);
   assert.equal(res.body.audit.reasonCode,'PULSE_DISCOVERY_UNAVAILABLE');
- }finally{client.latest=old;edition.generate=orig}
+  assert.ok(res.body.cards.every(x=>x.verifiedCurrentWeek===false&&x.contentType==='SOURCE_GUIDE'),'guides are never presented as news');
+ }finally{client.latest=old;edition.generate=orig;pulse.resetTransientCache()}
 });
 test('official Robinhood Stock Token artwork matches signed chain-4663 registry, not symbol alone',async()=>{
  const logo='https://cdn.robinhood.com/ncw_assets/logos/'+A+'.png';
@@ -137,7 +160,26 @@ test('playing owl video is visible without doubling the still image or square ma
  assert.match(css,/mask-image:radial-gradient\(ellipse 49% 49%/);
  assert.match(css,/#hero \.hero-flight:not\(\.video-playing\)>img\{opacity:1;visibility:visible\}/);
  assert.match(css,/prefers-reduced-motion:reduce/);
- assert.match(js,/\['pause','waiting','stalled','ended'\]/);
+ // Behaviour, not source text: run hero-video.js against a minimal DOM and
+ // prove the still image is hidden ONLY while the video is actually playing.
+ const vm=require('node:vm');
+ const listeners=(o)=>{o.handlers={};o.addEventListener=(t,f)=>{(o.handlers[t]=o.handlers[t]||[]).push(f)};o.fire=t=>(o.handlers[t]||[]).forEach(f=>f());return o;};
+ const classes=new Set(),frame={classList:{add:c=>classes.add(c),remove:c=>classes.delete(c),contains:c=>classes.has(c)},appendChild(){}};
+ let plays=0,pauses=0;
+ const video=listeners({dataset:{src:'/owl.mp4'},getAttribute:()=>null,setAttribute(){},removeAttribute(){},load(){},closest:()=>frame,
+  play(){plays++;return Promise.resolve()},pause(){pauses++;this.fire('pause')}});
+ const media=listeners({matches:false});
+ const doc=listeners({hidden:false,querySelector:q=>q==='#hero .hero-video'?video:null,createElement:()=>({hidden:false,setAttribute(){},addEventListener(){}})});
+ const win=listeners({matchMedia:()=>media});
+ vm.runInNewContext(js,{document:doc,window:win,navigator:{},setTimeout:()=>0,clearTimeout(){}});
+ assert.equal(plays,1,'the owl starts when visible');
+ assert.equal(frame.classList.contains('video-playing'),false,'still image remains until the first frame plays');
+ video.fire('playing');assert.equal(frame.classList.contains('video-playing'),true,'playing hides the still image (no double owl)');
+ video.fire('stalled');assert.equal(frame.classList.contains('video-playing'),true,'a stall during playback does not flash the still image');
+ video.fire('pause');assert.equal(frame.classList.contains('video-playing'),false,'pause restores the still image');
+ video.fire('playing');video.fire('ended');assert.equal(frame.classList.contains('video-playing'),false,'end restores the still image');
+ video.fire('playing');video.fire('error');assert.equal(frame.classList.contains('video-playing'),false,'an error restores the still image');
+ media.matches=true;video.fire('playing');assert.equal(frame.classList.contains('video-playing'),false,'reduced motion never shows the moving owl');
 });
 
 /* Site-chrome GitHub appears only as the footer social icon; sources are retained. */
