@@ -1,4 +1,5 @@
-'use strict';
+import { createRequire } from 'node:module';
+const require=createRequire(import.meta.url);
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
 const cjs=require('../lib/unlock-evidence.cjs');
 const audit=fs.readFileSync('api/unlocks.js','utf8');
