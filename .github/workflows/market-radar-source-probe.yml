@@ -1,0 +1,21 @@
+name: Market Radar source compatibility probe
+on:
+  pull_request:
+    paths:
+      - 'lib/market-radar.js'
+      - 'scripts/probe-market-radar.cjs'
+      - '.github/workflows/market-radar-source-probe.yml'
+  workflow_dispatch:
+jobs:
+  live-source-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate adapter unit tests
+        run: node --test test/market-radar.test.js
+      - name: Verify source-only live 24H volume endpoints on all three networks
+        run: node scripts/probe-market-radar.cjs
