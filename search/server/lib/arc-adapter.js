@@ -65,10 +65,13 @@ async function requestStaleHolderRefresh(address,completedAt){
  holderRefreshAttempts.set(address,now+10*60000);
  while(holderRefreshAttempts.size>64)holderRefreshAttempts.delete(holderRefreshAttempts.keys().next().value);
  try{
+  // Cancel the deadline watchdog after the queue response to avoid
+  // unnecessary timers in serverless requests and tests.
+  let deadline;
   const result=await Promise.race([
    require('../../../lib/holder-queue-client').enqueue(address),
-   new Promise(resolve=>setTimeout(()=>resolve({queued:false}),1500))
-  ]);
+   new Promise(resolve=>{deadline=setTimeout(()=>resolve({queued:false}),1500);})
+  ]).finally(()=>clearTimeout(deadline));
   if(result?.queued===true){
    holderRefreshAttempts.set(address,Date.now()+6*3600000);
    return true;
@@ -121,10 +124,16 @@ async function holders({address}={}){
   fields:original.holders(data,address),completedAt:data.snapshot?.completedAt||null
  })).catch(()=>null);
  const reported=await reportedWork;
- if(prior&&Object.values(prior.fields).some(v=>v.dataState==='DATA_FOUND'))
+ if(prior&&Object.values(prior.fields).some(v=>v.dataState==='DATA_FOUND')){
+  // Signed publication may be unavailable while the original complete
+  // legacy snapshot remains accessible. That path must also request a
+  // worker refresh when stale; NEVER rewrite the historical numbers.
+  const refreshRequested=await requestStaleHolderRefresh(address,prior.completedAt);
   return {description:'Original Arc reconciled COMPLETE holder snapshot as of '+
-   prior.completedAt+'. Historical evidence, not current wallet-balance proof. Publication signature is not asserted.',
+   prior.completedAt+'. Historical evidence, not current wallet-balance proof. Publication signature is not asserted.'+
+   (refreshRequested?' Authenticated holder-worker refresh requested; these balances remain historical.':''),
    fields:reported?{...prior.fields,holderCount:reported}:prior.fields};
+ }
  // Explorer-reported count is separately sourced, never presented as full whale proof.
 
  if(reported)return {...signed,
@@ -325,4 +334,4 @@ async function discover({query}){
  if(!SEARCH.test(normalized)||ADDRESS.test(normalized))throw Error('Invalid search query');
  return [];
 }
-module.exports={inspectToken,inspectCard,supply,holders,activity,mechanics,discover,addressWord,marketFor,validateArcMarketCap,deriveArcFullyDilutedValue};
+module.exports={inspectToken,inspectCard,supply,holders,activity,mechanics,discover,addressWord,marketFor,validateArcMarketCap,deriveArcFullyDilutedValue,requestStaleHolderRefresh};
