@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#06121b">
+<meta name="robots" content="index,follow">
+<title>Transparency &amp; Verification | ARCY SEARCH</title>
+<meta name="description" content="Check ARCY's published Arc contract, open-source development history, data provenance, known limitations and unresolved risks. No investment safety badge.">
+<link rel="canonical" href="https://www.arcyusdc.xyz/transparency.html">
+<meta property="og:title" content="ARCY SEARCH — Transparency & Verification">
+<meta property="og:description" content="Open evidence, clearly labeled limitations. Verify the contract, code and data sources yourself.">
+<meta property="og:url" content="https://www.arcyusdc.xyz/transparency.html">
+<style>
+:root{color-scheme:dark;--bg:#06121b;--panel:#0b202c;--line:#274758;--text:#eaf6fa;--muted:#a5bdc7;--cyan:#51dce9;--orange:#f6aa65;--green:#71dac5}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:radial-gradient(ellipse at 60% -15%,#19455888,transparent 48%),var(--bg);color:var(--text);font:15px/1.65 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+a{color:var(--cyan);text-underline-offset:4px}
+a:hover{color:#d5f9ff}
+.skip{position:absolute;left:-9999px;top:8px;background:#102d40;padding:8px 16px}
+.skip:focus{left:12px;z-index:5}
+.wrap{width:min(1060px,calc(100% - 36px));margin:auto}
+header{border-bottom:1px solid #23495a88;background:#06121bcc}
+header .wrap{min-height:74px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding-block:12px}
+.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-size:17px;font-weight:850;letter-spacing:.04em}
+.brand img{width:28px;height:28px;object-fit:contain}
+.brand b{color:var(--orange)}
+nav{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+nav a{font-size:13px;color:#b9d2db;text-decoration:none}
+main{padding:52px 0 72px}
+.eyebrow{color:var(--cyan);font-weight:750;font-size:11px;letter-spacing:.18em;text-transform:uppercase}
+h1{font-size:clamp(34px,6.4vw,62px);line-height:1.13;letter-spacing:-.045em;margin:16px 0}
+h2{font-size:clamp(22px,3vw,29px);line-height:1.25;letter-spacing:-.02em;margin:0 0 14px}
+h3{font-size:16px;margin:0 0 8px;letter-spacing:-.01em}
+p{margin:8px 0 15px}
+.lede{max-width:790px;color:#c3dce4;font-size:clamp(16px,2.2vw,19px)}
+.note{color:var(--muted);font-size:13px}
+.pill{display:inline-flex;border-radius:40px;border:1px solid #446777;color:#b9d1db;padding:5px 13px;margin:12px 8px 0 0;font-size:12px}
+.pill.accent{border-color:#56cfc1;color:#a1f1e3}
+section{margin-top:48px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card{background:linear-gradient(145deg,#102c39ed,#081821ef);border:1px solid #345564;padding:22px;border-radius:16px;min-width:0}
+.card.full{grid-column:1/-1}
+.card p:last-child{margin-bottom:0}
+.kicker{display:inline-block;color:var(--green);font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+.kicker.pending{color:var(--orange)}
+.address{display:block;max-width:100%;font:600 13px/1.9 ui-monospace,SFMono-Regular,Consolas,monospace;color:#d6f3fc;overflow-wrap:anywhere;padding:12px 14px;border-radius:9px;background:#05131e;border:1px solid #274d5b}
+.links{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+.links a{font-size:13px;font-weight:700}
+.ledger{width:100%;border-collapse:collapse;text-align:left}
+.ledger th,.ledger td{padding:14px 10px;vertical-align:top;border-bottom:1px solid #2e526088;font-size:13px}
+.ledger th{width:29%;color:#ecf6fa}
+.ledger td{color:#bed1d9}
+.ledger tr:last-child td,.ledger tr:last-child th{border:0}
+.step{counter-increment:steps}
+.steps{counter-reset:steps;display:grid;gap:12px}
+.steps p{margin:0}
+.steps strong::before{content:counter(steps) ". ";color:var(--orange)}
+ul{margin:6px 0;padding-left:20px}
+li{padding:3px 0}
+footer{border-top:1px solid #254857;padding:26px 0 40px;color:#8faab6;font-size:12px}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.card.full{grid-column:auto}.wrap{width:min(100% - 28px,1060px)}main{padding-top:30px}.ledger,.ledger tbody,.ledger tr,.ledger th,.ledger td{display:block}.ledger th{width:auto;padding-bottom:2px}.ledger td{padding-top:1px}}
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header><div class="wrap">
+<a class="brand" href="/"><img src="/search/assets/arcy-neon-owl.svg" alt="">ARC<b>Y</b> SEARCH</a>
+<nav aria-label="Primary"><a href="/">Home</a><a href="/#search">Token Research</a><a href="/#unlocks">Unlocks</a><a href="https://github.com/arcycoin-glitch/arcy-website" target="_blank" rel="noopener noreferrer">GitHub</a></nav>
+</div></header>
+<main id="content" class="wrap">
+<div class="eyebrow">PUBLIC EVIDENCE / ARCY SEARCH</div>
+<h1>Transparency &amp;<br>Verification</h1>
+<p class="lede">Open evidence is useful. It is not a trust badge. This page separates what anyone can inspect from what ARCY SEARCH has <strong>not</strong> independently established.</p>
+<span class="pill accent">Research tool ≠ audited investment</span><span class="pill">Evidence before claims</span><span class="pill">Updated 29 October 2026</span>
+
+<section aria-labelledby="identity"><h2 id="identity">1. Project identity and public records</h2>
+<div class="grid">
+<article class="card full"><span class="kicker">Project-published contract reference</span>
+<h3>$ARCY token — Arc Mainnet (Chain ID 5042)</h3>
+<code class="address">0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b</code>
+<div class="links"><a href="https://explorer.arc.io/address/0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b" target="_blank" rel="noopener noreferrer">Inspect on Arc explorer ↗</a><a href="https://docs.arc.io" target="_blank" rel="noopener noreferrer">Arc network documentation ↗</a></div>
+<p class="note">This is the address ARCY publishes on its own website. The explorer lets you inspect the chain record; publishing an address is not proof of issuer identity, code safety, liquidity ownership or an independent audit. Always check the network and exact address.</p>
+</article>
+<article class="card"><span class="kicker">Public source code</span><h3>ARCY SEARCH development</h3>
+<p>Inspect the public website repository, commit history and tests. This repository demonstrates published website changes; it is <strong>not</strong> by itself a verified copy of the deployed $ARCY token contract.</p>
+<div class="links"><a href="https://github.com/arcycoin-glitch/arcy-website" target="_blank" rel="noopener noreferrer">Source repository ↗</a><a href="https://github.com/arcycoin-glitch/arcy-website/actions" target="_blank" rel="noopener noreferrer">Test history ↗</a></div>
+</article>
+<article class="card"><span class="kicker">Community contact</span><h3>Telegram</h3><p>This is the community channel linked from the project website. A social channel's existence does not verify financial safety, ownership or future performance.</p>
+<div class="links"><a href="https://t.me/arcycommunitychat" target="_blank" rel="noopener noreferrer">Community Telegram ↗</a></div>
+<p class="note">The previously linked X account @Arcy_usdc is inactive and must not be treated as an active support contact. Do not trust unsolicited payment or wallet-connect requests.</p>
+</article></div></section>
+
+<section aria-labelledby="product"><h2 id="product">2. Token versus research product</h2>
+<div class="grid">
+<article class="card"><h3>$ARCY — community meme token</h3><p>A cryptoasset on Arc. Its market price, liquidity, smart-contract powers and holder concentration entail risk. A website, social account or test pass does not mean the token is safe to buy.</p></article>
+<article class="card"><h3>ARCY SEARCH — research interface</h3><p>A separate information interface covering Arc, Ethereum and Robinhood Chain. It aims to link contract-specific evidence and mark unknowns instead of inventing values. It does not operate as an investment manager, guaranteed-return program or free-token reward service.</p></article>
+</div></section>
+
+<section aria-labelledby="sources"><h2 id="sources">3. How research evidence is described</h2>
+<div class="card"><table class="ledger">
+<tbody>
+<tr><th>On-chain observation</th><td>Inspect the specified chain, contract and block or transaction. Interpretation still depends on the method and snapshot time.</td></tr>
+<tr><th>Official project documentation</th><td>Project-published statements are attributed to their author. They are not independently verified merely because the issuer published them.</td></tr>
+<tr><th>Third-party data provider</th><td>Display provider identity, reporting scope and freshness where available. Provider-published does not mean confirmed by a second independent source.</td></tr>
+<tr><th>NOT VERIFIED / SOURCE PENDING</th><td>Evidence is missing, stale, conflicting or currently inaccessible. Missing information is not replaced with zero, an estimated value or a promise of safety.</td></tr>
+</tbody></table></div>
+<p class="note">The Token Research interface is designed around five research categories and up to 20 checks. The number of checks is a schema size, not a claim that all 20 are verified for every token.</p>
+</section>
+
+<section aria-labelledby="limitations"><h2 id="limitations">4. Known limitations — shown openly</h2>
+<div class="grid">
+<article class="card"><span class="kicker pending">Coverage is not exhaustive</span><h3>Token Unlocks</h3><p>The published calendar has used one underlying provider across multiple rankings. Different sorting modes are <strong>not</strong> independent source confirmations. Exact dates and amounts may conflict with issuers; unresolved claims must remain flagged.</p></article>
+<article class="card"><span class="kicker pending">Not activated</span><h3>Market Radar</h3><p>Radar's public ranked feed is disabled until data-display and JSON-delivery permissions and reliable coverage are in place. An unavailable ranking is not evidence that a token has zero volume.</p></article>
+<article class="card"><span class="kicker pending">Editorial provenance matters</span><h3>Pulse news and research</h3><p>Source-linked articles should be distinguished from undated resource guides and previously signed editions. A guide is not a new announcement; archived items must not be relabeled as current news.</p></article>
+<article class="card"><span class="kicker pending">No public proof claimed</span><h3>Security and financial guarantees</h3><p>We do not present a third-party audit, liquidity lock, renounced ownership, guaranteed token burn rate, fixed return or solvency assurance here as independently established. If these facts are not evidenced, treat them as unknown.</p></article>
+</div></section>
+
+<section aria-labelledby="check"><h2 id="check">5. Verify independently — four steps</h2>
+<div class="steps">
+<div class="card step"><p><strong>Match the network and exact contract.</strong> Open the Arc explorer link above and compare the complete address with what the website publishes.</p></div>
+<div class="card step"><p><strong>Inspect the relevant source.</strong> On a Search report, follow the evidence link for the specific metric. Distinguish chain-derived observations from issuer assertions and third-party summaries.</p></div>
+<div class="card step"><p><strong>Inspect the code and history.</strong> Review GitHub source and completed CI runs. Passing automated tests indicates tested software behavior, not an independent smart-contract security audit.</p></div>
+<div class="card step"><p><strong>Record what remains unverified.</strong> Do not infer safety from missing evidence, a logo, a screenshot, a social account, a launch date or a green test badge.</p></div>
+</div></section>
+<section><div class="card full"><span class="kicker">Important distinction</span><h2>We make research inspectable, not risk disappear.</h2><p>ARCY SEARCH does not provide personalized investment advice, execute transactions in the research interface, or promise profit. The $ARCY token and the information site have different purposes. This page is a description of public records and current limitations, not an independent certification or a recommendation to invest.</p><div class="links"><a href="/#search">Explore contract research ↗</a><a href="https://github.com/arcycoin-glitch/arcy-website/issues" target="_blank" rel="noopener noreferrer">Report incorrect or missing evidence ↗</a></div></div></section>
+</main>
+<footer><div class="wrap"><span>© ARCY SEARCH · Research First. Hype Never.</span><span>Public records are inspectable; risk remains. · <a href="/">Home</a></span></div></footer>
+</body></html>

@@ -13,6 +13,27 @@
  });
  const factory=document.querySelector('.v8-burn-factory-art img');
  if(factory&&!navigator.connection?.saveData){const load=()=>{factory.addEventListener('load',()=>factory.closest('.burn-lab-scene').classList.add('v8-factory-ready'),{once:true});factory.src=factory.dataset.src;};if('IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){observer.disconnect();load();}},{rootMargin:'120px'});observer.observe(factory.parentElement);}else load();}
+ // Public evidence page: make it visible from the homepage without touching
+ // the protected research DOM, article data, charts or animation assets.
+ const links=document.getElementById('siteLinks');
+ if(links&&!links.querySelector('a[href="/transparency.html"]')){
+  const verify=document.createElement('a');
+  verify.href='/transparency.html';
+  verify.textContent='Verify';
+  verify.setAttribute('aria-label','Transparency and Verification');
+  const github=links.querySelector('.nav-github');
+  links.insertBefore(verify,github||null);
+ }
+ const footerLinks=document.querySelector('.foot .social-icons');
+ if(footerLinks&&!footerLinks.querySelector('a[href="/transparency.html"]')){
+  const proof=document.createElement('a');
+  proof.href='/transparency.html';
+  proof.className='footer-source-link';
+  proof.textContent='Transparency & Verification';
+  footerLinks.append(proof);
+ }
+ // The former @Arcy_usdc handle is not an active support channel.
+ document.querySelectorAll('a.social-icon[href="https://x.com/Arcy_usdc"]').forEach(link=>link.remove());
  const pulse=document.getElementById('pulse');if(!pulse)return;
  const labels={ 'pulse-week':'🔥 THIS WEEK','pulse-new':'🆕 NEW','pulse-unlock':"🔓 WHAT'S UNLOCKING?" };
  // Reuse the same first-party network marks shown in the chain selector.
