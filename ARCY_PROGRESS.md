@@ -178,3 +178,9 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - #483/#488: 7c1faf7 is PR #26's unmerged head and not an ancestor of main, so fetch-depth cannot fix it. Even with the object fetched, approved releases had changed the protected files. Replaced with an in-repo fingerprint fixture (test/fixtures/approved-baseline.json, plus scripts/approved-baseline.cjs). The PR26 validateSource hash and its 5 profiles come from 7c1faf7; the current approved hashes cover the 5 protected files, search/index.html without scripts, schema.js and enrich. Protection still works: appending one line to premium.css fails the test.
 - #502 burn: tiny positive values are shown with up to 12 decimals, or <0.000000000001%; ordinary values keep 4 decimals; <100% is never rounded up to 100%. A new test covers it.
 - Not done from this environment: push / Draft PR (proxy 403), Vercel preview check. No merge or deploy.
+
+## 2026-10-29 — Token Unlocks evidence coverage integration
+- Reapplied Claude's `unlocks-rebase-09e26cd.patch` safeguards on latest main, preserving PR #87 Transparency/Verify homepage and inactive X removal; all changes remain isolated to Unlocks, evidence audits and baseline fingerprints.
+- Evidence reviews expand 5→9: Sui estimated scheduling, ZKsync issuer-documented investor/team cap, Ethena conflicting dates, Arbitrum 15 November conflict; namesake token scoping and BigInt amount arithmetic.
+- API exposes scheduled-vs-executed evidence, independent publisher count (one CoinBell source), cross-ecosystem scope and truthful chain-filter notice; existing signed snapshots are reviewed at request time. Worker and API use matching review policies and skip unauthenticated CMC Pro logo calls.
+- New regression tests and supporting audit: docs/unlock-source-audit-20261029.md; no new data license/independent data source or paid provider was added. Release only after CI and live source verification.
