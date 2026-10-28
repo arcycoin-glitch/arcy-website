@@ -4,7 +4,16 @@
 const {AsyncLocalStorage}=require('node:async_hooks');
 const scope=new AsyncLocalStorage();
 const pending=new Map();
-function run(operation,notify){return scope.run({reads:new Map(),complete:new Map(),active:0,waiters:[],notify},operation)}
+function run(operation,notify){return scope.run({reads:new Map(),complete:new Map(),providers:new Map(),active:0,waiters:[],notify},operation)}
+// The provider that produced a report's pinned snapshot serves every later
+// read of that report; a report can never mix RPC snapshot providers.
+function pinnedProvider(network){return scope.getStore()?.providers?.get(network)||null}
+function pinProvider(network,endpoint){
+ const state=scope.getStore();if(!state?.providers)return;
+ const prior=state.providers.get(network);
+ if(prior&&prior!==endpoint)throw Error('A report cannot mix RPC snapshot providers');
+ state.providers.set(network,endpoint);
+}
 function read(network,endpoint,method,params,options,operation){
  const diagnostics=require('./diagnostics'),measured=async()=>{const start=Date.now();try{const value=await operation();diagnostics.record('rpc',network,'ok',Date.now()-start);return value}catch(error){diagnostics.record('rpc',network,diagnostics.category(error),Date.now()-start);throw error}};
  const identity=JSON.stringify([network,endpoint,method,params]);
@@ -35,4 +44,4 @@ async function report(key,operation,onProgress){
  if(onProgress){entry.listeners.add(onProgress);if(entry.last){try{onProgress(structuredClone(entry.last))}catch{}}}
  try{return structuredClone(await entry.task)}finally{entry.listeners.delete(onProgress)}
 }
-module.exports={run,read,report,emit};
+module.exports={run,read,report,emit,pinnedProvider,pinProvider};

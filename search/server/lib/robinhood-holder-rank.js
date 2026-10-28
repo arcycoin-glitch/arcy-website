@@ -19,7 +19,7 @@ function rows(body){
   const value=typeof item?.value==='string'?item.value:null;
   if(!ADDRESS.test(address)||seen.has(address)||value===null||!/^(?:0|[1-9]\d*)$/.test(value))return null;
   const amount=BigInt(value);
-  if(amount<=0n||(result.length&&result.at(-1).amount<amount))return null;
+  if(result.length&&result.at(-1).amount<amount)return null;
   seen.add(address);result.push({address,amount});
  }
  return result;
@@ -37,12 +37,16 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
  const token=address.toLowerCase();
  try{
   const publicUrl=BASE+token+'/holders';
-  const endpoints=[publicUrl];
-  if(typeof key==='string'&&API_KEY.test(key)){
+  const endpoints=[];
+  const hasKey=typeof key==='string'&&API_KEY.test(key);
+  // Blockscout has required Pro API credentials since July 2026. When
+  // present, try the authenticated endpoint FIRST, not a known 403.
+  if(hasKey){
    const pro=new URL(PRO+token+'/holders');
    pro.searchParams.set('apikey',key);
    endpoints.push(pro.href);
   }
+  endpoints.push(publicUrl);
   let response=null,sourceUrl=null,lastStatus=null;
   for(const url of endpoints){
    try{
@@ -51,7 +55,9 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
     response=attempt;sourceUrl=url.replace(/[?].*$/,'');break;
    }catch{} // Another approved Blockscout endpoint may remain available.
   }
-  if(!response)return unavailable(lastStatus===null?'BLOCKSCOUT_HOLDERS_REQUEST_FAILED':'BLOCKSCOUT_HOLDERS_HTTP_'+lastStatus);
+  if(!response)return unavailable(!hasKey&&lastStatus===403?
+   'BLOCKSCOUT_CREDENTIALS_REQUIRED':
+   lastStatus===null?'BLOCKSCOUT_HOLDERS_REQUEST_FAILED':'BLOCKSCOUT_HOLDERS_HTTP_'+lastStatus);
   const ranked=rows(await readJson(response,1024*1024));
   if(!ranked)return unavailable('BLOCKSCOUT_HOLDERS_SCHEMA_INVALID');
   if(ranked.length===0)return unavailable('BLOCKSCOUT_HOLDERS_EMPTY');
@@ -65,9 +71,14 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
    // The explorer lists candidates at its latest index height, not the pinned
    // block. A changed balance is expected and is never used in a published
    // metric; only the block-pinned RPC balance is used.
-   if(balance<=0n)throw Error('Pinned candidate has no positive token balance');
+   if(balance>BigInt(totalSupplyRaw))throw Error('Pinned candidate exceeds total supply');
    reconciled[i]={address:row.address,balance};
   }}));}catch{return unavailable('BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED')}
+  const indexedCandidates=reconciled.length;
+  // A wallet may have moved all tokens since the indexer's observation.
+  // Exclude zero-balance candidates; never guess replacement addresses.
+  reconciled=reconciled.filter(row=>row.balance>0n);
+  if(!reconciled.length)return unavailable('BLOCKSCOUT_RANK_NO_POSITIVE_PINNED_BALANCES');
   // Re-rank the reported candidate set by the independently pinned balances.
   // This does not establish the ranks of wallets omitted by the explorer.
   reconciled.sort((a,b)=>a.balance>b.balance?-1:a.balance<b.balance?1:a.address.localeCompare(b.address));
@@ -88,7 +99,9 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
    return unavailable('BLOCKSCOUT_RANK_SUPPLY_RECONCILIATION_FAILED');
   const evidence=[{network:'robinhood',chainId:4663,address:token,sourceUrl,block,
    method:'Blockscout sorted holder candidates + pinned Robinhood RPC balanceOf(wallet) reconciliation',
-   matchedWallets:reconciled.length,censusComplete,verifiedPositiveHolderCount:censusComplete?reconciled.length:null,
+   matchedWallets:reconciled.length,indexedCandidates,
+   discardedZeroBalanceCandidates:indexedCandidates-reconciled.length,
+   censusComplete,verifiedPositiveHolderCount:censusComplete?reconciled.length:null,
    explorerBalanceAtDifferentBlockIgnored:true,sourceRankCompleteness:'SOURCE_REPORTED',
    scope:censusComplete?
     'Every positive balance candidate matched RPC and together they account for 100% of totalSupply at the same block. For fewer than 10/20 holders, the respective top percentage includes every wallet. Wallets do not imply distinct beneficial owners.':

@@ -61,7 +61,7 @@ test('Robinhood ranked holders publish only when Blockscout top 20 match pinned 
  assert.equal(good.top20Pct.evidence[0].chainId,4663);
  const mismatch=await holderRank.fetchRank(ADDRESS,{block,totalSupplyRaw:'1000',
   fetcher:async()=>new Response(JSON.stringify({items:rows})),rpcCall:async()=> '0x'+'0'.repeat(64)});
- assert.equal(mismatch.reasonCode,'BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED');
+ assert.equal(mismatch.reasonCode,'BLOCKSCOUT_RANK_NO_POSITIVE_PINNED_BALANCES');
  assert.equal(holderRank.rows({items:[rows[1],rows[0]]}),null);
 });
 test('Robinhood Blockscout holder count has bounded exact contract validation',()=>{
@@ -86,11 +86,10 @@ test('PRO fallback uses a secret only on server; never puts it in evidence or er
  const key='proapi_EXAMPLE_SAFE_TESTING_KEY',seen=[];
  const result=await read.fetchCount(ADDRESS,{key,fetcher:async url=>{
   seen.push(url);
-  if(seen.length===1)return new Response('',{status:403});
   return new Response(JSON.stringify({token_holders_count:3456}));
  }});
- assert.equal(seen.length,2);
- assert.equal(new URL(seen[1]).searchParams.get('apikey'),key);
+ assert.equal(seen.length,1);
+ assert.equal(new URL(seen[0]).searchParams.get('apikey'),key);
  assert.equal(result.value,3456);
  assert.equal(result.source,'Blockscout PRO Robinhood');
  assert.equal(JSON.stringify(result).includes(key),false);

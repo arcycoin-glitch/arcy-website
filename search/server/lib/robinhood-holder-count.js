@@ -14,20 +14,22 @@ function parseCount(body){
 async function fetchCount(address,{fetcher=fetch,key=process.env.BLOCKSCOUT_API_KEY,now=Date.now()}={}){
  if(typeof address!=='string'||!ADDRESS.test(address))return null;
  const token=address.toLowerCase();
- const endpoints=[
-  {url:PUBLIC+token+'/counters',provider:'Robinhood Blockscout'}
- ];
- // This credential never enters a public URL, browser field or source annotation.
- if(typeof key==='string'&&API_KEY.test(key)){
+ const endpoints=[];
+ // Since July 2026, authenticated Blockscout Pro is the preferred route.
+ // Keep only exact fixed provider hosts, never write a credential to evidence.
+ const hasKey=typeof key==='string'&&API_KEY.test(key);
+ if(hasKey){
   const rest=new URL(PRO+token+'/counters');
   rest.searchParams.set('apikey',key);
   endpoints.push({url:rest.href,provider:'Blockscout PRO Robinhood'});
- }
- endpoints.push({url:PUBLIC+token,provider:'Robinhood Blockscout token metadata'});
- if(typeof key==='string'&&API_KEY.test(key)){
-  const detail=new URL(PRO+token);detail.searchParams.set('apikey',key);
+  const detail=new URL(PRO+token);
+  detail.searchParams.set('apikey',key);
   endpoints.push({url:detail.href,provider:'Blockscout PRO Robinhood'});
  }
+ // Legacy public routes are attempted only when keyed routes cannot supply
+ // exact-token evidence; they may return 403 after the key migration.
+ endpoints.push({url:PUBLIC+token+'/counters',provider:'Robinhood Blockscout'});
+ endpoints.push({url:PUBLIC+token,provider:'Robinhood Blockscout token metadata'});
  for(const {url,provider} of endpoints){
   try{
    const response=await fetcher(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(6800)});

@@ -57,7 +57,7 @@ test('PONS pinned RPC unavailable or invalid source rows cannot generate concent
  const items=addresses.map((a,i)=>({address:a,value:String(200-i)}));
  const zero=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'5000',
   fetcher:async()=>json({items}),rpcCall:async()=>('0x'+'0'.repeat(64))});
- assert.equal(zero.reasonCode,'BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED');
+ assert.equal(zero.reasonCode,'BLOCKSCOUT_RANK_NO_POSITIVE_PINNED_BALANCES');
  const duplicates=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'5000',
   fetcher:async()=>json({items:[...items.slice(0,19),items[0]]})});
  assert.equal(duplicates.reasonCode,'BLOCKSCOUT_HOLDERS_SCHEMA_INVALID');
@@ -74,17 +74,17 @@ test('Robinhood keeps independent source-backed count and sample if Blockscout r
  }finally{[count.fetchCount,plus.inspectHolders,rank.fetchRank]=old;}
 });
 
-test('PONS rank uses Blockscout PRO after public 403, without publishing API credentials',async()=>{
+test('PONS rank prefers Blockscout PRO and never publishes API credentials',async()=>{
  const key='proapi_TEST_SAFE_SECRET_KEY_123',wallets=Array.from({length:20},(_,i)=>wallet(i+1));
  const items=wallets.map((a,i)=>({address:a,value:String(200-i)}));
  const values=new Map(wallets.map((a,i)=>[a,BigInt(200-i)])),seen=[];
  const r=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'5000',key,
   fetcher:async url=>{
    seen.push(url);
-   return seen.length===1?http403():json({items});
+   return json({items});
   },rpcCall:rpcBalances(values)});
- assert.equal(seen.length,2);
- assert.equal(new URL(seen[1]).searchParams.get('apikey'),key);
+ assert.equal(seen.length,1);
+ assert.equal(new URL(seen[0]).searchParams.get('apikey'),key);
  assert.equal(r.top10Pct.dataState,'DATA_FOUND');
  assert.equal(r.top20Pct.dataState,'DATA_FOUND');
  assert.equal(JSON.stringify(r).includes(key),false);
@@ -97,4 +97,78 @@ test('PONS rank rejects blocked Blockscout endpoints without inventing wallet co
  assert.equal(calls,2);
  assert.equal(r.reasonCode,'BLOCKSCOUT_HOLDERS_HTTP_403');
  assert.equal(r.top10Pct,undefined);
+});
+
+test('PONS retains pinned top-10 candidate evidence when one indexed wallet exits before the report block',async()=>{
+ const addresses=Array.from({length:20},(_,i)=>wallet(i+1));
+ const items=addresses.map((a,i)=>({address:a,value:String(i===19?0:200-i)}));
+ const pinned=new Map(addresses.map((a,i)=>[a,i===19?0n:100n]));
+ const out=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'3000',key:'',
+  fetcher:async()=>json({items}),rpcCall:rpcBalances(pinned)});
+ assert.equal(out.reasonCode,undefined);
+ assert.equal(out.largestWalletPct.dataState,'DATA_FOUND');
+ assert.equal(out.top10Pct.status,'SOURCE_REPORTED_RPC_RECONCILED');
+ assert.equal(out.top20Pct,undefined);
+ assert.equal(out.holderCount,undefined);
+ assert.equal(out.top10Pct.evidence[0].discardedZeroBalanceCandidates,1);
+ assert.equal(out.top10Pct.evidence[0].matchedWallets,19);
+ assert.equal(out.top10Pct.evidence[0].censusComplete,false);
+});
+
+test('PONS does not invent a top-10 sample from fewer than ten positive pinned candidates',async()=>{
+ const addresses=Array.from({length:20},(_,i)=>wallet(i+1));
+ const items=addresses.map((a,i)=>({address:a,value:String(200-i)}));
+ const pinned=new Map(addresses.map((a,i)=>[a,i<9?100n:0n]));
+ const out=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'3000',key:'',
+  fetcher:async()=>json({items}),rpcCall:rpcBalances(pinned)});
+ assert.equal(out.reasonCode,'BLOCKSCOUT_RANK_BELOW_TEN_ROWS');
+ assert.equal(out.top10Pct,undefined);
+});
+
+test('PONS reads a now-positive wallet even when its earlier explorer balance was zero',async()=>{
+ const addresses=Array.from({length:20},(_,i)=>wallet(i+1));
+ const items=addresses.map((a,i)=>({address:a,value:String(i===19?0:200-i)}));
+ const pinned=new Map(addresses.map(a=>[a,50n]));
+ const out=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'2000',key:'',
+  fetcher:async()=>json({items}),rpcCall:rpcBalances(pinned)});
+ assert.equal(out.reasonCode,undefined);
+ assert.equal(out.top20Pct.dataState,'DATA_FOUND');
+ assert.equal(out.top20Pct.status,'SOURCE_REPORTED_RPC_RECONCILED');
+ assert.equal(out.top20Pct.evidence[0].discardedZeroBalanceCandidates,0);
+});
+
+test('PONS reports missing free Blockscout credentials rather than pretending token has no holders',async()=>{
+ const out=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'5000',key:'',
+  fetcher:async()=>http403()});
+ assert.equal(out.reasonCode,'BLOCKSCOUT_CREDENTIALS_REQUIRED');
+ assert.equal(out.top10Pct,undefined);
+});
+
+test('PONS uses public explorer only after configured PRO endpoint is unavailable',async()=>{
+ const key='proapi_TEST_SAFE_SECRET_KEY_123',wallets=Array.from({length:20},(_,i)=>wallet(i+1));
+ const items=wallets.map((a,i)=>({address:a,value:String(200-i)}));
+ const values=new Map(wallets.map((a,i)=>[a,BigInt(200-i)])),seen=[];
+ const out=await rank.fetchRank(PONS,{block:BLOCK,totalSupplyRaw:'5000',key,
+  fetcher:async url=>{seen.push(url);return seen.length===1?http403():json({items});},
+  rpcCall:rpcBalances(values)});
+ assert.equal(seen.length,2);
+ assert.equal(new URL(seen[0]).searchParams.get('apikey'),key);
+ assert.ok(!seen[1].includes('apikey='));
+ assert.equal(out.top20Pct.dataState,'DATA_FOUND');
+ assert.equal(out.top20Pct.evidence[0].sourceUrl,
+  'https://robinhoodchain.blockscout.com/api/v2/tokens/'+PONS+'/holders');
+ assert.equal(JSON.stringify(out).includes(key),false);
+});
+
+test('PONS count checks authenticated endpoint before known-blocked public URL',async()=>{
+ const key='proapi_TEST_SAFE_SECRET_KEY_123',seen=[];
+ const c=await count.fetchCount(PONS,{key,fetcher:async url=>{
+  seen.push(url);
+  return json({token_holders_count:1012,address:PONS});
+ }});
+ assert.equal(seen.length,1);
+ assert.equal(new URL(seen[0]).searchParams.get('apikey'),key);
+ assert.equal(c.value,1012);
+ assert.equal(c.source,'Blockscout PRO Robinhood');
+ assert.ok(!JSON.stringify(c).includes(key));
 });
