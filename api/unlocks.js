@@ -36,11 +36,11 @@ async function fetchCmcLogos(events) {
 }
 
 function mergeEvents(rows) {
-  const groups = new Map(), conflicts = [];
-  for (const row of rows) { if (suppressingReview(row) && row.verification !== 'project-confirmed') continue; const key = JSON.stringify([row.name.toLowerCase().trim(), row.symbol, row.tokenVersion || 'calendar-unspecified', row.date, row.allocation.toLowerCase().trim()]); if (!groups.has(key)) groups.set(key, []); groups.get(key).push(row); }
+  const groups = new Map(), conflicts = [], quarantined = new Map();
+  for (const row of rows) { const review = suppressingReview(row); if (review && row.verification !== 'project-confirmed') { const key = JSON.stringify([row.name,row.symbol,row.date,row.amount,review.projectId]); quarantined.set(key,{ projectId:review.projectId, name:row.name,symbol:row.symbol,date:row.date,amount:row.amount,status:review.status,reason:review.reason }); continue; } const key = JSON.stringify([row.name.toLowerCase().trim(), row.symbol, row.tokenVersion || 'calendar-unspecified', row.date, row.allocation.toLowerCase().trim()]); if (!groups.has(key)) groups.set(key, []); groups.get(key).push(row); }
   const events = [];
   for (const [key, group] of groups) { const amounts = new Set(group.map(row => row.amount.replace(/,/g, '').replace(/\s+/g, ' ').trim())); if (amounts.size !== 1) { conflicts.push({ identity: JSON.parse(key), reason: 'Conflicting published amounts', sources: [...new Set(group.map(row => row.sourceUrl))] }); continue; } const event = { ...group[0], evidence: group.flatMap(row => row.evidence || []) }; if (new Set(group.map(row => row.percent)).size > 1 || (event.verification !== 'project-confirmed' && COVERAGE_REVIEWS.some(r => r.status === 'cross-source-float-percent-conflict' && r.symbols.includes(event.symbol) && r.date === event.date && r.name.toLowerCase() === event.name.toLowerCase()))) event.percent = ''; events.push(event); }
-  return { events, conflicts };
+  return { events, conflicts, quarantined: [...quarantined.values()] };
 }
 
 async function collectVerifiedEvents(records) {
@@ -101,7 +101,7 @@ function safeCurrentEdition(raw, now = Date.now()) {
     today: events.filter(e => e.daysFromToday === 0),
     next7: events.filter(e => e.daysFromToday >= 1 && e.daysFromToday <= 7),
     days8to30: events.filter(e => e.daysFromToday >= 8 && e.daysFromToday <= 30)
-  }, partial: Boolean(raw.partial || excluded.length || percentageConflicts.length), networkScope: 'CROSS_ECOSYSTEM', coverage: { ...(raw.coverage || {}), complete: false, independentPublishers: 1, publisherNote: 'The soonest, impact and value sorts are three views of one publisher (CoinBell), not independent confirmations.', reviews: COVERAGE_REVIEWS, quarantined: excluded, percentageConflicts } };
+  }, partial: Boolean(raw.partial || excluded.length || percentageConflicts.length || raw.coverage?.quarantined?.length), networkScope: 'CROSS_ECOSYSTEM', coverage: { ...(raw.coverage || {}), complete: false, independentPublishers: 1, publisherNote: 'The soonest, impact and value sorts are three views of one publisher (CoinBell), not independent confirmations.', reviews: COVERAGE_REVIEWS, quarantined: [...(Array.isArray(raw.coverage?.quarantined)?raw.coverage.quarantined:[]),...excluded], percentageConflicts } };
 }
 function validEdition(value) { return !!(value && value.schemaVersion === 1 && value.success === true && Array.isArray(value.events) && value.windows && ['today', 'next7', 'days8to30'].every(name => Array.isArray(value.windows[name]))); }
 function base64(value) { return Uint8Array.from(atob(value), char => char.charCodeAt(0)); }
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
     if (partial) res.setHeader('Cache-Control', 'no-store');
     let logos = {}; try { logos = await fetchCmcLogos(events); } catch {}
     const enriched = events.map(event => ({ ...event, logo: logos[event.symbol] || '' }));
-    const responseBody = { ok: true, live: true, source: 'CoinBell published calendar (DefiLlama attribution); project-confirmed supplements when available', partial, coverage: { complete: false, sources: collected.map(({ url, status, rows }) => ({ url, status, rowCount: rows.length })), reviews: COVERAGE_REVIEWS, conflicts: merged.conflicts, rejectedSupplements: supplemental.rejected }, sourceUrl: SOURCE_URL, updatedAt: new Date().toISOString(), windowTimeZone: 'UTC', refreshAt: new Date(Date.parse(utcToday() + 'T00:00:00Z') + 86400000).toISOString(), windows: { today: enriched.filter(event => event.daysFromToday === 0), next7: enriched.filter(event => event.daysFromToday >= 1 && event.daysFromToday <= 7), days8to30: enriched.filter(event => event.daysFromToday >= 8 && event.daysFromToday <= 30) }, events: enriched };
+    const responseBody = { ok: true, live: true, source: 'CoinBell published calendar (DefiLlama attribution); project-confirmed supplements when available', partial, coverage: { complete: false, sources: collected.map(({ url, status, rows }) => ({ url, status, rowCount: rows.length })), reviews: COVERAGE_REVIEWS, conflicts: merged.conflicts, quarantined: merged.quarantined, rejectedSupplements: supplemental.rejected }, sourceUrl: SOURCE_URL, updatedAt: new Date().toISOString(), windowTimeZone: 'UTC', refreshAt: new Date(Date.parse(utcToday() + 'T00:00:00Z') + 86400000).toISOString(), windows: { today: enriched.filter(event => event.daysFromToday === 0), next7: enriched.filter(event => event.daysFromToday >= 1 && event.daysFromToday <= 7), days8to30: enriched.filter(event => event.daysFromToday >= 8 && event.daysFromToday <= 30) }, events: enriched };
     const checked = safeCurrentEdition(responseBody);
     if (checked.partial) res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ...checked, ...chainNotice(req) });
