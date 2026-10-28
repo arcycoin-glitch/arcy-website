@@ -45,3 +45,5 @@
  #tokenDetail .arcy-radar-change{font-size:10px}
  #tokenDetail .arcy-radar-page{padding:6px 8px}
 }
+
+#tokenDetail .arcy-radar-switcher[hidden]{display:none!important}

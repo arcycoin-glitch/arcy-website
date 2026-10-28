@@ -46,6 +46,9 @@
  credit.href='https://www.coingecko.com/en/api';credit.target='_blank';credit.rel='noopener noreferrer';
  panel.append(title,subtitle,chainNav,status,rows,pager,foot,credit);
  detail.prepend(panel);detail.prepend(switcher);
+ // Never advertise an empty Radar as a completed public feature.
+ // Activate the switcher only when ALL three networks return ten source-backed tokens.
+ switcher.hidden=true;
  let selected='arc',active='research',page=0,sequence=0,items=[],loadedNetwork=null;
  const USD=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
  const PRICE=new Intl.NumberFormat('en-US',{maximumSignificantDigits:5});
@@ -126,4 +129,23 @@
  prev.addEventListener('click',()=>{if(page>0){page--;render();}});
  next.addEventListener('click',()=>{if((page+1)*5<items.length){page++;render();}});
  setView('research');
+ async function verifyPublicReadiness(){
+  try{
+   const all=await Promise.all(['arc','ethereum','robinhood'].map(async network=>{
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),9500);
+    try{
+     const response=await fetch('/api/search?action=radar&chain='+network,{signal:controller.signal,headers:{accept:'application/json'},cache:'no-store'});
+     if(!response.ok)return false;
+     const data=await response.json();
+     return data?.ok===true&&data.network===network&&Array.isArray(data.tokens)&&
+      data.tokens.length===10&&data.tokens.every((item,i)=>item?.rank===i+1&&
+       item.network===network&&/^0x[0-9a-f]{40}$/i.test(item.address)&&
+       typeof item.volume24hUsd==='number'&&Number.isFinite(item.volume24hUsd)&&item.volume24hUsd>0);
+    }finally{clearTimeout(timer)}
+   }));
+   if(all.every(Boolean))switcher.hidden=false;
+  }catch{} // Source/license failures must not disturb the existing token research.
+ }
+ void verifyPublicReadiness();
 })();
