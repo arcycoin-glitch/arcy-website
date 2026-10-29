@@ -82,3 +82,36 @@ Persistent volume (`ARC_HOLDER_PUBLISHED_DIR`, `ARC_INDEX_CACHE_DIR`) is **only 
 3. Set `ARC_RADAR_INDEXER_ENABLED=true`; confirm holder batches are unaffected (`HOLDER_WORKER_BATCH`), CPU/memory stable.
 4. Preview env: `MARKET_RADAR_ONCHAIN_ENABLED=true`, `MARKET_RADAR_SOURCE=snapshot`, `ARC_RADAR_PUBLISHED_URL`, `ARC_HOLDER_PUBLIC_KEY`.
 Rollback: unset `ARC_RADAR_INDEXER_ENABLED` (loop stops on restart) or redeploy the recorded previous deployment id; delete only `<volume>/market-radar/` if desired. Vercel: unset `MARKET_RADAR_ONCHAIN_ENABLED` (Radar returns 503 `RADAR_NOT_ENABLED`, no RPC contact). Production remains off.
+
+---
+
+# Low-RPC operation (PR #94 live Preview findings, 2026-10-29)
+
+Live Preview of `199944e`: all four Radar endpoints returned 503 — Arc (24h = 170k blocks, provider cap 10k, rate limited), Ethereum
+(`RADAR_POOL_KEY_COVERAGE_LOW`, 82.2% < 85%, registry empty), Robinhood (829k blocks, repeated 429), pons (1.66M-block window, all calls 429).
+Conclusion: a 24h log scan is not a synchronous-request workload on free RPCs. The fail-closed behaviour is correct and unchanged.
+
+## What the indexer does to stay cheap
+- **Shared adaptive pacer** per RPC (`ARC_RADAR_MIN_INTERVAL_MS`, default 150 ms; pons 250 ms). 429 or "rate limit" JSON-RPC errors double the interval (max 8 s) and honour `Retry-After`; healthy calls decay it. The pace is persisted (`paceMs`) so the next run starts gently.
+- **2 parallel log scans** (`ARC_RADAR_CONCURRENCY`, max 4); drops to 1 after a 429. Up to 40 patient retries per range (bounded by the run budget) instead of failing the run.
+- **A rate-limited primary never fans out to the fallback** (no quota burn on the free plan); `eth_getLogs` never uses the Robinhood free-plan fallback.
+- **Dedicated credentials**: `RADAR_ARC_RPC_URL`, `RADAR_ETHEREUM_RPC_URL`, `RADAR_ROBINHOOD_RPC_URL` take precedence over `ARC_RPC_URL`/`ETH_RPC_URL`/`ROBINHOOD_RPC_URL`, so Radar never competes with the Holder worker's quota. Set them to a separate key.
+- **Incremental**: after bootstrap each run reads only the blocks since the last run (a few calls); the learned block cap is persisted.
+- API 503s for scan/coverage/snapshot failures are edge-cached for 30 s so page loads (4 readiness probes) cannot hammer the RPC.
+
+## Bootstrap (one time, on the Railway worker, never in Vercel)
+Rough one-time cost at observed caps: Arc ≈ 17 swap calls + registry; Ethereum ≈ 7,200-block window + Initialize backfill from block 21.5M (≈ a few hundred calls); Robinhood ≈ 830k blocks / ≤2,000-block chunks ≈ 420 calls; pons 7-day lookback (~5.8M blocks) ≈ a few thousand calls, then incremental.
+```
+node scripts/radar-warm.cjs ethereum     # registry backfill newest-first; publishes when ≥85% of swaps resolve
+node scripts/radar-warm.cjs arc
+node scripts/radar-warm.cjs robinhood
+node scripts/radar-warm.cjs pons
+```
+Each round is bounded (90 s), resumable and prints sanitized progress (`blocksBehind`, `registry.remainingBlocks`, pace). Ethereum's share rises as the registry reaches older pools; until then the API stays 503 `RADAR_SNAPSHOT_MISSING` (no ranking is guessed).
+
+## Proofs inside a signed snapshot
+`snapshot.integrity`: confirmed head hash and block, contiguous segment range, registry progress (`low/high/keys/complete`), RPC chain id, source contract, confirmations, public-key fingerprint, RPC calls of the run;
+`coverage`: `swapsResolvedShare`, `keySources`, `scopeNote`; `window`: actual seconds. The API verifies signature, chain, freshness (≤ `ARC_RADAR_MAX_AGE_SEC`, default 1200), window ≥ 24h and row validity before serving.
+
+## Holder protection
+The loop starts only when `ARC_RADAR_INDEXER_ENABLED=true`; everything is additive (`/radar/*` routes, files under `market-radar/`). Use separate Radar RPC keys, keep the interval ≥ 5 min, and deploy dormant first (see rollback plan above). `GET /holder/rpc-diagnostics` may be run after the dormant deploy.

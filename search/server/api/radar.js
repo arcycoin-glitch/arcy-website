@@ -57,6 +57,9 @@ module.exports=async function(req,res){
   log('warn',{network,ok:false,code,diagnostics:error?.diagnostics||null});
   const body={...GENERIC_UNAVAILABLE,reasonCode:code,network};
   if(preview&&error?.diagnostics)body.diagnostics=error.diagnostics;
+  // Scan/coverage/snapshot failures are deterministic for minutes: let the edge absorb repeat probes so a page
+  // load (4 readiness checks) cannot burn the RPC quota. Other failures stay uncached.
+  if(/^RADAR_(ONCHAIN_SCAN_INCOMPLETE|POOL_KEY_COVERAGE_LOW|SNAPSHOT_[A-Z_]+)$/.test(code))res.setHeader('Cache-Control','public, max-age=0, s-maxage=30');
   return res.status(503).json(body);
  }
 };

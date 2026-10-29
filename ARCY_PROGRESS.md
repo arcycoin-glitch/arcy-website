@@ -210,3 +210,8 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Phase 2: classification order fixed (rate vs range), cap re-cutting, live feasibility stop, Initialize-event key registry (hash-verified), coverage gate RADAR_POOL_KEY_COVERAGE_LOW, scope note, indexer registry backfill + persisted learned cap.
 - Phase 3: lib/pons-launch-radar.js + lib/pons-launch-indexer.js, `chain=pons`, fourth tab (pons), snapshot kind `pons`. Official docs sources; third-party article factory not used.
 - Tests: 718/718. Railway untouched; rollback plan in docs/market-radar-indexer.md.
+
+## 2026-10-29 (late) — Low-RPC indexer hardening after live Preview 503s (PR #94)
+- Live Preview of 199944e: arc/robinhood/pons scan-incomplete (cap/429), ethereum key coverage 82.2% (registry empty). Fail-closed kept.
+- Added: adaptive RPC pacer + Retry-After, dedicated RADAR_<NET>_RPC_URL, patient 429 retries in indexer, persisted pace, snapshot integrity proofs, scripts/radar-warm.cjs, 30 s edge cache for deterministic 503s, pons live lookback 3h.
+- Tests 727/727. Railway untouched. Next (user): deploy dormant, run radar-warm per network, then Preview with MARKET_RADAR_SOURCE=snapshot.

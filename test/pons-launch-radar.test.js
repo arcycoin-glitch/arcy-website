@@ -130,7 +130,7 @@ const crypto=require('node:crypto'),fs=require('node:fs'),os=require('node:os'),
 const indexer=require('../lib/pons-launch-indexer'),storage=require('../lib/market-radar-storage');
 function withStore(fn){return async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pons-')),{privateKey,publicKey}=crypto.generateKeyPairSync('ed25519'),saved={...process.env};
- Object.assign(process.env,{ARC_RADAR_DIR:dir,ARC_RADAR_SIGNING_KEY:privateKey.export({type:'pkcs8',format:'pem'}),ARC_RADAR_PUBLIC_KEY:publicKey.export({type:'spki',format:'pem'})});
+ Object.assign(process.env,{ARC_RADAR_MIN_INTERVAL_MS:'0',ARC_RADAR_DIR:dir,ARC_RADAR_SIGNING_KEY:privateKey.export({type:'pkcs8',format:'pem'}),ARC_RADAR_PUBLIC_KEY:publicKey.export({type:'spki',format:'pem'})});
  try{await fn({dir,pub:process.env.ARC_RADAR_PUBLIC_KEY});}
  finally{for(const k of Object.keys(process.env))if(!(k in saved))delete process.env[k];Object.assign(process.env,saved);fs.rmSync(dir,{recursive:true,force:true});}};}
 

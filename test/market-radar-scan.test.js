@@ -239,3 +239,31 @@ test('timeouts on wide ranges halve immediately instead of retrying the same ran
  const r=await scanRange(rpc,{...cfg,initialChunk:16000},0,31999,{deadline:far(),sleep:noSleep});
  assert.ok(timeouts<=10,'timeouts '+timeouts);assert.ok(widest<=2000);void r;
 });
+
+// ---- issue #96 follow-up: low-RPC pacing, Retry-After, dedicated Radar RPC ----------------------------
+test('429 with Retry-After slows the shared pacer and the wait is honoured, not hammered',async()=>{
+ const waits=[];let n=0;
+ const fetcher=async(url,init)=>{const req=JSON.parse(init.body);n++;
+  if(n<=2)return {ok:false,status:429,headers:{get:k=>k==='retry-after'?'2':null},text:async()=>'Too Many Requests'};
+  return {ok:true,json:async()=>({jsonrpc:'2.0',id:req.id,result:'0x1'})};};
+ const rpc=onchain.makeRpc('arc',{fetcher,env:{},minIntervalMs:100,sleep:async ms=>{waits.push(ms);}});
+ await assert.rejects(rpc.call('eth_chainId',[]),e=>e.retryAfterMs===2000);
+ await assert.rejects(rpc.call('eth_chainId',[]),e=>e.retryAfterMs===2000);
+ assert.equal(await rpc.call('eth_chainId',[]),'0x1');
+ assert.ok(rpc.pace().slowdowns>=2&&rpc.pace().ms>100);
+ assert.ok(waits.some(ms=>ms>=1000),'waits '+JSON.stringify(waits));
+ assert.ok(n===3,'rate-limited primary must not fan out to the fallback: '+n);
+});
+test('a dedicated RADAR_<NETWORK>_RPC_URL keeps Radar quota separate from the holder/search RPC',async()=>{
+ const seen=[];
+ const fetcher=async(url,init)=>{seen.push(String(url));const req=JSON.parse(init.body);return {ok:true,json:async()=>({jsonrpc:'2.0',id:req.id,result:'0x1'})};};
+ await onchain.makeRpc('arc',{fetcher,env:{ARC_RPC_URL:'https://holder.example',RADAR_ARC_RPC_URL:'https://radar.example'}}).call('eth_chainId',[]);
+ await onchain.makeRpc('arc',{fetcher,env:{ARC_RPC_URL:'https://holder.example'}}).call('eth_chainId',[]);
+ assert.ok(seen[0].startsWith('https://radar.example')&&seen[1].startsWith('https://holder.example'),JSON.stringify(seen));
+});
+test('scan survives a burst of 429s with patient retries when rateTries is raised (indexer mode)',async()=>{
+ let n=0;
+ const rpc=rpcOf(p=>{n++;if(n<=8)throw Object.assign(Error('RPC_HTTP_429'),{transport:true,body:'slow down',retryAfterMs:1});return [];});
+ const r=await scanRange(rpc,cfg,0,100,{deadline:far(),rateTries:40,sleep:noSleep});
+ assert.equal(r.swaps,0);assert.ok(r.stats.rateLimited>=8);
+});

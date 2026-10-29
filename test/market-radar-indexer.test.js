@@ -16,7 +16,7 @@ const keys=()=>{const {privateKey,publicKey}=crypto.generateKeyPairSync('ed25519
 function withStore(fn){
  return async()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'radar-'));const k=keys(),saved={...process.env};
-  Object.assign(process.env,{ARC_RADAR_DIR:dir,ARC_RADAR_SIGNING_KEY:k.priv,ARC_RADAR_PUBLIC_KEY:k.pub});
+  Object.assign(process.env,{ARC_RADAR_DIR:dir,ARC_RADAR_SIGNING_KEY:k.priv,ARC_RADAR_PUBLIC_KEY:k.pub,ARC_RADAR_MIN_INTERVAL_MS:'0'});
   try{await fn({dir,keys:k});}
   finally{for(const key of Object.keys(process.env))if(!(key in saved))delete process.env[key];Object.assign(process.env,saved);fs.rmSync(dir,{recursive:true,force:true});}
  };
@@ -136,3 +136,25 @@ test('without any pool-key source the indexer refuses to publish a thin ranking'
  const r=await indexer.run('ethereum',{fetcher:noPm,budgetMs:60000});
  assert.equal(r.status,'registry_backfilling');assert.equal(await storage.envelopeOf('ethereum'),null);
 }));
+
+test('published snapshot carries source/freshness/coverage proofs and the pacer state is persisted',withStore(async({keys:k})=>{
+ process.env.RADAR_INIT_FROM_ETHEREUM='999000';
+ const ps=pools().map((p,i)=>({...p,initBlock:999100+i}));
+ const chain=makeChain('ethereum',{pools:ps,tokens:tokenMeta(6)});
+ const r=await indexer.run('ethereum',{fetcher:chain,budgetMs:60000});
+ assert.equal(r.status,'published');
+ const snap=await snapshot.load('ethereum',{store:storage,now:Date.now()});
+ const i=snap.snapshot.integrity;
+ assert.equal(i.segmentsContiguous,true);assert.ok(i.segmentsFrom<=i.segmentsTo);assert.equal(i.rpcChainId,1);
+ assert.match(i.sourceContract,/^0x[0-9a-f]{40}$/);assert.equal(i.registry.complete,true);assert.match(i.publicKeyFingerprint||'',/^[0-9a-f]{16}$/);
+ assert.ok(snap.snapshot.headTime&&snap.window.seconds>=86400&&snap.coverage.swapsResolvedShare>=0.85);
+ const state=await storage.readState('ethereum');assert.equal(typeof state.paceMs,'number');
+ void k;
+}));
+
+test('holder worker protection: the Radar loop is inert unless explicitly enabled and never throws into the worker',()=>{
+ const http=require('../lib/market-radar-http');
+ const saved=process.env.ARC_RADAR_INDEXER_ENABLED;delete process.env.ARC_RADAR_INDEXER_ENABLED;
+ try{assert.equal(http.startLoop(),null);assert.equal(http.matches({url:'/pulse/networks/latest'}),false);assert.equal(http.matches({url:'/snapshots/0x1.json'}),false);assert.equal(http.matches({url:'/radar/status'}),true);}
+ finally{if(saved!==undefined)process.env.ARC_RADAR_INDEXER_ENABLED=saved;}
+});
