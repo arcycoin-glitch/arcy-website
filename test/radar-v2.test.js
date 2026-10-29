@@ -258,6 +258,8 @@ test('UI: four sections, NOT VERIFIED rendered as N/A, text-only DOM, provider a
  assert.ok(!/innerHTML|insertAdjacentHTML|document\.write/.test(src),'provider strings are only ever set as textContent');
  assert.ok(src.includes("rel='noopener noreferrer'")&&src.includes('body.attribution'));
  assert.ok(src.includes("pons:4663")&&src.includes("TOKEN_NET"));
+ assert.ok(src.includes('translate=false')&&src.includes('Same ticker as another listed token')&&src.includes('Volume far above liquidity'));
+ assert.ok(src.includes('native ETH'),'zero-address rows are not linked to a research page');
 });
 
 test('attribution follows the CoinGecko attribution guide and sits next to the data',async()=>{

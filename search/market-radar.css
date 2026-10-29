@@ -48,6 +48,7 @@
 
 #tokenDetail .arcy-radar-switcher[hidden]{display:none!important}
 
-.arcy-radar-badge{display:inline-block;margin-top:2px;padding:1px 7px;border-radius:999px;font-size:.68rem;font-weight:600;letter-spacing:.02em;border:1px solid currentColor;opacity:.9}
+.arcy-radar-badge{display:inline-block;align-self:flex-start;width:fit-content;margin-top:2px;padding:1px 7px;border-radius:999px;font-size:.68rem;font-weight:600;letter-spacing:.02em;border:1px solid currentColor;opacity:.9}
 .arcy-radar-badge-verified{color:#2f9e6e}.arcy-radar-badge-reported{color:#b8860b}.arcy-radar-badge-unverified{color:#8a8f98}
 .arcy-radar-credit-row{margin:6px 0 0;font-size:.78rem}.arcy-radar-credit-row .arcy-radar-credit{margin-right:10px}
+.arcy-radar-warn{font-size:.7rem;color:#e0a53a;line-height:1.25}
