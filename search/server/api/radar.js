@@ -40,7 +40,7 @@ module.exports=async function(req,res){
   message:'Market Radar is not enabled in this environment. No rankings are published.'});
  // Sanitized diagnostics (phase, window, scan counters, failure class) are exposed ONLY outside
  // production, in the response and in function logs. They never contain RPC URLs or credentials.
- const preview=process.env.VERCEL_ENV!=='production'&&process.env.NODE_ENV!=='production';
+ const preview=process.env.VERCEL_ENV==='preview'||(process.env.VERCEL_ENV===undefined&&process.env.NODE_ENV!=='production');
  const log=(level,payload)=>{if(preview)try{console[level]('[radar]',JSON.stringify(payload));}catch{}};
  try{
   // MARKET_RADAR_SOURCE=snapshot reads the signed, continuously indexed Railway snapshot
