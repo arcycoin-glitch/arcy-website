@@ -36,6 +36,7 @@
  status.id='marketRadarStatus';status.setAttribute('role','status');
  status.setAttribute('aria-live','polite');
  const rows=el('div','arcy-radar-rows');rows.id='marketRadarRows';
+ const legend=el('p','arcy-radar-legend');
  const pager=el('div','arcy-radar-pager');
  const prev=el('button','arcy-radar-page','← Previous');
  const current=el('span','arcy-radar-page-status');
@@ -46,7 +47,7 @@
  const FOOT={default:'Ranked by the single largest observed pool for each base token, not total token volume across the chain. Values marked Cross-checked agree between two independent indexers; this is not an onchain proof. Discovery, not an investment recommendation.',pons:'Pons Launch lists only tokens confirmed as launched by the official Pons factory contracts on Robinhood Chain (onchain read), found among the newest and most active pools; tokens still on the bonding curve are not covered and the list is not exhaustive. Discovery, not an investment recommendation.'};
  foot.textContent=FOOT.default;
  const credit=el('p','arcy-radar-credit-row');
- panel.append(title,subtitle,chainNav,status,rows,pager,foot,credit);
+ panel.append(title,subtitle,chainNav,status,rows,legend,pager,foot,credit);
  detail.prepend(panel);detail.prepend(switcher);
  // Never advertise an empty Radar as a completed public feature.
  // Activate the switcher when at least one section returns source-backed tokens; sections without data say so honestly.
@@ -72,11 +73,38 @@
   radarBtn.setAttribute('aria-pressed',String(radar));
   if(radar&&!loadedNetwork)void load(selected);
  }
+ const LOGO_HOSTS=['coin-images.coingecko.com','assets.coingecko.com','assets.geckoterminal.com','cdn.dexscreener.com','dd.dexscreener.com'];
+ const safeLogo=l=>{try{const u=new URL(l&&l.url);return u.protocol==='https:'&&LOGO_HOSTS.includes(u.hostname)?u.href:null;}catch{return null;}};
+ const REASON={SOURCES_DISAGREE:'providers disagree',MARKET_CAP_NOT_PROVIDED:'not published by sources (FDV is a different measure and is not substituted)',FIELD_NOT_PROVIDED:'not provided by sources'};
+ const DOT={CROSS_VERIFIED:['verified','Cross-checked: two independent sources agree'],ONCHAIN_VERIFIED:['verified','Read onchain'],SOURCE_REPORTED:['reported','Single source, not cross-checked'],NOT_VERIFIED:['unavailable','Not verified']};
+ const FIELD_LABEL={volume24hUsd:'Volume 24H',liquidityUsd:'Liquidity',marketCapUsd:'Market cap',priceUsd:'Price'};
+ function chip(item,f,text){
+  const info=item.fields&&item.fields[f],st=info&&info.status||'NOT_VERIFIED',ok=fieldOk(item,f);
+  const d=DOT[ok?st:'NOT_VERIFIED'],box=el('span','arcy-radar-chip');
+  let label=FIELD_LABEL[f];
+  if((f==='volume24hUsd'||f==='liquidityUsd')&&info&&info.scope==='POOL')label+=' (pool)';
+  const lab=el('span','arcy-radar-chip-label',label),val=el('span','arcy-radar-chip-value'+(ok?'':' is-na'),ok?text:NV);
+  const dot=el('span','arcy-radar-dot arcy-radar-dot-'+d[0]);
+  box.title=ok?d[1]:(label+': '+(REASON[info&&info.reasonCode]||REASON.FIELD_NOT_PROVIDED));
+  const top=el('span','arcy-radar-chip-top');top.append(dot,lab);box.append(top,val);
+  return box;
+ }
+ function logoNode(item){
+  const wrap=el('span','arcy-radar-logo'),url=safeLogo(item.logo);
+  if(url){
+   const img=document.createElement('img');
+   img.alt='';img.width=32;img.height=32;img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
+   img.addEventListener('error',()=>{img.remove();wrap.classList.add('is-empty');},{once:true});
+   img.src=url;wrap.append(img);
+  }else wrap.classList.add('is-empty');
+  return wrap;
+ }
  function render(){
   rows.replaceChildren();
   const start=page*5;
   const shown=items.slice(start,start+5);
   const dupes=new Map();for(const it of items){const k=String(it.symbol).toLowerCase();dupes.set(k,(dupes.get(k)||0)+1);}
+  const reasons=new Set();
   for(const item of shown){
    const native=/^0x0{40}$/i.test(item.address); // provider lists native ETH under the zero address: no contract to research
    const link=el(native?'div':'a','arcy-radar-row');
@@ -85,25 +113,30 @@
    const rank=el('span','arcy-radar-rank',String(item.rank));
    const ticker=el('span','arcy-radar-ticker',item.symbol);ticker.translate=false;
    const name=el('span','arcy-radar-token-name',item.name);name.translate=false;
-   const identity=el('span','arcy-radar-identity');identity.append(ticker,name);
-   const short=el('span','arcy-radar-secondary',native?'native ETH · no contract':item.address.slice(0,6)+'…'+item.address.slice(-4));short.translate=false;identity.append(short);
-   const stats=el('span','arcy-radar-stat-block');
-   const volume=el('span','arcy-radar-primary',fieldOk(item,'volume24hUsd')?money(item.volume24hUsd):NV+' · NOT VERIFIED');
-   const small=el('span','arcy-radar-secondary','Price '+(fieldOk(item,'priceUsd')?price(item.priceUsd):NV)+' · Liq '+(fieldOk(item,'liquidityUsd')?money(item.liquidityUsd):NV)+(selected==='pons'?' · Launched '+(fieldOk(item,'poolCreatedAt')?ago(item.poolCreatedAt):NV):''));
-   const st=item.fields&&item.fields.volume24hUsd?item.fields.volume24hUsd.status:'NOT_VERIFIED',b=BADGE[st]||BADGE.NOT_VERIFIED;
-   const badges=el('span','arcy-radar-badge arcy-radar-badge-'+b[1],b[0]);
-   const extra=[];
-   if(selected==='pons'&&item.launch&&item.launch.status==='ONCHAIN_VERIFIED')extra.push('✓ Onchain launch'+(item.graduation&&item.graduation.graduated?' · Graduated':' · Bonding'));
-   const onchain=extra.length?el('span','arcy-radar-secondary',extra.join(' · ')):null;
-   const warn=[];
-   if((dupes.get(String(item.symbol).toLowerCase())||0)>1)warn.push('⚠ Same ticker as another listed token — check the contract');
-   if(fieldOk(item,'volume24hUsd')&&fieldOk(item,'liquidityUsd')&&item.liquidityUsd>0&&item.volume24hUsd/item.liquidityUsd>100)warn.push('⚠ Volume far above liquidity');
-   stats.append(volume,small,badges);if(onchain)stats.append(onchain);
-   for(const w of warn)stats.append(el('span','arcy-radar-warn',w));
+   const short=el('span','arcy-radar-secondary',native?'native ETH · no contract':item.address.slice(0,6)+'…'+item.address.slice(-4));short.translate=false;
+   const identity=el('span','arcy-radar-identity');identity.append(ticker,name,short);
+   const metrics=el('span','arcy-radar-metrics');
+   metrics.append(chip(item,'volume24hUsd',money(item.volume24hUsd)),chip(item,'liquidityUsd',money(item.liquidityUsd)),chip(item,'marketCapUsd',money(item.marketCapUsd)),chip(item,'priceUsd',price(item.priceUsd)));
+   for(const f of ['volume24hUsd','liquidityUsd','marketCapUsd','priceUsd'])if(!fieldOk(item,f)){const c=item.fields&&item.fields[f]&&item.fields[f].reasonCode;reasons.add(FIELD_LABEL[f]+' — '+(REASON[c]||REASON.FIELD_NOT_PROVIDED));}
+   const notes=[];
+   if(selected==='pons'){
+    if(item.launch&&item.launch.status==='ONCHAIN_VERIFIED')notes.push('✓ Onchain launch'+(item.graduation&&item.graduation.graduated?' · Graduated':' · Bonding'));
+    notes.push('Pool age '+(fieldOk(item,'poolCreatedAt')?ago(item.poolCreatedAt):NV));
+   }
+   if((dupes.get(String(item.symbol).toLowerCase())||0)>1)notes.push('⚠ Same ticker as another listed token — check the contract');
+   if(fieldOk(item,'volume24hUsd')&&fieldOk(item,'liquidityUsd')&&item.liquidityUsd>0&&item.volume24hUsd/item.liquidityUsd>100)notes.push('⚠ Volume far above liquidity');
    const change=el('span','arcy-radar-change',fieldOk(item,'change24hPct')?pct(item.change24hPct):NV);
    if(fieldOk(item,'change24hPct')&&typeof item.change24hPct==='number')change.classList.add(item.change24hPct>=0?'positive':'negative');
-   link.append(rank,identity,stats,change,el('span','arcy-radar-arrow','›'));
+   link.append(rank,logoNode(item),identity,change,el('span','arcy-radar-arrow',native?'':'›'),metrics);
+   if(notes.length)link.append(el('span','arcy-radar-notes',notes.join('  ·  ')));
    rows.append(link);
+  }
+  legend.replaceChildren();
+  if(shown.length){
+   const key=el('span','arcy-radar-key');
+   for(const [cls,text] of [['verified','Cross-checked'],['reported','Single source'],['unavailable','N/A']]){const k=el('span','arcy-radar-key-item');k.append(el('span','arcy-radar-dot arcy-radar-dot-'+cls),document.createTextNode(text));key.append(k);}
+   legend.append(key);
+   if(reasons.size)legend.append(el('span','arcy-radar-why','N/A: '+[...reasons].join(' · ')));
   }
   pager.hidden=items.length<=5;
   prev.disabled=page===0;
