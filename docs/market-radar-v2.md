@@ -32,6 +32,7 @@ Candidates = base tokens of the newest and the highest-volume Robinhood pools fr
 - DEX Screener slugs `arc`, `robinhood`, `ethereum` confirmed with live pairs (POLL on Arc, PONS on Robinhood, UNI on Ethereum). ARCY returned 0 pairs on DEX Screener (not indexed there); this is reported as such, not worked around.
 - Pons factories match the integrator documentation (Mobula: active `0xa5aab3f0…1feb`, legacy `0x0c37a24f…77a4`; both used). Real launch read: PONS token is a member via the legacy factory, `graduationStatus` graduated=true; WETH negative control is not a member.
 - End-to-end library run (keyless): arc 10 tokens, ethereum 9 (only 9 distinct base tokens in the top-20 pools), robinhood 10; one GeckoTerminal + one DEX Screener call per section.
+- Final Pons run (33d8227): 20 candidates checked, 1 launch confirmed onchain (PONS); its fields are SOURCE_REPORTED because DEX Screener did not return the same pool address as GeckoTerminal (no forced agreement). Public RPC rate-limited an 80-call batch, hence the 20-token cap.
 - The first Pons run found 0 launches among the newest 20 pools; Pons candidates now also include the top-volume window (same call budget).
 
 ## Licence review (not resolved — flags stay off)
