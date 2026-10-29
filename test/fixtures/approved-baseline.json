@@ -18,7 +18,7 @@
   },
   "current": {
     "files": {
-      "index.html": "c35e212bf83a0c04a3c1cd68fc2eda73e80b99dabf6cd2d1b8ea13750451bbdb",
+      "index.html": "8cbfcbbb26a3e5644d03e0884f32b34d00b736d6a8f29dfb400e867b332037fd",
       "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
       "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885",
       "api/pulse.js": "71a081d8f1a3b0b84bd706a2f5a1f5727af49c8643be8cfee1bfee4dc7bc4cc0",
@@ -62,6 +62,13 @@
         "index.html"
       ],
       "reason": "Indexability-only approved homepage head metadata: canonical, accurate three-chain research description, og/twitter previews and WebSite structured name; no DOM, market, research, token state or animation script changes."
+    },
+    {
+      "date": "2026-10-29",
+      "files": [
+        "index.html"
+      ],
+      "reason": "Source-approved, scoped SEO title, description, and two footer links to accurate ARCY coin and Turkish ARCY analysis/search landing pages; preserve all DOM/data research functions, current new-token status and animations."
     }
   ]
 }
