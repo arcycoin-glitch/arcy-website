@@ -29,4 +29,4 @@ Server cache 600 s per network (+ edge `s-maxage=600`), failures negatively cach
 - Compare each ranked token with its explorer page: exact contract, pool id, last swap tx.
 
 ## Safe rollout
-The switcher appears only after at least one network returns verified rows. Do not merge or promote before the live per-chain measurement above and a real-browser mobile review.
+Public Radar is OFF by default: `MARKET_RADAR_ONCHAIN_ENABLED=true` must be set per environment (Preview first). The switcher then appears only after at least one network returns verified rows. Do not merge or promote before the live per-chain measurement above and a real-browser mobile review.

@@ -249,19 +249,21 @@ test('server cache serves within 600s, and failures are negatively cached briefl
 
 // ---- API: gates, no key, no third party -----------------------------------
 function call(handler,query,env={}){
- const saved={};for(const k of ['MARKET_RADAR_PROVIDER','MARKET_RADAR_PUBLIC_DISPLAY_APPROVED','MARKET_RADAR_JSON_DELIVERY_APPROVED','COINGECKO_PRO_API_KEY'])saved[k]=process.env[k],delete process.env[k];
+ const saved={};for(const k of ['MARKET_RADAR_ONCHAIN_ENABLED','MARKET_RADAR_PROVIDER','MARKET_RADAR_PUBLIC_DISPLAY_APPROVED','MARKET_RADAR_JSON_DELIVERY_APPROVED','COINGECKO_PRO_API_KEY'])saved[k]=process.env[k],delete process.env[k];
  Object.assign(process.env,env);
  let status=0,body=null;const headers={};
  const res={setHeader(k,v){headers[k]=v;return this},status(c){status=c;return this},json(v){body=v;return this}};
  return Promise.resolve(handler({method:'GET',query},res)).then(()=>({status,body,headers})).finally(()=>{for(const [k,v] of Object.entries(saved)){if(v===undefined)delete process.env[k];else process.env[k]=v;}});
 }
-test('API default source is onchain: no licence flag or key is needed and no CoinGecko host is contacted',async()=>{
+test('API onchain source (explicitly enabled): no licence flag or key is needed and no CoinGecko host is contacted',async()=>{
  onchain._cache.clear();
  const handler=require('../search/server/api/radar'),real=global.fetch;
  const f=makeChain('ethereum',{pools:[usdcPool(1,1000)],tokens:tokenMeta(1)}),hosts=[];
  global.fetch=async(u,i)=>{hosts.push(new URL(u).hostname);return f(u,i);};
  try{
-  const r=await call(handler,{chain:'ethereum'});
+  const off=await call(handler,{chain:'ethereum'});
+  assert.equal(off.status,503);assert.equal(off.body.error,'RADAR_NOT_ENABLED');assert.equal(hosts.length,0,'disabled Radar must not touch any RPC');
+  const r=await call(handler,{chain:'ethereum'},{MARKET_RADAR_ONCHAIN_ENABLED:'true'});
   assert.equal(r.status,200);assert.equal(r.body.sourceType,'FIRST_PARTY_ONCHAIN');assert.equal(r.body.tokens.length,1);
   assert.equal(r.headers['Cache-Control'],'public, max-age=0, s-maxage=600');assert.equal(r.headers['X-Content-Type-Options'],'nosniff');
   assert.ok(hosts.every(h=>!/coingecko|geckoterminal|dexscreener/.test(h)),hosts.join());
@@ -273,7 +275,7 @@ test('API failure is a no-store 503 with a reason code and never a fake ranking'
  const handler=require('../search/server/api/radar'),real=global.fetch;
  global.fetch=async()=>{throw new TypeError('offline')};
  try{
-  const r=await call(handler,{chain:'arc'});
+  const r=await call(handler,{chain:'arc'},{MARKET_RADAR_ONCHAIN_ENABLED:'true'});
   assert.equal(r.status,503);assert.equal(r.body.ok,false);assert.equal(r.headers['Cache-Control'],'no-store');assert.equal(r.body.tokens,undefined);
  }finally{global.fetch=real;onchain._cache.clear();}
 });

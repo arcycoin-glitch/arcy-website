@@ -196,3 +196,4 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Cherry-picked ebc3033 cleanly onto main 7607494 (SEO commits included). Full suite: 671/671 (641 main + 30 Radar).
 - Live three-chain RPC measurement STILL NOT DONE: sandbox RPC hosts blocked, no browser connected. Probe reports `fetch failed` for all three; nothing is published or invented.
 - Next exact action: run `node scripts/probe-market-radar-onchain.cjs` where RPC works (or on Vercel Preview), then push + Draft PR.
+- Push now works (work branch pushed). Added default-OFF rollout switch MARKET_RADAR_ONCHAIN_ENABLED (503 RADAR_NOT_ENABLED, no RPC contact) because live 3-chain RPC could not be measured from the sandbox. Enable on Preview only, review the probe output, then decide.

@@ -2,9 +2,9 @@
 // Radar is mounted as an action under the EXISTING /api/search function.
 // No new Vercel Serverless Function (Hobby plan limit: 12).
 //
-// Default source: first-party onchain Uniswap v4 swap events read from the
+// Source: first-party onchain Uniswap v4 swap events read from the
 // chain RPC (lib/market-radar-onchain.js). No third-party market-data licence is
-// involved, so no licence flag exists for it.
+// involved. It is still OFF unless MARKET_RADAR_ONCHAIN_ENABLED=true (rollout switch, not a licence).
 //
 // The CoinGecko Onchain path (lib/market-radar.js) is unchanged and stays
 // fail-closed: it is selectable only with MARKET_RADAR_PROVIDER=coingecko AND
@@ -32,6 +32,11 @@ module.exports=async function(req,res){
    return res.status(200).json(data);
   }catch{return res.status(503).json(GENERIC_UNAVAILABLE);}
  }
+ // Fail-closed rollout switch: merging this code never activates the public Radar.
+ // An operator enables it per environment (e.g. Vercel Preview first) only after the
+ // live three-chain RPC measurement (scripts/probe-market-radar-onchain.cjs) is reviewed.
+ if(process.env.MARKET_RADAR_ONCHAIN_ENABLED!=='true')return res.status(503).json({ok:false,error:'RADAR_NOT_ENABLED',
+  message:'Market Radar is not enabled in this environment. No rankings are published.'});
  try{
   const data=await onchain.load(network);
   // Only a successful, complete-enough scan is cacheable at the edge. Failures are never cached.
