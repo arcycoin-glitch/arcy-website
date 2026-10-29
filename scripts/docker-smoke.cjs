@@ -18,7 +18,7 @@ try{
  const b=sh(['build','-f','Dockerfile.holder-worker','-t',tag,'.'],{stdio:['ignore','inherit','inherit']});
  if(b.status!==0)throw Error('docker build failed');
  const run=sh(['run','-d','--name',name,'-p','127.0.0.1:'+port+':'+port,'-e','PORT='+port,'-e','ARC_HOLDER_QUEUE_TOKEN='+token,
-  '-e','ARC_HOLDER_STORAGE=local','-e','ARC_INDEX_CACHE_DIR=/data/index','-e','ARC_HOLDER_PUBLISHED_DIR=/data/published',tag]);
+  '-e','ARC_HOLDER_STORAGE=local','-e','ARC_RADAR_INDEXER_ENABLED=false','-e','ARC_INDEX_CACHE_DIR=/data/index','-e','ARC_HOLDER_PUBLISHED_DIR=/data/published',tag]);
  if(run.status!==0)throw Error('docker run failed: '+run.stderr);
  const deadline=Date.now()+60000;let ok=false;
  const probe=async()=>{try{const r=await fetch('http://127.0.0.1:'+port+'/nope',{headers:{authorization:'Bearer '+token}});return r.status===404||r.status===401;}catch{return false;}};
@@ -30,6 +30,8 @@ try{
    await new Promise(r=>setTimeout(r,1000));}
   const logs=sh(['logs',name]);const text=(logs.stdout||'')+(logs.stderr||'');
   if(/Cannot find module/.test(text))ok=false;
+  // The HTTP probe alone could be answered before the worker loop is up: require the worker's own start event too.
+  if(ok&&!/HOLDER_WORKER_STARTED/.test(text))ok=false;
   console.log(ok?'SMOKE PASS: container started and the Holder HTTP server answered':'SMOKE FAIL\n'+text.slice(-2000));
   code=ok?0:1;cleanup();process.exit(code);
  })();

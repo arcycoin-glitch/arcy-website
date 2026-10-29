@@ -222,3 +222,10 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Tests: `test/docker-image-closure.test.js` (fails with the exact Railway error on da5f0c3 code), `test/radar-support-parity.test.js`, `scripts/docker-smoke.cjs` + `holder-worker-docker-smoke.yml`. Real `docker build` NOT run in this sandbox (no daemon) — CI workflow does it.
 - Holder RPC: answered JSON-RPC errors no longer quarantine providers (they poisoned the healthy QuickNode); failing providers deprioritised; diagnostics extended. Unconfirmed against live providers (sandbox cannot reach them): run `/holder/rpc-diagnostics` after deploy.
 - Suite: 740/740. Next: user redeploys Railway from this commit (Radar off), checks `/holder/rpc-diagnostics`.
+
+## 2026-10-29 — Holder completion fixes (PR #94 comment 6506741965)
+- Root cause: `holder-log-range.read()` never grew a halved width (35/44 checkpoints stuck at width<=3); pruned 4444 retried per range; 429 waits burned 12 s slices; fixed budgets; balance fallback collected all 200 results before persisting.
+- Changed: lib/holder-log-range.js, lib/holder-rpc.js, lib/holder-refresh.js, lib/balance-reader.js, lib/holder-candidates.js, scripts/docker-smoke.cjs (+ worker start event), HOLDER_WORKER.md. scripts/holder-worker.cjs untouched (protected hash).
+- Tests: test/holder-completion.test.js (13). Existing 41 signed snapshots / publication gating code untouched.
+- Not done by design: no Railway deploy, Radar off, no production Vercel.
+- Next: user redeploys, then count NEW COMPLETE snapshots vs budget yields vs RPC failures separately.
