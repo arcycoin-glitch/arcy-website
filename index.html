@@ -380,6 +380,7 @@ View details →
 
 
 
+async function dataFetch(url,options={}){return fetch(url,{...options,signal:AbortSignal.timeout(15000)});}
 function tokenIcon(symbol, directLogo){
   const candidate=directLogo;
   let url="";try{const parsed=new URL(candidate);if(parsed.protocol==="https:"&&parsed.hostname!=="coingecko.com"&&!parsed.hostname.endsWith(".coingecko.com"))url=parsed.href;}catch(_){}
