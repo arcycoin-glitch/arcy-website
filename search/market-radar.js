@@ -71,12 +71,19 @@
   const total=card.querySelector('.arcy-radar-overview-count');
   total.textContent=tokens.length?tokens.length+' observed tokens':'No verified tokens';
   for(const item of tokens){
-   const row=el('div','arcy-radar-overview-token');
+   const validAddress=typeof item.address==='string'&&/^0x[0-9a-f]{40}$/i.test(item.address)&&!/^0x0{40}$/i.test(item.address);
+   const row=el(validAddress?'a':'div','arcy-radar-overview-token');
+   if(validAddress){
+    row.href='/search/token/'+TOKEN_NET[network]+'/'+item.address;
+    row.setAttribute('aria-label','Open '+(item.symbol||'token')+' in ARCY Search');
+    row.title='Research token in ARCY Search';
+   }
    const identity=el('span','arcy-radar-overview-symbol',item.symbol||'—');identity.translate=false;
    const volume=el('span','arcy-radar-overview-volume',fieldOk(item,'volume24hUsd')?money(item.volume24hUsd):'N/A');
    const change=el('span','arcy-radar-overview-change',fieldOk(item,'change24hPct')?pct(item.change24hPct):'—');
    if(fieldOk(item,'change24hPct'))change.classList.add(item.change24hPct>=0?'positive':'negative');
-   row.append(identity,volume,change);list.append(row);
+   const arrow=el('span','arcy-radar-overview-token-arrow',validAddress?'›':'');arrow.setAttribute('aria-hidden','true');
+   row.append(identity,volume,change,arrow);list.append(row);
   }
   if(!tokens.length)list.append(el('p','arcy-radar-overview-empty','No source-verified ranking available.'));
  }
