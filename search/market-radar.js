@@ -32,6 +32,7 @@
   button.type='button';button.dataset.network=id;
   chainNav.append(button);buttons.set(id,button);
  }
+ const overview=el('div','arcy-radar-overview');overview.setAttribute('aria-label','Network market overview');
  const status=el('p','arcy-radar-status','Select Market Radar to view volume-ranked tokens.');
  status.id='marketRadarStatus';status.setAttribute('role','status');
  status.setAttribute('aria-live','polite');
@@ -46,7 +47,7 @@
  const FOOT={default:'Ranked by the single largest observed pool for each base token, not total token volume across the chain. Values marked Cross-checked agree between two independent indexers; this is not an onchain proof. Discovery, not an investment recommendation.',pons:'Pons Launch lists only tokens confirmed as launched by the official Pons factory contracts on Robinhood Chain (onchain read), found among the newest and most active pools; tokens still on the bonding curve are not covered and the list is not exhaustive. Discovery, not an investment recommendation.'};
  foot.textContent=FOOT.default;
  const credit=el('p','arcy-radar-credit-row');
- panel.append(title,subtitle,chainNav,status,rows,pager,foot,credit);
+ panel.append(title,subtitle,overview,chainNav,status,rows,pager,foot,credit);
  detail.prepend(panel);detail.prepend(switcher);
  // Never advertise an empty Radar as a completed public feature.
  // Activate the switcher when at least one section returns source-backed tokens; sections without data say so honestly.
@@ -59,6 +60,40 @@
  const price=n=>typeof n==='number'&&Number.isFinite(n)?'$'+PRICE.format(n):'—';
  const pct=n=>typeof n==='number'&&Number.isFinite(n)?PCT.format(n)+'%':'—';
  const NV='N/A';
+ const networkTheme={arc:'arc',ethereum:'ethereum',robinhood:'robinhood',pons:'pons'};
+ const icon={arc:'◈',ethereum:'◆',robinhood:'↗',pons:'✦'};
+ function renderOverview(network,data){
+  const card=overview.querySelector('[data-overview="'+network+'"]');
+  if(!card)return;
+  const list=card.querySelector('.arcy-radar-overview-list');
+  list.replaceChildren();
+  const tokens=Array.isArray(data?.tokens)?data.tokens.slice(0,5):[];
+  const total=card.querySelector('.arcy-radar-overview-count');
+  total.textContent=tokens.length?tokens.length+' observed tokens':'No verified tokens';
+  for(const item of tokens){
+   const row=el('div','arcy-radar-overview-token');
+   const identity=el('span','arcy-radar-overview-symbol',item.symbol||'—');identity.translate=false;
+   const volume=el('span','arcy-radar-overview-volume',fieldOk(item,'volume24hUsd')?money(item.volume24hUsd):'N/A');
+   const change=el('span','arcy-radar-overview-change',fieldOk(item,'change24hPct')?pct(item.change24hPct):'—');
+   if(fieldOk(item,'change24hPct'))change.classList.add(item.change24hPct>=0?'positive':'negative');
+   row.append(identity,volume,change);list.append(row);
+  }
+  if(!tokens.length)list.append(el('p','arcy-radar-overview-empty','No source-verified ranking available.'));
+ }
+ for(const [id,name] of chains){
+  const card=el('section','arcy-radar-overview-card arcy-radar-overview-'+networkTheme[id]);
+  card.dataset.overview=id;
+  const head=el('div','arcy-radar-overview-head');
+  const mark=el('span','arcy-radar-overview-mark',icon[id]);mark.setAttribute('aria-hidden','true');
+  const label=el('strong','',name);label.translate=false;
+  head.append(mark,label);
+  const count=el('p','arcy-radar-overview-count','Loading verified data…');
+  const list=el('div','arcy-radar-overview-list');
+  const action=el('button','arcy-radar-overview-action','View '+name+' →');
+  action.type='button';action.addEventListener('click',()=>{void load(id);chainNav.scrollIntoView({block:'nearest',behavior:'smooth'});});
+  card.append(head,count,list,action);overview.append(card);
+ }
+
  const BADGE={CROSS_VERIFIED:['✓ Cross-checked','verified'],SOURCE_REPORTED:['Source-reported','reported'],NOT_VERIFIED:['NOT VERIFIED','unverified'],ONCHAIN_VERIFIED:['✓ Onchain','verified']};
  const fieldOk=(item,f)=>item.fields&&item.fields[f]&&item.fields[f].status!=='NOT_VERIFIED'&&item[f]!==null&&item[f]!==undefined;
  const ago=iso=>{const t=Date.parse(iso);if(!Number.isFinite(t))return NV;const m=Math.max(0,Math.round((Date.now()-t)/60000));return m<60?m+'m ago':m<2880?Math.round(m/60)+'h ago':Math.round(m/1440)+'d ago';};
@@ -158,8 +193,9 @@
     const timer=setTimeout(()=>controller.abort(),9500);
     try{
      const response=await fetch('/api/search?action=radar&chain='+network,{signal:controller.signal,headers:{accept:'application/json'},cache:'no-store'});
-     if(!response.ok)return false;
+     if(!response.ok){renderOverview(network,null);return false;}
      const data=await response.json();
+     renderOverview(network,data?.ok===true?data:null);
      return data?.ok===true&&data.version===2&&data.network===network&&Array.isArray(data.tokens)&&
       data.tokens.length>0&&data.tokens.every((item,i)=>item?.rank===i+1&&/^0x[0-9a-f]{40}$/i.test(item.address));
     }finally{clearTimeout(timer)}
