@@ -7,11 +7,12 @@ const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const html=read('transparency.html'),site=read('v8-premium.js'),home=read('index.html');
 const contract='0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b';
-test('transparency page exposes independent evidence paths and exact Arc contract',()=>{
+test('transparency states upcoming launch without presenting legacy contract as new token',()=>{
  assert.match(html,/Transparency &amp;/);
- assert.ok(html.includes(contract));
- assert.ok(html.includes('Chain ID 5042'));
- assert.ok(html.includes('https://explorer.arc.io/address/'+contract));
+ assert.match(html,/Upcoming token details/);
+ assert.match(html,/previous Arc token is a separate existing asset/);
+ assert.match(html,/no migration or exchange is implied/);
+ assert.ok(!html.includes(contract), 'retired Arc contract must not be advertised as new token');
  assert.ok(html.includes('https://github.com/arcycoin-glitch/arcy-website/actions'));
  assert.ok(html.includes('https://github.com/arcycoin-glitch/arcy-website/issues'));
  assert.ok(html.includes('https://t.me/arcycommunitychat'));
@@ -20,11 +21,12 @@ test('transparency page exposes independent evidence paths and exact Arc contrac
  assert.match(html,/https:\/\/www\.arcyusdc\.xyz\/transparency\.html/);
 });
 test('transparency avoids unsupported audit, profit and data-coverage claims',()=>{
- assert.match(html,/not.*independent audit/i);
+ assert.match(html,/not.*trust badge/i);
+ assert.match(html,/do not present a third-party audit/i);
  assert.match(html,/up to 20 checks/);
  assert.match(html,/not.*independent source confirmations/i);
  assert.match(html,/disabled until data-display and JSON-delivery permissions/i);
- assert.match(html,/not.*guarantee/i);
+ assert.match(html,/or promise profit/i);
  assert.match(html,/The previously linked X account @Arcy_usdc is inactive/);
  assert.doesNotMatch(html,/audited and secure|guaranteed profits|all 20 metrics verified/i);
 });

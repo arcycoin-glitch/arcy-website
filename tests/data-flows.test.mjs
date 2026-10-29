@@ -96,16 +96,17 @@ test('Pulse caps verified news but keeps all five slot identities through weekly
  const current=Date.parse('2026-10-05T12:00:00Z'),next=Date.parse('2026-10-12T12:00:00Z'),landing=Array.from({length:6},(_,i)=>`<a href="/blog/${i}">${i}</a>`).join(''),article=(i,date)=>`<script type="application/ld+json">{"@type":"BlogPosting","headline":"Arc launch ${i}","datePublished":"${date}"}</script>`,fetcher=withResearch(async url=>({ok:true,text:async()=>url===PULSE_BLOG?landing:article(url.split('/').at(-1),'2026-10-06T00:00:00Z')}));
  const d=await pulse.generate({now:current,fetcher}),rollover=await pulse.generate({now:next,fetcher});assert.equal(d.cards.length,5);assert.equal(d.audit.acceptedItemCount,3);assert.equal(d.number,2);assert.equal(d.cacheKey,'pulse:2026-W41');assert.equal(pulse.number(next),3);assert.equal(pulse.cacheKey(next),'pulse:2026-W42');assert.notEqual(d.cacheKey,pulse.cacheKey(next));assert.deepEqual(pulse.cycle(next),{start:Date.parse('2026-10-12T00:00:00Z'),end:Date.parse('2026-10-19T00:00:00Z')});assert.equal(rollover.status,'quiet_week');assert.equal(rollover.cards.length,5);assert.equal(rollover.audit.rejected.stale,6+RESEARCH_STALE);
 });
-function liveSupply(amount='3570000',block='0x123'){return {ok:true,block,totalSupply:{amount:'1000000000'},burnAddressBalance:{amount,dataState:'DATA_FOUND',methodology:'Current balances at zero and 0xdead'}};}
-test('Burn uses the canonical cache-bypassed supply API and its zero/dead methodology',async()=>{
- const calls=[];const b=browser(async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>liveSupply()};});
- await b.context.loadBurn();assert.equal(calls.length,1);assert.match(calls[0].url,/^\/api\/supply\?address=/);assert.equal(calls[0].options.cache,'no-store');assert.equal(b.element('burned').textContent,'3.57M');assert.match(b.element('burnStatus').textContent,/zero\/dead addresses.*0x123/);
+test('upcoming token Burn display remains unverified instead of reusing the retired Arc token',()=>{
+  assert.match(html,/id="burned">—<\/span>/);
+  assert.match(html,/id="supply">—<\/b>/);
+  assert.match(html,/Awaiting announcement/);
+  assert.match(html,/DETAILS TO BE ANNOUNCED/);
 });
-test('Burn never substitutes an obsolete browser snapshot when canonical live data fails',async()=>{
- const b=browser(async()=>({ok:false,status:503,json:async()=>({ok:false})}));
- await b.context.loadBurn();assert.equal(b.element('burned').textContent,'NOT VERIFIED');assert.match(b.element('burnStatus').textContent,/unavailable/);
+test('upcoming token does not query the former Arc contract for a misleading Burn number',()=>{
+  const b=browser(async()=>{throw Error('legacy supply must not be fetched')});
+  assert.equal(typeof b.context.loadBurn,'undefined');
+  assert.doesNotMatch(html,/async function loadBurn\(/);
 });
-
 test('Unlock failure remains unavailable after search or tab rendering',async()=>{
   const b=browser(async()=>({ok:false,status:503}));await b.context.loadUnlocks();b.context.renderUnlocks(7);
   assert.match(b.element('unlockRows').innerHTML,/temporarily unavailable/);assert.match(b.element('#unlocks .note').textContent,/unavailable/);
@@ -119,14 +120,14 @@ test('logo values are escaped and non-HTTPS URLs rejected',()=>{
 test('Pulse failure replaces permanent loading card',async()=>{
   const b=browser(async()=>({ok:false,status:503,json:async()=>({message:'No dated official update is available for the current Pulse cycle.'})}));await vm.runInContext(b.scripts.at(-1),b.context);assert.match(b.element('pulseGrid').innerHTML,/unavailable/);
 });
-test('market fallback never displays another chain or quote token price',async()=>{
-  const b=browser(async url=>({ok:true,json:async()=>url.includes('dexscreener')?{pairs:[{chainId:'ethereum',baseToken:{address:'0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'},priceUsd:'99'}]}:{data:[]}}));
-  await vm.runInContext(b.scripts[1],b.context);assert.equal(b.element('arcyLivePrice').textContent,'—');
+test('upcoming token suppresses stale legacy Arc market price and quote-token displays',()=>{
+  assert.doesNotMatch(html,/id="arcyLivePrice"|id="arcyLiveVolume"|id="arcyLiveLiquidity"/);
+  assert.doesNotMatch(html,/async function loadArcPrices\(/);
 });
-test('market keeps token-level volume and fills missing liquidity independently',async()=>{
-  const token='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
-  const b=browser(async url=>({ok:true,json:async()=>url.includes('/pools')?{data:[]} :url.includes('dexscreener')?{pairs:[{chainId:'arc',baseToken:{address:token},priceUsd:'5',volume:{h24:1},liquidity:{usd:100}}]}:{data:{attributes:{price_usd:'2',volume_usd:{h24:1000},fdv_usd:2000}}}}));
-  await vm.runInContext(b.scripts[1],b.context);assert.equal(b.element('arcyLivePrice').textContent,'$2');assert.equal(b.element('arcyLiveVolume').textContent,'$1K');assert.equal(b.element('arcyLiveLiquidity').textContent,'$100');
+test('upcoming token does not silently infer market data from unrelated chains',()=>{
+  const b=browser(async()=>{throw Error('legacy market request must not be made')});
+  assert.equal(typeof b.context.loadArcPrices,'undefined');
+  assert.match(html,/DETAILS TO BE ANNOUNCED/);
 });
 test('ambiguous symbol logos are not assigned to an unrelated token',async()=>{
   const c=api('api/unlocks.js',async()=>({ok:true,json:async()=>({data:{ABC:[{name:'Wrong one',logo:'one'},{name:'Wrong two',logo:'two'}]}})}));
