@@ -9,10 +9,10 @@ test('robots.txt explicitly links to crawlable canonical sitemap and does not bl
  assert.match(robots,/Sitemap: https:\/\/www\.arcyusdc\.xyz\/sitemap\.xml/);
  assert.doesNotMatch(robots,/Disallow:\s*\//);
 });
-test('sitemap contains all three canonical public pages, not redirected, private or dynamic API URLs',()=>{
+test('sitemap contains all four canonical public pages, not redirected, private or dynamic API URLs',()=>{
  const locations=[...map.matchAll(/<loc>([^<]+)<\/loc>/g)].map(x=>x[1]);
  assert.match(map,/^<\?xml version="1\.0" encoding="UTF-8"\?>/);
- assert.deepEqual(locations,['https://www.arcyusdc.xyz/','https://www.arcyusdc.xyz/transparency.html','https://www.arcyusdc.xyz/arcy-coin.html']);
+ assert.deepEqual(locations,['https://www.arcyusdc.xyz/','https://www.arcyusdc.xyz/transparency.html','https://www.arcyusdc.xyz/arcy-coin.html','https://www.arcyusdc.xyz/arcy-analiz.html']);
  assert.equal(new Set(locations).size,locations.length);
  assert.doesNotMatch(map,/\/api\/|\/search\/token\/|\/#search/);
 });
