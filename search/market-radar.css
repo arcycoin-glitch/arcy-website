@@ -97,3 +97,15 @@
 #tokenDetail .arcy-radar-overview-token{grid-template-columns:minmax(0,1fr) auto auto 10px}
 #tokenDetail .arcy-radar-overview-token-arrow{font-size:19px;color:var(--radar-accent);line-height:1;text-align:right}
 @media(max-width:370px){#tokenDetail .arcy-radar-overview-token{grid-template-columns:minmax(0,1fr) auto 10px}}
+
+
+/* Layout correction: source-backed network cards follow the detailed results.
+   The old duplicate network selector is no longer rendered. */
+#tokenDetail .arcy-radar-networks{display:none!important}
+#tokenDetail .arcy-radar-overview{margin:24px 0 20px}
+#tokenDetail .arcy-radar-overview-card{min-width:0}
+#tokenDetail .arcy-radar-overview-token{min-width:0}
+#tokenDetail .arcy-radar-overview-action{min-height:40px}
+@media(min-width:761px){#tokenDetail .arcy-radar-overview{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:760px){#tokenDetail .arcy-radar-overview{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:20px}}
+@media(max-width:400px){#tokenDetail .arcy-radar-panel{padding:12px}#tokenDetail .arcy-radar-overview-head{font-size:11px}#tokenDetail .arcy-radar-overview-volume{font-size:9px}#tokenDetail .arcy-radar-overview-count{font-size:10px}}
