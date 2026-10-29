@@ -241,7 +241,13 @@ test('API: fail-closed 503 without approvals; 400 for unknown chain; 405 for non
  r=await call(handler,{method:'GET',query:{chain:'pons'}},clean);assert.equal(r.status,503);
  r=await call(handler,{method:'GET',query:{chain:'bsc'}},clean);assert.equal(r.status,400);
  r=await call(handler,{method:'POST',query:{chain:'arc'}},clean);assert.equal(r.status,405);
- r=await call(handler,{method:'GET',query:{chain:'arc'}},{...clean,...APPROVED,VERCEL:'1'});assert.equal(r.status,503);assert.equal(r.body.error,'RADAR_SOURCE_KEY_REQUIRED');
+ const own={method:'GET',query:{chain:'arc'},headers:{'sec-fetch-site':'same-origin',host:'www.arcyusdc.xyz'}};
+ r=await call(handler,own,{...clean,...APPROVED,VERCEL:'1'});assert.equal(r.status,503);assert.equal(r.body.error,'RADAR_SOURCE_KEY_REQUIRED');
+ // approved but called from outside the ARCY page (curl, another site): not served as a public feed
+ for(const headers of [{},{'sec-fetch-site':'cross-site'},{origin:'https://evil.example',host:'www.arcyusdc.xyz'}]){
+  r=await call(handler,{method:'GET',query:{chain:'arc'},headers},{...clean,...APPROVED,VERCEL:'1',COINGECKO_DEMO_API_KEY:'k'});assert.equal(r.status,403);assert.equal(r.body.error,'RADAR_SITE_ONLY');assert.match(r.headers.Vary,/Sec-Fetch-Site/);
+ }
+ r=await call(handler,{method:'GET',query:{chain:'arc'},headers:{origin:'https://www.arcyusdc.xyz',host:'www.arcyusdc.xyz'}},{...clean,...APPROVED,VERCEL:'1'});assert.equal(r.status,503,'same-origin Origin header is accepted');
 });
 
 // ── UI contract (static) ─────────────────────────────────────────────────────────────────────────────────
@@ -252,4 +258,15 @@ test('UI: four sections, NOT VERIFIED rendered as N/A, text-only DOM, provider a
  assert.ok(!/innerHTML|insertAdjacentHTML|document\.write/.test(src),'provider strings are only ever set as textContent');
  assert.ok(src.includes("rel='noopener noreferrer'")&&src.includes('body.attribution'));
  assert.ok(src.includes("pons:4663")&&src.includes("TOKEN_NET"));
+});
+
+test('attribution follows the CoinGecko attribution guide and sits next to the data',async()=>{
+ const body=geckoBody('arc',{count:12});const f=router([[/coingecko\.com/,()=>resp(body)]]);
+ const demo=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
+ assert.deepEqual(demo.attribution[0],{text:'Powered by CoinGecko API',url:'https://www.coingecko.com/en/api'});
+ http._resetCooldowns();
+ const key=await radar.load('arc',{env:{...APPROVED},fetcher:router([[/geckoterminal\.com/,()=>resp(body)],[/dexscreener/,()=>resp([])]]),now:()=>T0,disableCache:true});
+ assert.deepEqual(key.attribution[0],{text:'On-chain data provided by GeckoTerminal',url:'https://www.geckoterminal.com/'});
+ const css=require('fs').readFileSync(require('path').join(__dirname,'../search/market-radar.css'),'utf8');
+ assert.ok(/arcy-radar-credit\{font-size:1[2-9]px/.test(css),'credit text is at least 12px (terms: no smaller than 10)');
 });

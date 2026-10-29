@@ -4,13 +4,25 @@
 const radar=require('../../../lib/radar-v2');
 const GENERIC={ok:false,error:'RADAR_SOURCE_UNAVAILABLE',message:'Provider data could not be verified; no ranking is displayed.'};
 const STATUS={RADAR_NOT_CONFIGURED:503,RADAR_SOURCE_KEY_REQUIRED:503,RADAR_INVALID_NETWORK:400,RADAR_PROVIDER_RATE_LIMITED:503,RADAR_NO_VERIFIED_TOKENS:503,RADAR_PONS_MEMBERSHIP_UNAVAILABLE:503};
+// The JSON action exists to render ARCY's own Radar page, not as a public data feed. Provider terms prohibit syndicating
+// API access and are silent on re-serving data, so browser calls from this site are the only intended use. This is an
+// intent signal (headers can be forged by non-browser clients), not an access-control guarantee.
+function ownPage(req){
+ const h=req.headers||{},site=h['sec-fetch-site'];
+ if(site)return site==='same-origin';
+ const origin=h.origin||h.referer;
+ if(!origin||!h.host)return false;
+ try{return new URL(origin).host===h.host;}catch{return false;}
+}
 module.exports=async function(req,res){
  res.setHeader('X-Content-Type-Options','nosniff');
  res.setHeader('Cache-Control','no-store');
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
+ res.setHeader('Vary','Sec-Fetch-Site, Origin');
  const network=req.query?.chain;
  if(typeof network!=='string'||!Object.hasOwn(radar.NETWORKS,network))return res.status(400).json({ok:false,error:'INVALID_NETWORK'});
  try{
+  if(!ownPage(req)&&require('../../../lib/radar-v2/sources').publicationAllowed(process.env).ok)return res.status(403).json({ok:false,error:'RADAR_SITE_ONLY',message:'Market Radar data is served to the ARCY SEARCH page only.'});
   const rpcUrl=network==='pons'?require('../lib/chains').rpcUrl('robinhood',process.env):undefined;
   const data=await radar.load(network,{env:process.env,rpcUrl});
   // Long edge cache protects the provider quota (Demo plan: 10k credits/month). Stale-if-error is bounded in the library.
