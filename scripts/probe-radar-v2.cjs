@@ -35,7 +35,7 @@ const RPC=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.co
   await sleep(net==='pons'?50000:13000); // pons makes 2 GeckoTerminal calls; stay inside 5 calls/minute
   try{
    // Pons issues 2 GeckoTerminal calls (+DEX Screener, +RPC); pace the provider calls so a shared runner IP is less likely to hit 5/min.
-   const slow=async(u,o)=>{if(/geckoterminal/.test(u))await sleep(20000);return fetch(u,o);};
+   const slow=async(u,o)=>{if(/geckoterminal/.test(u))await sleep(20000);return fetch(u,{...o,signal:AbortSignal.timeout(8000)});};
    let out;
    try{out=await radar.load(net,{env,rpcUrl:RPC,disableCache:true,fetcher:net==='pons'?slow:undefined});}
    catch(e){if(e.code!=='RADAR_PROVIDER_RATE_LIMITED')throw e;log('E2E',net+': 429 on shared runner IP, retrying once after 90s');await sleep(90000);require('../lib/radar-v2/http')._resetCooldowns();out=await radar.load(net,{env,rpcUrl:RPC,disableCache:true,fetcher:net==='pons'?slow:undefined});}
