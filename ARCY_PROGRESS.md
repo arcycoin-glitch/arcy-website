@@ -191,3 +191,8 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Added: lib/market-radar-onchain.js, scripts/probe-market-radar-onchain.cjs, test/market-radar-onchain.test.js (30 tests). Changed: search/server/api/radar.js, search/market-radar.js/.css (per-chain partial coverage, logo/contract/N-A/source/scope), docs. Legacy gate test now runs with provider=coingecko (same assertions).
 - Local: 658/658 PASS. Protected files (index.html, premium.css, api/unlocks.js, api/pulse.js, holder-worker) unchanged; approved-baseline untouched.
 - NOT done: live per-chain measurement (RPC hosts blocked in sandbox), Vercel Preview, push/PR (403). Next exact action: run `node scripts/probe-market-radar-onchain.cjs` where RPC works (or on Preview), review real counts/latency (Ethereum getLogs budget is the main risk), then push and open the Draft PR.
+
+## 2026-10-29 (late) — Radar applied on work/radar-three-chain-validation-20261029 (base main 7607494)
+- Cherry-picked ebc3033 cleanly onto main 7607494 (SEO commits included). Full suite: 671/671 (641 main + 30 Radar).
+- Live three-chain RPC measurement STILL NOT DONE: sandbox RPC hosts blocked, no browser connected. Probe reports `fetch failed` for all three; nothing is published or invented.
+- Next exact action: run `node scripts/probe-market-radar-onchain.cjs` where RPC works (or on Vercel Preview), then push + Draft PR.
