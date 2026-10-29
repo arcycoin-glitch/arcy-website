@@ -1,0 +1,5 @@
+# ARCY SEARCH — public pages are crawlable.
+User-agent: *
+Allow: /
+
+Sitemap: https://www.arcyusdc.xyz/sitemap.xml
