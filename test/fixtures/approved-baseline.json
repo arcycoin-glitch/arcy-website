@@ -18,7 +18,7 @@
   },
   "current": {
     "files": {
-      "index.html": "9272b6c7bf0b5c22a8807e3ebd30b3a08b586a0af04718009442c12632994da2",
+      "index.html": "95bbdcddadeaa6ad185e78aa22d1ec8c6466d9c63a3ad5c7dcc8adf5a3ea7a1c",
       "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
       "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885",
       "api/pulse.js": "71a081d8f1a3b0b84bd706a2f5a1f5727af49c8643be8cfee1bfee4dc7bc4cc0",
@@ -46,6 +46,15 @@
         "api/unlocks.js"
       ],
       "reason": "Audit filtered third-party calendar rows by project/date/amount with explicit quarantine reasons for each skipped event rather than silently omitting."
+    },
+    {
+      "date": "2026-10-29",
+      "files": [
+        "index.html",
+        "transparency.html",
+        "v8-premium.js"
+      ],
+      "reason": "Reconcile approval after five intentional main commits: active X @ARCYResearch, removing legacy Arc liquidity promotion, retaining upcoming token placeholders, removing retired burn/supply calls and no implied token migration. No protected source is changed in this test-only PR; protected homepage hash is exactly that from main CI 40862639419."
     }
   ]
 }
