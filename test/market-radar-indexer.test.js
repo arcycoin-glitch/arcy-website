@@ -23,7 +23,7 @@ function withStore(fn){
 }
 const counting=(inner)=>{const log={ranges:[],logCalls:0};
  const f=async(url,init)=>{const req=JSON.parse(init.body);
-  if(req.method==='eth_getLogs'){log.logCalls++;log.ranges.push([Number(BigInt(req.params[0].fromBlock)),Number(BigInt(req.params[0].toBlock))]);}
+  if(req.method==='eth_getLogs'&&String(req.params[0].topics?.[0]).toLowerCase()===onchain.SWAP_TOPIC){log.logCalls++;log.ranges.push([Number(BigInt(req.params[0].fromBlock)),Number(BigInt(req.params[0].toBlock))]);}
   return inner(url,init);};
  return {f,log};};
 const pools=()=>Array.from({length:6},(_,k)=>usdcPool(k+1,(7-k)*1000,{block0:999000-k*500}));
@@ -113,4 +113,26 @@ test('API serves a stale snapshot as 503 RADAR_SNAPSHOT_STALE (never old ranking
  assert.equal(fresh.code,200);assert.equal(fresh.body.servedFrom,'signed-snapshot');assert.equal(fresh.body.diagnostics,undefined);
  const stale=await call({},goodSnap({snapshot:{...goodSnap().snapshot,headTimestamp:Math.floor(Date.now()/1000)-9000}}));
  assert.equal(stale.code,503);assert.equal(stale.body.reasonCode,'RADAR_SNAPSHOT_STALE');assert.equal(stale.body.tokens,undefined);
+}));
+
+test('pools unknown to PositionManager resolve through the verified Initialize registry and publish',withStore(async()=>{
+ process.env.RADAR_INIT_FROM_ETHEREUM='990000';
+ const ps=pools().map((p,i)=>({...p,initBlock:995000+i}));
+ const brokenKeys=new Set(ps.map(p=>'x'));
+ const chain=makeChain('ethereum',{pools:ps,tokens:tokenMeta(6),brokenKeys:new Set()});
+ // PositionManager knows none of them
+ const noPm=async(url,init)=>{const r=JSON.parse(init.body);if(r.method==='eth_call'&&r.params[0].data.startsWith(onchain.SEL.poolKeys))return {ok:true,json:async()=>({id:r.id,result:'0x'})};return chain(url,init);};
+ const r=await indexer.run('ethereum',{fetcher:noPm,budgetMs:60000});
+ assert.equal(r.status,'published');assert.equal(r.registry.complete,true);assert.equal(r.registry.keys,6);
+ const snap=await snapshot.load('ethereum',{store:storage,now:Date.now()});
+ assert.equal(snap.tokens.length,6);assert.equal(snap.coverage.keySources.registry,6);assert.equal(snap.coverage.swapsResolvedShare,1);
+ void brokenKeys;
+}));
+
+test('without any pool-key source the indexer refuses to publish a thin ranking',withStore(async()=>{
+ process.env.RADAR_INIT_FROM_ETHEREUM='999990';
+ const chain=makeChain('ethereum',{pools:pools(),tokens:tokenMeta(6)});
+ const noPm=async(url,init)=>{const r=JSON.parse(init.body);if(r.method==='eth_call'&&r.params[0].data.startsWith(onchain.SEL.poolKeys))return {ok:true,json:async()=>({id:r.id,result:'0x'})};return chain(url,init);};
+ const r=await indexer.run('ethereum',{fetcher:noPm,budgetMs:60000});
+ assert.equal(r.status,'registry_backfilling');assert.equal(await storage.envelopeOf('ethereum'),null);
 }));

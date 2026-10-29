@@ -22,3 +22,34 @@ test('contract execution revert remains a getter outcome and does not fake a val
  await assert.rejects(h.client.rpc('eth_call',[]),{code:'GETTER_REVERTED'});
  assert.equal(h.calls.filter(x=>x.url==='secondary').length,0);
 });
+
+test('issue #96: all-provider JSON-RPC failure keeps a secret-free per-provider cause',async()=>{
+ const h=harness((url,p)=>p.method==='eth_chainId'?{ok:true,json:async()=>({id:p.id,result:'0x13B2'})}:
+  {ok:true,json:async()=>({id:p.id,error:{code:-32601,message:'method not found at https://x.quiknode.pro/ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab'}})});
+ await assert.rejects(h.client.rpc('eth_getBlockByNumber',['0x1',false]),e=>{
+  assert.equal(e.code,'RPC_CALL_FAILED');
+  assert.deepEqual(e.attempts.map(a=>a.provider),['primary','secondary'.replace('secondary','fallback1')]);
+  assert.ok(e.attempts.every(a=>a.rpcCode===-32601&&a.method==='eth_getBlockByNumber'));
+  assert.ok(!/quiknode|ABCDEFGH|https?:/.test(JSON.stringify(e.attempts)));
+  return true;});
+});
+test('issue #96: uppercase/odd-format chain id is accepted; wrong chain still excluded',async()=>{
+ const h=harness((url,p)=>p.method==='eth_chainId'?{ok:true,json:async()=>({id:p.id,result:url==='primary'?'0x13B2':'0x1'})}:good(p));
+ assert.equal(await h.client.rpc('eth_blockNumber',[]),'0x01');
+ assert.equal(h.calls.filter(x=>x.url==='secondary'&&x.p.method!=='eth_chainId').length,0);
+});
+test('issue #96: differently worded eth_call execution failures are getter outcomes, not provider faults',async()=>{
+ for(const [code,message] of [[3,'x'],[-32000,'VM execution error'],[-32015,'invalid opcode: INVALID']]){
+  const h=harness((url,p)=>p.method==='eth_call'?{ok:true,json:async()=>({id:p.id,error:{code,message}})}:good(p));
+  await assert.rejects(h.client.rpc('eth_call',[]),{code:'GETTER_REVERTED'});
+  assert.equal(h.calls.filter(x=>x.url==='secondary').length,0);
+ }
+});
+test('issue #96: diagnose reports per-provider steps without throwing or leaking URLs',async()=>{
+ const client=create({endpoints:['https://secret.example/KEY123456789012345678901234567890','b'],fetcher:async(url,o)=>{
+  const p=JSON.parse(o.body);if(url.startsWith('b'))throw new TypeError('fetch failed https://b.example/zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz');
+  return {ok:true,json:async()=>({id:p.id,result:p.method==='eth_chainId'?'0x13b2':p.method==='eth_blockNumber'?'0x100':'0x'})};}});
+ const rows=await client.diagnose();
+ assert.equal(rows[0].chainOk,true);assert.equal(rows[0].head,256);assert.equal(rows[1].steps.eth_chainId.class,'TRANSPORT');
+ assert.ok(!/secret\.example|KEY12345|b\.example|zzzz/.test(JSON.stringify(rows)));
+});

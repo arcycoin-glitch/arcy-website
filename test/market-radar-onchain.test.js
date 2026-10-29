@@ -64,14 +64,15 @@ test('pools without a USD anchor, anchor-vs-anchor pools and single-swap pools n
 });
 test('a pool id that does not hash from the PositionManager key is rejected and counted, not ranked',async()=>{
  const bad=usdcPool(2,9000),good=usdcPool(1,1000);
- const fetcher=makeChain('ethereum',{pools:[bad,good],tokens:tokenMeta(2),brokenKeys:new Set()});
+ const more=Array.from({length:9},(_,k)=>usdcPool(k+3,500+k));
+ const fetcher=makeChain('ethereum',{pools:[bad,good,...more],tokens:tokenMeta(12),brokenKeys:new Set()});
  // make the manager return a key whose hash differs from the pool id
  const wrapped=async(url,init)=>{const req=JSON.parse(init.body);
   if(req.method==='eth_call'&&req.params[0].data.startsWith(SEL.poolKeys)&&req.params[0].data.slice(10,60)===bad.id.slice(2,52))
    return {ok:true,json:async()=>({id:req.id,result:'0x'+w(1).repeat(5)})};
   return fetcher(url,init);};
  const out=await onchain.inspect('ethereum',{fetcher:wrapped});
- assert.deepEqual(out.tokens.map(t=>t.address),[tokenAddr(1)]);assert.equal(out.coverage.poolsUnresolved,1);
+ assert.ok(!out.tokens.some(t=>t.address===tokenAddr(2)));assert.equal(out.coverage.poolsUnresolved,1);assert.ok(out.coverage.swapsResolvedShare>=0.85);
 });
 test('a token without readable symbol/decimals is skipped, never given invented metadata',async()=>{
  const pools=[usdcPool(1,9000),usdcPool(2,1000)];

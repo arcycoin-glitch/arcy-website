@@ -148,3 +148,58 @@ test('API exposes sanitized diagnostics only outside production', async()=>{
  assert.ok(!prev.logs.join(' ').includes('SUPERSECRET')&&!/https?:\/\//.test(prev.logs.join(' ')));
  assert.equal(prev.logs.length,1);
 });
+
+// ---- issue #96: Robinhood range-error storm and pool-key coverage -------------------------------
+const {makeChain,usdcPool,tokenMeta,tokenAddr}=require('./radar-helpers');
+
+test('rate-limit wording is never mistaken for a block-range cap (no range-halving storm)', () => {
+ const http=(status,body)=>Object.assign(Error('RPC_HTTP_'+status),{body});
+ for(const body of ['rate limit exceeded','Request exceeded compute units per second','capacity exceeded, try again later','exceeded your plan usage - upgrade tier'])
+  assert.notEqual(classify(http(400,body)),'RANGE_OR_RESULT_LIMIT',body);
+ for(const msg of ['Request exceeded rate limit for this plan','rate-limit exceeded','You have exceeded your quota'])
+  assert.equal(classify(Error(msg)),'RATE_LIMITED',msg);
+ for(const body of ['exceed maximum block range: 2000','eth_getLogs is limited to a 10,000 range','query returned more than 10000 results','block range too large','Log response size exceeded'])
+  assert.equal(classify(http(400,body)),'RANGE_OR_RESULT_LIMIT',body);
+ assert.equal(classify(Error('Request timeout on the free tier')),'TIMEOUT');
+});
+
+test('queued pieces are re-cut to the learned cap so known-bad sizes are not retried', async()=>{
+ let bad=0;
+ const all=[];for(let b=0;b<30000;b+=50)all.push(logAt(b));
+ const rpc=rpcOf(p=>{const [f,t]=bounds(p);if(t-f+1>1000){bad++;throw Object.assign(Error('RPC_HTTP_400'),{transport:true,body:'block range too large'});}return logsIn(all,f,t);});
+ const r=await scanRange(rpc,{...cfg,initialChunk:20000},0,29999,{deadline:far(),sleep:noSleep,concurrency:4});
+ assert.equal(r.swaps,all.length);
+ assert.ok(bad<=16,'range errors '+bad);
+});
+
+test('live scan stops early with a precise reason when the provider cap makes the window infeasible', async()=>{
+ const rpc=rpcOf(async p=>{const [f,t]=bounds(p);if(t-f+1>100)throw Object.assign(Error('RPC_HTTP_400'),{transport:true,body:'block range too large, max 100'});await new Promise(r=>setTimeout(r,20));return [];});
+ await assert.rejects(scanRange(rpc,{...cfg,initialChunk:1000},0,830000,{deadline:Date.now()+3000,live:true,concurrency:4}),
+  e=>/window too large for a live scan/.test(e.detail.reason)&&e.detail.learnedBlockCap<=100&&e.detail.callsNeeded>1000);
+});
+
+test('Arc-style case: most swaps in pools PositionManager does not know fail closed instead of returning 0 tokens', async()=>{
+ const ps=Array.from({length:10},(_,k)=>usdcPool(k+1,1000+k));
+ const chain=makeChain('ethereum',{pools:ps,tokens:tokenMeta(10),brokenKeys:new Set(ps.map(()=> 'none'))});
+ const fetcher=async(url,init)=>{const r=JSON.parse(init.body);
+  if(r.method==='eth_call'&&r.params[0].data.startsWith(onchain.SEL.poolKeys))return {ok:true,json:async()=>({id:r.id,result:'0x'})};
+  return chain(url,init);};
+ await assert.rejects(onchain.inspect('ethereum',{fetcher}),e=>e.code==='RADAR_POOL_KEY_COVERAGE_LOW'&&e.detail.swapsResolved===0&&e.diagnostics.phase==='poolKeys');
+});
+
+test('live scan resolves pools unknown to PositionManager from verified Initialize events', async()=>{
+ const ps=Array.from({length:6},(_,k)=>({...usdcPool(k+1,(7-k)*1000),initBlock:999000-k}));
+ const chain=makeChain('ethereum',{pools:ps,tokens:tokenMeta(6)});
+ const fetcher=async(url,init)=>{const r=JSON.parse(init.body);
+  if(r.method==='eth_call'&&r.params[0].data.startsWith(onchain.SEL.poolKeys))return {ok:true,json:async()=>({id:r.id,result:'0x'})};
+  return chain(url,init);};
+ const out=await onchain.inspect('ethereum',{fetcher});
+ assert.equal(out.tokens.length,6);assert.equal(out.coverage.keySources.initializeEvents,6);assert.equal(out.coverage.swapsResolvedShare,1);
+ assert.match(out.coverage.scopeNote,/6 of 6/);
+});
+
+test('an Initialize event whose key does not hash to the pool id is ignored', () => {
+ const k={currency0:'0x'+'1'.repeat(40),currency1:'0x'+'2'.repeat(40),fee:3000,tickSpacing:60,hooks:'0x'+'0'.repeat(40)};
+ assert.equal(onchain.verifyKey('0x'+'ab'.repeat(32),k),false);
+ void tokenAddr;
+});

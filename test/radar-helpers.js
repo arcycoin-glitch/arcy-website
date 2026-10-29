@@ -23,6 +23,11 @@ function makeChain(network,{head=1000000,blockSeconds=12,tokens={},pools=[],feed
    data:'0x'+w(s.a0)+w(s.a1)+w(s.sqrt)+w(1000)+w(0)+w(3000),blockNumber:'0x'+s.block.toString(16),logIndex:'0x'+(logIndex++).toString(16),
    transactionHash:'0x'+(logIndex).toString(16).padStart(64,'0'),removed:false});
  }
+ for(const p of pools)if(p.initBlock!==undefined){
+  logs.push({address:cfg.poolManager,topics:[onchain.INIT_TOPIC,p.id,'0x'+a32(p.c0),'0x'+a32(p.c1)],
+   data:'0x'+w(p.fee||3000)+w(p.spacing||60)+a32(p.hooks||ZERO)+w(1n<<96n)+w(0),blockNumber:'0x'+p.initBlock.toString(16),logIndex:'0x'+(logIndex++).toString(16),
+   transactionHash:'0x'+(logIndex+9000).toString(16).padStart(64,'0'),removed:false});
+ }
  logs.push(...badLogs);
  const calls={logs:0,coingecko:0,total:0};
  const feedRound=(ans)=>'0x'+w(1)+w(ans)+w(0)+w(nowSec-(staleFeeds?400000:60))+w(1);
@@ -43,7 +48,8 @@ function makeChain(network,{head=1000000,blockSeconds=12,tokens={},pools=[],feed
    calls.logs++;
    const f=params[0],from=Number(BigInt(f.fromBlock)),to=Number(BigInt(f.toBlock));
    if(failLogsAtSingle)return err('query returned more than 10000 results');
-   return reply(logs.filter(l=>{const b=Number(BigInt(l.blockNumber));return b>=from&&b<=to;}));
+   const t0=f.topics?.[0]?.toLowerCase();
+   return reply(logs.filter(l=>{const b=Number(BigInt(l.blockNumber));return b>=from&&b<=to&&(!t0||l.topics[0].toLowerCase()===t0);}));
   }
   if(method==='eth_call'){
    const {to,data}=params[0],target=String(to).toLowerCase();
