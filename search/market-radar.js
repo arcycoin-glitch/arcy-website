@@ -23,13 +23,16 @@
  const subtitle=el('p','arcy-radar-intro','Most active observed DEX pools · 24H USD volume · External sources only · Missing fields show NOT VERIFIED');
  const chainNav=el('div','arcy-radar-networks');
  chainNav.setAttribute('role','group');chainNav.setAttribute('aria-label','Market Radar network');
- const chains=[['arc','Arc'],['ethereum','Ethereum'],['robinhood','Robinhood'],['pons','Pons Launch']];
+ const chains=[['pons','Pons Launch'],['arc','Arc'],['ethereum','Ethereum'],['robinhood','Robinhood Chain']];
  const CHAIN_ID={arc:5042,ethereum:1,robinhood:4663,pons:4663},TOKEN_NET={arc:'arc',ethereum:'ethereum',robinhood:'robinhood',pons:'robinhood'};
  const buttons=new Map();
  for(const [id,name] of chains){
   const button=el('button','arcy-radar-network',name);
   button.translate=false; // network and launchpad names must not be machine-translated ("Arc" -> "Ark")
   button.type='button';button.dataset.network=id;
+  const mark=el('span','arcy-radar-chain-logo arcy-radar-chain-logo-'+id);mark.setAttribute('aria-hidden','true');
+  mark.textContent={pons:'P',arc:'◈',ethereum:'◆',robinhood:'R'}[id];
+  button.prepend(mark);
   chainNav.append(button);buttons.set(id,button);
  }
  const overview=el('div','arcy-radar-overview');overview.setAttribute('aria-label','Network market overview');
@@ -52,7 +55,7 @@
  // Never advertise an empty Radar as a completed public feature.
  // Activate the switcher when at least one section returns source-backed tokens; sections without data say so honestly.
  switcher.hidden=true;
- let selected='arc',active='research',page=0,sequence=0,items=[],loadedNetwork=null;
+ let selected='pons',active='research',page=0,sequence=0,items=[],loadedNetwork=null;
  const USD=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
  const PRICE=new Intl.NumberFormat('en-US',{maximumSignificantDigits:5});
  const PCT=new Intl.NumberFormat('en-US',{minimumFractionDigits:1,maximumFractionDigits:1,signDisplay:'exceptZero'});
