@@ -32,7 +32,7 @@ const RPC=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.co
  // 4) End-to-end library run for each section (keyless, in-process only; nothing is served or published)
  const env={MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:'true',MARKET_RADAR_JSON_DELIVERY_APPROVED:'true'};
  for(const net of ['arc','ethereum','robinhood','pons']){
-  await sleep(13000);
+  await sleep(net==='pons'?50000:13000); // pons makes 2 GeckoTerminal calls; stay inside 5 calls/minute
   try{
    const out=await radar.load(net,{env,rpcUrl:RPC,disableCache:true});
    const c=out.coverage;
