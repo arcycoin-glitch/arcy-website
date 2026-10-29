@@ -72,13 +72,14 @@ test('Three chain endpoint paths, source identity and timestamp are stable',asyn
   assert(response.selection.includes('Not whole-chain'));
  }
 });
-test('API denies public data before license and never contacts provider',async()=>{
+test('CoinGecko provider path denies public data before licence and never contacts provider',async()=>{
  const handler=require('../search/server/api/radar');
  let status=0,reply=null,headers={};
  const res={setHeader(k,v){headers[k]=v;return this},status(code){status=code;return this},
  json(v){reply=v;return this}};
- const previous={display:process.env.MARKET_RADAR_PUBLIC_DISPLAY_APPROVED,json:process.env.MARKET_RADAR_JSON_DELIVERY_APPROVED,key:process.env.COINGECKO_PRO_API_KEY};
+ const previous={provider:process.env.MARKET_RADAR_PROVIDER,display:process.env.MARKET_RADAR_PUBLIC_DISPLAY_APPROVED,json:process.env.MARKET_RADAR_JSON_DELIVERY_APPROVED,key:process.env.COINGECKO_PRO_API_KEY};
  try{
+  process.env.MARKET_RADAR_PROVIDER='coingecko'; // default source is first-party onchain; this guards the third-party path
   delete process.env.MARKET_RADAR_PUBLIC_DISPLAY_APPROVED;
   delete process.env.MARKET_RADAR_JSON_DELIVERY_APPROVED;
   delete process.env.COINGECKO_PRO_API_KEY;
@@ -88,7 +89,7 @@ test('API denies public data before license and never contacts provider',async()
   await handler({method:'GET',query:{chain:'bsc'}},res);
   assert.equal(status,400);
  }finally{
-  for(const [name,value] of Object.entries({MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:previous.display,
+  for(const [name,value] of Object.entries({MARKET_RADAR_PROVIDER:previous.provider,MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:previous.display,
    MARKET_RADAR_JSON_DELIVERY_APPROVED:previous.json,COINGECKO_PRO_API_KEY:previous.key})){
     if(value===undefined)delete process.env[name];else process.env[name]=value;
   }

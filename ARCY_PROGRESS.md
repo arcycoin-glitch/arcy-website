@@ -184,3 +184,53 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Evidence reviews expand 5→9: Sui estimated scheduling, ZKsync issuer-documented investor/team cap, Ethena conflicting dates, Arbitrum 15 November conflict; namesake token scoping and BigInt amount arithmetic.
 - API exposes scheduled-vs-executed evidence, independent publisher count (one CoinBell source), cross-ecosystem scope and truthful chain-filter notice; existing signed snapshots are reviewed at request time. Worker and API use matching review policies and skip unauthenticated CMC Pro logo calls.
 - New regression tests and supporting audit: docs/unlock-source-audit-20261029.md; no new data license/independent data source or paid provider was added. Release only after CI and live source verification.
+
+## 2026-10-29 — Market Radar 3-chain real data (issue #89), branch feat/market-radar-3chain-verified-20261029, base 36d3813
+- Base: `36d3813` (the issue's last verified main) = 628/628. Newer main c7ab066 (5 direct commits 460f664..c7ab066) has 8 failing tests unrelated to Radar: #14 approved sections, #490 visual baseline, #557/#558 transparency, #591/#592 Burn, #596/#597 market. Not touched here; fix separately.
+- Source decision: first-party onchain (Uniswap v4 PoolManager Swap events + Chainlink USD reference read onchain). CoinGecko/GeckoTerminal/DEX Screener assessed in docs/market-radar-provider-audit-20261029.md; none enabled. CoinGecko stays fail-closed behind MARKET_RADAR_PROVIDER=coingecko + 2 approvals + key.
+- Added: lib/market-radar-onchain.js, scripts/probe-market-radar-onchain.cjs, test/market-radar-onchain.test.js (30 tests). Changed: search/server/api/radar.js, search/market-radar.js/.css (per-chain partial coverage, logo/contract/N-A/source/scope), docs. Legacy gate test now runs with provider=coingecko (same assertions).
+- Local: 658/658 PASS. Protected files (index.html, premium.css, api/unlocks.js, api/pulse.js, holder-worker) unchanged; approved-baseline untouched.
+- NOT done: live per-chain measurement (RPC hosts blocked in sandbox), Vercel Preview, push/PR (403). Next exact action: run `node scripts/probe-market-radar-onchain.cjs` where RPC works (or on Preview), review real counts/latency (Ethereum getLogs budget is the main risk), then push and open the Draft PR.
+
+## 2026-10-29 (late) — Radar applied on work/radar-three-chain-validation-20261029 (base main 7607494)
+- Cherry-picked ebc3033 cleanly onto main 7607494 (SEO commits included). Full suite: 671/671 (641 main + 30 Radar).
+- Live three-chain RPC measurement STILL NOT DONE: sandbox RPC hosts blocked, no browser connected. Probe reports `fetch failed` for all three; nothing is published or invented.
+- Next exact action: run `node scripts/probe-market-radar-onchain.cjs` where RPC works (or on Vercel Preview), then push + Draft PR.
+- Push now works (work branch pushed). Added default-OFF rollout switch MARKET_RADAR_ONCHAIN_ENABLED (503 RADAR_NOT_ENABLED, no RPC contact) because live 3-chain RPC could not be measured from the sandbox. Enable on Preview only, review the probe output, then decide.
+
+## 2026-10-29 — Market Radar P0 final fix (issue #95, PR #94)
+- Scanner rewritten (lib/market-radar-onchain.js): classified RPC errors (rate limit / range cap / forbidden / timeout / transport), learned per-provider block cap, 4 parallel workers, 429 backoff, streaming per-pool aggregation, time-based budget (50 s; call guard 600), adaptive block-rate window search, confirmations, sanitized diagnostics.
+- Root cause (static): fixed 90-call cap + 48 s serial budget + any getLogs error halving to 1 block then aborting; real per-network cause NOT measured (sandbox has no RPC access). Preview diagnostics now name the exact reason.
+- Railway incremental indexer + signed snapshots (market-radar-indexer/-storage/-http/-snapshot), API `MARKET_RADAR_SOURCE=snapshot`. Docs: docs/market-radar-indexer.md.
+- Tests: 693/693 (671 + 15 scanner + 7 indexer/snapshot). Mock chain moved to test/radar-helpers.js.
+- Open: deploy worker code + env on Railway (user), Preview measurement per network, Chainlink display rights, production stays off.
+
+## 2026-10-29 — Issue #96 (PR #94): holder RPC, Radar coverage, pons Launch Radar
+- Phase 1: lib/holder-rpc.js secret-free per-provider attempts, case-insensitive chain id, eth_call execution-failure wording, `diagnose()`, authed `/holder/rpc-diagnostics`; holder-refresh logs/returns `rpcAttempts`. Live cause NOT determinable from the sandbox (no RPC access): run the diagnostics route on Railway.
+- Phase 2: classification order fixed (rate vs range), cap re-cutting, live feasibility stop, Initialize-event key registry (hash-verified), coverage gate RADAR_POOL_KEY_COVERAGE_LOW, scope note, indexer registry backfill + persisted learned cap.
+- Phase 3: lib/pons-launch-radar.js + lib/pons-launch-indexer.js, `chain=pons`, fourth tab (pons), snapshot kind `pons`. Official docs sources; third-party article factory not used.
+- Tests: 718/718. Railway untouched; rollback plan in docs/market-radar-indexer.md.
+
+## 2026-10-29 (late) — Low-RPC indexer hardening after live Preview 503s (PR #94)
+- Live Preview of 199944e: arc/robinhood/pons scan-incomplete (cap/429), ethereum key coverage 82.2% (registry empty). Fail-closed kept.
+- Added: adaptive RPC pacer + Retry-After, dedicated RADAR_<NET>_RPC_URL, patient 429 retries in indexer, persisted pace, snapshot integrity proofs, scripts/radar-warm.cjs, 30 s edge cache for deterministic 503s, pons live lookback 3h.
+- Tests 727/727. Railway untouched. Next (user): deploy dormant, run radar-warm per network, then Preview with MARKET_RADAR_SOURCE=snapshot.
+
+## 2026-10-29 — Railway startup failure (da5f0c3) + Holder RPC provider health
+- Root cause (Railway): `lib/market-radar-onchain.js` required `../search/server/lib/{chains,eth,search-logo}`; the Holder image has no `search/`, and `startLoop()` loaded Radar unconditionally → `Cannot find module`.
+- Fix: `lib/radar-support.js` (self-contained), lazy/guarded Radar in `lib/holder-worker-http.js` (loop only if `ARC_RADAR_INDEXER_ENABLED=true`), logos applied by `search/server/api/radar.js` at serve time.
+- Tests: `test/docker-image-closure.test.js` (fails with the exact Railway error on da5f0c3 code), `test/radar-support-parity.test.js`, `scripts/docker-smoke.cjs` + `holder-worker-docker-smoke.yml`. Real `docker build` NOT run in this sandbox (no daemon) — CI workflow does it.
+- Holder RPC: answered JSON-RPC errors no longer quarantine providers (they poisoned the healthy QuickNode); failing providers deprioritised; diagnostics extended. Unconfirmed against live providers (sandbox cannot reach them): run `/holder/rpc-diagnostics` after deploy.
+- Suite: 740/740. Next: user redeploys Railway from this commit (Radar off), checks `/holder/rpc-diagnostics`.
+
+## 2026-10-29 — Holder completion fixes (PR #94 comment 6506741965)
+- Root cause: `holder-log-range.read()` never grew a halved width (35/44 checkpoints stuck at width<=3); pruned 4444 retried per range; 429 waits burned 12 s slices; fixed budgets; balance fallback collected all 200 results before persisting.
+- Changed: lib/holder-log-range.js, lib/holder-rpc.js, lib/holder-refresh.js, lib/balance-reader.js, lib/holder-candidates.js, scripts/docker-smoke.cjs (+ worker start event), HOLDER_WORKER.md. scripts/holder-worker.cjs untouched (protected hash).
+- Tests: test/holder-completion.test.js (13). Existing 41 signed snapshots / publication gating code untouched.
+- Not done by design: no Railway deploy, Radar off, no production Vercel.
+- Next: user redeploys, then count NEW COMPLETE snapshots vs budget yields vs RPC failures separately.
+
+## 2026-10-29 (late) — Holder bottleneck: pacing ratchet + fair scheduling
+- Reproduced in simulation: provider interval ratcheted to 8 s (recovery needed 20 successes), slices degraded to 1-2 requests, 20/28 budget yields, 0 COMPLETE. Fixed by quiet-time decay (base interval floor) in lib/holder-rpc.js.
+- Scheduler (lib/holder-refresh.js `rank`): 40 % longest-waiting + rest least-remaining-work, pool 50 (holder-storage.due cap 50), one-time checkpoint priming; lib/holder-progress.js registry; clock injection in holder-budget; diagnostics `worker` section (?probe=0).
+- Tests: test/holder-bottleneck.test.js (10, incl. 33,732-block ACCEPTANCE), test/helpers/holder-sim.cjs. Suite 763/763. scripts/holder-worker.cjs untouched. No deploy, Radar off.
