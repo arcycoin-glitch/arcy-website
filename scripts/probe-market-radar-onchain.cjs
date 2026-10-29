@@ -17,8 +17,8 @@ const FIELDS=['symbol','name','address','priceUsd','volume24hUsd','liquidityUsd'
   try{
    const out=await radar.inspect(network);
    const fields=Object.fromEntries(FIELDS.map(f=>[f,out.tokens.filter(t=>t[f]!==null&&t[f]!==undefined&&t[f]!=='').length]));
-   report[network]={ok:true,ms:Date.now()-started,tokens:out.tokens.length,window:out.window,coverage:out.coverage,referencePrices:out.referencePrices,anchors:out.anchors,fieldCompleteness:fields,top:out.tokens.map(t=>({rank:t.rank,symbol:t.symbol,address:t.address,volume24hUsd:t.volume24hUsd,priceUsd:t.priceUsd,change24hPct:t.change24hPct,pool:t.pool}))};
-  }catch(error){report[network]={ok:false,ms:Date.now()-started,reasonCode:error.code||'RADAR_SOURCE_UNAVAILABLE',detail:error.detail||String(error.message).slice(0,200)};}
+   report[network]={ok:true,ms:Date.now()-started,tokens:out.tokens.length,window:out.window,coverage:out.coverage,diagnostics:out._diagnostics,referencePrices:out.referencePrices,anchors:out.anchors,fieldCompleteness:fields,top:out.tokens.map(t=>({rank:t.rank,symbol:t.symbol,address:t.address,volume24hUsd:t.volume24hUsd,priceUsd:t.priceUsd,change24hPct:t.change24hPct,pool:t.pool}))};
+  }catch(error){report[network]={ok:false,ms:Date.now()-started,reasonCode:error.code||'RADAR_SOURCE_UNAVAILABLE',detail:error.detail||radar.sanitize(error.message,200),diagnostics:error.diagnostics||null};}
  }
  console.log(JSON.stringify(report,null,json?0:2));
  process.exitCode=Object.values(report).some(r=>r.ok)?0:1;

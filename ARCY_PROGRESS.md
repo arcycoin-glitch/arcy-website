@@ -197,3 +197,10 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Live three-chain RPC measurement STILL NOT DONE: sandbox RPC hosts blocked, no browser connected. Probe reports `fetch failed` for all three; nothing is published or invented.
 - Next exact action: run `node scripts/probe-market-radar-onchain.cjs` where RPC works (or on Vercel Preview), then push + Draft PR.
 - Push now works (work branch pushed). Added default-OFF rollout switch MARKET_RADAR_ONCHAIN_ENABLED (503 RADAR_NOT_ENABLED, no RPC contact) because live 3-chain RPC could not be measured from the sandbox. Enable on Preview only, review the probe output, then decide.
+
+## 2026-10-29 — Market Radar P0 final fix (issue #95, PR #94)
+- Scanner rewritten (lib/market-radar-onchain.js): classified RPC errors (rate limit / range cap / forbidden / timeout / transport), learned per-provider block cap, 4 parallel workers, 429 backoff, streaming per-pool aggregation, time-based budget (50 s; call guard 600), adaptive block-rate window search, confirmations, sanitized diagnostics.
+- Root cause (static): fixed 90-call cap + 48 s serial budget + any getLogs error halving to 1 block then aborting; real per-network cause NOT measured (sandbox has no RPC access). Preview diagnostics now name the exact reason.
+- Railway incremental indexer + signed snapshots (market-radar-indexer/-storage/-http/-snapshot), API `MARKET_RADAR_SOURCE=snapshot`. Docs: docs/market-radar-indexer.md.
+- Tests: 693/693 (671 + 15 scanner + 7 indexer/snapshot). Mock chain moved to test/radar-helpers.js.
+- Open: deploy worker code + env on Railway (user), Preview measurement per network, Chainlink display rights, production stays off.

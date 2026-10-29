@@ -11,6 +11,7 @@
 // the existing operator approvals AND a server-side Pro key.
 const radar=require('../../../lib/market-radar');
 const onchain=require('../../../lib/market-radar-onchain');
+const snapshot=require('../../../lib/market-radar-snapshot');
 const GENERIC_UNAVAILABLE={ok:false,error:'RADAR_SOURCE_UNAVAILABLE',
  message:'Provider data could not be verified; no ranking is displayed.'};
 module.exports=async function(req,res){
@@ -37,13 +38,24 @@ module.exports=async function(req,res){
  // live three-chain RPC measurement (scripts/probe-market-radar-onchain.cjs) is reviewed.
  if(process.env.MARKET_RADAR_ONCHAIN_ENABLED!=='true')return res.status(503).json({ok:false,error:'RADAR_NOT_ENABLED',
   message:'Market Radar is not enabled in this environment. No rankings are published.'});
+ // Sanitized diagnostics (phase, window, scan counters, failure class) are exposed ONLY outside
+ // production, in the response and in function logs. They never contain RPC URLs or credentials.
+ const preview=process.env.VERCEL_ENV!=='production'&&process.env.NODE_ENV!=='production';
+ const log=(level,payload)=>{if(preview)try{console[level]('[radar]',JSON.stringify(payload));}catch{}};
  try{
-  const data=await onchain.load(network);
-  // Only a successful, complete-enough scan is cacheable at the edge. Failures are never cached.
+  // MARKET_RADAR_SOURCE=snapshot reads the signed, continuously indexed Railway snapshot
+  // (no RPC scan inside the 60s Vercel function). Default 'live' scans on demand.
+  const data=process.env.MARKET_RADAR_SOURCE==='snapshot'?await snapshot.load(network):await onchain.load(network);
+  const {_diagnostics,...publicBody}=data;
+  log('log',{network,ok:true,diagnostics:_diagnostics});
+  // Only a successful, complete scan is cacheable at the edge. Failures are never cached.
   res.setHeader('Cache-Control','public, max-age=0, s-maxage=600');
-  return res.status(200).json(data);
+  return res.status(200).json(preview&&req.query?.diagnose==='1'?{...publicBody,diagnostics:_diagnostics}:publicBody);
  }catch(error){
   const code=typeof error?.code==='string'&&/^RADAR_[A-Z_]{3,60}$/.test(error.code)?error.code:'RADAR_SOURCE_UNAVAILABLE';
-  return res.status(503).json({...GENERIC_UNAVAILABLE,reasonCode:code,network});
+  log('warn',{network,ok:false,code,diagnostics:error?.diagnostics||null});
+  const body={...GENERIC_UNAVAILABLE,reasonCode:code,network};
+  if(preview&&error?.diagnostics)body.diagnostics=error.diagnostics;
+  return res.status(503).json(body);
  }
 };
