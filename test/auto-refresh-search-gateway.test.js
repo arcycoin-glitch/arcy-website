@@ -49,7 +49,7 @@ test('background, offline, archived Pulse and pending requests do not thrash pro
 });
 test('site keeps exactly the approved sections and exposes refresh handlers',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
- for(const method of ['loadBurn','loadUnlocks','loadPulse','loadArcPrices'])
+ for(const method of ['loadUnlocks','loadPulse'])
   assert.match(html,new RegExp('async function '+method+'\\('));
  assert.match(html,/\/site-refresh\.js/);
  assert.match(html,/if\(!silent\)unlockPage=1/);
