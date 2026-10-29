@@ -309,18 +309,18 @@ View details →
 <section id="burn"><div class="wrap grid2">
  <div>
   <div class="eyebrow">ONCHAIN MECHANISM</div>
-  <div class="head"><h3>Buyback <span>& Burn</span></h3><p>40% of trading tax is allocated to Buyback & Burn. The dashboard attempts to read ARCY supply directly from Arc mainnet; if the RPC is temporarily unavailable, the last verified snapshot is shown.</p></div>
+  <div class="head"><h3>Buyback <span>& Burn</span></h3><p>Details for the planned token launch will be announced when available.</p></div>
   <div class="card">
 
-    <div class="burn-flow" aria-label="Buyback and burn mechanism"><span>TRADING TAX</span><i>→</i><span>BUYBACK / BURN</span><i>→</i><span>DEAD ADDRESS</span></div><div class="stats"><div class="stat"><small>Initial Supply</small><b>1.00B</b></div><div class="stat"><small>Current Supply</small><b id="supply">Loading…</b></div><div class="stat"><small>Burn Share</small><b>40%</b></div></div>
-    <div class="actions"><a class="btn" target="_blank" rel="noopener" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b">VERIFY ON-CHAIN ↗</a></div>
+    <div class="burn-flow" aria-label="Buyback and burn mechanism"><span>TRADING TAX</span><i>→</i><span>BUYBACK / BURN</span><i>→</i><span>DEAD ADDRESS</span></div><div class="stats"><div class="stat"><small>Initial Supply</small><b>—</b></div><div class="stat"><small>Current Supply</small><b id="supply">—</b></div><div class="stat"><small>Burn Share</small><b>—</b></div></div>
+    <div class="actions"><span class="btn">DETAILS TO BE ANNOUNCED</span></div>
   </div>
  </div>
  <div class="visual burn-lab-visual"><figure class="burn-lab-scene" aria-label="ARCY Burn Lab — decorative visualization">
   <div class="v8-burn-factory-art" aria-hidden="true"><img data-src="/assets/v8-burn-factory-reference.png" alt="" width="1672" height="941" decoding="async"></div>
   <img class="burn-lab-poster" src="/assets/burn-lab-poster.webp" alt="Original ARCY owl supervising the burn mechanism" width="1400" height="788" loading="lazy" decoding="async">
   <video class="burn-lab-video burn-lab-video-v8" data-video-src="/assets/arcy-burn-lab-v8.mp4" poster="/assets/burn-lab-poster.webp" autoplay muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
-  <figcaption class="burn-lab-scoreboard"><div class="burn-kicker">BURN ADDRESS BALANCE</div><div class="burnnum"><span id="burned">—</span> ARCY</div><p class="burn-caption">On-chain zero/dead-address holdings · verify the evidence</p><div class="status"><i class="dot"></i><span class="burn-proof" title="zero address and 0x000000000000000000000000000000000000dEaD">Zero/dead addresses</span><span id="burnStatus">Loading canonical Arc onchain data…</span></div></figcaption>
+  <figcaption class="burn-lab-scoreboard"><div class="burn-kicker">BURN ADDRESS BALANCE</div><div class="burnnum"><span id="burned">—</span> ARCY</div><p class="burn-caption">Token details to be announced</p><div class="status"><i class="dot"></i><span id="burnStatus">Awaiting announcement</span></div></figcaption>
   <button class="burn-lab-play" type="button" hidden aria-label="Play Burn Lab animation">Play animation</button>
  </figure></div>
 </div></section>
@@ -372,31 +372,12 @@ View details →
 <div class="social-icons">
 
 <a class="social-icon" href="https://t.me/arcycommunitychat" target="_blank" rel="noopener" aria-label="Telegram"><svg viewBox="0 0 24 24"><path d="M21.944 2.506 18.77 21.43c-.239 1.336-.864 1.662-1.75 1.035l-4.834-3.564-2.333 2.244c-.258.258-.474.474-.972.474l.347-4.92 8.955-8.09c.389-.347-.085-.54-.605-.193L6.51 15.386l-4.765-1.49c-1.035-.323-1.054-1.035.216-1.532L20.59 5.184c.864-.323 1.62.193 1.354 1.322Z"/></svg></a>
-<a class="social-icon" href="https://explorer.arc.io/address/0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b" target="_blank" rel="noopener" aria-label="Explorer"><svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.414l-9.293 9.293-1.414-1.414L17.586 5H14V3ZM5 5h6v2H7v10h10v-4h2v6H5V5Z"/></svg></a>
+
 <a class="footer-source-link" href="https://github.com/arcycoin-glitch/arcy-website" target="_blank" rel="noopener noreferrer">GitHub · View Source ↗</a><a class="footer-source-link" href="/transparency.html">Transparency &amp; Verification</a>
 </div></div></footer>
 
 <script>
-const TOKEN="0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b";
-function fmt(n){const x=Number(n);if(x>=1e9)return (x/1e9).toFixed(2)+"B";if(x>=1e6)return (x/1e6).toFixed(2)+"M";return x.toLocaleString()}
-async function dataFetch(url,options={}){return fetch(url,{...options,signal:AbortSignal.timeout(15000)});}
-async function loadBurn(){
-  try{
-    // One canonical, cache-bypassed production API also powers Search's burn-address methodology.
-    const r=await dataFetch(`/api/supply?address=${TOKEN}`,{cache:"no-store",headers:{"Cache-Control":"no-cache"}});
-    const j=await r.json();
-    const burn=j?.burnAddressBalance;
-    if(!r.ok||!j?.ok||burn?.dataState!=="DATA_FOUND"||typeof burn.amount!=="string")throw Error("Live burn balance unavailable");
-    document.getElementById("burned").textContent=fmt(burn.amount);
-    document.getElementById("burnStatus").textContent=`Live • zero/dead addresses • Arc mainnet • block ${j.block}`;
-    document.getElementById("supply").textContent=typeof j.totalSupply?.amount==="string"?fmt(j.totalSupply.amount):"—";
-  }catch(_){
-    document.getElementById("burned").textContent="NOT VERIFIED";
-    document.getElementById("supply").textContent="—";
-    document.getElementById("burnStatus").textContent="Live zero/dead-address balance unavailable";
-  }
-}
-loadBurn();
+
 
 
 function tokenIcon(symbol, directLogo){
