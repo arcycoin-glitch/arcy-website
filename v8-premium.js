@@ -34,6 +34,18 @@
  }
  // The former @Arcy_usdc handle is not an active support channel.
  document.querySelectorAll('a.social-icon[href="https://x.com/Arcy_usdc"]').forEach(link=>link.remove());
+ // Keep the active ARCY Search profile visible beside the community link.
+ if(footerLinks&&!footerLinks.querySelector('a[href="https://x.com/ARCYResearch"]')){
+  const x=document.createElement('a');
+  x.className='social-icon';
+  x.href='https://x.com/ARCYResearch';
+  x.target='_blank';
+  x.rel='noopener noreferrer';
+  x.setAttribute('aria-label','ARCY Search on X');
+  x.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-6.77 7.73L23.2 22h-6.24l-4.89-6.4L6.46 22H3.35l7.24-8.27L2.95 2h6.4l4.42 5.84L18.9 2Zm-1.09 18.13h1.72L8.42 3.77H6.57l11.24 16.36Z"/></svg>';
+  const telegram=footerLinks.querySelector('a[aria-label="Telegram"]');
+  telegram?telegram.before(x):footerLinks.prepend(x);
+ }
  const pulse=document.getElementById('pulse');if(!pulse)return;
  const labels={ 'pulse-week':'🔥 THIS WEEK','pulse-new':'🆕 NEW','pulse-unlock':"🔓 WHAT'S UNLOCKING?" };
  // Reuse the same first-party network marks shown in the chain selector.
