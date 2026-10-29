@@ -52,3 +52,15 @@
 .arcy-radar-badge-verified{color:#2f9e6e}.arcy-radar-badge-reported{color:#b8860b}.arcy-radar-badge-unverified{color:#8a8f98}
 .arcy-radar-credit-row{margin:6px 0 0;font-size:.78rem}.arcy-radar-credit-row .arcy-radar-credit{margin-right:10px}
 .arcy-radar-warn{font-size:.7rem;color:#e0a53a;line-height:1.25}
+
+
+/* Radar four-network premium selector — scoped; token detail and API unchanged. */
+#tokenDetail .arcy-radar-networks{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+#tokenDetail .arcy-radar-network{position:relative;display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;min-height:64px;padding:10px 8px;border-radius:15px;background:linear-gradient(150deg,#0b2333,#081522);border:1px solid #30546a;box-shadow:inset 0 1px rgba(255,255,255,.045);font-size:clamp(11px,1.2vw,14px);letter-spacing:.01em;transition:background .2s,border-color .2s,transform .2s,box-shadow .2s}
+#tokenDetail .arcy-radar-network:hover{transform:translateY(-2px);border-color:#62d7ed;background:linear-gradient(145deg,#10334a,#0a2030)}
+#tokenDetail .arcy-radar-network[aria-pressed=true]{background:linear-gradient(145deg,#17455c,#0b273c);border-color:#46d9eb;box-shadow:0 0 0 1px rgba(70,217,235,.18),0 7px 22px rgba(0,184,255,.09)}
+#tokenDetail .arcy-radar-network::before{content:"◈";display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;border-radius:11px;background:rgba(0,201,255,.12);border:1px solid rgba(0,201,255,.38);color:#59d9fa;font-size:22px;font-weight:800}
+#tokenDetail .arcy-radar-network:nth-child(2)::before{content:"◆";color:#ad9aff;background:rgba(132,106,255,.14);border-color:rgba(151,126,255,.4)}
+#tokenDetail .arcy-radar-network:nth-child(3)::before{content:"↗";color:#65edbb;background:rgba(27,205,135,.12);border-color:rgba(27,205,135,.4)}
+#tokenDetail .arcy-radar-network:nth-child(4)::before{content:"✦";color:#ffc37c;background:rgba(244,157,51,.12);border-color:rgba(244,157,51,.4)}
+@media(max-width:640px){#tokenDetail .arcy-radar-networks{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}#tokenDetail .arcy-radar-network{min-height:59px;flex-direction:column;gap:4px;padding:6px 2px;font-size:clamp(8px,2.3vw,11px);line-height:1.1;white-space:normal;text-align:center}#tokenDetail .arcy-radar-network::before{flex-basis:25px;width:25px;height:25px;border-radius:8px;font-size:17px}}
