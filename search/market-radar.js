@@ -20,10 +20,11 @@
  panel.id='marketRadarPanel';panel.hidden=true;
  panel.setAttribute('aria-label','Market Radar');
  const title=el('h2','','🔥 Market Radar');
- const subtitle=el('p','arcy-radar-intro','Most active observed DEX pools · 24H USD volume · Source-limited');
+ const subtitle=el('p','arcy-radar-intro','Most active observed DEX pools · 24H USD volume · External sources only · Missing fields show NOT VERIFIED');
  const chainNav=el('div','arcy-radar-networks');
  chainNav.setAttribute('role','group');chainNav.setAttribute('aria-label','Market Radar network');
- const chains=[['arc','Arc'],['ethereum','Ethereum'],['robinhood','Robinhood']];
+ const chains=[['arc','Arc'],['ethereum','Ethereum'],['robinhood','Robinhood'],['pons','Pons Launch']];
+ const CHAIN_ID={arc:5042,ethereum:1,robinhood:4663,pons:4663},TOKEN_NET={arc:'arc',ethereum:'ethereum',robinhood:'robinhood',pons:'robinhood'};
  const buttons=new Map();
  for(const [id,name] of chains){
   const button=el('button','arcy-radar-network',name);
@@ -40,14 +41,14 @@
  const next=el('button','arcy-radar-page','Next →');
  for(const b of [prev,next])b.type='button';
  pager.append(prev,current,next);
- const foot=el('p','arcy-radar-disclaimer',
-  'Source: CoinGecko Onchain · Ranked by the single largest observed pool for each base token, not total token volume across the chain. This is discovery, not an investment recommendation.');
- const credit=el('a','arcy-radar-credit','Data powered by CoinGecko ↗');
- credit.href='https://www.coingecko.com/en/api';credit.target='_blank';credit.rel='noopener noreferrer';
+ const foot=el('p','arcy-radar-disclaimer','');
+ const FOOT={default:'Ranked by the single largest observed pool for each base token, not total token volume across the chain. Values marked Cross-checked agree between two independent indexers; this is not an onchain proof. Discovery, not an investment recommendation.',pons:'Pons Launch lists only recent launches confirmed by the official Pons factory contracts on Robinhood Chain (onchain read), and is not exhaustive. Discovery, not an investment recommendation.'};
+ foot.textContent=FOOT.default;
+ const credit=el('p','arcy-radar-credit-row');
  panel.append(title,subtitle,chainNav,status,rows,pager,foot,credit);
  detail.prepend(panel);detail.prepend(switcher);
  // Never advertise an empty Radar as a completed public feature.
- // Activate the switcher only when ALL three networks return ten source-backed tokens.
+ // Activate the switcher when at least one section returns source-backed tokens; sections without data say so honestly.
  switcher.hidden=true;
  let selected='arc',active='research',page=0,sequence=0,items=[],loadedNetwork=null;
  const USD=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
@@ -56,6 +57,11 @@
  const money=n=>typeof n==='number'&&Number.isFinite(n)?USD.format(n):'—';
  const price=n=>typeof n==='number'&&Number.isFinite(n)?'$'+PRICE.format(n):'—';
  const pct=n=>typeof n==='number'&&Number.isFinite(n)?PCT.format(n)+'%':'—';
+ const NV='N/A';
+ const BADGE={CROSS_VERIFIED:['✓ Cross-checked','verified'],SOURCE_REPORTED:['Source-reported','reported'],NOT_VERIFIED:['NOT VERIFIED','unverified'],ONCHAIN_VERIFIED:['✓ Onchain','verified']};
+ const fieldOk=(item,f)=>item.fields&&item.fields[f]&&item.fields[f].status!=='NOT_VERIFIED'&&item[f]!==null&&item[f]!==undefined;
+ const ago=iso=>{const t=Date.parse(iso);if(!Number.isFinite(t))return NV;const m=Math.max(0,Math.round((Date.now()-t)/60000));return m<60?m+'m ago':m<2880?Math.round(m/60)+'h ago':Math.round(m/1440)+'d ago';};
+ const safeUrl=u=>typeof u==='string'&&/^https:\/\/[^\s]+$/.test(u)?u:null;
  function setView(view){
   active=view;
   const radar=view==='radar';
@@ -71,18 +77,23 @@
   const shown=items.slice(start,start+5);
   for(const item of shown){
    const link=el('a','arcy-radar-row');
-   link.href='/search/token/'+item.network+'/'+item.address;
-   link.setAttribute('aria-label','Research '+item.symbol+' on '+chains.find(x=>x[0]===item.network)[1]);
+   link.href='/search/token/'+TOKEN_NET[selected]+'/'+item.address;
+   link.setAttribute('aria-label','Research '+item.symbol+' on '+chains.find(x=>x[0]===selected)[1]);
    const rank=el('span','arcy-radar-rank',String(item.rank));
    const ticker=el('span','arcy-radar-ticker',item.symbol);
    const name=el('span','arcy-radar-token-name',item.name);
    const identity=el('span','arcy-radar-identity');identity.append(ticker,name);
    const stats=el('span','arcy-radar-stat-block');
-   const volume=el('span','arcy-radar-primary',money(item.volume24hUsd));
-   const small=el('span','arcy-radar-secondary','Price '+price(item.priceUsd)+' · Liq '+money(item.liquidityUsd));
-   stats.append(volume,small);
-   const change=el('span','arcy-radar-change',pct(item.change24hPct));
-   if(typeof item.change24hPct==='number')change.classList.add(item.change24hPct>=0?'positive':'negative');
+   const volume=el('span','arcy-radar-primary',fieldOk(item,'volume24hUsd')?money(item.volume24hUsd):NV+' · NOT VERIFIED');
+   const small=el('span','arcy-radar-secondary','Price '+(fieldOk(item,'priceUsd')?price(item.priceUsd):NV)+' · Liq '+(fieldOk(item,'liquidityUsd')?money(item.liquidityUsd):NV)+(selected==='pons'?' · Launched '+(fieldOk(item,'poolCreatedAt')?ago(item.poolCreatedAt):NV):''));
+   const st=item.fields&&item.fields.volume24hUsd?item.fields.volume24hUsd.status:'NOT_VERIFIED',b=BADGE[st]||BADGE.NOT_VERIFIED;
+   const badges=el('span','arcy-radar-badge arcy-radar-badge-'+b[1],b[0]);
+   const extra=[];
+   if(selected==='pons'&&item.launch&&item.launch.status==='ONCHAIN_VERIFIED')extra.push('✓ Onchain launch'+(item.graduation&&item.graduation.graduated?' · Graduated':' · Bonding'));
+   const onchain=extra.length?el('span','arcy-radar-secondary',extra.join(' · ')):null;
+   stats.append(volume,small,badges);if(onchain)stats.append(onchain);
+   const change=el('span','arcy-radar-change',fieldOk(item,'change24hPct')?pct(item.change24hPct):NV);
+   if(fieldOk(item,'change24hPct')&&typeof item.change24hPct==='number')change.classList.add(item.change24hPct>=0?'positive':'negative');
    link.append(rank,identity,stats,change,el('span','arcy-radar-arrow','›'));
    rows.append(link);
   }
@@ -96,7 +107,9 @@
   selected=network;page=0;items=[];loadedNetwork=null;
   render();
   for(const [id,btn] of buttons)btn.setAttribute('aria-pressed',String(id===network));
-  status.textContent='Checking licensed source for '+chains.find(x=>x[0]===network)[1]+'…';
+  foot.textContent=selected==='pons'?FOOT.pons:FOOT.default;
+  credit.replaceChildren();
+  status.textContent='Checking sources for '+chains.find(x=>x[0]===network)[1]+'…';
   try{
    const ctl=new AbortController(),timeout=setTimeout(()=>ctl.abort(),12000);
    let response,body;
@@ -107,18 +120,19 @@
    if(mine!==sequence)return;
    if(!response.ok||body?.ok!==true||body.network!==network||
       !Array.isArray(body.tokens)||body.tokens.length>10||
-      body.chainId!==({arc:5042,ethereum:1,robinhood:4663})[network])
+      body.chainId!==CHAIN_ID[network]||body.version!==2)
     throw Error(body?.error==='RADAR_NOT_CONFIGURED'?'Live radar is awaiting an approved data license.':'Verified ranking is currently unavailable.');
-   items=body.tokens.filter(item=>item?.network===network&&/^0x[0-9a-f]{40}$/i.test(item.address)&&
-      Number.isFinite(item.volume24hUsd)&&item.volume24hUsd>0);
+   items=body.tokens.filter(item=>/^0x[0-9a-f]{40}$/i.test(item?.address)&&typeof item.symbol==='string'&&typeof item.name==='string'&&item.fields&&typeof item.fields==='object');
    loadedNetwork=network;
-   status.textContent=items.length+' verified candidates · '+body.poolsInspected+' provider-returned pools inspected · Checked '+new Date(body.asOf).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-   if(!items.length)status.textContent='No verified ranking returned for this network.';
+   const cov=body.coverage||{};
+   status.textContent=items.length+' candidates · '+(cov.poolsInspected??'?')+' provider-returned pools inspected · '+(cov.fieldsNotVerified??0)+' fields NOT VERIFIED · '+(body.freshness==='STALE'?'STALE data from ':'As of ')+new Date(body.asOf).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+   if(!items.length)status.textContent=network==='pons'?'No recent Pons launch confirmed onchain right now.':'No verified ranking returned for this network.';
+   for(const a of Array.isArray(body.attribution)?body.attribution:[]){const href=safeUrl(a?.url);if(!href||typeof a.text!=='string')continue;const link=el('a','arcy-radar-credit',a.text.slice(0,80)+' ↗');link.href=href;link.target='_blank';link.rel='noopener noreferrer';credit.append(link,document.createTextNode(' '));}
    render();
   }catch(e){
    if(mine!==sequence)return;
    items=[];loadedNetwork=null;render();
-   status.textContent=e.message==='RADAR_NOT_CONFIGURED'||String(e.message).includes('approved data license')?
+   status.textContent=String(e.message).includes('approved data license')?
      'Market Radar is ready for integration. Public data display requires approved source licensing.':
      'Market Radar cannot verify current results for this network. No rankings are guessed.';
   }
@@ -131,20 +145,18 @@
  setView('research');
  async function verifyPublicReadiness(){
   try{
-   const all=await Promise.all(['arc','ethereum','robinhood'].map(async network=>{
+   const all=await Promise.all(['arc','ethereum','robinhood','pons'].map(async network=>{
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),9500);
     try{
      const response=await fetch('/api/search?action=radar&chain='+network,{signal:controller.signal,headers:{accept:'application/json'},cache:'no-store'});
      if(!response.ok)return false;
      const data=await response.json();
-     return data?.ok===true&&data.network===network&&Array.isArray(data.tokens)&&
-      data.tokens.length===10&&data.tokens.every((item,i)=>item?.rank===i+1&&
-       item.network===network&&/^0x[0-9a-f]{40}$/i.test(item.address)&&
-       typeof item.volume24hUsd==='number'&&Number.isFinite(item.volume24hUsd)&&item.volume24hUsd>0);
+     return data?.ok===true&&data.version===2&&data.network===network&&Array.isArray(data.tokens)&&
+      data.tokens.length>0&&data.tokens.every((item,i)=>item?.rank===i+1&&/^0x[0-9a-f]{40}$/i.test(item.address));
     }finally{clearTimeout(timer)}
    }));
-   if(all.every(Boolean))switcher.hidden=false;
+   if(all.some(Boolean))switcher.hidden=false;
   }catch{} // Source/license failures must not disturb the existing token research.
  }
  void verifyPublicReadiness();

@@ -3,13 +3,15 @@ on:
   pull_request:
     paths:
       - 'lib/market-radar.js'
+      - 'lib/radar-v2/**'
+      - 'scripts/probe-radar-v2.cjs'
       - 'scripts/probe-market-radar.cjs'
       - '.github/workflows/market-radar-source-probe.yml'
   workflow_dispatch:
 jobs:
   live-source-probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,3 +21,10 @@ jobs:
         run: node --test test/market-radar.test.js
       - name: Verify source-only live 24H volume endpoints on all three networks
         run: node scripts/probe-market-radar.cjs
+      - name: Radar V2 unit tests
+        run: node --test test/radar-v2.test.js
+      - name: Respect GeckoTerminal keyless 5 calls/minute
+        run: sleep 60
+      - name: Radar V2 live source probe (paced, keyless, CI only)
+        run: node scripts/probe-radar-v2.cjs
+        continue-on-error: true
