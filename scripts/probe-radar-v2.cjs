@@ -5,7 +5,7 @@ const fs=require('fs');
 const radar=require('../lib/radar-v2'),gecko=require('../lib/radar-v2/gecko'),dexs=require('../lib/radar-v2/dexscreener'),pons=require('../lib/radar-v2/pons'),S=require('../lib/radar-v2/sources');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const lines=[];
-const log=(level,msg)=>{lines.push(level+' '+msg);console.log(level+' '+msg);console.log('::notice title=radar-v2-probe::'+msg.replace(/[\r\n%]/g,' '));};
+const log=(level,msg)=>{lines.push(level+' '+msg);console.log(level+' '+msg);};
 const KNOWN={robinhood:'0x39dbed3a2bd333467115de45665cc57f813c4571',arc:'0xf76b1d00bd3d63a37246b5f512074e864010e33d',arcy:'0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b'};
 const RPC=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.com';
 (async()=>{
@@ -17,7 +17,7 @@ const RPC=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.co
   await sleep(13000);
  }
  // 2) DEX Screener chain ids with known tokens + control
- const probes=[['robinhood',KNOWN.robinhood],['arc',KNOWN.arc],['arc',KNOWN.arcy],['ethereum','0xdac17f958d2ee523a2206206994597c13d831ec7']];
+ const probes=[['robinhood',KNOWN.robinhood],['arc',KNOWN.arc],['arc',KNOWN.arcy],['ethereum','0x1f9840a85d5af5bf1d1762f925bdaddc4201f984']];
  for(const [net,a] of probes){
   try{const m=await dexs.tokens(net,[a],{});const pairs=m.get(a.toLowerCase())||[];log('DS',net+' slug "'+S.NETWORKS[net].dex+'" token '+a.slice(0,8)+': '+pairs.length+' pair(s)'+(pairs[0]?' liq='+pairs[0].liquidityUsd:''));if(net==='ethereum'&&!pairs.length)bad++;}
   catch(e){log('DS',net+' slug "'+S.NETWORKS[net].dex+'": FAIL '+e.code);}
@@ -39,6 +39,8 @@ const RPC=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.co
    log('E2E',net+': tokens='+out.tokens.length+' crossCheck='+c.crossCheckProvider+' cross='+c.fieldsCrossVerified+' reported='+c.fieldsSourceReported+' notVerified='+c.fieldsNotVerified+' usage='+JSON.stringify(out.usage)+(net==='pons'?' ponsChecked='+c.ponsChecked+' confirmed='+c.ponsConfirmed:''));
   }catch(e){log('E2E',net+': FAIL '+e.code+(e.detail?' '+e.detail:''));if(net!=='pons')bad++;}
  }
+ // GitHub caps annotations at 10 per step, so publish ONE multi-line notice.
+ console.log('::notice title=radar-v2-probe::'+lines.join('\n').replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'));
  if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### Radar V2 live probe\n```\n'+lines.join('\n')+'\n```\n');
  if(bad)process.exitCode=1;
 })();
