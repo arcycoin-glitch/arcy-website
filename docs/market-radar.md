@@ -1,32 +1,32 @@
-# ARCY MARKET RADAR — Top 10 by observed pool volume (preview)
+# ARCY MARKET RADAR — 24h Uniswap v4 pool volume, first-party onchain (preview)
 
 ## Scope
-Add a second-page **Token Research | Market Radar** switcher. Existing five cards, 20 metrics, price chart, search, mobile behavior, Pulse, Token Unlocks, and home page remain intact. Radar shows up to ten tokens *per network* and pages five rows at a time. Each entry links to /search/token/{network}/{exactContract}. Network tabs: Arc 5042, Ethereum 1, Robinhood Chain 4663.
+Second-page **Token Research | Market Radar** switcher (PR #80 UI, unchanged layout). Existing five cards, 20 metrics, price chart, search, mobile behaviour, Pulse, Token Unlocks, Transparency and the home page are untouched. Radar shows **up to** ten tokens per network (Arc 5042, Ethereum 1, Robinhood Chain 4663), five rows per page, each linking to `/search/token/{network}/{exactContract}`.
 
-## Data scope (do not overclaim)
-CoinGecko Onchain's **top pools by 24-hour USD volume**, sorted h24_volume_usd_desc; poll pages 1–2 (up to 40 pools). Retain **base-token** only, require exact network-contract joins, de-duplicate by address. Ranking uses each token's **single highest-volume observed pool**; neither token aggregate 24-hour DEX volume nor complete all-chain Top 10. Other pools (outside sampled pages, where token appears as quote) can be missed. Therefore label as Top 10 observed base tokens by their largest tracked pool and provide evidence scope + provider attribution. No synthetic numbers. Incomplete response is a source error, not empty zeroes.
+## Data source (issue #89)
+`lib/market-radar-onchain.js`, served by `GET /api/search?action=radar&chain=arc|ethereum|robinhood` (existing function; no new Vercel function).
 
-## Public licensing gate — intentionally OFF
-Public source rendering and client JSON endpoint are locked unless ALL three environment variables are set by an authorized operator:
-- COINGECKO_PRO_API_KEY (server-only, never embedded in the client)
-- MARKET_RADAR_PUBLIC_DISPLAY_APPROVED=true (active paid CoinGecko commercial license with attribution)
-- MARKET_RADAR_JSON_DELIVERY_APPROVED=true (appropriate permission/contractual confirmation for delivery of the bounded JSON response; standard display rights do not necessarily authorize a programmatic data feed)
+1. Reads the public **Uniswap v4 PoolManager `Swap` events** of the last 24 h directly from each chain's RPC (`eth_getLogs`, bounded call/log/time budgets; an incomplete scan publishes nothing).
+2. Resolves each pool id with the official **PositionManager `poolKeys`** and **proves it** by recomputing `keccak256(poolKey) == poolId`.
+3. Values volume only for pools paired with an exact-contract USD anchor: Arc ERC-20 USDC `0x3600…0000` (6 decimals, checked), Ethereum USDC/WETH/ETH, Robinhood ETH/WETH and bridged USDC (derived at run time from the official L2 Gateway Router and verified by symbol/decimals). USD reference prices are **Chainlink ETH/USD and USDC/USD read onchain from Ethereum** (round freshness, positive answer, `answeredInRound` checked).
+4. One pool per token (its highest-volume pool; same-token pools are never added), tokens deduplicated by network + full address, metadata (`symbol`, `decimals`, `name`) read from the contract; a token that cannot be read is skipped and counted.
+5. 24h change = first-to-last observed swap price in that pool inside the window (labelled as such). Liquidity is **N/A** (Uniswap v4 keeps all balances in one PoolManager; not computed, never shown as zero).
 
-Without approvals, GET /api/search?action=radar&chain=arc|ethereum|robinhood returns HTTP 503 RADAR_NOT_CONFIGURED. The UI displays an honest source-unavailable/license status rather than imaginary rankings. NO live production rollout or enabling of these flags without verifying terms. Do not use the existing public GeckoTerminal API for a third-party public ranking feed without first confirming permitted publication rights.
+Official deployment addresses: developers.uniswap.org/docs/protocols/v4/deployments (Ethereum, Arc), github.com/Uniswap/contracts/blob/main/deployments/4663.md (Robinhood), docs.robinhood.com/chain/protocol-contracts (L2 Gateway Router), docs.arc.io/integrate/defi/amm-and-pools (Arc USDC rules).
 
-Paid endpoint:
-https://pro-api.coingecko.com/api/v3/onchain/networks/{arc|eth|robinhood}/pools?sort=h24_volume_usd_desc&include=base_token,quote_token&page=1 (and page=2 if necessary).
-Server caches snapshots for 600 seconds; Vercel edge caching s-maxage 600. Stale results are not served on failed refresh.
+## Scope disclaimers (shown in the UI)
+Uniswap v4 only — not whole-chain, not other DEXs (v2/v3, other venues), not token-wide aggregate volume. Pools with fewer than 2 swaps, unpriced pairs (no USD anchor), anchor-vs-anchor pools and pools beyond the key-resolution cap (200 most active) are excluded and **counted in `coverage`**. A network with no verified rows says so; it never hides the other networks.
+
+## Licensing
+No third-party market-data licence is involved in the default path: everything is public blockchain data read by ARCY itself. The server does not sell data. Third-party providers were assessed in `docs/market-radar-provider-audit-20261029.md`; **CoinGecko Pro stays off** and is selectable only with `MARKET_RADAR_PROVIDER=coingecko` plus `MARKET_RADAR_PUBLIC_DISPLAY_APPROVED=true`, `MARKET_RADAR_JSON_DELIVERY_APPROVED=true` and a server-only `COINGECKO_PRO_API_KEY`. A footer/credit line is never treated as a licence.
+
+## Caching, limits
+Server cache 600 s per network (+ edge `s-maxage=600`), failures negatively cached 60 s and never served as results; in-flight de-duplication; no stale result is shown as current (`asOf` is the chain head timestamp, head older than 15 min is refused). Hobby plan: Radar stays routed through `/api/search` (12-function limit).
 
 ## Verification
-- node --test test/market-radar.test.js
-- node scripts/probe-market-radar.cjs (source connectivity **internal CI only**, GeckoTerminal public endpoint, no redistribution, three network probes)
-- On authorized dev environment: compare each ranked token against its exact contract page; verify 10-minute freshness, license attribution, no duplicate token addresses, no cross-chain links, 5-row pager and mobile view.
-- Regression: existing 20-metric fields and chart controls still render, details open, 3 networks searchable, home Pulse and Unlocks unchanged.
-- Review any deployment preview with a real browser for responsive scrolling before merge. Do not merge while data rights remain unresolved.
+- `node --test test/market-radar-onchain.test.js test/market-radar.test.js`
+- `node scripts/probe-market-radar-onchain.cjs [arc|ethereum|robinhood]` — live, read-only per-chain measurement (counts, field completeness, top rows). Run on a machine/Preview with RPC access; set `ETH_RPC_URL` / `ARC_RPC_URL` / `ROBINHOOD_RPC_URL` to a dedicated endpoint when public ones cap `eth_getLogs`.
+- Compare each ranked token with its explorer page: exact contract, pool id, last swap tx.
 
-## Disclaimers
-Ranking is **not** an all-chain census, not a whale alert, and not investment advice. Prices and liquidity are for the selected highest-volume pool, not necessarily executable prices. Unknown values remain unavailable, not zero.
-
-## Safe production rollout
-The Radar asset may ship in production, but the switcher remains **hidden** until the server successfully returns exactly 10 real, contract-matched ranked tokens on all three networks. The existing 20-check research view must remain the only visible detail view while license/data gates are unmet. Do not count source connectivity alone as a production data release. Activation requires rights and source availability; configuration remains fail closed.
+## Safe rollout
+The switcher appears only after at least one network returns verified rows. Do not merge or promote before the live per-chain measurement above and a real-browser mobile review.
