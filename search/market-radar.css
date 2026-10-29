@@ -123,3 +123,12 @@
 #tokenDetail .arcy-radar-rows{width:100%;grid-template-columns:minmax(0,1fr)}
 #tokenDetail .arcy-radar-row{width:100%}
 @media(max-width:640px){#tokenDetail .arcy-radar-networks{gap:5px;margin:12px 0 15px}#tokenDetail .arcy-radar-network{min-height:65px;flex-direction:column;gap:4px;padding:7px 2px;font-size:clamp(8px,2.4vw,11px);text-align:center}#tokenDetail .arcy-radar-network::before{flex-basis:25px}}
+
+#tokenDetail .arcy-radar-network::before{display:none!important}
+#tokenDetail .arcy-radar-network{gap:9px;color:#fff;font-weight:800;background:linear-gradient(150deg,var(--radar-tint),#081724);border-color:var(--radar-color)!important}
+#tokenDetail .arcy-radar-network[data-network=pons]{--radar-color:#f4a449;--radar-tint:#4b3020}
+#tokenDetail .arcy-radar-network[data-network=arc]{--radar-color:#29c9f5;--radar-tint:#123b56}
+#tokenDetail .arcy-radar-network[data-network=ethereum]{--radar-color:#a47cff;--radar-tint:#312257}
+#tokenDetail .arcy-radar-network[data-network=robinhood]{--radar-color:#2cd4a0;--radar-tint:#123f36}
+#tokenDetail .arcy-radar-chain-logo{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border:1px solid var(--radar-color);border-radius:10px;color:var(--radar-color);font-size:22px;font-weight:900}
+@media(max-width:640px){#tokenDetail .arcy-radar-network{flex-direction:column;gap:4px;font-size:clamp(8px,2.3vw,11px)}#tokenDetail .arcy-radar-chain-logo{flex-basis:24px;width:24px;height:24px;font-size:16px}}
