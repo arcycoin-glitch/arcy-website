@@ -204,3 +204,9 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Railway incremental indexer + signed snapshots (market-radar-indexer/-storage/-http/-snapshot), API `MARKET_RADAR_SOURCE=snapshot`. Docs: docs/market-radar-indexer.md.
 - Tests: 693/693 (671 + 15 scanner + 7 indexer/snapshot). Mock chain moved to test/radar-helpers.js.
 - Open: deploy worker code + env on Railway (user), Preview measurement per network, Chainlink display rights, production stays off.
+
+## 2026-10-29 — Issue #96 (PR #94): holder RPC, Radar coverage, pons Launch Radar
+- Phase 1: lib/holder-rpc.js secret-free per-provider attempts, case-insensitive chain id, eth_call execution-failure wording, `diagnose()`, authed `/holder/rpc-diagnostics`; holder-refresh logs/returns `rpcAttempts`. Live cause NOT determinable from the sandbox (no RPC access): run the diagnostics route on Railway.
+- Phase 2: classification order fixed (rate vs range), cap re-cutting, live feasibility stop, Initialize-event key registry (hash-verified), coverage gate RADAR_POOL_KEY_COVERAGE_LOW, scope note, indexer registry backfill + persisted learned cap.
+- Phase 3: lib/pons-launch-radar.js + lib/pons-launch-indexer.js, `chain=pons`, fourth tab (pons), snapshot kind `pons`. Official docs sources; third-party article factory not used.
+- Tests: 718/718. Railway untouched; rollback plan in docs/market-radar-indexer.md.

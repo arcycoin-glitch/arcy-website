@@ -8,7 +8,7 @@
 #tokenDetail .arcy-radar-panel{border:1px solid #224456;border-radius:19px;background:linear-gradient(135deg,#0a2130,#071521);padding:clamp(16px,3.5vw,28px);color:#e9f7ff}
 #tokenDetail .arcy-radar-panel h2{font-size:clamp(19px,3vw,26px);margin:0 0 6px}
 #tokenDetail .arcy-radar-intro{color:#9ebfcb;font-size:12px;margin:0 0 20px}
-#tokenDetail .arcy-radar-networks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#tokenDetail .arcy-radar-networks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 #tokenDetail .arcy-radar-network{min-height:43px;border:1px solid #345568;border-radius:10px;background:#091d2c;color:#b5d5e0;font-weight:700;font-size:12px;cursor:pointer}
 #tokenDetail .arcy-radar-network[aria-pressed=true]{border-color:#39d9df;color:white;background:#144057}
 #tokenDetail .arcy-radar-status{min-height:20px;margin:15px 0 12px;color:#98bbc8;font-size:12px}

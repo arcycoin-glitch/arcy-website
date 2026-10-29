@@ -303,3 +303,42 @@ test('Radar UI keeps the existing structure: same classes, 5 per page, mobile br
  assert.match(css,/@media\(max-width:640px\)/);assert.match(css,/grid-template-columns:25px minmax\(115px,1\.1fr\)/);
  assert.match(js,/page\*5/);assert.match(js,/Token Research/);assert.match(js,/Market Radar/);
 });
+
+// ---- issue #96: fourth tab (pons Launch Radar) --------------------------------------------------
+function ponsBody(n,over={}){
+ return {ok:true,network:'pons',chainId:4663,asOf:'2026-10-29T10:00:00.000Z',sourceType:'FIRST_PARTY_ONCHAIN',
+  selection:'Newest tokens launched through the official pons factories on Robinhood Chain, newest first.',
+  attribution:{text:'Data: pons factory events on Robinhood Chain · independent index, not operated by pons',url:'https://www.ponsfamily.com/launchpad'},
+  coverage:{launchesInWindow:n,shown:n},
+  tokens:Array.from({length:n},(_,i)=>({rank:i+1,network:'pons',chainId:4663,address:tokenAddr(i+1),symbol:'P'+(i+1),name:'Pons '+(i+1),
+   launchedAt:new Date(Date.now()-(i+1)*3600e3).toISOString(),launchBlock:1000+i,launchTx:'0x'+'ab'.repeat(32),txCount:i+2,swaps:i+3,
+   volumeUsd:i===1?null:500+i,fieldStatus:{volumeUsd:i===1?'UNAVAILABLE':'VERIFIED_SINCE_LAUNCH'}})),...over};
+}
+test('Radar UI: fourth tab lists newest pons launches with verified time, N/A where unverifiable, and keeps the other three tabs',async()=>{
+ const m=await mountRadar({arc:apiBody('arc',3),pons:ponsBody(7)});
+ const nav=m.q('arcy-radar-networks');
+ assert.equal(nav.children.length,4);assert.deepEqual(nav.children.map(b=>b.dataset.network),['arc','ethereum','robinhood','pons']);
+ assert.equal(nav.children[3]._text,'pons');
+ const [,radarBtn]=m.switcher().children;await radarBtn.click();for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));
+ await nav.children[3].click();for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));
+ const text=n=>[n._text,...n.children.map(text)].join(' ');
+ assert.equal(m.rows().children.length,5);
+ const rows=text(m.rows());
+ assert.match(rows,/Launched/);assert.match(rows,/verified/);assert.match(rows,/txs/);assert.match(rows,/N\/A/); // row 2 volume unavailable
+ assert.match(m.doc.byId.get('marketRadarStatus').textContent,/7 newest verified launches/);
+ assert.match(text(m.q('arcy-radar-disclaimer')),/not a separate blockchain/);
+ assert.match(text(m.q('arcy-radar-disclaimer')),/not operated or endorsed by pons/);
+ assert.equal(m.rows().children[0].href,'/search/token/robinhood/'+tokenAddr(1));
+ // switching back restores the volume-ranked layout and disclaimer
+ await nav.children[0].click();for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));
+ assert.equal(m.rows().children.length,3);assert.doesNotMatch(text(m.q('arcy-radar-disclaimer')),/pons/);
+});
+test('Radar UI: pons tab discards launches without evidence and stays hidden when the API has no verified launches',async()=>{
+ const bad=ponsBody(3);bad.tokens[0].launchTx='0x12';bad.tokens[1].launchedAt='not a date';
+ const m=await mountRadar({pons:bad});
+ const [,radarBtn]=m.switcher().children;
+ // readiness requires every row valid => pons is unavailable and no tab data is trusted
+ assert.equal(m.switcher().hidden,true);
+ const m2=await mountRadar({pons:ponsBody(0)});assert.equal(m2.switcher().hidden,true);
+ void radarBtn;
+});

@@ -12,6 +12,7 @@
 const radar=require('../../../lib/market-radar');
 const onchain=require('../../../lib/market-radar-onchain');
 const snapshot=require('../../../lib/market-radar-snapshot');
+const ponsRadar=require('../../../lib/pons-launch-radar');
 const GENERIC_UNAVAILABLE={ok:false,error:'RADAR_SOURCE_UNAVAILABLE',
  message:'Provider data could not be verified; no ranking is displayed.'};
 module.exports=async function(req,res){
@@ -19,9 +20,9 @@ module.exports=async function(req,res){
  res.setHeader('Cache-Control','no-store');
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
  const network=req.query?.chain;
- if(typeof network!=='string'||!Object.hasOwn(radar.IDS,network))
+ if(typeof network!=='string'||(network!=='pons'&&!Object.hasOwn(radar.IDS,network)))
   return res.status(400).json({ok:false,error:'INVALID_NETWORK'});
- if(process.env.MARKET_RADAR_PROVIDER==='coingecko'){
+ if(network!=='pons'&&process.env.MARKET_RADAR_PROVIDER==='coingecko'){
   const enabled=process.env.MARKET_RADAR_PUBLIC_DISPLAY_APPROVED==='true'&&
    process.env.MARKET_RADAR_JSON_DELIVERY_APPROVED==='true'&&
    !!process.env.COINGECKO_PRO_API_KEY;
@@ -45,7 +46,7 @@ module.exports=async function(req,res){
  try{
   // MARKET_RADAR_SOURCE=snapshot reads the signed, continuously indexed Railway snapshot
   // (no RPC scan inside the 60s Vercel function). Default 'live' scans on demand.
-  const data=process.env.MARKET_RADAR_SOURCE==='snapshot'?await snapshot.load(network):await onchain.load(network);
+  const data=process.env.MARKET_RADAR_SOURCE==='snapshot'?await snapshot.load(network):network==='pons'?await ponsRadar.load():await onchain.load(network);
   const {_diagnostics,...publicBody}=data;
   log('log',{network,ok:true,diagnostics:_diagnostics});
   // Only a successful, complete scan is cacheable at the edge. Failures are never cached.
