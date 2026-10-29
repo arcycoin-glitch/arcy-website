@@ -109,3 +109,45 @@
 @media(min-width:761px){#tokenDetail .arcy-radar-overview{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:760px){#tokenDetail .arcy-radar-overview{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:20px}}
 @media(max-width:400px){#tokenDetail .arcy-radar-panel{padding:12px}#tokenDetail .arcy-radar-overview-head{font-size:11px}#tokenDetail .arcy-radar-overview-volume{font-size:9px}#tokenDetail .arcy-radar-overview-count{font-size:10px}}
+
+
+/* Final Radar hierarchy: four network choices in one row; ONE selected network
+   expands its token list across the available page width below. */
+#tokenDetail .arcy-radar-networks{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0 22px}
+#tokenDetail .arcy-radar-network{min-height:76px;flex-direction:row;gap:10px;font-size:clamp(12px,1.4vw,17px);border-radius:17px}
+#tokenDetail .arcy-radar-network:nth-child(1){border-color:#248bb0}
+#tokenDetail .arcy-radar-network:nth-child(2){border-color:#7053b8}
+#tokenDetail .arcy-radar-network:nth-child(3){border-color:#158969}
+#tokenDetail .arcy-radar-network:nth-child(4){border-color:#af762e}
+#tokenDetail .arcy-radar-network[aria-pressed=true]{box-shadow:inset 0 1px rgba(255,255,255,.12),0 0 0 1px currentColor,0 10px 30px rgba(0,0,0,.2)}
+#tokenDetail .arcy-radar-rows{width:100%;grid-template-columns:minmax(0,1fr)}
+#tokenDetail .arcy-radar-row{width:100%}
+@media(max-width:640px){#tokenDetail .arcy-radar-networks{gap:5px;margin:12px 0 15px}#tokenDetail .arcy-radar-network{min-height:65px;flex-direction:column;gap:4px;padding:7px 2px;font-size:clamp(8px,2.4vw,11px);text-align:center}#tokenDetail .arcy-radar-network::before{flex-basis:25px}}
+
+#tokenDetail .arcy-radar-network::before{display:none!important}
+#tokenDetail .arcy-radar-network{gap:9px;color:#fff;font-weight:800;background:linear-gradient(150deg,var(--radar-tint),#081724);border-color:var(--radar-color)!important}
+#tokenDetail .arcy-radar-network[data-network=pons]{--radar-color:#f4a449;--radar-tint:#4b3020}
+#tokenDetail .arcy-radar-network[data-network=arc]{--radar-color:#29c9f5;--radar-tint:#123b56}
+#tokenDetail .arcy-radar-network[data-network=ethereum]{--radar-color:#a47cff;--radar-tint:#312257}
+#tokenDetail .arcy-radar-network[data-network=robinhood]{--radar-color:#2cd4a0;--radar-tint:#123f36}
+#tokenDetail .arcy-radar-chain-logo{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border:1px solid var(--radar-color);border-radius:10px;color:var(--radar-color);font-size:22px;font-weight:900}
+@media(max-width:640px){#tokenDetail .arcy-radar-network{flex-direction:column;gap:4px;font-size:clamp(8px,2.3vw,11px)}#tokenDetail .arcy-radar-chain-logo{flex-basis:24px;width:24px;height:24px;font-size:16px}}
+
+
+/* Premium token research rows: full-width, readable, restrained network glow. */
+#tokenDetail .arcy-radar-rows{gap:11px}
+#tokenDetail .arcy-radar-row{position:relative;min-height:92px;padding:17px 19px;border:1px solid rgba(86,165,194,.24);border-radius:17px;background:linear-gradient(115deg,#102d40 0%,#0a2031 58%,#091a29 100%);box-shadow:inset 0 1px rgba(255,255,255,.045),0 5px 20px rgba(0,0,0,.13);transition:border-color .2s,background .2s,transform .2s,box-shadow .2s}
+#tokenDetail .arcy-radar-row:hover{transform:translateY(-2px);border-color:#49c9ed;background:linear-gradient(115deg,#164056,#0b2638 70%);box-shadow:0 10px 28px rgba(0,0,0,.25)}
+#tokenDetail .arcy-radar-rank{font-size:12px;font-weight:800;color:#7abbd2}
+#tokenDetail .arcy-radar-ticker{font-size:16px;letter-spacing:.02em;color:#f1faff}
+#tokenDetail .arcy-radar-token-name{font-size:12px;color:#9fc3d4}
+#tokenDetail .arcy-radar-primary{font-size:19px;color:#f1faff;letter-spacing:-.02em}
+#tokenDetail .arcy-radar-secondary{color:#8eb5c7}
+#tokenDetail .arcy-radar-arrow{font-size:26px;color:#5bd6ef}
+#tokenDetail .arcy-radar-badge{font-size:10px;padding:3px 9px;border-radius:999px;background:rgba(11,27,40,.7)}
+#tokenDetail .arcy-radar-badge-verified{color:#61deb1;border-color:rgba(97,222,177,.6)}
+#tokenDetail .arcy-radar-badge-reported{color:#e8be70;border-color:rgba(232,190,112,.6)}
+#tokenDetail .arcy-radar-badge-unverified{color:#a9b6c4;border-color:rgba(169,182,196,.45)}
+#tokenDetail .arcy-radar-warn{color:#f5bd62;font-size:10px}
+#tokenDetail .arcy-radar-change{font-weight:800;font-size:13px}
+@media(max-width:640px){#tokenDetail .arcy-radar-rows{gap:8px}#tokenDetail .arcy-radar-row{min-height:76px;padding:11px 9px;border-radius:13px;gap:7px;grid-template-columns:16px minmax(68px,.8fr) minmax(94px,1.15fr) 50px 9px}#tokenDetail .arcy-radar-ticker{font-size:12px}#tokenDetail .arcy-radar-token-name{font-size:10px}#tokenDetail .arcy-radar-primary{font-size:13px}#tokenDetail .arcy-radar-secondary{font-size:9px}#tokenDetail .arcy-radar-change{font-size:10px}#tokenDetail .arcy-radar-arrow{font-size:18px}}
