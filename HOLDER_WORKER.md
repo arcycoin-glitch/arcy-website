@@ -55,3 +55,27 @@ answering errors for calls another provider serves is deprioritised (+250 ms per
 - **Balance fallback** reads individual `balanceOf` calls in chunks of 5, each only if it fits in the slice minus the checkpoint
   reserve, and checkpoints the contiguous prefix; budget cancellation never starts the long sequence.
 - `/holder/rpc-diagnostics` health rows carry sanitized per-provider `calls`, `http429`, `answeredErrors`, `historyUnavailable`, `historyGaps`.
+
+## Throughput bottleneck: pacing ratchet and fair scheduling (PR #94 follow-up)
+
+**Root cause (reproduced with `test/helpers/holder-sim.cjs`, virtual clock, 2 % random 429s over 40 worker runs):**
+every provider fault doubled that provider's pacing interval (up to 8 s) and cut concurrency to 1, but the only way back was
+20 consecutive *successes* — which an 8 s interval makes almost impossible inside a 12 s slice. Intervals stayed at 8 s / 6.5 s, slices
+shrank to 1–2 requests, `pacing delay >= remaining` raised `HOLDER_WORKER_BUDGET_EXHAUSTED`, and cursors crawled
+(measured: 676 requests, 91 budget yields + 33 cooldown yields, progress 111k → 9k blocks per run). Strict FIFO made it worse for tokens
+close to COMPLETE: a token needing two more slices waited as long as one needing fifty.
+
+**Smallest safe fix (no higher RPC limits or cost):**
+1. Penalties now also decay with quiet time: every `ARC_HOLDER_RPC_RELAX_MS` (default 15 s) without a fault halves the interval and
+   restores concurrency, never below the configured base interval. Steady-state rate and cooldown/Retry-After handling are unchanged.
+   Same scenario after the fix: 4 271 requests, 3 budget yields, ~100k blocks per run, intervals back at base.
+2. Scheduler: pool of up to 50 due tokens; 40 % of each run's slots (`ARC_HOLDER_FIFO_SHARE_PCT`) go to the longest-waiting tokens
+   (aging; bounded idle time), the rest to the least remaining work (blocks/ranges or balance batches, taken from the checkpoint
+   builder's own saves; one checkpoint read per token per process start).
+
+**Diagnostics** (`GET /holder/rpc-diagnostics`, Bearer token; add `?probe=0` to skip live provider probes and spend no RPC):
+`worker.rpc` (metrics: requests, successful, http429, errors, fallbacks, backoffMs, pacingMs, cooldownWaitMs; per-provider interval,
+baseInterval, limit, cooldownMs, calls, http429, historyUnavailable), `worker.limits`, `worker.scheduler.totals` (slices, complete,
+yielded, cooldownYields, starvation/oldest/smallest picks) and `worker.tokens[]` (phase, cursor, target, remaining blocks/balances/calls,
+width, advancedTotal, slices, yields, lastState/lastReason/lastAdvanced/lastSliceMs, idleMs). Counters are in-process (reset on restart);
+durable truth remains the signed checkpoints.

@@ -229,3 +229,8 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Tests: test/holder-completion.test.js (13). Existing 41 signed snapshots / publication gating code untouched.
 - Not done by design: no Railway deploy, Radar off, no production Vercel.
 - Next: user redeploys, then count NEW COMPLETE snapshots vs budget yields vs RPC failures separately.
+
+## 2026-10-29 (late) — Holder bottleneck: pacing ratchet + fair scheduling
+- Reproduced in simulation: provider interval ratcheted to 8 s (recovery needed 20 successes), slices degraded to 1-2 requests, 20/28 budget yields, 0 COMPLETE. Fixed by quiet-time decay (base interval floor) in lib/holder-rpc.js.
+- Scheduler (lib/holder-refresh.js `rank`): 40 % longest-waiting + rest least-remaining-work, pool 50 (holder-storage.due cap 50), one-time checkpoint priming; lib/holder-progress.js registry; clock injection in holder-budget; diagnostics `worker` section (?probe=0).
+- Tests: test/holder-bottleneck.test.js (10, incl. 33,732-block ACCEPTANCE), test/helpers/holder-sim.cjs. Suite 763/763. scripts/holder-worker.cjs untouched. No deploy, Radar off.

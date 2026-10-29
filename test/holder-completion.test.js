@@ -110,7 +110,7 @@ test('worker budgets are env-tunable inside safe bounds and keep legacy defaults
  const {limits}=require('../lib/holder-refresh'),names=['ARC_HOLDER_INVOCATION_BUDGET_MS','ARC_HOLDER_TOKEN_SLICE_MS','ARC_HOLDER_BATCH_LIMIT','ARC_HOLDER_INCOMPLETE_DELAY_MS','ARC_HOLDER_CHECKPOINT_RESERVE_MS'],saved=names.map(n=>process.env[n]);
  try{
   names.forEach(n=>delete process.env[n]);
-  assert.deepEqual(limits({limit:5,budgetMs:40000,incompleteDelayMs:5000}),{invocationMs:40000,sliceMs:12000,batchLimit:5,incompleteDelayMs:5000,reserveMs:2000,maxRetryDelayMs:120000});
+  const d=limits({limit:5,budgetMs:40000,incompleteDelayMs:5000});assert.deepEqual({...d,poolSize:undefined,fifoShare:undefined,starveMs:undefined},{invocationMs:40000,sliceMs:12000,batchLimit:5,incompleteDelayMs:5000,reserveMs:2000,maxRetryDelayMs:120000,poolSize:undefined,fifoShare:undefined,starveMs:undefined});assert.equal(d.poolSize,50);assert.equal(d.fifoShare,0.4);
   Object.assign(process.env,{ARC_HOLDER_INVOCATION_BUDGET_MS:'90000',ARC_HOLDER_TOKEN_SLICE_MS:'25000',ARC_HOLDER_BATCH_LIMIT:'8',ARC_HOLDER_INCOMPLETE_DELAY_MS:'2000',ARC_HOLDER_CHECKPOINT_RESERVE_MS:'3000'});
   const l=limits({limit:5,budgetMs:40000,incompleteDelayMs:5000});assert.deepEqual([l.invocationMs,l.sliceMs,l.batchLimit,l.incompleteDelayMs,l.reserveMs],[90000,25000,8,2000,3000]);
   Object.assign(process.env,{ARC_HOLDER_INVOCATION_BUDGET_MS:'99999999',ARC_HOLDER_TOKEN_SLICE_MS:'1',ARC_HOLDER_BATCH_LIMIT:'9999',ARC_HOLDER_INCOMPLETE_DELAY_MS:'1',ARC_HOLDER_CHECKPOINT_RESERVE_MS:'999999'});
