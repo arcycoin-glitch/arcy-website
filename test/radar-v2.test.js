@@ -205,8 +205,8 @@ test('pons: only tokens confirmed by an official factory are listed, newest firs
  assert.equal(out.chainId,4663);assert.equal(out.network,'pons');
  const t=out.tokens[0];assert.equal(t.launch.status,'ONCHAIN_VERIFIED');assert.equal(t.launch.factory,sources.PONS.factories[0]);assert.equal(t.graduation.graduated,false);assert.equal(t.graduation.thresholdEth,5);
  assert.equal(t.fields.poolCreatedAt.status,'CROSS_VERIFIED');
- assert.equal(out.coverage.ponsChecked,12);assert.equal(out.coverage.ponsConfirmed,3);
- assert.match(out.selection,/Recent launches only/);
+ assert.equal(out.coverage.ponsChecked,12,'duplicate pools across the two provider windows collapse to unique tokens');assert.equal(out.coverage.ponsConfirmed,3);
+ assert.match(out.selection,/Pons-launched tokens only/);
  assert.equal(f.calls.filter(c=>/rpc\.example/.test(c.url)).length,2,'one membership batch + one graduation batch; no log scan');
  assert.ok(!f.calls.some(c=>/eth_getLogs/.test(String(c.opts.body))));
  assert.ok(out.sources.some(s=>s.id==='pons'));

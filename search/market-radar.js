@@ -42,7 +42,7 @@
  for(const b of [prev,next])b.type='button';
  pager.append(prev,current,next);
  const foot=el('p','arcy-radar-disclaimer','');
- const FOOT={default:'Ranked by the single largest observed pool for each base token, not total token volume across the chain. Values marked Cross-checked agree between two independent indexers; this is not an onchain proof. Discovery, not an investment recommendation.',pons:'Pons Launch lists only recent launches confirmed by the official Pons factory contracts on Robinhood Chain (onchain read), and is not exhaustive. Discovery, not an investment recommendation.'};
+ const FOOT={default:'Ranked by the single largest observed pool for each base token, not total token volume across the chain. Values marked Cross-checked agree between two independent indexers; this is not an onchain proof. Discovery, not an investment recommendation.',pons:'Pons Launch lists only tokens confirmed as launched by the official Pons factory contracts on Robinhood Chain (onchain read), found among the newest and most active pools; tokens still on the bonding curve are not covered and the list is not exhaustive. Discovery, not an investment recommendation.'};
  foot.textContent=FOOT.default;
  const credit=el('p','arcy-radar-credit-row');
  panel.append(title,subtitle,chainNav,status,rows,pager,foot,credit);
