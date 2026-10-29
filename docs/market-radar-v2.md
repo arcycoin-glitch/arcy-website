@@ -46,5 +46,9 @@ Assessment for this use model:
 3. **Residual points that are still not written down anywhere I could read:** whether CoinGecko's API terms cover the onchain endpoints used with a Demo key and the keyless GeckoTerminal API, whether browser-visible JSON (the page's own network call) counts as redistribution, and what DEX Screener means by "unauthorized". Neither provider states a permission process. If the operator wants certainty, ask CoinGecko support and DEX Screener (contact in their API terms, section 9) in writing.
 4. The three approval flags are **not set by this PR or by me**. Setting `MARKET_RADAR_PUBLIC_DISPLAY_APPROVED`, `MARKET_RADAR_JSON_DELIVERY_APPROVED` and `DEXSCREENER_PUBLIC_DISPLAY_APPROVED` is an operator decision, taken on the basis of the above (residual points in 3).
 
+## Vercel Preview end-to-end (commit 6ccac61, real providers, Chrome)
+All four sections returned HTTP 200 with live data (Arc 9, Ethereum 9, Robinhood 10, Pons Launch 1 tokens). Edge cache confirmed (`x-vercel-cache: HIT`, same `asOf` on repeat calls). Desktop and a 390 px frame render without horizontal overflow. Findings fixed in 6ccac61: full-width status badge, browser machine-translation of tickers/tab names, native-ETH zero-address rows linking to a research page, no hint about clone tickers (two non-factory "PONS" clones rank 3–4 on Robinhood with ~$50M volume and are correctly absent from Pons Launch) and extreme volume/liquidity ratios.
+Not verifiable from a browser: the `403 RADAR_SITE_ONLY` path (browsers cannot forge `Sec-Fetch-Site`); covered by unit tests.
+
 ## Still unverified (needs CI probe / operator)
 CoinGecko Demo-key onchain coverage of Arc/Robinhood (keyless works; a Demo key was not available); the licence approvals above. Run `scripts/probe-radar-v2.cjs` via the "Market Radar source compatibility probe" workflow.
