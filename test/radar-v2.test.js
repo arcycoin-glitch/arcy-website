@@ -87,7 +87,7 @@ test('dexscreener.parse drops other-chain pairs and malformed numbers',()=>{
 
 // ── verification semantics ────────────────────────────────────────────────────────────────────────────────
 test('verify: agreement=CROSS_VERIFIED, one source=SOURCE_REPORTED, contradiction/missing=NOT_VERIFIED; FDV is never market cap',()=>{
- const gt={address:addr(1),pool:addr(5000),scope:'TOKEN',priceUsd:1,volume24hUsd:1000,liquidityUsd:500,change24hPct:5,fdvUsd:2000,marketCapUsd:null,poolCreatedAt:new Date(T0).toISOString()};
+ const gt={address:addr(1),pool:addr(5000),scopeVolume:'TOKEN',scopeLiquidity:'TOKEN',priceUsd:1,volume24hUsd:1000,liquidityUsd:500,change24hPct:5,fdvUsd:2000,marketCapUsd:null,poolCreatedAt:new Date(T0).toISOString()};
  const pairs=[{pair:addr(5000),token:addr(1),side:'base',priceUsd:1.02,volume24hUsd:600,liquidityUsd:900,change24hPct:6,fdvUsd:2050,marketCapUsd:null,pairCreatedAt:new Date(T0+1000).toISOString(),poolCreatedAt:new Date(T0+1000).toISOString(),logo:null},
   {pair:addr(5001),token:addr(1),side:'quote',priceUsd:null,volume24hUsd:450,liquidityUsd:null,change24hPct:null,fdvUsd:null,marketCapUsd:null,pairCreatedAt:null,logo:null}];
  const ds=verify.summarize(gt,pairs);
@@ -110,7 +110,8 @@ test('verify: agreement=CROSS_VERIFIED, one source=SOURCE_REPORTED, contradictio
  const solo=verify.verifyRow(gt,{state:'DISABLED'});
  assert.equal(solo.fields.priceUsd.status,'SOURCE_REPORTED');assert.equal(solo.fields.priceUsd.crossCheck,'DISABLED');
  assert.deepEqual(verify.summarize(gt,[]),{state:'NO_MATCH'});
- const pool=verify.verifyRow({...gt,scope:'POOL'},verify.summarize({...gt,scope:'POOL'},pairs));
+ const gp={...gt,scopeVolume:'POOL',scopeLiquidity:'POOL'};
+ const pool=verify.verifyRow(gp,verify.summarize(gp,pairs));
  assert.equal(pool.fields.volume24hUsd.scope,'POOL');assert.equal(pool.fields.volume24hUsd.status,'NOT_VERIFIED');assert.equal(pool.fields.volume24hUsd.reasonCode,'SOURCES_DISAGREE');
  assert.equal(verify.agree('change24hPct',1,4.5),false);assert.equal(verify.agree('priceUsd',0,0),true);assert.equal(verify.agree('priceUsd',null,1),false);
 });
@@ -360,4 +361,18 @@ test('Pons Launch reuses the cached Robinhood top-volume page instead of spendin
  const out=await radar.load('pons',{env,fetcher:f,now:()=>T0,rpcUrl:'https://rpc.example/'});
  assert.equal(top,1,'top-volume page fetched once for both sections');assert.equal(out.tokens.length,1);
  assert.equal(out.usage.geckoterminal,2,'only the new-pools page and the token-stats call were spent');
+});
+
+test('token-level totals smaller than their own top pool are provider errors: that field falls back to the pool figure and is labelled POOL',async()=>{
+ const body=geckoBody('arc',{count:12});
+ const m=multiBody('arc',body,{liq:'4.04'});                       // total_reserve_in_usd 4.04 while the pool holds 1,500 (real Arc anomaly)
+ const f=router([[/tokens\/multi/,()=>resp(m)],[/coingecko\.com/,()=>resp(body)]]);
+ const out=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
+ const t=out.tokens[0];
+ assert.equal(t.fields.liquidityUsd.scope,'POOL');assert.equal(t.liquidityUsd,1500,'pool reserve, not the impossible total');assert.equal(t.fields.volume24hUsd.scope,'TOKEN');
+});
+test('a zero market cap or FDV is "not stated", not a value',async()=>{
+ const body=geckoBody('arc',{count:3});const m=multiBody('arc',body,{mc:false});for(const d of m.data){d.attributes.market_cap_usd='0';d.attributes.fdv_usd='0';}
+ const out=await gecko.fetchMulti({host:'https://x',key:null},'arc',m.data.map(d=>d.attributes.address),{fetcher:router([[/./,()=>resp(m)]]),now:()=>T0});
+ for(const v of out.values()){assert.equal(v.marketCapUsd,null);assert.equal(v.fdvUsd,null);}
 });
