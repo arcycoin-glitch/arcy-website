@@ -101,6 +101,10 @@ test('verify: agreement=CROSS_VERIFIED, one source=SOURCE_REPORTED, contradictio
  const mismatched=verify.verifyRow(gt,verify.summarize(gt,[{...pairs[0],pair:addr(7),volume24hUsd:1000,liquidityUsd:500}]));
  assert.equal(mismatched.fields.change24hPct.status,'SOURCE_REPORTED','change is pool-specific: a different pool is not a check');
  assert.equal(mismatched.fields.volume24hUsd.status,'CROSS_VERIFIED');
+ const partial=verify.verifyRow({...gt,volume24hUsd:5000},verify.summarize({...gt,volume24hUsd:5000},pairs));
+ assert.equal(partial.fields.volume24hUsd.status,'SOURCE_REPORTED','DEX Screener sees fewer pools than GeckoTerminal: partial coverage, not a contradiction');assert.equal(partial.fields.volume24hUsd.crossCheck,'PARTIAL_COVERAGE');assert.equal(partial.fields.volume24hUsd.value,5000);
+ const above=verify.verifyRow({...gt,volume24hUsd:100},verify.summarize({...gt,volume24hUsd:100},pairs));
+ assert.equal(above.fields.volume24hUsd.status,'NOT_VERIFIED','DEX Screener above the superset figure is a real contradiction');assert.equal(above.fields.volume24hUsd.reasonCode,'SOURCES_DISAGREE');
  const capped=verify.summarize(gt,Array.from({length:30},(_,i)=>({...pairs[0],pair:addr(9000+i)})));
  assert.equal(capped.values.volume24hUsd,null,'at DEX Screener\'s pair cap the sum is a lower bound and is not used');
  const solo=verify.verifyRow(gt,{state:'DISABLED'});

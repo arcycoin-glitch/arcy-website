@@ -44,7 +44,13 @@ const RPC=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.co
    for(const t of out.tokens)for(const f of FIELDS){const st=t.fields[f].status;if(st!=='NOT_VERIFIED')present++;else{const k=f+':'+t.fields[f].reasonCode;miss[k]=(miss[k]||0)+1;}if(st==='CROSS_VERIFIED'||st==='ONCHAIN_VERIFIED')cross++;}
    Object.assign(tot,{tokens:tot.tokens+n,logos:tot.logos+out.tokens.filter(t=>t.logo).length,present:tot.present+present,cross:tot.cross+cross,cells:tot.cells+n*FIELDS.length});
    log('E2E',net+': tokens='+n+' logos='+c.logos+' present='+present+'/'+n*FIELDS.length+' cross='+cross+'/'+n*FIELDS.length+' tokenStats='+c.tokenStats+' crossCheck='+c.crossCheckProvider+' usage='+JSON.stringify(out.usage)+(net==='pons'?' ponsChecked='+c.ponsChecked+' confirmed='+c.ponsConfirmed:'')+' missing='+JSON.stringify(miss));
-   console.log('::notice title=radar-json-'+net+'::'+JSON.stringify(out).replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'));
+   // Annotation messages are capped (~4 KB): emit a compact, UI-replayable form in chunks.
+   const compact=out.tokens.map(t=>({k:t.rank,y:t.symbol,n:t.name,a:t.address,l:t.logo?[t.logo.url,t.logo.source]:null,
+    f:Object.fromEntries(FIELDS.map(f=>[f,[t.fields[f].value,t.fields[f].status[0],t.fields[f].scope||t.fields[f].reasonCode||t.fields[f].crossCheck||'']])),
+    ...(t.launch?{g:[t.launch.status,t.graduation&&t.graduation.graduated===true]}:{})}));
+   const chunks=[];let cur=[];
+   for(const t of compact){if(JSON.stringify([...cur,t]).length>3500&&cur.length){chunks.push(cur);cur=[];}cur.push(t);}if(cur.length)chunks.push(cur);
+   chunks.forEach((c,i)=>console.log('::notice title=radar-json-'+net+'-'+i+'::'+JSON.stringify({net,i,asOf:out.asOf,t:c}).replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A')));
   }catch(e){log('E2E',net+': FAIL '+e.code+(e.detail?' '+e.detail:''));if(net!=='pons')bad++;}
  }
  log('TOTAL','tokens='+tot.tokens+' logo='+(100*tot.logos/Math.max(1,tot.tokens)).toFixed(1)+'% completeness='+(100*tot.present/Math.max(1,tot.cells)).toFixed(1)+'% cross='+(100*tot.cross/Math.max(1,tot.cells)).toFixed(1)+'%');
