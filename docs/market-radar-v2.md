@@ -25,7 +25,7 @@ Responses are served only when **both** `MARKET_RADAR_PUBLIC_DISPLAY_APPROVED=tr
 - `ONCHAIN_VERIFIED` — Pons `getLaunchedToken` / `graduationStatus` read from an official factory.
 
 ## Pons Launch
-Candidates = base tokens of the newest and the highest-volume Robinhood pools from GeckoTerminal (1 page each, ≤ 40 unique tokens). Live probe: the newest 40 pools held no Pons launches, so the top-volume window is added; tokens still on the bonding curve have no DEX pool and are not covered; each is listed **only if** an official Pons factory confirms it onchain. Zero confirmed launches is shown honestly as empty. RPC failure or wrong chain id is an error, never unverified tokens.
+Candidates = base tokens of the newest and the highest-volume Robinhood pools from GeckoTerminal (1 page each, ≤ 20 unique tokens: 10 newest + highest-volume; a public-RPC batch of 80 eth_calls was rate-limited in CI, 40 was not). Live probe: the newest 40 pools held no Pons launches, so the top-volume window is added; tokens still on the bonding curve have no DEX pool and are not covered; each is listed **only if** an official Pons factory confirms it onchain. Zero confirmed launches is shown honestly as empty. RPC failure or wrong chain id is an error, never unverified tokens.
 
 ## Live verification (GitHub Actions run, commit 1102c3d, keyless, CI only)
 - GeckoTerminal `arc`, `eth`, `robinhood`: HTTP 200, 20 pools each, 20/20 contract-matched rows. Network ids confirmed.
