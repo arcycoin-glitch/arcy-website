@@ -30,3 +30,5 @@ Ranking is **not** an all-chain census, not a whale alert, and not investment ad
 
 ## Safe production rollout
 The Radar asset may ship in production, but the switcher remains **hidden** until the server successfully returns exactly 10 real, contract-matched ranked tokens on all three networks. The existing 20-check research view must remain the only visible detail view while license/data gates are unmet. Do not count source connectivity alone as a production data release. Activation requires rights and source availability; configuration remains fail closed.
+
+> Radar V2 (external-API-only, four sections): see [market-radar-v2.md](market-radar-v2.md).
