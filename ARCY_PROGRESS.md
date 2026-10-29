@@ -215,3 +215,10 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Live Preview of 199944e: arc/robinhood/pons scan-incomplete (cap/429), ethereum key coverage 82.2% (registry empty). Fail-closed kept.
 - Added: adaptive RPC pacer + Retry-After, dedicated RADAR_<NET>_RPC_URL, patient 429 retries in indexer, persisted pace, snapshot integrity proofs, scripts/radar-warm.cjs, 30 s edge cache for deterministic 503s, pons live lookback 3h.
 - Tests 727/727. Railway untouched. Next (user): deploy dormant, run radar-warm per network, then Preview with MARKET_RADAR_SOURCE=snapshot.
+
+## 2026-10-29 — Railway startup failure (da5f0c3) + Holder RPC provider health
+- Root cause (Railway): `lib/market-radar-onchain.js` required `../search/server/lib/{chains,eth,search-logo}`; the Holder image has no `search/`, and `startLoop()` loaded Radar unconditionally → `Cannot find module`.
+- Fix: `lib/radar-support.js` (self-contained), lazy/guarded Radar in `lib/holder-worker-http.js` (loop only if `ARC_RADAR_INDEXER_ENABLED=true`), logos applied by `search/server/api/radar.js` at serve time.
+- Tests: `test/docker-image-closure.test.js` (fails with the exact Railway error on da5f0c3 code), `test/radar-support-parity.test.js`, `scripts/docker-smoke.cjs` + `holder-worker-docker-smoke.yml`. Real `docker build` NOT run in this sandbox (no daemon) — CI workflow does it.
+- Holder RPC: answered JSON-RPC errors no longer quarantine providers (they poisoned the healthy QuickNode); failing providers deprioritised; diagnostics extended. Unconfirmed against live providers (sandbox cannot reach them): run `/holder/rpc-diagnostics` after deploy.
+- Suite: 740/740. Next: user redeploys Railway from this commit (Radar off), checks `/holder/rpc-diagnostics`.

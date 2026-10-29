@@ -48,6 +48,8 @@ module.exports=async function(req,res){
   // (no RPC scan inside the 60s Vercel function). Default 'live' scans on demand.
   const data=process.env.MARKET_RADAR_SOURCE==='snapshot'?await snapshot.load(network):network==='pons'?await ponsRadar.load():await onchain.load(network);
   const {_diagnostics,...publicBody}=data;
+  // Logos are display-only first-party art that exists only in the Vercel app (the Railway image has no search/).
+  if(Array.isArray(publicBody.tokens)){const {localLogo}=require('../lib/search-logo');publicBody.tokens=publicBody.tokens.map(t=>t&&!t.logo?{...t,logo:localLogo(t.network,t.address)}:t);}
   log('log',{network,ok:true,diagnostics:_diagnostics});
   // Only a successful, complete scan is cacheable at the edge. Failures are never cached.
   res.setHeader('Cache-Control','public, max-age=0, s-maxage=600');

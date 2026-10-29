@@ -53,3 +53,37 @@ test('issue #96: diagnose reports per-provider steps without throwing or leaking
  assert.equal(rows[0].chainOk,true);assert.equal(rows[0].head,256);assert.equal(rows[1].steps.eth_chainId.class,'TRANSPORT');
  assert.ok(!/secret\.example|KEY12345|b\.example|zzzz/.test(JSON.stringify(rows)));
 });
+
+// Root cause of "23/25 RPC_CALL_FAILED although QuickNode historical tests pass 4/4": a well-formed JSON-RPC error
+// ANSWER was treated as a provider outage, which quarantined (cooldown, interval x2, concurrency 1) every provider that
+// answered it, including the healthy one. Provider health must only react to transport/HTTP/malformed/rate faults.
+test('call-level JSON-RPC errors do not quarantine or slow a healthy provider',async()=>{
+ const h=harness((url,p)=>p.method==='eth_getBalance'?{ok:true,json:async()=>({id:p.id,error:{code:-32000,message:'unsupported call shape'}})}:good(p));
+ for(let i=0;i<6;i++)await assert.rejects(h.client.rpc('eth_getBalance',['0x01','0x10']),{code:'RPC_CALL_FAILED'});
+ for(const row of h.client.health()){assert.equal(row.cooldownMs,0);assert.equal(row.limit,2);assert.equal(row.interval,500);}
+ // the very next ordinary call is served immediately by the primary, without waiting out a cooldown
+ assert.equal(await h.client.rpc('eth_blockNumber',[]),'0x01');
+ assert.equal(h.client.metrics().cooldownWaitMs,0);
+});
+test('primary that cannot serve historical state is bypassed: the working provider answers and is preferred afterwards',async()=>{
+ const h=harness((url,p)=>url==='primary'&&p.method==='eth_call'?{ok:true,json:async()=>({id:p.id,error:{code:-32000,message:'missing trie node'}})}:good(p));
+ for(let i=0;i<25;i++)assert.equal(await h.client.rpc('eth_call',[{to:'0x'+'1'.repeat(40),data:'0x'},'0x10']),'0x01');
+ assert.equal(h.client.metrics().errors<=8,true,'primary must stop being tried first once it keeps losing: '+h.client.metrics().errors);
+ assert.equal(h.client.metrics().lastFailure.provider,'primary');
+});
+test('a batch that one provider answers with an item error is served whole by the provider that can answer it',async()=>{
+ const h=harness((url,p)=>url==='primary'&&Array.isArray(p)?{ok:true,json:async()=>p.map(x=>({id:x.id,error:{code:-32000,message:'batch not supported'}}))}:good(p));
+ const out=await h.client.batch(Array.from({length:7},()=>({method:'eth_call',params:[]})));
+ assert.equal(out.length,7);assert.deepEqual([...new Set(out)],['0x01']);
+});
+test('real provider faults (HTTP 5xx, timeouts) still quarantine the provider',async()=>{
+ const h=harness((url,p)=>url==='primary'&&p.method!=='eth_chainId'?{ok:false,status:503,headers:new Headers()}:good(p));
+ assert.equal(await h.client.rpc('eth_blockNumber',[]),'0x01');
+ assert.ok(h.client.health()[0].cooldownMs>0);
+});
+test('diagnostics report historical state and batch capability per provider without leaking URLs',async()=>{
+ const client=create({endpoints:['https://user:secret-key-abcdefghijklmnopqrstuvwxyz0123@node.example/key'],interval:0,fetcher:async(url,o)=>{const p=JSON.parse(o.body);const one=x=>({id:x.id,result:x.method==='eth_chainId'?'0x13b2':'0x2710'});return {ok:true,json:async()=>Array.isArray(p)?p.map(one):one(p)};}});
+ const rows=await client.diagnose();
+ assert.equal(rows[0].steps.historical_getBalance_10k_blocks_back.ok,true);assert.equal(rows[0].steps.batch_of_5.ok,true);
+ assert.ok(!JSON.stringify(rows).includes('secret-key'));
+});
