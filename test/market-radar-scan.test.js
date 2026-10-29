@@ -203,3 +203,39 @@ test('an Initialize event whose key does not hash to the pool id is ignored', ()
  assert.equal(onchain.verifyKey('0x'+'ab'.repeat(32),k),false);
  void tokenAddr;
 });
+
+// ---- real Preview finding (issue #96, Robinhood): primary times out on wide ranges, free-plan fallback rejects everything ----
+test('Robinhood case: fallback "ranges over 10000 blocks" error does not drive range halving; primary limit decides',async()=>{
+ const calls={primary:0,fallback:0};
+ const fetcher=async(url,init)=>{
+  const req=JSON.parse(init.body);
+  if(String(url).startsWith('https://primary.test')){
+   calls.primary++;
+   const [f,t]=[Number(BigInt(req.params[0].fromBlock)),Number(BigInt(req.params[0].toBlock))];
+   if(t-f+1>1500){const e=new Error('aborted');e.name='AbortError';throw e;}
+   return {ok:true,json:async()=>({jsonrpc:'2.0',id:req.id,result:[]})};
+  }
+  calls.fallback++;
+  return {ok:false,status:400,text:async()=>'ranges over 10000 blocks are not supported on free plan',json:async()=>({})};
+ };
+ const rpc=onchain.makeRpc('robinhood',{fetcher,env:{ROBINHOOD_RPC_URL:'https://primary.test'}});
+ const r=await scanRange(rpc,{...CHAINS.robinhood,initialChunk:20000},0,60000,{deadline:Date.now()+20000,live:false,sleep:noSleep,concurrency:4});
+ assert.ok(r.stats.splits>0&&r.stats.byClass.RANGE_OR_RESULT_LIMIT===undefined,JSON.stringify(r.stats.byClass));
+ assert.equal(calls.fallback,0,'getLogs must not use the free-plan fallback');
+});
+test('a provider that states limit L but rejects a range of size <= L is reported as inconsistent, not halved to single blocks',async()=>{
+ const rpc=rpcOf(()=>{throw Object.assign(Error('RPC_HTTP_400'),{transport:true,body:'ranges over 10000 blocks are not supported on free plan'});});
+ await assert.rejects(scanRange(rpc,{...cfg,initialChunk:10000},0,50000,{deadline:far(),sleep:noSleep}),
+  e=>/inconsistent with its stated limit/.test(e.detail.reason)&&e.detail.statedLimit===10000&&rpc.calls<=12);
+});
+test('tiny-range errors stop the scan with an actionable reason (no 600-call storm)',async()=>{
+ const rpc=rpcOf(p=>{const [f,t]=bounds(p);if(t-f+1>0)throw Object.assign(Error('RPC_HTTP_400'),{transport:true,body:'block range too large'});});
+ await assert.rejects(scanRange(rpc,cfg,0,100000,{deadline:far(),sleep:noSleep}),e=>/persist at tiny ranges/.test(e.detail.reason));
+ assert.ok(rpc.calls<80,'calls '+rpc.calls);
+});
+test('timeouts on wide ranges halve immediately instead of retrying the same range',async()=>{
+ let widest=0,timeouts=0;
+ const rpc=rpcOf(p=>{const [f,t]=bounds(p),size=t-f+1;if(size>2000){timeouts++;throw Object.assign(Error('aborted'),{name:'AbortError'});}widest=Math.max(widest,size);return [];});
+ const r=await scanRange(rpc,{...cfg,initialChunk:16000},0,31999,{deadline:far(),sleep:noSleep});
+ assert.ok(timeouts<=10,'timeouts '+timeouts);assert.ok(widest<=2000);void r;
+});
