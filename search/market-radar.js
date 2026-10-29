@@ -23,7 +23,7 @@
  const subtitle=el('p','arcy-radar-intro','Most active observed DEX pools · 24H USD volume · External sources only · Missing fields show NOT VERIFIED');
  const chainNav=el('div','arcy-radar-networks');
  chainNav.setAttribute('role','group');chainNav.setAttribute('aria-label','Market Radar network');
- const chains=[['pons','Pons Launch'],['arc','Arc'],['ethereum','Ethereum'],['robinhood','Robinhood Chain']];
+ const chains=[['pons','Pons Launch'],['arc','Arc'],['ethereum','Ethereum'],['robinhood','Robinhood']];
  const CHAIN_ID={arc:5042,ethereum:1,robinhood:4663,pons:4663},TOKEN_NET={arc:'arc',ethereum:'ethereum',robinhood:'robinhood',pons:'robinhood'};
  const buttons=new Map();
  for(const [id,name] of chains){
