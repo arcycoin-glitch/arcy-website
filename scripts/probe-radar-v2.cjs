@@ -34,7 +34,9 @@ const RPC=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.co
  for(const net of ['arc','ethereum','robinhood','pons']){
   await sleep(net==='pons'?50000:13000); // pons makes 2 GeckoTerminal calls; stay inside 5 calls/minute
   try{
-   const out=await radar.load(net,{env,rpcUrl:RPC,disableCache:true});
+   let out;
+   try{out=await radar.load(net,{env,rpcUrl:RPC,disableCache:true});}
+   catch(e){if(e.code!=='RADAR_PROVIDER_RATE_LIMITED')throw e;log('E2E',net+': 429 on shared runner IP, retrying once after 90s');await sleep(90000);require('../lib/radar-v2/http')._resetCooldowns();out=await radar.load(net,{env,rpcUrl:RPC,disableCache:true});}
    const c=out.coverage;
    log('E2E',net+': tokens='+out.tokens.length+' crossCheck='+c.crossCheckProvider+' cross='+c.fieldsCrossVerified+' reported='+c.fieldsSourceReported+' notVerified='+c.fieldsNotVerified+' usage='+JSON.stringify(out.usage)+(net==='pons'?' ponsChecked='+c.ponsChecked+' confirmed='+c.ponsConfirmed:''));
   }catch(e){log('E2E',net+': FAIL '+e.code+(e.detail?' '+e.detail:''));if(net!=='pons')bad++;}
