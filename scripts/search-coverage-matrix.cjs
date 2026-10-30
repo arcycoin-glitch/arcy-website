@@ -3,7 +3,7 @@
 // Denominator = tokens x 5 cards x 4 fields. "filled" = value present and status != NOT_VERIFIED. "strong" = on-chain / market-verified / signed / source+state verified.
 const BASE=process.env.ARCY_BASE||'https://www.arcyusdc.xyz',CHAINS=['arc','ethereum','robinhood'],PER=Number(process.env.PER_CHAIN||10);
 const STRONG=new Set(['ON_CHAIN','ON_CHAIN_DERIVED','SIGNED_ONCHAIN_SNAPSHOT','MARKET_API_VERIFIED','VERIFIED_SOURCE','VERIFIED_SOURCE_AND_STATE','SOURCE_REPORTED_RPC_RECONCILED']);
-const get=async p=>{const r=await fetch(BASE+p,{headers:{accept:'application/json'},signal:AbortSignal.timeout(30000)});return r.json();};
+const get=async p=>{const r=await fetch(BASE+p,{headers:{accept:'application/json','user-agent':'ARCY-coverage-probe/1.0'},signal:AbortSignal.timeout(30000)});const t=await r.text();try{return JSON.parse(t);}catch{console.log(`::warning::non-JSON from ${p}: HTTP ${r.status} ${t.slice(0,80).replace(/\s+/g,' ')}`);return {};}};
 (async()=>{
  const agg={},add=(k,v)=>{const a=agg[k]=agg[k]||{n:0,filled:0,strong:0};a.n++;if(!(v.value===null||v.value===undefined||v.status==='NOT_VERIFIED')){a.filled++;if(STRONG.has(v.status))a.strong++;}};
  for(const chain of CHAINS){
