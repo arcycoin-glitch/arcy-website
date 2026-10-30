@@ -762,3 +762,225 @@
   line-height:1.25;
  }
 }
+
+
+/* ARCY Radar V3 discovery interpretation — present actual source-backed metrics only.
+   Desktop: premium table with a score and a readable explanation.
+   Mobile: stack the same verified fields, without horizontal overflow. */
+#tokenDetail .arcy-radar-overview-columns,
+#tokenDetail .arcy-radar-overview-token{
+ grid-template-columns:minmax(0,1.65fr) minmax(0,.79fr) minmax(0,.75fr) minmax(0,.95fr) minmax(85px,.67fr) minmax(0,1.28fr) 16px!important;
+ column-gap:clamp(7px,1.1vw,15px);
+}
+#tokenDetail .arcy-radar-overview-columns{
+ font-size:clamp(9px,.83vw,11px);
+ letter-spacing:0;
+}
+#tokenDetail .arcy-radar-overview-columns>span:nth-child(5){text-align:right}
+#tokenDetail .arcy-radar-overview-columns>span:nth-child(6){text-align:left}
+#tokenDetail .arcy-radar-overview-token{
+ min-height:77px;
+ padding:10px 12px;
+}
+#tokenDetail .arcy-radar-overview-score{
+ display:flex;
+ align-items:baseline;
+ justify-content:flex-end;
+ gap:3px;
+ min-width:0;
+ color:#d8ecff;
+ font-variant-numeric:tabular-nums;
+ text-align:right;
+ white-space:nowrap;
+}
+#tokenDetail .arcy-radar-overview-score-value{
+ font-size:clamp(13px,1.35vw,18px);
+ line-height:1.2;
+ letter-spacing:-.03em;
+ font-weight:900;
+ color:var(--radar-accent);
+}
+#tokenDetail .arcy-radar-overview-score-unit{
+ font-size:9px;
+ color:#8caabd;
+ font-weight:700;
+}
+#tokenDetail .arcy-radar-overview-score-label,
+#tokenDetail .arcy-radar-overview-reason-label{display:none}
+#tokenDetail .arcy-radar-overview-score-missing{
+ display:block;
+ font-size:9px;
+ color:#8c9ba9;
+ white-space:normal;
+ word-break:normal;
+}
+#tokenDetail .arcy-radar-overview-reason{
+ min-width:0;
+ display:block;
+ line-height:1.4;
+ color:#b7d6e8;
+ text-align:left;
+ font-weight:600;
+}
+#tokenDetail .arcy-radar-overview-reason-text{
+ display:-webkit-box;
+ -webkit-box-orient:vertical;
+ -webkit-line-clamp:2;
+ line-clamp:2;
+ overflow:hidden;
+ overflow-wrap:anywhere;
+ max-height:3.1em;
+ font-size:clamp(10px,.9vw,12px);
+}
+#tokenDetail .arcy-radar-overview-reason.has-alert .arcy-radar-overview-reason-text{
+ color:#ebc697;
+}
+#tokenDetail .arcy-radar-overview-score.is-unverified,
+#tokenDetail .arcy-radar-overview-reason.is-unverified{color:#7d94a8}
+#tokenDetail .arcy-radar-discovery-note{
+ margin:13px 4px 0;
+ border-top:1px solid rgba(113,168,193,.17);
+ padding:12px 3px 0;
+ color:#8daec4;
+ font-size:11px;
+ line-height:1.55;
+}
+#tokenDetail .arcy-radar-discovery-note[hidden]{display:none!important}
+/* Switch to labeled, three-line scorecards before 7 desktop columns become cramped. */
+@media(max-width:980px){
+ #tokenDetail .arcy-radar-overview-columns{display:none!important}
+ #tokenDetail .arcy-radar-overview-token{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-areas:
+   "token token score"
+   "price change volume"
+   "reason reason reason";
+  align-items:center;
+  column-gap:12px;
+  row-gap:12px;
+  padding:13px 15px;
+  min-height:130px;
+ }
+ #tokenDetail .arcy-radar-overview-symbol{grid-area:token;min-width:0}
+ #tokenDetail .arcy-radar-overview-price{grid-area:price}
+ #tokenDetail .arcy-radar-overview-change{grid-area:change}
+ #tokenDetail .arcy-radar-overview-volume{grid-area:volume}
+ #tokenDetail .arcy-radar-overview-score{grid-area:score}
+ #tokenDetail .arcy-radar-overview-reason{
+  grid-area:reason;
+  padding-top:9px;
+  border-top:1px solid rgba(127,178,200,.13);
+ }
+ #tokenDetail .arcy-radar-overview-price,
+ #tokenDetail .arcy-radar-overview-change,
+ #tokenDetail .arcy-radar-overview-volume{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  align-items:flex-start;
+  text-align:left;
+  font-size:clamp(11px,1.6vw,14px);
+  overflow:hidden;
+  text-overflow:ellipsis;
+ }
+ #tokenDetail .arcy-radar-overview-price::before{
+  content:"FİYAT";
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.08em;
+  color:#8caec6;
+ }
+ #tokenDetail .arcy-radar-overview-change::before{
+  content:"24S DEĞİŞİM";
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.08em;
+  color:#8caec6;
+ }
+ #tokenDetail .arcy-radar-overview-volume::before{
+  content:"24S HACİM";
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.08em;
+  color:#8caec6;
+ }
+ #tokenDetail .arcy-radar-overview-score{
+  display:grid;
+  grid-template-columns:auto auto;
+  justify-content:end;
+  justify-items:end;
+  align-items:baseline;
+  gap:1px 3px;
+  border-radius:8px;
+  padding:8px;
+  background:color-mix(in srgb,var(--radar-accent) 8%,rgba(5,21,35,.5));
+  border:1px solid color-mix(in srgb,var(--radar-accent) 25%,transparent);
+ }
+ #tokenDetail .arcy-radar-overview-score-label{
+  display:block;
+  grid-column:1/-1;
+  color:#9bbad2;
+  font-size:9px;
+  letter-spacing:.06em;
+  line-height:1.2;
+  font-weight:850;
+ }
+ #tokenDetail .arcy-radar-overview-score-value{font-size:16px}
+ #tokenDetail .arcy-radar-overview-score-missing{
+  grid-column:1/-1;
+  font-size:9px;
+ }
+ #tokenDetail .arcy-radar-overview-reason-label{
+  display:block;
+  font-size:9px;
+  color:#95bbd2;
+  margin-bottom:3px;
+  letter-spacing:.04em;
+  font-weight:850;
+ }
+ #tokenDetail .arcy-radar-overview-reason-text{
+  font-size:11px;
+  max-height:4.35em;
+  -webkit-line-clamp:3;
+  line-clamp:3;
+ }
+ #tokenDetail .arcy-radar-overview-token-arrow{display:none!important}
+}
+@media(max-width:520px){
+ #tokenDetail .arcy-radar-overview-token{
+  min-height:120px;
+  column-gap:7px;
+  row-gap:10px;
+  padding:11px 9px;
+ }
+ #tokenDetail .arcy-radar-overview-symbol{gap:6px}
+ #tokenDetail .arcy-radar-overview-score{
+  padding:5px 7px;
+  justify-self:end;
+ }
+ #tokenDetail .arcy-radar-overview-score-value{font-size:14px}
+ #tokenDetail .arcy-radar-overview-score-unit{font-size:8px}
+ #tokenDetail .arcy-radar-overview-token-ticker{font-size:12px}
+ #tokenDetail .arcy-radar-overview-token-name{display:block;font-size:9px}
+ #tokenDetail .arcy-radar-overview-reason-text{font-size:10px}
+ #tokenDetail .arcy-radar-overview-price,
+ #tokenDetail .arcy-radar-overview-change,
+ #tokenDetail .arcy-radar-overview-volume{font-size:clamp(10px,2.6vw,12px)}
+ #tokenDetail .arcy-radar-overview-price::before,
+ #tokenDetail .arcy-radar-overview-change::before,
+ #tokenDetail .arcy-radar-overview-volume::before{font-size:8px}
+ #tokenDetail .arcy-radar-discovery-note{font-size:10px}
+}
+@media(max-width:390px){
+ #tokenDetail .arcy-radar-overview-token{column-gap:5px;padding:10px 6px}
+ #tokenDetail .arcy-radar-overview-rank{width:18px;height:18px;flex:0 0 18px}
+ #tokenDetail .arcy-radar-overview-logo-wrap{width:23px;height:23px;flex:0 0 23px}
+ #tokenDetail .arcy-radar-overview-token-logo{width:21px;height:21px}
+ #tokenDetail .arcy-radar-overview-token-name{display:block}
+ #tokenDetail .arcy-radar-overview-score{padding:5px 6px}
+ #tokenDetail .arcy-radar-overview-score-value{font-size:13px}
+ #tokenDetail .arcy-radar-overview-price,
+ #tokenDetail .arcy-radar-overview-change,
+ #tokenDetail .arcy-radar-overview-volume{font-size:10px}
+}
