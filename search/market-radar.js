@@ -77,9 +77,11 @@
  const credit=el('p','arcy-radar-credit-row');
  panel.append(hero,chainNav,overview,status,rows,pager,foot,credit);
  detail.prepend(panel);detail.prepend(switcher);
- // Never advertise an empty Radar as a completed public feature.
- // Activate the switcher when at least one section returns source-backed tokens; sections without data say so honestly.
- switcher.hidden=true;
+ // Keep both views discoverable immediately. Radar remains disabled until an
+ // approved API response supplies real source-backed data (no empty public radar).
+ switcher.hidden=false;
+ radarBtn.disabled=true;
+ radarBtn.title='Checking verified Radar availability…';
  let selected='robinhood',active='research',page=0,sequence=0,items=[],loadedNetwork=null;
  const USD=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
  const PRICE=new Intl.NumberFormat('en-US',{maximumSignificantDigits:5});
@@ -318,8 +320,11 @@
       data.tokens.length>0&&data.tokens.every((item,i)=>item?.rank===i+1&&/^0x[0-9a-f]{40}$/i.test(item.address));
     }finally{clearTimeout(timer)}
    }));
-   if(all.some(Boolean))switcher.hidden=false;
-  }catch{} // Source/license failures must not disturb the existing token research.
+   if(all.some(Boolean)){radarBtn.disabled=false;radarBtn.removeAttribute('title');}
+   else radarBtn.title='Market Radar is unavailable until verified data is ready';
+  }catch{
+   radarBtn.title='Market Radar is unavailable until verified data is ready';
+  } // Source/license failures must not disturb the existing token research.
  }
  void verifyPublicReadiness();
 })();
