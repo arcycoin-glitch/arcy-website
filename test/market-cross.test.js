@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),mc=require('../search/server/lib/market-cross'),ec=require('../search/server/lib/evidence-class');
 const A='0x'+'a'.repeat(40),ENV={SEARCH_MARKET_CROSSCHECK_APPROVED:'true'};
-const f=(v,source)=>({value:v,status:'SOURCE_REPORTED',dataState:'DATA_FOUND',source,evidence:[{provider:source}]});
+const f=(v,source)=>({value:v,status:'SOURCE_REPORTED',dataState:'DATA_FOUND',source,evidence:[{provider:source,pools:[A]}]});
 const miss=(code)=>({value:null,status:'NOT_VERIFIED',dataState:'NOT_VERIFIED',reasonCode:code,source:null,evidence:[]});
 const fields=(src,liq,vol,price)=>({liquidityUsd:f(liq,src),volume24h:f(vol,src),priceUsd:f(price,src),dexPairCount:f('2 DEX · 3 pools',src),change24h:f(1.5,src)});
 test('off by default: exactly one provider call and an untouched result',async()=>{
@@ -35,4 +35,10 @@ test('primary outage with healthy secondary: report keeps working (single-source
  mc._reset();const r=await mc.inspect('robinhood',A,{env:ENV,dexInspect:async()=>{throw Error('down');},geckoInspect:async()=>({fields:fields('GeckoTerminal',7,1,1)})});
  assert.equal(r.liquidityUsd.value,7);assert.equal(r.liquidityUsd.crossCheck.state,'SINGLE_PROVIDER_FALLBACK');
  await assert.rejects(()=>mc.inspect('robinhood',A,{env:ENV,dexInspect:async()=>{throw Error('down');},geckoInspect:async()=>{throw Error('down2');}}));
+});
+
+test('equal amounts from different pool sets never become cross-verified',()=>{
+ const a=f(100,'DEX Screener'),b=f(100,'GeckoTerminal');b.evidence[0].pools=['0x'+'b'.repeat(40)];
+ const r=mc.merge({liquidityUsd:a},{liquidityUsd:b},{now:Date.now()});
+ assert.equal(r.liquidityUsd.crossCheck.state,'SCOPE_MISMATCH');assert.equal(ec.classify(r.liquidityUsd).evidenceClass,'SINGLE_SOURCE');
 });

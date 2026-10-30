@@ -27,9 +27,11 @@ function merge(primary,secondary,{now,secondaryReason}){
  for(const key of KEYS){
   const a=primary?.[key],b=secondary?.[key];
   if(found(a)&&found(b)){
-   const diff=rel(a.value,b.value),tol=TOLERANCE[key],agree=diff<=tol;
-   out[key]={...a,crossCheck:{state:agree?'AGREE':'DISAGREE',providers:[a.source,b.source],values:{[a.source]:a.value,[b.source]:b.value},relativeDifference:+diff.toFixed(4),tolerance:tol,checkedAt:at,
-    ...(agree?{}:{reasonCode:'PROVIDER_DISAGREEMENT'})},evidence:[...(a.evidence||[]),...(b.evidence||[]).map(e=>({...e,role:'cross-check'}))]};
+   const pools=f=>[...new Set((f.evidence||[]).flatMap(e=>e.pairs||e.pools||[]).map(x=>String(x).toLowerCase()))].sort();
+   const ap=pools(a),bp=pools(b),same=ap.length>0&&JSON.stringify(ap)===JSON.stringify(bp);
+   const diff=rel(a.value,b.value),tol=TOLERANCE[key],agree=same&&a.source!==b.source&&diff<=tol;
+   out[key]={...a,crossCheck:{state:!same?'SCOPE_MISMATCH':agree?'AGREE':'DISAGREE',providers:[a.source,b.source],values:{[a.source]:a.value,[b.source]:b.value},relativeDifference:+diff.toFixed(4),tolerance:tol,checkedAt:at,
+    ...(agree?{}:{reasonCode:!same?'POOL_SCOPE_MISMATCH':'PROVIDER_DISAGREEMENT'})},evidence:[...(a.evidence||[]),...(b.evidence||[]).map(e=>({...e,role:'cross-check'}))]};
   }else if(found(a)){
    out[key]={...a,crossCheck:{state:'UNAVAILABLE',providers:[a.source],reasonCode:secondaryReason||(b?.reasonCode)||'SECONDARY_SOURCE_NO_DATA',checkedAt:at}};
   }else if(found(b)){
