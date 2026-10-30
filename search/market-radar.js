@@ -32,7 +32,7 @@
   button.type='button';button.dataset.network=id;
   const mark=el('span','arcy-radar-chain-logo arcy-radar-chain-logo-'+id);mark.setAttribute('aria-hidden','true');
   mark.textContent={pons:'P',arc:'◈',ethereum:'◆',robinhood:'R'}[id];
-  button.prepend(mark);
+  // Do not display placeholder symbols as official chain logos.
   chainNav.append(button);buttons.set(id,button);
  }
  const overview=el('div','arcy-radar-overview');overview.setAttribute('aria-label','Network market overview');
@@ -219,7 +219,7 @@
  }
  researchBtn.addEventListener('click',()=>setView('research'));
  radarBtn.addEventListener('click',()=>setView('radar'));
- for(const [id,btn] of buttons)btn.addEventListener('click',()=>void load(id));
+ // Network headings are handled by selectNetwork; no duplicate token-wall request.
  prev.addEventListener('click',()=>{if(page>0){page--;render();}});
  next.addEventListener('click',()=>{if((page+1)*5<items.length){page++;render();}});
  setView('research');
