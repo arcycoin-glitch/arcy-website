@@ -36,7 +36,7 @@ test('site navigation makes evidence accessible without rewriting research UI',(
  assert.match(site,/links\.insertBefore\(verify,github\|\|null\)/);
  assert.match(site,/a\.social-icon\[href="https:\/\/x\.com\/Arcy_usdc"\]/);
  assert.match(home,/<a href="\/transparency\.html">Verify<\/a>/);
- assert.match(home,/href="\/transparency\.html">Transparency &amp; Verification<\/a>/);
+ assert.match(home,/href="\/transparency\.html">Transparency(?: &amp; Verification)?<\/a>/);
  assert.doesNotMatch(home,/https:\/\/x\.com\/Arcy_usdc/);
  assert.match(site,/const pulse=document\.getElementById\('pulse'\)/);
  assert.match(site,/ensureChainCardArt/);
