@@ -7,6 +7,7 @@ on:
       - 'scripts/probe-radar-v2.cjs'
       - 'scripts/probe-liquidity-definition.cjs'
       - 'scripts/probe-arc-log-range.cjs'
+      - 'scripts/search-coverage-matrix.cjs'
       - 'scripts/probe-market-radar.cjs'
       - '.github/workflows/market-radar-source-probe.yml'
   workflow_dispatch:
@@ -36,6 +37,9 @@ jobs:
         continue-on-error: true
       - name: Arc eth_getLogs span evidence (CI only)
         run: node scripts/probe-arc-log-range.cjs
+        continue-on-error: true
+      - name: Search 3-network coverage matrix (public API, read-only)
+        run: node scripts/search-coverage-matrix.cjs
         continue-on-error: true
       - name: Let the public RPC rate window reset
         run: sleep 45

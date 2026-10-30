@@ -1,20 +1,21 @@
 --- api/unlocks.js	2026-10-30 18:56:35.365121158 +0300
-+++ /tmp/claude-0/-home-claude/4c9b21c0-e5e4-5cfa-9650-1d065191dec9/scratchpad/unlocks.new.js	2026-10-30 20:35:14.379464679 +0300
-@@ -117,6 +117,13 @@
++++ /tmp/claude-0/-home-claude/4c9b21c0-e5e4-5cfa-9650-1d065191dec9/scratchpad/unlocks.new.js	2026-10-30 21:35:59.357003697 +0300
+@@ -117,6 +117,14 @@
   const chain=req?.query?.chain;
   return typeof chain==='string'&&chain?{requestedChain:chain.slice(0,20),chainFilterApplied:false,chainFilterReason:'Calendar rows carry no verified network or contract identity; results are cross-ecosystem.'}:{};
  }
 +let liveFlight = null, liveMemo = null;
-+// Proposal: one in-flight set of the three CoinBell GETs per warm instance, and successful results reused for 5 minutes.
++// Proposal: concurrent cold requests on one warm instance share ONE set of three CoinBell GETs; a result is reused for 5 minutes only when all
++// three sources answered (a partial/failed set is never kept, so degraded states still retry on the next request). Callers get an independent copy.
 +async function sharedCollect(run) {
-+  if (liveMemo && liveMemo.expires > Date.now()) return liveMemo.value;
-+  if (!liveFlight) liveFlight = run().then(value => { if (value.some(item => item.status === 'available')) liveMemo = { value, expires: Date.now() + 300000 }; return value; }).finally(() => { liveFlight = null; });
-+  return liveFlight;
++  if (liveMemo && liveMemo.expires > Date.now()) return structuredClone(liveMemo.value);
++  if (!liveFlight) liveFlight = run().then(value => { if (value.every(item => item.status === 'available')) liveMemo = { value: structuredClone(value), expires: Date.now() + 300000 }; return value; }).finally(() => { liveFlight = null; });
++  return structuredClone(await liveFlight);
 +}
  export default async function handler(req, res) {
    res.setHeader('Content-Type', 'application/json; charset=utf-8');
    const saved = await savedEdition();
-@@ -124,7 +131,7 @@
+@@ -124,7 +132,7 @@
    const secondsToMidnight = Math.max(1, Math.floor((Date.parse(utcToday() + 'T00:00:00Z') + 86400000 - Date.now()) / 1000));
    res.setHeader('Cache-Control', `public, s-maxage=${Math.min(21600, secondsToMidnight)}, must-revalidate`);
    try {
