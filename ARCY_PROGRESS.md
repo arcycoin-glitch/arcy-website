@@ -196,3 +196,10 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Added V2 factory registry (`PONS.versions`), `decodeLaunchV2`, V2 event topic, multi-window `recentLaunches`, `curveStates`, `coverage.bondingCurve`, event-only slot cap (20 of 30 shortlist).
 - Tests: radar-v2 + radar-v3-discovery green locally; CI probe `scripts/probe-pons-v2.cjs` collects real chain evidence.
 - Open: real Preview verification; Arc 9/10 funnel analysis; quota worst-case documentation.
+
+### Pons V2 final state (head after 302ed2b)
+- Real CI evidence (GitHub live-source-probe): V2 TokenLaunched ~27/hour (399-411 logs per 500k blocks), topic0 0x8d4aad49... confirmed on-chain; PoolGraduated(address,uint256,uint256,uint256) topic0 0x0a44ef75... matched against chain logs of known V2 tokens; 178 graduations found, 30/30 confirmed phase 2 by getLaunchedToken; negative control 0 false positives.
+- Section counts (probe): Pons 5 -> 10, Robinhood 10, Ethereum 10, Arc 8 (25 below floors, 8 identity exclusions).
+- verify.js: DEX Screener liquidity at 1.85-2.15x GeckoTerminal = definition difference, lower value kept as SOURCE_REPORTED (needs owner sign-off).
+- Quota unchanged: 13 credits/cycle; all V2 work is RPC-only (about 13 requests per refresh on the public RPC, 429 => fail-closed status).
+- Open: Preview UI check blocked (JS execution denied on preview domain; radar API is site-only); Arc 8-9/10 is a genuine eligible-token shortfall within credit budget.
