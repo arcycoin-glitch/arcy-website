@@ -5,6 +5,7 @@ on:
       - 'lib/market-radar.js'
       - 'lib/radar-v2/**'
       - 'scripts/probe-radar-v2.cjs'
+      - 'scripts/probe-liquidity-definition.cjs'
       - 'scripts/probe-market-radar.cjs'
       - '.github/workflows/market-radar-source-probe.yml'
   workflow_dispatch:
@@ -28,6 +29,9 @@ jobs:
         continue-on-error: true
       - name: Pons V2 factory event topics (CI only)
         run: node scripts/probe-pons-v2-events.cjs
+        continue-on-error: true
+      - name: Liquidity definition evidence (CI only)
+        run: node scripts/probe-liquidity-definition.cjs
         continue-on-error: true
       - name: Let the public RPC rate window reset
         run: sleep 45
