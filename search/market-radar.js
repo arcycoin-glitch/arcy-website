@@ -79,10 +79,15 @@
   if(!card)return;
   const list=card.querySelector('.arcy-radar-overview-list');
   list.replaceChildren();
+  const headings=el('div','arcy-radar-overview-columns');
+  for(const text of ['Token','Fiyat (USD)','24s Değişim','24s Hacim (USD)','']){
+   headings.append(el('span','',text));
+  }
+  list.append(headings);
   if(data?.ok===true&&Array.isArray(data.tokens))overviewData.set(network,data);
   const tokens=Array.isArray(data?.tokens)?data.tokens.slice(0,expandedNetwork===network?10:5):[];
   const total=card.querySelector('.arcy-radar-overview-count');
-  total.textContent=tokens.length?tokens.length+' observed tokens':'No verified tokens';
+  total.textContent=tokens.length?tokens.length+' gözlemlenen token · Hacim: en büyük gözlemlenen havuzun 24 saatlik USD hacmi':'Doğrulanmış token bulunamadı';
   for(const item of tokens){
    const validAddress=typeof item.address==='string'&&/^0x[0-9a-f]{40}$/i.test(item.address)&&!/^0x0{40}$/i.test(item.address);
    const row=el(validAddress?'a':'div','arcy-radar-overview-token');
