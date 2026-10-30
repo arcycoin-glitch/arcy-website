@@ -318,6 +318,10 @@
      renderOverview(network,data?.ok===true?data:null);
      return data?.ok===true&&data.version===2&&data.network===network&&Array.isArray(data.tokens)&&
       data.tokens.length>0&&data.tokens.every((item,i)=>item?.rank===i+1&&/^0x[0-9a-f]{40}$/i.test(item.address));
+    }catch{
+     // A single timed-out source must not hide another verified network.
+     renderOverview(network,null);
+     return false;
     }finally{clearTimeout(timer)}
    }));
    if(all.some(Boolean)){radarBtn.disabled=false;radarBtn.removeAttribute('title');}
