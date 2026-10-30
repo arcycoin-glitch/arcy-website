@@ -1,0 +1,27 @@
+name: Holder worker Docker build + startup smoke
+on:
+  pull_request:
+    paths:
+      - 'Dockerfile.holder-worker'
+      - 'lib/**'
+      - 'scripts/holder-worker.cjs'
+      - 'scripts/export-holder-snapshots.cjs'
+      - 'scripts/docker-smoke.cjs'
+      - 'package.json'
+      - '.github/workflows/holder-worker-docker-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  docker-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the exact Railway image and boot it (Radar disabled)
+        run: node scripts/docker-smoke.cjs --require-docker
