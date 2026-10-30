@@ -50,7 +50,7 @@ const RPC=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.co
     f:Object.fromEntries(FIELDS.map(f=>[f,[t.fields[f].value,t.fields[f].status[0],t.fields[f].scope||t.fields[f].reasonCode||t.fields[f].crossCheck||'']])),
     d:t.discovery?{s:t.discovery.score,ag:t.discovery.poolAgeDays,r:t.discovery.reason,fl:t.discovery.flags,ch:t.discovery.channels,kd:t.discovery.kind,wc:t.discovery.weightCoverage,tx:(t.buys24h!=null&&t.sells24h!=null)?t.buys24h+t.sells24h:null}:null,
     ...(t.launch?{g:[t.launch.status,t.graduation&&t.graduation.graduated===true]}:{})}));
-   results[net]={asOf:out.asOf,t:compact,ex:(out.excluded||[]).map(x=>({y:x.symbol,a:x.address,r:x.reason,d:String(x.detail||'').slice(0,90),v:x.volume24hUsd})),
+   results[net]={asOf:out.asOf,t:compact,ex:(out.excluded||[]).map(x=>({y:x.symbol,a:x.address,r:x.reason,d:String(x.detail||'').slice(0,90),v:x.volume24hUsd,e:x.evidence?JSON.stringify(x.evidence).slice(0,240):undefined})),
     cov:{pools:c.poolsInspected,uniq:c.uniqueBaseTokens,ranked:c.ranked,channels:out.discovery&&out.discovery.channels,counts:out.discovery&&out.discovery.excludedCounts,usage:out.usage,ponsChecked:c.ponsChecked,ponsConfirmed:c.ponsConfirmed,ponsLookalikeCheck:c.ponsLookalikeCheck,tokenStats:c.tokenStats,crossCheck:c.crossCheckProvider,fe:c.factoryEvents,bc:c.bondingCurve&&{status:c.bondingCurve.status,count:c.bondingCurve.count}}};
   }catch(e){log('E2E',net+': FAIL '+e.code+(e.detail?' '+e.detail:''));if(net!=='pons')bad++;}
  }
