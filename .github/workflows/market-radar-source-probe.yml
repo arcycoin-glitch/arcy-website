@@ -11,7 +11,7 @@ on:
 jobs:
   live-source-probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,10 +21,16 @@ jobs:
         run: node --test test/market-radar.test.js
       - name: Verify source-only live 24H volume endpoints on all three networks
         run: node scripts/probe-market-radar.cjs
-      - name: Radar V2 unit tests
-        run: node --test test/radar-v2.test.js
+      - name: Radar V2 + V3 discovery unit tests
+        run: node --test test/radar-v2.test.js test/radar-v3-discovery.test.js
       - name: Respect GeckoTerminal keyless 5 calls/minute
         run: sleep 60
       - name: Radar V2 live source probe (paced, keyless, CI only)
         run: node scripts/probe-radar-v2.cjs
         continue-on-error: true
+      - name: Publish results A (arc, ethereum)
+        if: always()
+        run: node scripts/emit-radar-annotations.cjs arc,ethereum
+      - name: Publish results B (robinhood, pons)
+        if: always()
+        run: node scripts/emit-radar-annotations.cjs robinhood,pons
