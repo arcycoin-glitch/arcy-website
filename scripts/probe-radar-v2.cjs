@@ -29,20 +29,31 @@ const RPC=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.co
   log('PONS','block '+out.block+'; PONS token member='+Boolean(m)+(m?' factory='+m.factory+' graduated='+(m.graduation&&m.graduation.graduated):'')+'; WETH member='+out.members.has(S.PONS.weth));
   if(!m||out.members.has(S.PONS.weth))bad++;
  }catch(e){bad++;log('PONS','FAIL '+e.code+(e.detail?' '+e.detail:''));}
- // 4) End-to-end library run for each section (keyless, in-process only; nothing is served or published)
+ // 4) End-to-end library run for each section (keyless, in-process only; nothing is served or published).
+ // Provider pages are cached across sections exactly as in production (Pons reuses the Robinhood top-volume page).
  const env={MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:'true',MARKET_RADAR_JSON_DELIVERY_APPROVED:'true'};
+ const slow=async(u,o)=>{if(/geckoterminal/.test(u))await sleep(14000);return fetch(u,{...o,signal:AbortSignal.timeout(9000)});};
+ const FIELDS=['priceUsd','volume24hUsd','liquidityUsd','change24hPct','fdvUsd','marketCapUsd','poolCreatedAt'];
+ const tot={tokens:0,logos:0,present:0,cross:0,cells:0};
  for(const net of ['arc','ethereum','robinhood','pons']){
-  await sleep(net==='pons'?50000:13000); // pons makes 2 GeckoTerminal calls; stay inside 5 calls/minute
   try{
-   // Pons issues 2 GeckoTerminal calls (+DEX Screener, +RPC); pace the provider calls so a shared runner IP is less likely to hit 5/min.
-   const slow=async(u,o)=>{if(/geckoterminal/.test(u))await sleep(20000);const r=await fetch(u,{...o,signal:AbortSignal.timeout(8000)});if(/geckoterminal/.test(u))log('E2E','  gt call '+new URL(u).pathname.split('/').slice(-1)[0]+' -> HTTP '+r.status+' retry-after='+r.headers.get('retry-after')+' remaining='+r.headers.get('x-ratelimit-remaining'));return r;};
    let out;
-   try{out=await radar.load(net,{env,rpcUrl:RPC,disableCache:true,fetcher:net==='pons'?slow:undefined});}
-   catch(e){if(e.code!=='RADAR_PROVIDER_RATE_LIMITED')throw e;log('E2E',net+': 429 on shared runner IP, retrying once after 90s');await sleep(90000);require('../lib/radar-v2/http')._resetCooldowns();out=await radar.load(net,{env,rpcUrl:RPC,disableCache:true,fetcher:net==='pons'?slow:undefined});}
-   const c=out.coverage;
-   log('E2E',net+': tokens='+out.tokens.length+' crossCheck='+c.crossCheckProvider+' cross='+c.fieldsCrossVerified+' reported='+c.fieldsSourceReported+' notVerified='+c.fieldsNotVerified+' usage='+JSON.stringify(out.usage)+(net==='pons'?' ponsChecked='+c.ponsChecked+' confirmed='+c.ponsConfirmed:''));
+   try{out=await radar.load(net,{env,rpcUrl:RPC,fetcher:slow});}
+   catch(e){if(e.code!=='RADAR_PROVIDER_RATE_LIMITED')throw e;log('E2E',net+': 429, retrying once after 90s');await sleep(90000);require('../lib/radar-v2/http')._resetCooldowns();out=await radar.load(net,{env,rpcUrl:RPC,fetcher:slow});}
+   const c=out.coverage,n=out.tokens.length;let present=0,cross=0;const miss={};
+   for(const t of out.tokens)for(const f of FIELDS){const st=t.fields[f].status;if(st!=='NOT_VERIFIED')present++;else{const k=f+':'+t.fields[f].reasonCode;miss[k]=(miss[k]||0)+1;}if(st==='CROSS_VERIFIED'||st==='ONCHAIN_VERIFIED')cross++;}
+   Object.assign(tot,{tokens:tot.tokens+n,logos:tot.logos+out.tokens.filter(t=>t.logo).length,present:tot.present+present,cross:tot.cross+cross,cells:tot.cells+n*FIELDS.length});
+   log('E2E',net+': tokens='+n+' logos='+c.logos+' present='+present+'/'+n*FIELDS.length+' cross='+cross+'/'+n*FIELDS.length+' tokenStats='+c.tokenStats+' crossCheck='+c.crossCheckProvider+' usage='+JSON.stringify(out.usage)+(net==='pons'?' ponsChecked='+c.ponsChecked+' confirmed='+c.ponsConfirmed:'')+' missing='+JSON.stringify(miss));
+   // Annotation messages are capped (~4 KB): emit a compact, UI-replayable form in chunks.
+   const compact=out.tokens.map(t=>({k:t.rank,y:t.symbol,n:t.name,a:t.address,l:t.logo?[t.logo.url,t.logo.source]:null,
+    f:Object.fromEntries(FIELDS.map(f=>[f,[t.fields[f].value,t.fields[f].status[0],t.fields[f].scope||t.fields[f].reasonCode||t.fields[f].crossCheck||'']])),
+    ...(t.launch?{g:[t.launch.status,t.graduation&&t.graduation.graduated===true]}:{})}));
+   const chunks=[];let cur=[];
+   for(const t of compact){if(JSON.stringify([...cur,t]).length>3500&&cur.length){chunks.push(cur);cur=[];}cur.push(t);}if(cur.length)chunks.push(cur);
+   chunks.forEach((c,i)=>console.log('::notice title=radar-json-'+net+'-'+i+'::'+JSON.stringify({net,i,asOf:out.asOf,t:c}).replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A')));
   }catch(e){log('E2E',net+': FAIL '+e.code+(e.detail?' '+e.detail:''));if(net!=='pons')bad++;}
  }
+ log('TOTAL','tokens='+tot.tokens+' logo='+(100*tot.logos/Math.max(1,tot.tokens)).toFixed(1)+'% completeness='+(100*tot.present/Math.max(1,tot.cells)).toFixed(1)+'% cross='+(100*tot.cross/Math.max(1,tot.cells)).toFixed(1)+'%');
  // GitHub caps annotations at 10 per step, so publish ONE multi-line notice.
  console.log('::notice title=radar-v2-probe::'+lines.join('\n').replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'));
  if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### Radar V2 live probe\n```\n'+lines.join('\n')+'\n```\n');

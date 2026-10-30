@@ -14,6 +14,16 @@ function ownPage(req){
  if(!origin||!h.host)return false;
  try{return new URL(origin).host===h.host;}catch{return false;}
 }
+// Preview-only help for the operator: the NAMES (never values) of the configuration items that are not set. Never emitted on Production.
+function configDiagnostics(){
+ if(process.env.VERCEL_ENV!=='preview')return {};
+ const env=process.env,missing=[];
+ if(env.MARKET_RADAR_PUBLIC_DISPLAY_APPROVED!=='true')missing.push('MARKET_RADAR_PUBLIC_DISPLAY_APPROVED');
+ if(env.MARKET_RADAR_JSON_DELIVERY_APPROVED!=='true')missing.push('MARKET_RADAR_JSON_DELIVERY_APPROVED');
+ if(!env.COINGECKO_DEMO_API_KEY&&!env.COINGECKO_PRO_API_KEY)missing.push('COINGECKO_DEMO_API_KEY');
+ if(env.DEXSCREENER_PUBLIC_DISPLAY_APPROVED!=='true')missing.push('DEXSCREENER_PUBLIC_DISPLAY_APPROVED (optional: without it only the DEX Screener cross-check is off)');
+ return {previewDiagnostics:{environment:'preview',missing}};
+}
 module.exports=async function(req,res){
  res.setHeader('X-Content-Type-Options','nosniff');
  res.setHeader('Cache-Control','no-store');
@@ -32,7 +42,7 @@ module.exports=async function(req,res){
  }catch(error){
   const code=typeof error?.code==='string'&&/^RADAR_[A-Z0-9_]{3,60}$/.test(error.code)?error.code:'RADAR_SOURCE_UNAVAILABLE';
   const body=code==='RADAR_NOT_CONFIGURED'||code==='RADAR_SOURCE_KEY_REQUIRED'
-   ?{ok:false,error:code,message:'Market Radar awaits an approved, licensed source configuration. No estimated rankings are published.'}
+   ?{ok:false,error:code,message:'Market Radar awaits an approved, licensed source configuration. No estimated rankings are published.',...configDiagnostics()}
    :{...GENERIC,reasonCode:code,network};
   if(code==='RADAR_PROVIDER_RATE_LIMITED'&&Number.isFinite(error.retryInMs))res.setHeader('Retry-After',String(Math.ceil(error.retryInMs/1000)));
   return res.status(STATUS[code]||503).json(body);
