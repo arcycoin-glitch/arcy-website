@@ -211,3 +211,8 @@
 /* Accessible fallback for Pons until a verified locally hosted logo is available. */
 #tokenDetail .arcy-radar-network .arcy-radar-chain-logo{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border:1px solid var(--radar-color);border-radius:10px;background:color-mix(in srgb,var(--radar-color) 14%,#071521);color:var(--radar-color);font-size:22px;font-weight:900}
 @media(max-width:640px){#tokenDetail .arcy-radar-network .arcy-radar-chain-logo{width:23px;height:23px;flex-basis:23px;font-size:16px;border-radius:7px}}
+
+/* Clear financial column headings aligned to the corresponding live data cells. */
+#tokenDetail .arcy-radar-overview-columns{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr) 18px;align-items:center;gap:5px;padding:12px 12px 10px;margin:2px 0 9px;border-bottom:1px solid color-mix(in srgb,var(--radar-accent) 35%,transparent);color:#9ebfd1;font-size:11px;font-weight:750;letter-spacing:.03em;text-transform:uppercase}
+#tokenDetail .arcy-radar-overview-columns>span:nth-child(2),#tokenDetail .arcy-radar-overview-columns>span:nth-child(3),#tokenDetail .arcy-radar-overview-columns>span:nth-child(4){text-align:right}
+@media(max-width:640px){#tokenDetail .arcy-radar-overview-columns{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr) 10px;gap:3px;padding:8px 2px;font-size:clamp(7px,2vw,10px);letter-spacing:0}}
