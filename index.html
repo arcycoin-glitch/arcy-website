@@ -108,6 +108,10 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
 .nav-github:hover{color:#65deef}
 .footer-source-link{display:inline-flex;align-items:center;margin-left:4px;padding:8px 10px;border:1px solid #1b536b;border-radius:10px;color:#8fc4d5;font-size:11px;text-decoration:none}
 .footer-source-link:hover,.footer-source-link:focus-visible{border-color:#22d9ff;color:#dff8ff;outline-offset:3px}
+.footer-quick-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;flex:1 1 360px}
+.footer-quick-links .footer-source-link{margin:0;min-height:48px;padding:10px 12px;align-items:center;justify-content:center;text-align:center;line-height:1.15;font-size:12px;font-weight:800;background:#071722;color:#a9bfcd}
+@media(max-width:700px){.social-icons{flex-wrap:wrap;width:100%}.footer-quick-links{order:2;flex-basis:100%;width:100%}}
+@media(max-width:420px){.footer-quick-links{gap:8px}.footer-quick-links .footer-source-link{min-height:44px;padding:8px 7px;font-size:11px}}
 @media(max-width:560px){.unlock-tools{align-items:stretch;flex-direction:column}.unlock-pager{justify-content:flex-end}}
 
 </style>
@@ -406,7 +410,7 @@ View details →
 
 <a class="social-icon" href="https://t.me/arcycommunitychat" target="_blank" rel="noopener" aria-label="Telegram"><svg viewBox="0 0 24 24"><path d="M21.944 2.506 18.77 21.43c-.239 1.336-.864 1.662-1.75 1.035l-4.834-3.564-2.333 2.244c-.258.258-.474.474-.972.474l.347-4.92 8.955-8.09c.389-.347-.085-.54-.605-.193L6.51 15.386l-4.765-1.49c-1.035-.323-1.054-1.035.216-1.532L20.59 5.184c.864-.323 1.62.193 1.354 1.322Z"/></svg></a>
 
-<a class="footer-source-link" href="https://github.com/arcycoin-glitch/arcy-website" target="_blank" rel="noopener noreferrer">GitHub · View Source ↗</a><a class="footer-source-link" href="/transparency.html">Transparency &amp; Verification</a><a class="footer-source-link" href="/arcy-coin.html">ARCY Coin · Token Status</a><a class="footer-source-link" href="/arcy-analiz.html" lang="tr">ARCY Analiz · Arama</a>
+<a class="footer-source-link" href="https://github.com/arcycoin-glitch/arcy-website" target="_blank" rel="noopener noreferrer">GitHub · View Source ↗</a><span class="footer-quick-links" aria-label="Quick links"><a class="footer-source-link" href="/transparency.html">Transparency</a><a class="footer-source-link" href="/arcy-coin.html">Token Info</a><a class="footer-source-link" href="/arcy-analiz.html">ARCY Search</a></span>
 </div></div></footer>
 
 <script>
