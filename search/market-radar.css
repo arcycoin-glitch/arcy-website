@@ -174,3 +174,18 @@
 #tokenDetail .arcy-radar-overview-card.is-expanded{grid-column:span 2;min-height:560px}
 @media(max-width:1050px){#tokenDetail .arcy-radar-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:580px){#tokenDetail .arcy-radar-overview{grid-template-columns:minmax(0,1fr);gap:13px}#tokenDetail .arcy-radar-overview-card{min-height:380px}#tokenDetail .arcy-radar-overview-card.is-expanded{grid-column:span 1;min-height:490px}#tokenDetail .arcy-radar-overview-token{min-height:46px}#tokenDetail .arcy-radar-overview-head{font-size:17px}}
+
+
+/* Network headings remain visible; ONLY selected network data card expands below. */
+#tokenDetail .arcy-radar-networks{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0 16px}
+#tokenDetail .arcy-radar-network{min-width:0;min-height:68px;justify-content:center;white-space:normal}
+#tokenDetail .arcy-radar-overview{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:0;margin:0 0 14px}
+#tokenDetail .arcy-radar-overview-card{width:100%;min-height:350px!important;grid-column:1/-1!important;max-width:none!important;padding:22px}
+#tokenDetail .arcy-radar-overview-card[hidden]{display:none!important}
+#tokenDetail .arcy-radar-overview-head{font-size:22px}
+#tokenDetail .arcy-radar-overview-list{display:grid;grid-template-columns:minmax(0,1fr);gap:5px}
+#tokenDetail .arcy-radar-overview-token{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr) 18px!important;min-height:56px;padding:10px 12px}
+#tokenDetail .arcy-radar-overview-symbol{font-size:15px}
+#tokenDetail .arcy-radar-overview-price,#tokenDetail .arcy-radar-overview-change,#tokenDetail .arcy-radar-overview-volume{font-size:13px}
+#tokenDetail .arcy-radar-overview-action{width:100%;margin-top:12px}
+@media(max-width:640px){#tokenDetail .arcy-radar-networks{gap:5px;margin:12px 0}#tokenDetail .arcy-radar-network{min-height:62px;padding:6px 2px;font-size:clamp(8px,2.3vw,11px)}#tokenDetail .arcy-radar-overview-card{padding:12px;min-height:300px!important}#tokenDetail .arcy-radar-overview-token{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr) 10px!important;gap:3px;padding:8px 2px}#tokenDetail .arcy-radar-overview-symbol{font-size:11px}#tokenDetail .arcy-radar-overview-price,#tokenDetail .arcy-radar-overview-change,#tokenDetail .arcy-radar-overview-volume{font-size:10px}}
