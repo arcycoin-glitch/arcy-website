@@ -146,8 +146,14 @@ test('duplicate representations of one asset on a chain collapse to a single ent
  assert.equal(out.tokens.filter(t=>t.symbol==='DUP').length,1);assert.equal(out.tokens.find(t=>t.symbol==='DUP').address,addr(60),'the contract with CoinGecko identity evidence stays');
  assert.equal(out.excluded.find(x=>x.address===addr(61)).reason,'DUPLICATE_SYMBOL_UNVERIFIED');
 });
-function rpcFor(members){
+function rpcFor(members,launches=[]){
  return async(u,o)=>{const body=JSON.parse(o.body);return resp(body.map(c=>{
+  if(c.method==='eth_getLogs'){
+   const q=c.params[0];if(q.address!==sources.PONS.factories[0])return {jsonrpc:'2.0',id:c.id,result:[]};
+   const w=x=>x.replace('0x','').padStart(64,'0');
+   return {jsonrpc:'2.0',id:c.id,result:launches.map(l=>({address:q.address,blockNumber:'0x'+l.block.toString(16),topics:[pons.TOPIC_LAUNCHED,'0x'+w(l.token),'0x'+w(addr(7)),'0x'+w(addr(8))],data:'0x'+[addr(900),l.pool,'0x1','0x1','0x1','0x1','0x1'].map(w).join('')}))};
+  }
+  if(c.method==='eth_getBlockByNumber')return {jsonrpc:'2.0',id:c.id,result:{timestamp:'0x'+Math.floor((T0-3600e3)/1000).toString(16)}};
   if(c.method==='eth_chainId')return {jsonrpc:'2.0',id:c.id,result:'0x'+(4663).toString(16)};
   if(c.method==='eth_blockNumber')return {jsonrpc:'2.0',id:c.id,result:'0x64'};
   const data=c.params[0].data,tok='0x'+data.slice(-40);
@@ -203,4 +209,23 @@ test('quota: a full uncached refresh of all four sections stays inside the Demo 
  assert.equal(credits,sources.demoBudget(3600e3).callsPerCycle);
  const before=credits;for(const n of ['arc','ethereum','robinhood','pons'])await radar.load(n,{env:ENV,fetcher:shared,now:()=>T0+30*60000,rpcUrl:'https://rpc.example/'});
  assert.equal(credits,before,'second pass inside the TTL costs nothing');
+});
+
+test('Pons: a launch announced by the factory event but absent from every provider window is discovered, verified and ranked from token-level data',async()=>{
+ const NEWT=addr(150),listed=[{a:addr(151),s:'LST',vol:2e5,liq:3e5,age:30}];
+ const f=router([[/tokens\/multi/,(u)=>resp(multi('pons',[...listed,{a:NEWT,s:'NEWL',n:'Brand New',vol:9e4,liq:1.2e5,tvol:9e4,tliq:1.2e5,price:0.03}]))],[/coingecko\.com/,()=>resp(page('pons',listed))],
+  [/rpc\.example/,rpcFor([NEWT,addr(151)],[{token:NEWT,pool:addr(160),block:90}])]]);
+ const out=await radar.load('pons',{env:ENV,fetcher:f,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
+ const t=out.tokens.find(x=>x.address===NEWT);
+ assert.ok(t,'discovered through the TokenLaunched event');assert.equal(t.symbol,'NEWL');assert.equal(t.launch.status,'ONCHAIN_VERIFIED');assert.equal(t.discovery.channels[0],'factory-event');
+ assert.equal(t.fields.volume24hUsd.scope,'TOKEN');assert.ok(t.discovery.poolAgeDays<1,'age comes from the launch block timestamp');
+ assert.equal(out.coverage.factoryEvents.launchesInWindow,1);
+ const logs=f.calls.filter(c=>/eth_getLogs/.test(String(c.o.body)));assert.ok(logs.length<=2);
+});
+test('Pons: if the factory-event query fails, ranking continues from provider windows and the status says so',async()=>{
+ const inner=rpcFor([addr(170)]);
+ const g=router([[/tokens\/multi/,()=>resp(multi('pons',[{a:addr(170),s:'AAA',vol:3e5,liq:4e5}]))],[/coingecko\.com/,()=>resp(page('pons',[{a:addr(170),s:'AAA',vol:3e5,liq:4e5}]))],
+  [/rpc\.example/,async(u,o)=>{const b=JSON.parse(o.body);if(b.some(c=>c.method==='eth_getLogs'))return resp(b.map(c=>({jsonrpc:'2.0',id:c.id,error:{code:-32000,message:'boom'}})));return inner(u,o);}]]);
+ const out=await radar.load('pons',{env:ENV,fetcher:g,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
+ assert.equal(out.tokens.length,1);assert.equal(out.coverage.factoryEvents.status,'RADAR_PONS_LOGS_UNAVAILABLE');
 });

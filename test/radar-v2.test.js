@@ -242,8 +242,10 @@ test('pons: only tokens confirmed by an official factory are listed, newest firs
  assert.equal(t.fields.poolCreatedAt.status,'CROSS_VERIFIED');
  assert.equal(out.coverage.ponsChecked,12,'duplicate pools across the two provider windows collapse to unique tokens');assert.equal(out.coverage.ponsConfirmed,3);
  assert.match(out.selection,/Pons-launched tokens only/);
- assert.equal(f.calls.filter(c=>/rpc\.example/.test(c.url)).length,3,'12 candidates = two membership batches of <=10 (public RPC batch limit) + one graduation batch; no log scan');
- assert.ok(!f.calls.some(c=>/eth_getLogs/.test(String(c.opts.body))));
+ assert.equal(f.calls.filter(c=>/rpc\.example/.test(c.url)&&/eth_call/.test(String(c.opts.body))).length,3,'12 candidates = two membership batches of <=10 (public RPC batch limit) + one graduation batch; no log scan');
+ const logs=f.calls.filter(c=>/eth_getLogs/.test(String(c.opts.body)));
+ assert.ok(logs.length<=2,'at most one bounded, topic-filtered recent-window query per factory; no history walk');
+ for(const c of logs){const q=JSON.parse(c.opts.body)[0].params[0];assert.equal(q.topics.length,1);assert.ok(sources.PONS.factories.includes(q.address));}
  assert.ok(out.sources.some(s=>s.id==='pons'));
 });
 test('pons: zero confirmed launches is an honest empty result; RPC trouble or wrong chain is an error, never unverified tokens',async()=>{
@@ -365,12 +367,12 @@ test('Pons Launch reuses the cached Robinhood top-volume page instead of spendin
  const f=router([[/tokens\/multi/,()=>resp(multiBody('robinhood',body))],[/coingecko\.com\/.*sort=h24_volume/,()=>{top++;return resp(body);}],[/coingecko\.com/,()=>resp(body)],[/rpc\.example/,rpcRouter({members:[addr(2)]})]]);
  const env={...DEMO};
  await radar.load('robinhood',{env,fetcher:f,now:()=>T0,rpcUrl:'https://rpc.example/'});
- const rpcBefore=f.calls.filter(c=>/rpc\.example/.test(c.url)).length;
+ const eth_calls=()=>f.calls.filter(c=>/rpc\.example/.test(c.url)&&/eth_call/.test(String(c.opts.body))).length,rpcBefore=eth_calls();
  const out=await radar.load('pons',{env,fetcher:f,now:()=>T0,rpcUrl:'https://rpc.example/'});
  assert.equal(top,1,'top-volume page fetched once for both sections');assert.equal(out.tokens.length,1);
  assert.equal(f.calls.filter(c=>/trending_pools/.test(c.url)).length,1,'trending page shared as well');assert.equal(f.calls.filter(c=>/new_pools/.test(c.url)).length,1,'new-pools page shared as well');
  assert.equal(out.usage.geckoterminal,1,'only the token-stats call was spent');
- assert.equal(f.calls.filter(c=>/rpc\.example/.test(c.url)).length,rpcBefore,'factory membership of the same addresses is read once per TTL for both sections');
+ assert.equal(eth_calls(),rpcBefore,'factory membership of the same addresses is read once per TTL for both sections');
 });
 
 test('token-level totals smaller than their own top pool are provider errors: that field falls back to the pool figure and is labelled POOL',async()=>{
