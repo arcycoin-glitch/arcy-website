@@ -87,7 +87,7 @@
   if(data?.ok===true&&Array.isArray(data.tokens))overviewData.set(network,data);
   const tokens=Array.isArray(data?.tokens)?data.tokens.slice(0,expandedNetwork===network?10:5):[];
   const total=card.querySelector('.arcy-radar-overview-count');
-  total.textContent=tokens.length?tokens.length+' gözlemlenen token · Hacim: en büyük gözlemlenen havuzun 24 saatlik USD hacmi':'Doğrulanmış token bulunamadı';
+  total.textContent=tokens.length?tokens.length+' gözlemlenen token · 24s hacim token toplamı veya kaynakta doğrulanmadığında havuz hacmidir':'Doğrulanmış token bulunamadı';
   for(const [index,item] of tokens.entries()){
    const validAddress=typeof item.address==='string'&&/^0x[0-9a-f]{40}$/i.test(item.address)&&!/^0x0{40}$/i.test(item.address);
    const row=el(validAddress?'a':'div','arcy-radar-overview-token');
@@ -103,7 +103,18 @@
    if(fieldOk(item,'change24hPct'))change.classList.add(item.change24hPct>=0?'positive':'negative');
    const arrow=el('span','arcy-radar-overview-token-arrow',validAddress?'›':'');arrow.setAttribute('aria-hidden','true');
    const rank=el('span','arcy-radar-overview-rank',String(index+1));
+   const logoHosts=new Set(['coin-images.coingecko.com','assets.coingecko.com','assets.geckoterminal.com','cdn.dexscreener.com','dd.dexscreener.com']);
+   let logoUrl=null;
+   try{const candidate=new URL(item.logo?.url);if(candidate.protocol==='https:'&&logoHosts.has(candidate.hostname))logoUrl=candidate.href;}catch{}
+   if(logoUrl){
+    const logo=el('img','arcy-radar-overview-token-logo');
+    logo.src=logoUrl;logo.alt='';logo.width=26;logo.height=26;logo.loading='lazy';logo.decoding='async';logo.referrerPolicy='no-referrer';
+    logo.addEventListener('error',()=>logo.remove(),{once:true});
+    identity.prepend(logo);
+   }
    identity.prepend(rank);
+   const scope=item.fields?.volume24hUsd?.scope;
+   volume.title=scope==='TOKEN'?'Token genelindeki 24 saatlik hacim':scope==='POOL'?'Gözlemlenen havuzun 24 saatlik hacmi':'Sağlayıcının bildirdiği 24 saatlik hacim';
    row.append(identity,priceLabel,change,volume,arrow);list.append(row);
   }
   if(!tokens.length)list.append(el('p','arcy-radar-overview-empty','No source-verified ranking available.'));
