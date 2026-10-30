@@ -1,0 +1,26 @@
+--- api/unlocks.js	2026-10-30 18:56:35.365121158 +0300
++++ /tmp/claude-0/-home-claude/4c9b21c0-e5e4-5cfa-9650-1d065191dec9/scratchpad/unlocks.new.js	2026-10-30 21:35:59.357003697 +0300
+@@ -117,6 +117,14 @@
+  const chain=req?.query?.chain;
+  return typeof chain==='string'&&chain?{requestedChain:chain.slice(0,20),chainFilterApplied:false,chainFilterReason:'Calendar rows carry no verified network or contract identity; results are cross-ecosystem.'}:{};
+ }
++let liveFlight = null, liveMemo = null;
++// Proposal: concurrent cold requests on one warm instance share ONE set of three CoinBell GETs; a result is reused for 5 minutes only when all
++// three sources answered (a partial/failed set is never kept, so degraded states still retry on the next request). Callers get an independent copy.
++async function sharedCollect(run) {
++  if (liveMemo && liveMemo.expires > Date.now()) return structuredClone(liveMemo.value);
++  if (!liveFlight) liveFlight = run().then(value => { if (value.every(item => item.status === 'available')) liveMemo = { value: structuredClone(value), expires: Date.now() + 300000 }; return value; }).finally(() => { liveFlight = null; });
++  return structuredClone(await liveFlight);
++}
+ export default async function handler(req, res) {
+   res.setHeader('Content-Type', 'application/json; charset=utf-8');
+   const saved = await savedEdition();
+@@ -124,7 +132,7 @@
+   const secondsToMidnight = Math.max(1, Math.floor((Date.parse(utcToday() + 'T00:00:00Z') + 86400000 - Date.now()) / 1000));
+   res.setHeader('Cache-Control', `public, s-maxage=${Math.min(21600, secondsToMidnight)}, must-revalidate`);
+   try {
+-    const collected = await Promise.all(SOURCE_URLS.map(async url => { try { const response = await fetchWithTimeout(url, { headers: { accept: 'text/html,application/xhtml+xml', 'user-agent': 'ARCY-Research/1.0 (+https://arcyusdc.xyz)' } }); if (!response.ok) throw Error(); const rows = parseRows(await response.text(), url); if (!rows.length) throw Error(); return { url, status: 'available', rows }; } catch { return { url, status: 'unavailable', rows: [] }; } }));
++    const collected = await sharedCollect(() => Promise.all(SOURCE_URLS.map(async url => { try { const response = await fetchWithTimeout(url, { headers: { accept: 'text/html,application/xhtml+xml', 'user-agent': 'ARCY-Research/1.0 (+https://arcyusdc.xyz)' } }); if (!response.ok) throw Error(); const rows = parseRows(await response.text(), url); if (!rows.length) throw Error(); return { url, status: 'available', rows }; } catch { return { url, status: 'unavailable', rows: [] }; } })));
+     const supplemental = await collectVerifiedEvents(VERIFIED_EVENTS);
+     if (!collected.some(source => source.status === 'available') && !supplemental.events.length) throw Error();
+     const today = utcToday(), merged = mergeEvents([...collected.flatMap(source => source.rows), ...supplemental.events]), events = merged.events.map(event => ({ ...event, daysFromToday: dayDiff(event.date, today) })).filter(event => event.daysFromToday >= 0 && event.daysFromToday <= 30).sort((left, right) => left.date.localeCompare(right.date) || left.name.localeCompare(right.name) || left.allocation.localeCompare(right.allocation)), partial = collected.some(source => source.status !== 'available') || supplemental.rejected.length > 0 || merged.conflicts.length > 0;

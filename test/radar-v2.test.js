@@ -40,10 +40,10 @@ test('access policy fails closed: no key on Vercel = off; keyless only outside V
  const k=sources.geckoAccess({});assert.equal(k.mode,'keyless');assert.equal(k.host,'https://api.geckoterminal.com/api/v2');assert.equal(k.perMinute,5);assert.ok(k.ttlMs>=30*60*1000);
  const d=sources.geckoAccess({COINGECKO_DEMO_API_KEY:'x',VERCEL:'1'});assert.equal(d.mode,'demo');assert.equal(d.host,'https://api.coingecko.com/api/v3/onchain');assert.equal(d.header,'x-cg-demo-api-key');assert.ok(d.ttlMs>=60*60*1000);
  const p=sources.geckoAccess({COINGECKO_PRO_API_KEY:'x',COINGECKO_DEMO_API_KEY:'y',VERCEL:'1'});assert.equal(p.mode,'pro');assert.equal(p.header,'x-cg-pro-api-key');
- assert.equal(sources.geckoAccess({COINGECKO_DEMO_API_KEY:'x',RADAR_V2_TTL_MS:'1000'}).ttlMs,60*60*1000,'TTL cannot be configured below the Demo quota floor');
+ assert.equal(sources.geckoAccess({COINGECKO_DEMO_API_KEY:'x',RADAR_V2_TTL_MS:'1000'}).ttlMs,80*60*1000,'TTL cannot be configured below the Demo quota floor (80 min keeps one instance at ~7,000 credits/month)');
 });
 test('Demo plan quota arithmetic: default 60-minute cycle (13 calls: 9 pool pages + 4 token lookups) stays inside 10,000 credits/month; 55 minutes would not',()=>{
- const d=sources.demoBudget(60*60*1000);assert.equal(d.callsPerCycle,13);assert.equal(d.callsPerMonth,9360);assert.equal(d.within10k,true);
+ const d=sources.demoBudget(80*60*1000);assert.equal(d.callsPerCycle,13);assert.equal(d.callsPerMonth,7020);assert.equal(d.within10k,true);
  assert.equal(sources.demoBudget(55*60*1000).within10k,false);assert.equal(sources.demoBudget(45*60*1000).within10k,false);assert.equal(sources.demoBudget(10*60*1000).within10k,false);
 });
 test('publication needs BOTH operator approvals in every environment; DEX Screener stays off on Vercel until its own approval',()=>{
@@ -183,15 +183,15 @@ test('responses are cached for the tier TTL and concurrent loads coalesce into o
  const env={...DEMO};let now=T0;
  const [a,b]=await Promise.all([radar.load('arc',{env,fetcher:f,now:()=>now}),radar.load('arc',{env,fetcher:f,now:()=>now})]);
  assert.equal(n,1);assert.equal(a.tokens.length,b.tokens.length);
- now=T0+59*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,1,'still cached at 59 min (Demo TTL 60)');
- now=T0+61*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,2);
+ now=T0+79*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,1,'still cached at 79 min (Demo TTL 80)');
+ now=T0+81*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,2);
 });
 test('429 honours Retry-After, enters a cooldown with no further calls, and serves a bounded STALE result labelled as such',async()=>{
  const body=geckoBody('arc',{count:12});let mode='ok',n=0;
  const f=router([[/coingecko\.com/,(u)=>{n++;return mode==='ok'?resp(/tokens\/multi/.test(u)?multiBody('arc',body):body):{ok:false,status:429,headers:new Headers({'retry-after':'120'}),text:async()=>''};}]]);
  const env={...DEMO};let now=T0;
  await radar.load('arc',{env,fetcher:f,now:()=>now});
- mode='limited';now=T0+61*60000;
+ mode='limited';now=T0+81*60000;
  const stale=await radar.load('arc',{env,fetcher:f,now:()=>now});
  assert.equal(stale.freshness,'STALE');assert.equal(stale.staleReason,'RADAR_PROVIDER_RATE_LIMITED');assert.equal(stale.asOf,new Date(T0).toISOString());
  const calls=n;now+=60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,calls,'cooldown: no request while the provider asked us to wait');
