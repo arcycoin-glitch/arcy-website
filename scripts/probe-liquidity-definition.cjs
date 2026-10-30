@@ -9,7 +9,7 @@ const ctx={fetcher:async(u,o)=>{for(let i=0;i<4;i++){await sleep(400+i*2500);con
 const get=async u=>{for(let i=0;i<4;i++){await sleep(2300);const r=await fetch(u,{headers:{accept:'application/json'},signal:AbortSignal.timeout(20000)});if(r.status===429){await sleep(15000);continue;}return r.ok?r.json():null;}return null;};
 (async()=>{
  const gr=await pons.recentGraduations(RPC,ctx,{max:12});
- const toks=gr.graduations.slice(0,10).map(g=>g.token);log('graduated tokens sampled: '+toks.length);
+ const toks=gr.graduations.slice(0,6).map(g=>g.token);log('graduated tokens sampled: '+toks.length);
  const rows=[];
  for(const t of toks){
   const ds=await get('https://api.dexscreener.com/token-pairs/v1/robinhood/'+t);
@@ -19,7 +19,10 @@ const get=async u=>{for(let i=0;i<4;i++){await sleep(2300);const r=await fetch(u
   const baseVal=p.liquidity.base*price,quoteVal=qPrice?p.liquidity.quote*qPrice:null;
   const gt=await get('https://api.geckoterminal.com/api/v2/networks/robinhood/pools/'+p.pairAddress);
   const a=gt?.data?.attributes||{};
-  rows.push({t:t.slice(0,8),dsUsd:p.liquidity.usd,baseVal:Math.round(baseVal),quoteVal:quoteVal&&Math.round(quoteVal),sumSides:quoteVal&&Math.round(baseVal+quoteVal),gtReserve:Number(a.reserve_in_usd)||null,dex:p.dexId});
+  const tk=await get('https://api.geckoterminal.com/api/v2/networks/robinhood/tokens/'+t);
+  const tl=await get('https://api.geckoterminal.com/api/v2/networks/robinhood/tokens/'+t+'/pools?page=1');
+  const lp=(tl?.data||[]).find(x=>x.attributes?.address?.toLowerCase()===p.pairAddress.toLowerCase());
+  rows.push({t:t.slice(0,8),dsUsd:p.liquidity.usd,baseVal:Math.round(baseVal),quoteVal:quoteVal&&Math.round(quoteVal),sumSides:quoteVal&&Math.round(baseVal+quoteVal),gtReserve:Number(a.reserve_in_usd)||null,gtTokenTotal:Number(tk?.data?.attributes?.total_reserve_in_usd)||null,gtTokenPoolsList:lp?Number(lp.attributes.reserve_in_usd):null,gtPoolsInList:(tl?.data||[]).length,dex:p.dexId});
  }
  for(const r of rows)log(JSON.stringify(r)+' | ds/sum='+(r.sumSides?(r.dsUsd/r.sumSides).toFixed(2):'?')+' ds/(2*quote)='+(r.quoteVal?(r.dsUsd/(2*r.quoteVal)).toFixed(2):'?')+' gt/quote='+(r.quoteVal&&r.gtReserve?(r.gtReserve/r.quoteVal).toFixed(2):'?')+' gt/ds='+(r.gtReserve?(r.gtReserve/r.dsUsd).toFixed(2):'?'));
  console.log('::notice title=liquidity-definition::'+lines.join('\n').replace(/%/g,'%25').replace(/\n/g,'%0A'));
