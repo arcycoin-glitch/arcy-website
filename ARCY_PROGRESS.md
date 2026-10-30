@@ -184,3 +184,9 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Evidence reviews expand 5→9: Sui estimated scheduling, ZKsync issuer-documented investor/team cap, Ethena conflicting dates, Arbitrum 15 November conflict; namesake token scoping and BigInt amount arithmetic.
 - API exposes scheduled-vs-executed evidence, independent publisher count (one CoinBell source), cross-ecosystem scope and truthful chain-filter notice; existing signed snapshots are reviewed at request time. Worker and API use matching review policies and skip unauthenticated CMC Pro logo calls.
 - New regression tests and supporting audit: docs/unlock-source-audit-20261029.md; no new data license/independent data source or paid provider was added. Release only after CI and live source verification.
+
+## Radar V3 — keşif motoru (2026-10-30, PR #109, dal feature/radar-v3-discovery-engine-20261030)
+- Yapıldı: lib/radar-v2/discovery.js (kimlik filtresi, ARCY Discovery Score, çeşitlilik), index.js (top+trending+new aday keşfi, Pons factory event + membership), pons.js (grup RPC, TokenLaunched sınırlı pencere), gecko.js (trending), sources.js (TTL 60 dk, 13 kredi/döngü), testler (701 geçti), probe + emit script, docs.
+- Canlı doğrulama: CI probe (gerçek sağlayıcılar). Vercel Preview'da gerçek API testi YAPILAMADI: Preview ortamında MARKET_RADAR_PUBLIC_DISPLAY_APPROVED, MARKET_RADAR_JSON_DELIVERY_APPROVED, COINGECKO_DEMO_API_KEY tanımlı değil (RADAR_NOT_CONFIGURED).
+- Açık: Pons son ~90 günde iki resmi factory'de TokenLaunched olayı yok (CI probe); yalnız resmi PONS doğrulanıyor.
+- Sonraki: operatör Preview env'i girince 4 bölümü Preview'da doğrula; lisans kararı; merge/deploy yalnızca onayla.
