@@ -18,11 +18,20 @@ async function rpc(method,params){
  const [hi,lo]=await Promise.all([rpc('eth_getBlockByNumber',['0x'+B.toString(16),false]),rpc('eth_getBlockByNumber',['0x'+(B-100000).toString(16),false])]);
  const dt=Number(BigInt(hi.result.timestamp))-Number(BigInt(lo.result.timestamp));
  const bps=100000/dt;log('blocks per second ~'+bps.toFixed(2)+' ('+(dt/100000*1000).toFixed(0)+' ms/block); 24h ~ '+Math.round(bps*86400)+' blocks');
- for(const w of [1000000,3000000,8000000,20000000,45000000,92000000]){
-  for(const f of FACT){
-   const r=await rpc('eth_getLogs',[{address:f,fromBlock:'0x'+(B-w).toString(16),toBlock:'0x'+B.toString(16),topics:[TOPIC]}]);
-   log('getLogs window='+w+' ('+(w/bps/3600).toFixed(1)+'h) factory='+f.slice(0,8)+' -> '+(r.error?'ERROR '+String(r.error.message).slice(0,100):(r.result.length+' TokenLaunched logs'+(r.result.length?'; newest '+((B-Number(BigInt(r.result[r.result.length-1].blockNumber)))/bps/3600).toFixed(1)+'h ago, oldest '+((B-Number(BigInt(r.result[0].blockNumber)))/bps/3600/24).toFixed(1)+'d ago':'')))+' in '+r.ms+'ms');
+ // one-off CI validation of the event itself: walk back in 9.5M-block chunks (the RPC's documented per-request cap is 10M) to the factory deploy block
+ for(const f of FACT){
+  const start=f===FACT[0]?8991118:8600612;let total=0;const rows=[];
+  for(let to=B;to>start;to-=9500000){
+   const from=Math.max(start,to-9500000+1);
+   const r=await rpc('eth_getLogs',[{address:f,fromBlock:'0x'+from.toString(16),toBlock:'0x'+to.toString(16),topics:[TOPIC]}]);
+   if(r.error){rows.push('ERR '+String(r.error.message).slice(0,60));continue;}
+   total+=r.result.length;
+   rows.push(((B-to)/bps/86400).toFixed(0)+'-'+((B-from)/bps/86400).toFixed(0)+'d ago: '+r.result.length+(r.result.length?' (newest '+((B-Number(BigInt(r.result[r.result.length-1].blockNumber)))/bps/86400).toFixed(1)+'d ago)':''));
   }
+  log('factory '+f.slice(0,8)+' TokenLaunched total='+total+' | '+rows.join(' | '));
  }
+ // sample decode of the newest log of the active factory
+ {const r=await rpc('eth_getLogs',[{address:FACT[0],fromBlock:'0x'+(B-9500000).toString(16),toBlock:'0x'+B.toString(16),topics:[TOPIC]}]);
+  const l=r.result&&r.result[r.result.length-1];if(l)log('sample log topics='+l.topics.length+' data words='+((l.data.length-2)/64)+' token='+('0x'+l.topics[1].slice(-40)).slice(0,10)+' pool='+('0x'+l.data.slice(2+64+24,2+128)).slice(0,10));}
  console.log('::notice title=pons-logs-probe::'+lines.join('\n').replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'));
 })().catch(e=>{console.log('::notice title=pons-logs-probe::FAIL '+e.message);});

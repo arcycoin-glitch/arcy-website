@@ -98,10 +98,12 @@ test('dedupe keeps the contract with stronger identity evidence; diversify stops
  const a={address:addr(1),symbol:'PONS',coinId:null,discovery:{score:90}},b={address:addr(2),symbol:'PONS',coinId:null,_pons:{factory:'f'},discovery:{score:70}};
  const d=D.dedupe([a,b]);assert.deepEqual(d.kept.map(x=>x.address),[addr(2)]);assert.equal(d.dropped[0].reason,'DUPLICATE_SYMBOL_UNVERIFIED');
  const mk=(i,age,kind='TOKEN')=>({address:addr(i),symbol:'S'+i,kind,poolCreatedAt:new Date(T0-age*DAY).toISOString()});
- const rows=[mk(1,500),mk(2,500),mk(3,500),mk(4,500),mk(5,500),mk(6,500),mk(7,10,'TOKENIZED_EQUITY'),mk(8,10,'TOKENIZED_EQUITY'),mk(9,10,'TOKENIZED_EQUITY'),mk(10,3),mk(11,3),mk(12,3)];
+ const rows=[mk(1,500),mk(2,500),mk(3,500),mk(4,500),mk(5,500),mk(6,500),mk(7,10,'TOKENIZED_EQUITY'),mk(8,10,'TOKENIZED_EQUITY'),mk(9,10,'TOKENIZED_EQUITY'),mk(10,3),mk(11,3),mk(12,3),mk(13,3),mk(14,3),mk(15,3),mk(16,3)];
  const v=D.diversify(rows,10,T0);
  assert.equal(v.out.filter(r=>D.ageDays(r,T0)>D.LEGACY_DAYS).length,D.CAPS.legacy);assert.equal(v.out.filter(r=>r.kind==='TOKENIZED_EQUITY').length,D.CAPS.tokenizedEquity);
  assert.ok(v.dropped.some(x=>x.reason==='DIVERSITY_CAP_ESTABLISHED')&&v.dropped.some(x=>x.reason==='DIVERSITY_CAP_TOKENIZED_EQUITY'));
+ // soft cap: when there are not enough other candidates, held-back ones fill the empty places (the list is never shrunk by a cap)
+ const few=D.diversify(rows.slice(0,8),10,T0);assert.equal(few.out.length,8);assert.equal(few.dropped.length,0);assert.ok(few.out.some(r=>r.diversityBackfill));
 });
 
 // ── end-to-end discovery on a network ───────────────────────────────────────────────
@@ -165,7 +167,8 @@ test('Robinhood: a copy-cat of an official pons launch ticker is a look-alike; t
   {a:OFFICIAL,s:'PONS',n:'Pons',price:0.24,vol:2e6,liq:5e6,age:80,chg:-4},
   {a:FAKE,s:'PONS',n:'Pons',price:0.26,vol:5e7,liq:9e6,age:1,chg:2},
   ...[1,2,3,4].map(i=>({a:addr(90+i),s:'EQ'+i,n:'Stock '+i+' • Robinhood Token',price:100+i,vol:9e6-i*1e5,liq:5e6,age:60,chg:-1})),
-  {a:addr(95),s:'FRESH',n:'Fresh',price:0.01,vol:8e5,liq:6e5,age:2,chg:60,buys:1500,sells:1400}
+  {a:addr(95),s:'FRESH',n:'Fresh',price:0.01,vol:8e5,liq:6e5,age:2,chg:60,buys:1500,sells:1400},
+  ...[1,2,3,4,5,6,7,8].map(i=>({a:addr(140+i),s:'FIL'+i,n:'Filler '+i,price:0.1,vol:3e5+i*1000,liq:5e5,age:20}))
  ];
  const out=await run('robinhood',specs,{rpc:rpcFor([OFFICIAL])});
  const syms=out.tokens.map(t=>t.symbol);
