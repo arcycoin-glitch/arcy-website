@@ -304,3 +304,11 @@ test('Pons V2: tokens announced by the PoolGraduated event are accepted only if 
  assert.equal(out.coverage.factoryEvents.graduatedFound,3);assert.equal(out.coverage.factoryEvents.olderChecked,4,'PoolGraduated event for 4 tokens, one (405) still reports phase 0 so it is not accepted');
  assert.equal(out.tokens.find(t=>t.address===OLD_GRAD).launch.factoryVersion,'v2');
 });
+test('verify: DEX Screener liquidity at ~2x GeckoTerminal is a definition difference (lower figure kept, single-source); other gaps stay NOT_VERIFIED',()=>{
+ const verify=require('../lib/radar-v2/verify');
+ const row=(gLiq,dLiq)=>{const gt={address:addr(1),priceUsd:1,volume24hUsd:1000,liquidityUsd:gLiq,scopeVolume:'POOL',scopeLiquidity:'POOL',change24hPct:1,fdvUsd:1,marketCapUsd:null,poolCreatedAt:null};
+  const ds={state:'MATCHED',values:{priceUsd:1,volume24hUsd:1000,liquidityUsd:dLiq,change24hPct:1,fdvUsd:1,marketCapUsd:null,poolCreatedAt:null}};return verify.verifyRow(gt,ds).fields.liquidityUsd;};
+ const a=row(7317,14612);assert.equal(a.status,'SOURCE_REPORTED');assert.equal(a.value,7317);assert.equal(a.crossCheck,'PROVIDER_DEFINITION_2X');
+ assert.equal(row(675540,1140292).status,'NOT_VERIFIED','1.69x is not the 2x pattern');
+ assert.equal(row(1000,3000).status,'NOT_VERIFIED');assert.equal(row(1000,1000).status,'CROSS_VERIFIED');
+});
