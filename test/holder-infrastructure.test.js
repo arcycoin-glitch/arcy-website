@@ -137,7 +137,7 @@ test('catchup never clips a lagging index to the last 5000 blocks and survives a
  const json=c.json;c.json=async url=>url.endsWith('/stats')?{chainId:5042,latestIndexedBlock:1,indexedBlocks:9999}:url.includes('holders?')?{items:[{address:x},{address:y}],nextOffset:null}:json(url);c.context=async()=>({block:'0x2710'});
  const first=await worker.advance(a,{maxPages:1,maxBatches:0});assert.equal(first.coverage.phase,'CATCHUP');assert.equal(calls.logs[0].fromBlock,'0x1');const s=await storage.load(name);assert.equal(s.catchupCursor,1001);assert.equal(s.block,'0x2710');assert.equal(s.balanceCursor,0);
  const output=execFileSync(process.execPath,['-e',`require(${JSON.stringify(path.resolve(__dirname,'../lib/holder-storage'))}).load(${JSON.stringify(name)}).then(s=>console.log(JSON.stringify(s)));`],{env:{...process.env,ARC_INDEX_CACHE_DIR:folder},windowsHide:true,encoding:'utf8'});assert.equal(JSON.parse(output).catchupCursor,1001);
- await worker.advance(a,{maxPages:1,maxBatches:0});assert.equal(calls.logs.at(-1).fromBlock,'0x3e9');assert.equal((await storage.load(name)).catchupCursor,3001,'second span doubled (sparse range, 1000 -> 2000)');assert.equal(await storage.snapshot(name),null);
+ await worker.advance(a,{maxPages:1,maxBatches:0});assert.equal(calls.logs.at(-1).fromBlock,'0x3e9');assert.equal((await storage.load(name)).catchupCursor,2001);assert.equal(await storage.snapshot(name),null);
 }));
 
 test('separate worker runs continue a queued checkpoint and atomically replace an older COMPLETE snapshot',()=>fixture(async({folder,calls})=>{
@@ -162,17 +162,17 @@ test('worker deadline cannot publish a late balance result and retains the last 
  await new Promise(resolve=>setTimeout(resolve,120));assert.equal((await storage.snapshot(name)).block,'0xa');assert.notEqual((await storage.load(name)).phase,'COMPLETE');assert.equal((await storage.load(name)).balanceCursor,0);
 }));
 
-test('TAIL span grows on sparse ranges (bounded at 5000), halves on dense/limit ranges and never regrows within the same call',async()=>{
- const ranges=require('../lib/holder-log-range'),core=require('../lib/core'),oldRpc=core.rpc;
+test('TAIL span grows on sparse ranges (bounded by ARC_HOLDER_LOG_WINDOW_MAX, hard max 2000), halves on dense/limit ranges and never regrows within the same call',async()=>{
+ const ranges=require('../lib/holder-log-range'),core=require('../lib/core'),oldRpc=core.rpc,oldMax=process.env.ARC_HOLDER_LOG_WINDOW_MAX;process.env.ARC_HOLDER_LOG_WINDOW_MAX='2000';
  try{
   let sizes=[];core.rpc=async(_m,p)=>{sizes.push(Number(BigInt(p[0].toBlock)-BigInt(p[0].fromBlock)+1n));return [];};
   let w=1000,from=1;for(let i=0;i<5;i++){const r=await ranges.read(a,from,10**9,w);from=r.to+1;w=r.width;}
-  assert.deepEqual(sizes,[1000,2000,4000,5000,5000],'sparse: 1000 -> 2000 -> 4000 -> 5000 (cap)');assert.ok(w<=ranges.MAX_WIDTH);
+  assert.deepEqual(sizes,[1000,2000,2000,2000,2000],'sparse: 1000 -> 2000 (cap)');assert.ok(w<=ranges.MAX_WIDTH);
   assert.equal(storage.validCheckpoint({...state(),phase:'TAIL',tailRange:5001},a),false,'checkpoint validator caps the span at 5000');
-  sizes=[];core.rpc=async(_m,p)=>{const n=Number(BigInt(p[0].toBlock)-BigInt(p[0].fromBlock)+1n);sizes.push(n);if(n>2000)throw Object.assign(Error(),{code:'RPC_RANGE_LIMIT'});return [];};
-  const r=await ranges.read(a,1,10**9,5000);assert.deepEqual(sizes,[5000,2500,1250]);assert.equal(r.width,1250,'after halving the call must not grow again');
+  sizes=[];core.rpc=async(_m,p)=>{const n=Number(BigInt(p[0].toBlock)-BigInt(p[0].fromBlock)+1n);sizes.push(n);if(n>1000)throw Object.assign(Error(),{code:'RPC_RANGE_LIMIT'});return [];};
+  const r=await ranges.read(a,1,10**9,2000);assert.deepEqual(sizes,[2000,1000]);assert.equal(r.width,1000,'after halving the call must not grow again');
   core.rpc=async()=>Array.from({length:600},()=>null);
- }finally{core.rpc=oldRpc;}
+ }finally{core.rpc=oldRpc;if(oldMax===undefined)delete process.env.ARC_HOLDER_LOG_WINDOW_MAX;else process.env.ARC_HOLDER_LOG_WINDOW_MAX=oldMax;}
 });
 
 test('bounded simulation: TAIL progress survives 429s across 4 sequential batches, never resets, never publishes before reconciliation, and sparse spans cut RPC calls',()=>fixture(async({calls})=>{
@@ -190,6 +190,6 @@ test('bounded simulation: TAIL progress survives 429s across 4 sequential batche
  assert.ok(trail.some((t,i)=>i>0&&t[2]>trail[i-1][2]),'progress was made across batches despite injected 429s: '+JSON.stringify(trail));
  // Call arithmetic for a full 3,646,896-block sparse span (the live ARCY TAIL): old fixed 1000-block spans vs adaptive growth.
  const span=3646896;let w=1000,from=0,adaptive=0;const ranges=require('../lib/holder-log-range');
- while(from<span){const to=Math.min(span,from+w);adaptive++;from=to;w=Math.min(ranges.MAX_WIDTH,w<ranges.MAX_WIDTH?w*2:w);}
- const fixed=Math.ceil(span/1000);assert.equal(fixed,3647);assert.ok(adaptive<=735,'adaptive calls '+adaptive);assert.ok(fixed/adaptive>4.9,'>= 4.9x fewer eth_getLogs calls');
+ while(from<span){const to=Math.min(span,from+w);adaptive++;from=to;w=Math.min(2000,w*2);}
+ const fixed=Math.ceil(span/1000);assert.equal(fixed,3647);assert.ok(adaptive<=1830,'adaptive calls '+adaptive);assert.ok(fixed/adaptive>1.99,'about 2x fewer eth_getLogs calls with the 2000 hard max');
 }));

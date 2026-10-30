@@ -1,0 +1,32 @@
+name: Final release public API smoke
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-api-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Allow automatic web build to settle
+        run: sleep 30
+      - name: Read public APIs using the same-origin rendering contract
+        run: node scripts/release-live-smoke.cjs
+      - name: Measure six UI cards with retained field evidence
+        if: always()
+        env:
+          PER_CHAIN: '1'
+        run: node scripts/search-coverage-matrix.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: search-coverage-raw
+          path: /tmp/arcy-search-coverage.json

@@ -6,7 +6,7 @@ const dex=require('./dex-market');
 function parse(body,address){return {fields:dex.parseMarket(body,'ethereum',address.toLowerCase()).fields}}
 async function inspect(address,block){
  if(typeof address!=='string')return pending.card();
- const fields=await dex.inspect('ethereum',address);
+ const fields=await require('./market-cross').inspect('ethereum',address);
  // Exact-contract Chainlink reference feeds are a free on-chain fallback for
  // canonical Ethereum WETH and USDC when DEX market access is unavailable.
  // This fills only the existing price field; it is not DEX volume/liquidity or
