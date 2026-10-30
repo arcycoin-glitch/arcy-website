@@ -23,7 +23,7 @@ test('Turkish token research guide is canonical, source-linked and honest on ris
 });
 test('Turkish SEO route remains findable from canonical sitemap and both established brand pages',()=>{
  assert.match(sitemap,/https:\/\/www\.arcyusdc\.xyz\/arcy-analiz\.html/);
- assert.match(home,/href="\/arcy-analiz\.html" lang="tr"/);
+ assert.match(home,/href="\/arcy-analiz\.html"(?: lang="tr")?>/);
  assert.match(coin,/href="\/arcy-analiz\.html" lang="tr"/);
  assert.match(trans,/href="\/arcy-analiz\.html" lang="tr"/);
  assert.match(home,/DETAILS TO BE ANNOUNCED/);

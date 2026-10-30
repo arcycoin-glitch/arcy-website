@@ -73,3 +73,38 @@ Not covered: whole-chain coverage (candidates are the base tokens of the provide
 
 ## Still unverified (needs CI probe / operator)
 CoinGecko Demo-key onchain coverage of Arc/Robinhood (keyless works; a Demo key was not available); the licence approvals above. Run `scripts/probe-radar-v2.cjs` via the "Market Radar source compatibility probe" workflow.
+
+## Radar V3 — discovery engine (ARCY Discovery Score)
+
+**Why:** V2 took the base tokens of the 20 highest-volume pools. That produces a list of the biggest liquidity pools (WETH, wrapped BTC, stablecoins), not a discovery list. V3 keeps the same sources, quota discipline and UI contract and replaces *selection and ranking*.
+
+**Candidates (per chain, GeckoTerminal / CoinGecko Onchain):** top pools by 24h volume, trending pools (24h), newest pools. Merged per base-token contract; each row remembers which views surfaced it. Pons Launch reuses the three Robinhood pages (no extra provider call). Still not a census of the chain.
+
+**Identity exclusion (discovery list only — search, contract review and every other feature are unaffected):**
+
+| Reason | Evidence used (never ticker alone) |
+|---|---|
+| `WRAPPED_BASE_ASSET` | canonical contract (registry), CoinGecko coin id of a base asset, or a base-asset ticker whose price is consistent with the chain's ETH/BTC reference |
+| `STABLECOIN` | canonical contract, CoinGecko stable coin id, or stable-asset name holding a currency peg |
+| `IMPERSONATION_SUSPECT` | uses a base-asset/major-stable ticker without identity proof and without the matching price |
+| `UNVERIFIED_LOOKALIKE` | Robinhood: same ticker as an official pons launch, contract not confirmed by a pons factory |
+| `DUPLICATE_SYMBOL_UNVERIFIED` | same ticker on one chain: the contract with stronger evidence (factory, coin id, score) stays |
+| `NATIVE_PLACEHOLDER` | zero address |
+| `NOT_FACTORY_LAUNCH` | Pons section only |
+
+**Eligibility gates (hard):** verified price; verified 24h volume and liquidity above the *network* floor; volume/liquidity ratio ≤ 1000; ≥ 5 trades when counts are known. Floors differ per network (`discovery.PROFILES`).
+
+**ARCY Discovery Score (0–100)** — weights 20 volume · 15 liquidity · 20 pool freshness · 15 trading activity · 10 momentum · 10 cross-source agreement · 5 buy/sell balance · 5 pool breadth (Pons: volume 20, liquidity 10, freshness 25, activity 20, momentum 5, agreement 10, balance 5, breadth 5). Each component is scaled on a per-network log scale between its floor and reference. A component whose input is missing is *removed* and the remaining weights re-normalised; `discovery.missing` and `weightCoverage` say so. Penalties (evidence, not accusation): `HIGH_TURNOVER` (volume > 100× liquidity, −15), `LARGE_TRADES_FEW_TXNS` (−10), `ONE_SIDED_FLOW` (−5). Volume *growth* is not used: no verified historical volume is stored (`volumeGrowth: NOT_AVAILABLE`). Pool age is the age of the token's highest-volume pool, not the token's first appearance.
+
+**Diversity:** at most 4 tokens whose top pool is older than 180 days and at most 2 tokenized equities per list. Lists are never padded to 10.
+
+**Response additions (UI contract `version: 2` unchanged):** `engine`, `discovery` (weights, profile, channel counts/status, exclusion counts), `excluded[]` (≤ 40, with reason and evidence), per-token `discovery` (score, reason, components, flags, channels, scopes).
+
+**Quota (Demo plan):** per refresh cycle 3 chains × (top + trending + new) = 9 pool pages + 4 `tokens/multi` = **13 credits**; TTL fixed ≥ 60 min → 720 cycles × 13 = 9,360 credits/month (limit 10,000). Pons membership uses public-RPC point reads only: ≤ 40 candidates per refresh in batches of 10 (a public RPC rejected an 80-call batch), cached per address for the TTL and shared by Robinhood and Pons.
+
+
+## Pons V2 (bonding curve -> Uniswap v4) support
+- Factory `0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e` (docs.ponsfamily.com/docs/v2) is registered next to the V1 factories with its own decoder (15-word `getLaunchedToken`: exists = word 14, phase = word 10) and its own `TokenLaunched(address,address,address,address,uint256,uint256)` topic0 (computed locally).
+- Discovery: bounded, newest-first `eth_getLogs` windows (<=3 x 8M blocks, RPC cap 10M) over all factories; provider windows are still used. Membership proof is always `getLaunchedToken` on an official factory.
+- Phase 2 (GRADUATED_POOL) tokens are ranked like any other token from verified provider data. Phase 0 (BONDING_CURVE) tokens found only by event have no pool, so no verified USD price/volume/liquidity exists: they are listed in `coverage.bondingCurve` (progress from `realQuoteReserve / graduationThreshold`, USD `NOT_VERIFIED`) and never ranked or padded in.
+- No extra provider credits: the added work is RPC-only.

@@ -8,22 +8,22 @@ const T0=Date.UTC(2026,9,30,12,0,0);
 beforeEach(()=>{http._resetCooldowns();radar._cache.clear();});
 
 // ── fixtures ──────────────────────────────────────────────────────────────────────────────────────────────
-function geckoBody(net,{count=14,start=1,volume=i=>100000-i*100,created=i=>new Date(T0-i*60000).toISOString(),dup=false}={}){
+function geckoBody(net,{count=14,start=1,volume=i=>2000000-i*1000,created=i=>new Date(T0-i*60000).toISOString(),dup=false}={}){
  const id=sources.NETWORKS[net].gecko,included=[],data=[];
  for(let i=0;i<count;i++){
   const a=addr(dup?Math.floor(i/2)+start:i+start),tokenId=id+'_'+a,pool=addr(5000+i);
   included.push({id:tokenId,type:'token',attributes:{address:a,name:'Token '+i,symbol:'T'+i,image_url:i%5===4?'https://assets.geckoterminal.com/missing.png':'https://coin-images.coingecko.com/coins/images/'+(100+i)+'/large/t'+i+'.png',coingecko_coin_id:'coin-'+i}});
-  data.push({id:id+'_'+pool,type:'pool',attributes:{address:pool,pool_created_at:created(i),base_token_price_usd:'0.002',reserve_in_usd:'1500',fdv_usd:'2000000',market_cap_usd:null,volume_usd:{h24:String(volume(i))},price_change_percentage:{h24:'-3.2'},transactions:{h24:{buys:10,sells:7}}},
+  data.push({id:id+'_'+pool,type:'pool',attributes:{address:pool,pool_created_at:created(i),base_token_price_usd:'0.002',reserve_in_usd:'3000000',fdv_usd:'2000000',market_cap_usd:null,volume_usd:{h24:String(volume(i))},price_change_percentage:{h24:'-3.2'},transactions:{h24:{buys:10,sells:7}}},
    relationships:{base_token:{data:{id:tokenId,type:'token'}},quote_token:{data:{id:id+'_'+addr(900),type:'token'}},dex:{data:{id:'uniswap-v4-'+id,type:'dex'}}}});
  }
  included.push({id:id+'_'+addr(900),type:'token',attributes:{address:addr(900),name:'Quote',symbol:'USDC'}},{id:'uniswap-v4-'+id,type:'dex',attributes:{name:'Uniswap V4'}});
  return {data,included};
 }
-function dexBody(net,body,{price='0.00205',vol=undefined,liq='1450',chg=-3.0,created=undefined,chain=undefined}={}){
+function dexBody(net,body,{price='0.00205',vol=undefined,liq='2900000',chg=-3.0,created=undefined,chain=undefined}={}){
  return body.data.map((p,i)=>({chainId:chain||sources.NETWORKS[net].dex,dexId:'uniswap',url:'https://dexscreener.com/'+net+'/'+p.attributes.address,pairAddress:p.attributes.address,
   baseToken:{address:p.relationships.base_token.data.id.split('_')[1],symbol:'T'+i},quoteToken:{address:addr(900),symbol:'USDC'},priceUsd:price,volume:{h24:vol??Number(p.attributes.volume_usd.h24)*1.05},liquidity:{usd:Number(liq)},priceChange:{h24:chg},fdv:2100000,pairCreatedAt:created??Date.parse(p.attributes.pool_created_at)+60000}));
 }
-function multiBody(net,body,{mc=false,liq='1500',price='0.002'}={}){
+function multiBody(net,body,{mc=false,liq='3000000',price='0.002'}={}){
  const id=sources.NETWORKS[net].gecko,seen=new Set(),data=[];
  for(const p of body.data){const t=body.included.find(x=>x.id===p.relationships.base_token.data.id),a=t.attributes.address;if(seen.has(a))continue;seen.add(a);
   data.push({id:id+'_'+a,type:'token',attributes:{address:a,name:t.attributes.name,symbol:t.attributes.symbol,image_url:t.attributes.image_url,coingecko_coin_id:t.attributes.coingecko_coin_id,price_usd:price,fdv_usd:'2000000',market_cap_usd:mc?'1800000':null,total_reserve_in_usd:liq,normalized_total_supply:'1000000000',volume_usd:{h24:p.attributes.volume_usd.h24}}});}
@@ -38,14 +38,13 @@ const parseBatch=opts=>JSON.parse(opts.body);
 test('access policy fails closed: no key on Vercel = off; keyless only outside Vercel; Demo/Pro select the documented host+header',()=>{
  assert.equal(sources.geckoAccess({VERCEL:'1'}).mode,'off');
  const k=sources.geckoAccess({});assert.equal(k.mode,'keyless');assert.equal(k.host,'https://api.geckoterminal.com/api/v2');assert.equal(k.perMinute,5);assert.ok(k.ttlMs>=30*60*1000);
- const d=sources.geckoAccess({COINGECKO_DEMO_API_KEY:'x',VERCEL:'1'});assert.equal(d.mode,'demo');assert.equal(d.host,'https://api.coingecko.com/api/v3/onchain');assert.equal(d.header,'x-cg-demo-api-key');assert.ok(d.ttlMs>=40*60*1000);
+ const d=sources.geckoAccess({COINGECKO_DEMO_API_KEY:'x',VERCEL:'1'});assert.equal(d.mode,'demo');assert.equal(d.host,'https://api.coingecko.com/api/v3/onchain');assert.equal(d.header,'x-cg-demo-api-key');assert.ok(d.ttlMs>=60*60*1000);
  const p=sources.geckoAccess({COINGECKO_PRO_API_KEY:'x',COINGECKO_DEMO_API_KEY:'y',VERCEL:'1'});assert.equal(p.mode,'pro');assert.equal(p.header,'x-cg-pro-api-key');
- assert.equal(sources.geckoAccess({COINGECKO_DEMO_API_KEY:'x',RADAR_V2_TTL_MS:'1000'}).ttlMs,40*60*1000,'TTL cannot be configured below the Demo quota floor');
+ assert.equal(sources.geckoAccess({COINGECKO_DEMO_API_KEY:'x',RADAR_V2_TTL_MS:'1000'}).ttlMs,60*60*1000,'TTL cannot be configured below the Demo quota floor');
 });
-test('Demo plan quota arithmetic: default 45-minute cycle (8 calls) stays inside 10,000 credits/month; 30 minutes would not',()=>{
- const d=sources.demoBudget(45*60*1000);assert.equal(d.callsPerCycle,8);assert.equal(d.callsPerMonth,7680);assert.equal(d.within10k,true);
- assert.equal(sources.demoBudget(40*60*1000).within10k,true,'the TTL floor itself is inside the budget');
- assert.equal(sources.demoBudget(30*60*1000).within10k,false);assert.equal(sources.demoBudget(10*60*1000).within10k,false);
+test('Demo plan quota arithmetic: default 60-minute cycle (13 calls: 9 pool pages + 4 token lookups) stays inside 10,000 credits/month; 55 minutes would not',()=>{
+ const d=sources.demoBudget(60*60*1000);assert.equal(d.callsPerCycle,13);assert.equal(d.callsPerMonth,9360);assert.equal(d.within10k,true);
+ assert.equal(sources.demoBudget(55*60*1000).within10k,false);assert.equal(sources.demoBudget(45*60*1000).within10k,false);assert.equal(sources.demoBudget(10*60*1000).within10k,false);
 });
 test('publication needs BOTH operator approvals in every environment; DEX Screener stays off on Vercel until its own approval',()=>{
  assert.equal(sources.publicationAllowed({}).ok,false);assert.equal(sources.publicationAllowed({MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:'true'}).ok,false);assert.equal(sources.publicationAllowed(APPROVED).ok,true);
@@ -123,12 +122,15 @@ for(const [net,chainId] of [['arc',5042],['ethereum',1],['robinhood',4663]]){
   const f=router([...CG(net,body),[/dexscreener\.com/,()=>resp(dexBody(net,body))]]);
   const out=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
   assert.equal(out.chainId,chainId);assert.equal(out.tokens.length,10);assert.equal(out.version,2);
-  assert.equal(f.calls.length,3,'one ranking page + one token-stats call + one batched cross-check call');
-  assert.equal(f.calls[0].opts.headers['x-cg-demo-api-key'],'demo-key-not-real');
-  assert.ok(f.calls[0].url.startsWith('https://api.coingecko.com/api/v3/onchain/networks/'+sources.NETWORKS[net].gecko+'/pools?page=1&sort=h24_volume_usd_desc'));
-  assert.ok(f.calls[1].url.includes('/tokens/multi/'),'token-level stats for the exact candidate contracts');
-  assert.ok(f.calls[2].url.startsWith('https://api.dexscreener.com/tokens/v1/'+sources.NETWORKS[net].dex+'/'));
-  assert.deepEqual(out.usage,{geckoterminal:2,dexscreener:1,rpc:0});
+  const gc=f.calls.filter(c=>/coingecko\.com|dexscreener\.com/.test(c.url));
+  assert.equal(gc.length,5,'top + trending + new pages, one token-stats call, one batched cross-check call');
+  assert.equal(gc[0].opts.headers['x-cg-demo-api-key'],'demo-key-not-real');
+  assert.ok(gc[0].url.startsWith('https://api.coingecko.com/api/v3/onchain/networks/'+sources.NETWORKS[net].gecko+'/pools?page=1&sort=h24_volume_usd_desc'));
+  assert.ok(gc[1].url.includes('/trending_pools?page=1&duration=24h'),'trending view');
+  assert.ok(gc[2].url.includes('/new_pools?page=1'),'newest view');
+  assert.ok(gc[3].url.includes('/tokens/multi/'),'token-level stats for the exact candidate contracts');
+  assert.ok(gc[4].url.startsWith('https://api.dexscreener.com/tokens/v1/'+sources.NETWORKS[net].dex+'/'));
+  assert.equal(out.usage.geckoterminal,4);assert.equal(out.usage.dexscreener,1);
   const t=out.tokens[0];
   assert.equal(t.fields.priceUsd.status,'CROSS_VERIFIED');assert.equal(t.fields.liquidityUsd.status,'CROSS_VERIFIED');assert.equal(t.fields.volume24hUsd.scope,'TOKEN');
   assert.equal(t.fields.marketCapUsd.status,'NOT_VERIFIED');assert.equal(t.marketCapUsd,null);assert.equal(t.fields.marketCapUsd.reasonCode,'MARKET_CAP_NOT_PROVIDED');assert.equal(t.fdvUsd,2000000,'FDV stays FDV');
@@ -144,7 +146,7 @@ for(const [net,chainId] of [['arc',5042],['ethereum',1],['robinhood',4663]]){
 test('DEX Screener disabled on Vercel without approval: rows stay SOURCE_REPORTED and DEX Screener is never called',async()=>{
  const body=geckoBody('arc',{count:12});const f=router([...CG('arc',body)]);
  const out=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
- assert.equal(f.calls.length,2,'ranking page + token stats; DEX Screener is never called');assert.equal(out.coverage.crossCheckProvider,'DISABLED');
+ assert.equal(f.calls.length,4,'top + trending + new pages + token stats; DEX Screener is never called');assert.equal(out.coverage.crossCheckProvider,'DISABLED');
  assert.ok(out.tokens.every(t=>t.fields.priceUsd.status==='SOURCE_REPORTED'));
  assert.equal(out.sources.find(s=>s.id==='dexscreener').mode,'disabled-until-approved');assert.ok(!out.attribution.some(a=>/DEX Screener/.test(a.text)));
 });
@@ -157,10 +159,15 @@ test('DEX Screener failure or wrong-chain answer degrades to SOURCE_REPORTED, ne
  const b=await radar.load('arc',{env:{...DEMO,VERCEL:undefined},fetcher:wrong,now:()=>T0,disableCache:true});
  assert.ok(b.tokens.every(t=>t.verification.crossCheck==='NO_MATCH'&&t.fields.priceUsd.status==='SOURCE_REPORTED'));
 });
-test('contradicting providers produce NOT_VERIFIED (null), not a favoured value',async()=>{
- const body=geckoBody('arc',{count:12});const f=router([...CG('arc',body),[/dexscreener/,()=>resp(dexBody('arc',body,{price:'0.5'}))]]);
+test('a token whose providers contradict on price is NOT_VERIFIED, therefore ineligible for discovery and reported as excluded; others stay',async()=>{
+ const body=geckoBody('arc',{count:12});
+ const ds=dexBody('arc',body);ds[0].priceUsd='0.5';
+ const f=router([...CG('arc',body),[/dexscreener/,()=>resp(ds)]]);
  const out=await radar.load('arc',{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
- assert.equal(out.tokens[0].priceUsd,null);assert.equal(out.tokens[0].fields.priceUsd.reasonCode,'SOURCES_DISAGREE');assert.equal(out.tokens[0].fields.priceUsd.sources.length,2);
+ const bad=addr(1);
+ assert.ok(!out.tokens.some(t=>t.address===bad),'a price the sources contradict is never ranked');
+ const ex=out.excluded.find(x=>x.address===bad);assert.equal(ex.reason,'INELIGIBLE_AFTER_VERIFICATION');assert.match(ex.detail,/PRICE_NOT_VERIFIED/);
+ assert.ok(out.tokens.length>=9&&out.tokens.every(t=>t.priceUsd!==null),'ranked tokens always carry a verified price');
 });
 
 // ── gates, errors, cache, rate limits ─────────────────────────────────────────────────────────────────────
@@ -172,19 +179,19 @@ test('no approval or no source key: provider is never contacted',async()=>{
  assert.equal(f.calls.length,0);
 });
 test('responses are cached for the tier TTL and concurrent loads coalesce into one upstream call',async()=>{
- const body=geckoBody('arc',{count:12});let n=0;const f=router([[/tokens\/multi/,()=>resp(multiBody('arc',body))],[/coingecko\.com/,()=>{n++;return resp(body);}]]);
+ const body=geckoBody('arc',{count:12});let n=0;const f=router([[/tokens\/multi/,()=>resp(multiBody('arc',body))],[/coingecko\.com/,(u)=>{if(/sort=h24_volume/.test(u))n++;return resp(body);}]]);
  const env={...DEMO};let now=T0;
  const [a,b]=await Promise.all([radar.load('arc',{env,fetcher:f,now:()=>now}),radar.load('arc',{env,fetcher:f,now:()=>now})]);
  assert.equal(n,1);assert.equal(a.tokens.length,b.tokens.length);
- now=T0+44*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,1,'still cached at 44 min (Demo TTL 45)');
- now=T0+46*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,2);
+ now=T0+59*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,1,'still cached at 59 min (Demo TTL 60)');
+ now=T0+61*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,2);
 });
 test('429 honours Retry-After, enters a cooldown with no further calls, and serves a bounded STALE result labelled as such',async()=>{
  const body=geckoBody('arc',{count:12});let mode='ok',n=0;
  const f=router([[/coingecko\.com/,(u)=>{n++;return mode==='ok'?resp(/tokens\/multi/.test(u)?multiBody('arc',body):body):{ok:false,status:429,headers:new Headers({'retry-after':'120'}),text:async()=>''};}]]);
  const env={...DEMO};let now=T0;
  await radar.load('arc',{env,fetcher:f,now:()=>now});
- mode='limited';now=T0+46*60000;
+ mode='limited';now=T0+61*60000;
  const stale=await radar.load('arc',{env,fetcher:f,now:()=>now});
  assert.equal(stale.freshness,'STALE');assert.equal(stale.staleReason,'RADAR_PROVIDER_RATE_LIMITED');assert.equal(stale.asOf,new Date(T0).toISOString());
  const calls=n;now+=60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,calls,'cooldown: no request while the provider asked us to wait');
@@ -235,8 +242,10 @@ test('pons: only tokens confirmed by an official factory are listed, newest firs
  assert.equal(t.fields.poolCreatedAt.status,'CROSS_VERIFIED');
  assert.equal(out.coverage.ponsChecked,12,'duplicate pools across the two provider windows collapse to unique tokens');assert.equal(out.coverage.ponsConfirmed,3);
  assert.match(out.selection,/Pons-launched tokens only/);
- assert.equal(f.calls.filter(c=>/rpc\.example/.test(c.url)).length,2,'one membership batch + one graduation batch; no log scan');
- assert.ok(!f.calls.some(c=>/eth_getLogs/.test(String(c.opts.body))));
+ assert.equal(f.calls.filter(c=>/rpc\.example/.test(c.url)&&/eth_call/.test(String(c.opts.body))).length,3,'12 candidates = two membership batches of <=10 (public RPC batch limit) + one graduation batch; no log scan');
+ const logs=f.calls.filter(c=>/eth_getLogs/.test(String(c.opts.body)));
+ assert.ok(logs.length<=2,'at most one bounded, topic-filtered recent-window query per factory; no history walk');
+ for(const c of logs){const q=JSON.parse(c.opts.body)[0].params[0];assert.equal(q.topics.length,1);assert.ok(sources.PONS.factories.includes(q.address));}
  assert.ok(out.sources.some(s=>s.id==='pons'));
 });
 test('pons: zero confirmed launches is an honest empty result; RPC trouble or wrong chain is an error, never unverified tokens',async()=>{
@@ -319,12 +328,12 @@ test('tokens/multi is contract-keyed, strict, and never turns FDV into market ca
  await assert.rejects(gecko.fetchMulti({host:'https://x',key:null},'arc',[addr(1)],{fetcher:router([[/./,()=>resp({data:'x'})]]),now:()=>T0}),/INVALID_PROVIDER_RESPONSE|RADAR_/);
 });
 test('ranking uses token-level 24h volume across all pools; each row says which scope it carries',async()=>{
- const body=geckoBody('arc',{count:14,volume:i=>100000-i*100});
+ const body=geckoBody('arc',{count:14,volume:i=>200000-i*1000});
  const m=multiBody('arc',body);m.data.find(d=>d.attributes.address===addr(14)).attributes.volume_usd.h24='900000';   // last candidate has most volume over all its pools
  const f=router([[/tokens\/multi/,()=>resp(m)],[/coingecko\.com/,()=>resp(body)]]);
  const out=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
  assert.equal(out.tokens[0].address,addr(14));assert.equal(out.tokens[0].volume24hUsd,900000);assert.equal(out.tokens[0].fields.volume24hUsd.scope,'TOKEN');
- assert.match(out.selection,/ALL its indexed pools/);
+ assert.match(out.selection,/Discovery Score/);
 });
 test('tokens/multi failure degrades to pool-level numbers labelled scope POOL; the section still renders',async()=>{
  const body=geckoBody('arc',{count:12});
@@ -357,10 +366,13 @@ test('Pons Launch reuses the cached Robinhood top-volume page instead of spendin
  const body=geckoBody('robinhood',{count:14});let top=0;
  const f=router([[/tokens\/multi/,()=>resp(multiBody('robinhood',body))],[/coingecko\.com\/.*sort=h24_volume/,()=>{top++;return resp(body);}],[/coingecko\.com/,()=>resp(body)],[/rpc\.example/,rpcRouter({members:[addr(2)]})]]);
  const env={...DEMO};
- await radar.load('robinhood',{env,fetcher:f,now:()=>T0});
+ await radar.load('robinhood',{env,fetcher:f,now:()=>T0,rpcUrl:'https://rpc.example/'});
+ const eth_calls=()=>f.calls.filter(c=>/rpc\.example/.test(c.url)&&/eth_call/.test(String(c.opts.body))).length,rpcBefore=eth_calls();
  const out=await radar.load('pons',{env,fetcher:f,now:()=>T0,rpcUrl:'https://rpc.example/'});
  assert.equal(top,1,'top-volume page fetched once for both sections');assert.equal(out.tokens.length,1);
- assert.equal(out.usage.geckoterminal,2,'only the new-pools page and the token-stats call were spent');
+ assert.equal(f.calls.filter(c=>/trending_pools/.test(c.url)).length,1,'trending page shared as well');assert.equal(f.calls.filter(c=>/new_pools/.test(c.url)).length,1,'new-pools page shared as well');
+ assert.equal(out.usage.geckoterminal,1,'only the token-stats call was spent');
+ assert.equal(eth_calls(),rpcBefore,'factory membership of the same addresses is read once per TTL for both sections');
 });
 
 test('token-level totals smaller than their own top pool are provider errors: that field falls back to the pool figure and is labelled POOL',async()=>{
@@ -369,7 +381,7 @@ test('token-level totals smaller than their own top pool are provider errors: th
  const f=router([[/tokens\/multi/,()=>resp(m)],[/coingecko\.com/,()=>resp(body)]]);
  const out=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
  const t=out.tokens[0];
- assert.equal(t.fields.liquidityUsd.scope,'POOL');assert.equal(t.liquidityUsd,1500,'pool reserve, not the impossible total');assert.equal(t.fields.volume24hUsd.scope,'TOKEN');
+ assert.equal(t.fields.liquidityUsd.scope,'POOL');assert.equal(t.liquidityUsd,3000000,'pool reserve, not the impossible total');assert.equal(t.fields.volume24hUsd.scope,'TOKEN');
 });
 test('a zero market cap or FDV is "not stated", not a value',async()=>{
  const body=geckoBody('arc',{count:3});const m=multiBody('arc',body,{mc:false});for(const d of m.data){d.attributes.market_cap_usd='0';d.attributes.fdv_usd='0';}

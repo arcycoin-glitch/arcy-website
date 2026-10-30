@@ -34,7 +34,7 @@ const RPC=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.co
  const env={MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:'true',MARKET_RADAR_JSON_DELIVERY_APPROVED:'true'};
  const slow=async(u,o)=>{if(/geckoterminal/.test(u))await sleep(14000);return fetch(u,{...o,signal:AbortSignal.timeout(9000)});};
  const FIELDS=['priceUsd','volume24hUsd','liquidityUsd','change24hPct','fdvUsd','marketCapUsd','poolCreatedAt'];
- const tot={tokens:0,logos:0,present:0,cross:0,cells:0};
+ const tot={tokens:0,logos:0,present:0,cross:0,cells:0},results={};
  for(const net of ['arc','ethereum','robinhood','pons']){
   try{
    let out;
@@ -44,16 +44,18 @@ const RPC=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.co
    for(const t of out.tokens)for(const f of FIELDS){const st=t.fields[f].status;if(st!=='NOT_VERIFIED')present++;else{const k=f+':'+t.fields[f].reasonCode;miss[k]=(miss[k]||0)+1;}if(st==='CROSS_VERIFIED'||st==='ONCHAIN_VERIFIED')cross++;}
    Object.assign(tot,{tokens:tot.tokens+n,logos:tot.logos+out.tokens.filter(t=>t.logo).length,present:tot.present+present,cross:tot.cross+cross,cells:tot.cells+n*FIELDS.length});
    log('E2E',net+': tokens='+n+' logos='+c.logos+' present='+present+'/'+n*FIELDS.length+' cross='+cross+'/'+n*FIELDS.length+' tokenStats='+c.tokenStats+' crossCheck='+c.crossCheckProvider+' usage='+JSON.stringify(out.usage)+(net==='pons'?' ponsChecked='+c.ponsChecked+' confirmed='+c.ponsConfirmed:'')+' missing='+JSON.stringify(miss));
-   // Annotation messages are capped (~4 KB): emit a compact, UI-replayable form in chunks.
+   // Full compact result goes to a file; separate workflow steps (scripts/emit-radar-annotations.cjs) publish it as annotations
+   // (GitHub caps annotations at 10 per step and ~4 KB per message).
    const compact=out.tokens.map(t=>({k:t.rank,y:t.symbol,n:t.name,a:t.address,l:t.logo?[t.logo.url,t.logo.source]:null,
     f:Object.fromEntries(FIELDS.map(f=>[f,[t.fields[f].value,t.fields[f].status[0],t.fields[f].scope||t.fields[f].reasonCode||t.fields[f].crossCheck||'']])),
+    d:t.discovery?{s:t.discovery.score,ag:t.discovery.poolAgeDays,r:t.discovery.reason,fl:t.discovery.flags,ch:t.discovery.channels,kd:t.discovery.kind,wc:t.discovery.weightCoverage,tx:(t.buys24h!=null&&t.sells24h!=null)?t.buys24h+t.sells24h:null}:null,
     ...(t.launch?{g:[t.launch.status,t.graduation&&t.graduation.graduated===true]}:{})}));
-   const chunks=[];let cur=[];
-   for(const t of compact){if(JSON.stringify([...cur,t]).length>3500&&cur.length){chunks.push(cur);cur=[];}cur.push(t);}if(cur.length)chunks.push(cur);
-   chunks.forEach((c,i)=>console.log('::notice title=radar-json-'+net+'-'+i+'::'+JSON.stringify({net,i,asOf:out.asOf,t:c}).replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A')));
+   results[net]={asOf:out.asOf,t:compact,ex:(out.excluded||[]).map(x=>({y:x.symbol,a:x.address,r:x.reason,d:String(x.detail||'').slice(0,90),v:x.volume24hUsd,e:x.evidence?JSON.stringify(x.evidence).slice(0,240):undefined})),
+    cov:{pools:c.poolsInspected,uniq:c.uniqueBaseTokens,ranked:c.ranked,channels:out.discovery&&out.discovery.channels,counts:out.discovery&&out.discovery.excludedCounts,usage:out.usage,ponsChecked:c.ponsChecked,ponsConfirmed:c.ponsConfirmed,ponsLookalikeCheck:c.ponsLookalikeCheck,tokenStats:c.tokenStats,crossCheck:c.crossCheckProvider,fe:c.factoryEvents,bc:c.bondingCurve&&{status:c.bondingCurve.status,count:c.bondingCurve.count}}};
   }catch(e){log('E2E',net+': FAIL '+e.code+(e.detail?' '+e.detail:''));if(net!=='pons')bad++;}
  }
  log('TOTAL','tokens='+tot.tokens+' logo='+(100*tot.logos/Math.max(1,tot.tokens)).toFixed(1)+'% completeness='+(100*tot.present/Math.max(1,tot.cells)).toFixed(1)+'% cross='+(100*tot.cross/Math.max(1,tot.cells)).toFixed(1)+'%');
+ fs.writeFileSync('radar-v3-out.json',JSON.stringify(results));
  // GitHub caps annotations at 10 per step, so publish ONE multi-line notice.
  console.log('::notice title=radar-v2-probe::'+lines.join('\n').replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'));
  if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### Radar V2 live probe\n```\n'+lines.join('\n')+'\n```\n');

@@ -26,7 +26,7 @@ test('Coin status page has verified outgoing evidence and does not impersonate a
 });
 test('Main website remains ARCY SEARCH but links crawlably to truthful coin-status description',()=>{
  assert.match(home,/<title>ARCY SEARCH \| ARCY Coin Project/);
- assert.match(home,/<a class="footer-source-link" href="\/arcy-coin\.html">ARCY Coin · Token Status<\/a>/);
+ assert.match(home,/<a class="footer-source-link" href="\/arcy-coin\.html">Token Info<\/a>/);
  assert.match(home,/DETAILS TO BE ANNOUNCED/);
  assert.match(home,/href="\/transparency\.html">Verify<\/a>/);
  assert.doesNotMatch(home,/async function loadBurn\(/);
