@@ -88,7 +88,7 @@
   const tokens=Array.isArray(data?.tokens)?data.tokens.slice(0,expandedNetwork===network?10:5):[];
   const total=card.querySelector('.arcy-radar-overview-count');
   total.textContent=tokens.length?tokens.length+' gözlemlenen token · Hacim: en büyük gözlemlenen havuzun 24 saatlik USD hacmi':'Doğrulanmış token bulunamadı';
-  for(const item of tokens){
+  for(const [index,item] of tokens.entries()){
    const validAddress=typeof item.address==='string'&&/^0x[0-9a-f]{40}$/i.test(item.address)&&!/^0x0{40}$/i.test(item.address);
    const row=el(validAddress?'a':'div','arcy-radar-overview-token');
    if(validAddress){
@@ -102,6 +102,8 @@
    const change=el('span','arcy-radar-overview-change',fieldOk(item,'change24hPct')?pct(item.change24hPct):'—');
    if(fieldOk(item,'change24hPct'))change.classList.add(item.change24hPct>=0?'positive':'negative');
    const arrow=el('span','arcy-radar-overview-token-arrow',validAddress?'›':'');arrow.setAttribute('aria-hidden','true');
+   const rank=el('span','arcy-radar-overview-rank',String(index+1));
+   identity.prepend(rank);
    row.append(identity,priceLabel,change,volume,arrow);list.append(row);
   }
   if(!tokens.length)list.append(el('p','arcy-radar-overview-empty','No source-verified ranking available.'));

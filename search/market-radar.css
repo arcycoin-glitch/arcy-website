@@ -216,3 +216,8 @@
 #tokenDetail .arcy-radar-overview-columns{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr) 18px;align-items:center;gap:5px;padding:12px 12px 10px;margin:2px 0 9px;border-bottom:1px solid color-mix(in srgb,var(--radar-accent) 35%,transparent);color:#9ebfd1;font-size:11px;font-weight:750;letter-spacing:.03em;text-transform:uppercase}
 #tokenDetail .arcy-radar-overview-columns>span:nth-child(2),#tokenDetail .arcy-radar-overview-columns>span:nth-child(3),#tokenDetail .arcy-radar-overview-columns>span:nth-child(4){text-align:right}
 @media(max-width:640px){#tokenDetail .arcy-radar-overview-columns{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr) 10px;gap:3px;padding:8px 2px;font-size:clamp(7px,2vw,10px);letter-spacing:0}}
+
+/* Token ordinal only: no data, grid or card layout changes. */
+#tokenDetail .arcy-radar-overview-symbol{display:inline-flex;align-items:center;gap:9px}
+#tokenDetail .arcy-radar-overview-rank{display:inline-grid;place-items:center;flex:0 0 25px;width:25px;height:25px;border-radius:9px;background:color-mix(in srgb,var(--radar-accent) 15%,#071521);border:1px solid color-mix(in srgb,var(--radar-accent) 34%,transparent);color:#d7f3ff;font-size:11px;font-weight:850;font-variant-numeric:tabular-nums}
+@media(max-width:640px){#tokenDetail .arcy-radar-overview-symbol{gap:5px}#tokenDetail .arcy-radar-overview-rank{flex-basis:19px;width:19px;height:19px;border-radius:6px;font-size:9px}}
