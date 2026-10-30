@@ -225,3 +225,506 @@
 /* Source-verified token artwork; preserve existing premium rows and rankings. */
 #tokenDetail .arcy-radar-overview-token-logo{width:26px;height:26px;flex:0 0 26px;object-fit:contain;border-radius:50%;background:rgba(255,255,255,.06)}
 @media(max-width:640px){#tokenDetail .arcy-radar-overview-token-logo{width:18px;height:18px;flex-basis:18px}}
+
+
+/* Radar reference design V3: selected-network dashboard. Scoped to Search tokenDetail only.
+   No synthetic sparklines, chain-wide counts or aggregate metrics: numbers are API supplied. */
+#tokenDetail .arcy-radar-panel{
+  padding:clamp(15px,2.65vw,31px);
+  background:radial-gradient(ellipse 90% 48% at 87% -9%,rgba(15,117,187,.15),transparent 70%),
+             linear-gradient(155deg,#071528,#07111f 68%,#06111f);
+  border:1px solid rgba(57,113,151,.45);
+  border-radius:22px;
+  box-shadow:0 24px 48px rgba(0,0,0,.20),inset 0 1px rgba(255,255,255,.05);
+}
+#tokenDetail .arcy-radar-hero{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  column-gap:18px;
+  padding:0 0 10px;
+  margin:0;
+}
+#tokenDetail .arcy-radar-hero h2{
+  grid-column:1;
+  margin:0;
+  font-size:clamp(24px,3vw,37px);
+  letter-spacing:-.04em;
+  line-height:1.2;
+  font-weight:900;
+  color:#f3f9ff;
+}
+#tokenDetail .arcy-radar-hero h2::before{
+  content:"◉";
+  font-size:.8em;
+  color:#32d5ef;
+  margin-right:12px;
+  text-shadow:0 0 20px rgba(40,223,244,.65);
+}
+#tokenDetail .arcy-radar-intro{
+  grid-column:1;
+  color:#9fbbd2;
+  font-size:clamp(11px,1.08vw,13px);
+  line-height:1.6;
+  margin:7px 0 0;
+}
+#tokenDetail .arcy-radar-hero-kicker{
+  grid-column:2;
+  grid-row:1/3;
+  align-self:start;
+  margin-top:6px;
+  color:#92bbda;
+  letter-spacing:.19em;
+  font-size:9px;
+  font-weight:800;
+  white-space:nowrap;
+}
+#tokenDetail .arcy-radar-hero-kicker::before{
+  content:"";
+  display:inline-block;
+  width:28px;
+  border-top:2px solid #26dfea;
+  vertical-align:middle;
+  margin:0 12px 3px 0;
+}
+#tokenDetail .arcy-radar-networks{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  margin:23px 0 19px;
+}
+#tokenDetail .arcy-radar-network{
+  display:grid!important;
+  grid-template-columns:52px minmax(0,1fr) 27px;
+  align-items:center;
+  justify-content:stretch;
+  column-gap:13px;
+  min-height:88px;
+  padding:13px 14px;
+  border-radius:15px;
+  text-align:left;
+  color:#f6faff;
+  border:1px solid color-mix(in srgb,var(--radar-color) 58%,#10243f)!important;
+  background:linear-gradient(118deg,color-mix(in srgb,var(--radar-color) 13%,#081529),#091730 75%);
+  box-shadow:inset 0 1px rgba(255,255,255,.07),0 8px 23px rgba(0,0,0,.14);
+  transition:transform .18s,border-color .18s,box-shadow .18s;
+}
+#tokenDetail .arcy-radar-network:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 24px rgba(0,0,0,.20),0 0 12px color-mix(in srgb,var(--radar-color) 12%,transparent);
+}
+#tokenDetail .arcy-radar-network[aria-pressed=true]{
+  border-color:var(--radar-color)!important;
+  background:linear-gradient(115deg,color-mix(in srgb,var(--radar-color) 24%,#082033),#081a2a 88%);
+  box-shadow:0 0 0 1px var(--radar-color),
+             0 0 22px color-mix(in srgb,var(--radar-color) 24%,transparent),
+             inset 0 1px rgba(255,255,255,.14);
+}
+#tokenDetail .arcy-radar-network-icon{
+  display:grid;
+  place-items:center;
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  background:color-mix(in srgb,var(--radar-color) 11%,#06142b);
+  border:1px solid color-mix(in srgb,var(--radar-color) 65%,transparent);
+  box-shadow:0 0 15px color-mix(in srgb,var(--radar-color) 15%,transparent);
+}
+#tokenDetail .arcy-radar-network-logo{
+  width:35px;
+  height:35px;
+  flex:none;
+  object-fit:contain;
+  filter:drop-shadow(0 0 5px color-mix(in srgb,var(--radar-color) 30%,transparent));
+}
+#tokenDetail .arcy-radar-network .arcy-radar-chain-logo{
+  width:35px;
+  height:35px;
+  flex:none;
+  display:grid;
+  place-items:center;
+  font-size:25px;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+}
+#tokenDetail .arcy-radar-network-copy{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  min-width:0;
+  text-align:left;
+  gap:4px;
+}
+#tokenDetail .arcy-radar-network-name{
+  font-size:clamp(12px,1.27vw,18px);
+  line-height:1.12;
+  font-weight:850;
+  white-space:normal;
+}
+#tokenDetail .arcy-radar-network-sub{
+  color:#a1bad1;
+  font-size:clamp(9px,.88vw,12px);
+  line-height:1.25;
+  font-weight:500;
+}
+#tokenDetail .arcy-radar-network-arrow{
+  display:grid;
+  place-items:center;
+  width:26px;
+  height:26px;
+  font-size:25px;
+  font-weight:400;
+  border:1px solid color-mix(in srgb,var(--radar-color) 35%,transparent);
+  border-radius:50%;
+  color:#d8e8fc;
+  line-height:1;
+}
+#tokenDetail .arcy-radar-overview{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  margin:0 0 15px;
+  width:100%;
+}
+#tokenDetail .arcy-radar-overview-card{
+  width:100%;
+  min-width:0;
+  min-height:365px!important;
+  grid-column:1/-1!important;
+  padding:clamp(15px,2.3vw,30px);
+  border:1px solid var(--radar-accent)!important;
+  border-radius:19px!important;
+  background:radial-gradient(ellipse at 12% 0%,color-mix(in srgb,var(--radar-accent) 21%,transparent),transparent 56%),
+             linear-gradient(120deg,#0a2335,#061724 65%,#071a2a)!important;
+  box-shadow:0 0 25px color-mix(in srgb,var(--radar-accent) 14%,transparent),
+             0 15px 33px rgba(0,0,0,.22),
+             inset 0 1px rgba(255,255,255,.09)!important;
+}
+#tokenDetail .arcy-radar-overview-card[hidden]{display:none!important}
+#tokenDetail .arcy-radar-overview-head{
+  display:flex;
+  align-items:center;
+  flex-wrap:nowrap;
+  min-width:0;
+  gap:15px;
+  padding:0 0 18px;
+  border-bottom:1px solid color-mix(in srgb,var(--radar-accent) 25%,transparent);
+  color:#f3faff;
+}
+#tokenDetail .arcy-radar-overview-mark{
+  display:grid!important;
+  flex:0 0 65px;
+  width:65px;
+  height:65px;
+  place-items:center;
+  border-radius:16px;
+  background:color-mix(in srgb,var(--radar-accent) 18%,#061d2d);
+  border:1px solid var(--radar-accent);
+  box-shadow:0 0 16px color-mix(in srgb,var(--radar-accent) 17%,transparent);
+  color:var(--radar-accent);
+  font-size:39px;
+  font-weight:900;
+}
+#tokenDetail .arcy-radar-overview-chain-image{width:51px;height:51px;object-fit:contain}
+#tokenDetail .arcy-radar-overview-heading-copy{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+  flex:1 1 auto;
+}
+#tokenDetail .arcy-radar-overview-heading-name{
+  font-size:clamp(22px,2.5vw,31px);
+  font-weight:900;
+  letter-spacing:-.045em;
+  line-height:1.15;
+}
+#tokenDetail .arcy-radar-overview-description{
+  color:#adc4d6;
+  font-size:clamp(10px,1.15vw,14px);
+  font-weight:500;
+  line-height:1.4;
+}
+#tokenDetail .arcy-radar-overview-header-meta{
+  display:flex;
+  align-items:flex-end;
+  flex-direction:column;
+  gap:7px;
+  flex:0 0 auto;
+  margin-left:auto;
+}
+#tokenDetail .arcy-radar-overview-freshness{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid #15cfa1;
+  background:rgba(8,64,55,.37);
+  color:#5cf7cc;
+  border-radius:99px;
+  padding:7px 13px;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.07em;
+  white-space:nowrap;
+}
+#tokenDetail .arcy-radar-overview-freshness::before{
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:currentColor;
+  box-shadow:0 0 7px currentColor;
+}
+#tokenDetail .arcy-radar-overview-freshness.is-stale{
+  color:#e9c28d;
+  border-color:rgba(238,183,115,.45);
+  background:rgba(91,64,36,.25);
+}
+#tokenDetail .arcy-radar-overview-updated{color:#98b6cd;font-size:11px;white-space:nowrap}
+#tokenDetail .arcy-radar-overview-count{
+  margin:15px 0 9px;
+  padding:0;
+  color:#9ac4d8;
+  text-transform:none;
+  font-size:11px;
+  line-height:1.6;
+  letter-spacing:.015em;
+}
+#tokenDetail .arcy-radar-overview-list{
+  min-height:200px;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  flex:1;
+  padding:0;
+  gap:5px;
+}
+#tokenDetail .arcy-radar-overview-columns,
+#tokenDetail .arcy-radar-overview-token{
+  grid-template-columns:minmax(0,1.68fr) minmax(0,.92fr) minmax(0,.9fr) minmax(0,1.17fr) 23px!important;
+  align-items:center;
+  column-gap:14px;
+}
+#tokenDetail .arcy-radar-overview-columns{
+  display:grid;
+  padding:13px 15px 12px;
+  border-bottom:1px solid color-mix(in srgb,var(--radar-accent) 43%,transparent);
+  margin:3px 0 5px;
+  color:#a8cbe1;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.025em;
+}
+#tokenDetail .arcy-radar-overview-token{
+  display:grid!important;
+  min-height:71px;
+  width:100%;
+  padding:9px 15px;
+  border:1px solid rgba(82,157,189,.18);
+  border-radius:12px;
+  background:rgba(3,15,30,.57);
+  box-shadow:inset 0 1px rgba(255,255,255,.03);
+  transition:transform .16s,background .16s,border-color .16s;
+}
+#tokenDetail .arcy-radar-overview-token:hover{
+  background:color-mix(in srgb,var(--radar-accent) 8%,#07182a);
+  border-color:color-mix(in srgb,var(--radar-accent) 61%,transparent);
+  transform:translateY(-1px);
+}
+#tokenDetail .arcy-radar-overview-symbol{
+  display:flex;
+  align-items:center;
+  min-width:0;
+  gap:13px;
+  white-space:normal;
+  overflow:visible;
+}
+#tokenDetail .arcy-radar-overview-rank{
+  display:grid;
+  place-items:center;
+  flex:0 0 30px;
+  width:30px;
+  height:30px;
+  border-radius:7px;
+  color:#bdcfe5;
+  background:linear-gradient(145deg,rgba(56,92,125,.4),rgba(8,27,46,.73));
+  border:1px solid rgba(104,151,181,.25);
+  font-size:14px;
+  font-weight:900;
+}
+#tokenDetail .arcy-radar-overview-rank.is-top-1{border-color:#c59f44;background:linear-gradient(145deg,#694a19,#352814);color:#ffe298}
+#tokenDetail .arcy-radar-overview-rank.is-top-2{border-color:#a2b5c9;background:linear-gradient(145deg,#51657a,#233347);color:#f5f9ff}
+#tokenDetail .arcy-radar-overview-rank.is-top-3{border-color:#bc845f;background:linear-gradient(145deg,#674033,#392628);color:#ffceaa}
+#tokenDetail .arcy-radar-overview-logo-wrap{
+  display:grid;
+  place-items:center;
+  flex:0 0 39px;
+  width:39px;
+  height:39px;
+  border-radius:50%;
+  background:rgba(12,41,65,.8);
+  border:1px solid rgba(146,188,212,.18);
+  overflow:hidden;
+}
+#tokenDetail .arcy-radar-overview-logo-wrap.is-placeholder{color:#7d9caf;font-size:22px}
+#tokenDetail .arcy-radar-overview-token-logo{
+  display:block;
+  width:34px;
+  height:34px;
+  flex:0 0 34px;
+  object-fit:contain;
+  border-radius:50%;
+  background:transparent;
+}
+#tokenDetail .arcy-radar-overview-token-copy{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+#tokenDetail .arcy-radar-overview-token-ticker{
+  display:block;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:14px;
+  color:#f7fbff;
+  font-weight:850;
+  line-height:1.2;
+}
+#tokenDetail .arcy-radar-overview-token-name{
+  display:block;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:11px;
+  color:#8eabc1;
+  font-weight:500;
+}
+#tokenDetail .arcy-radar-overview-price,
+#tokenDetail .arcy-radar-overview-change,
+#tokenDetail .arcy-radar-overview-volume{
+  color:#f5faff;
+  font-size:clamp(11px,1.08vw,14px);
+  font-variant-numeric:tabular-nums;
+  font-weight:750;
+  text-align:right;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#tokenDetail .arcy-radar-overview-change.positive{color:#2cf1af}
+#tokenDetail .arcy-radar-overview-change.negative{color:#ff697b}
+#tokenDetail .arcy-radar-overview-token-arrow{font-size:23px;font-weight:800;color:var(--radar-accent);text-align:right}
+#tokenDetail .arcy-radar-overview-action{
+  flex:0 0 auto;
+  width:100%;
+  min-height:51px;
+  margin:16px 0 0;
+  border:1px solid var(--radar-accent)!important;
+  border-radius:12px;
+  color:#eaffff;
+  background:linear-gradient(120deg,color-mix(in srgb,var(--radar-accent) 15%,#061a2c),#082235);
+  font-weight:850;
+  font-size:13px;
+  box-shadow:inset 0 1px rgba(255,255,255,.055);
+}
+#tokenDetail .arcy-radar-overview-action:hover{
+  color:#fff;
+  background:color-mix(in srgb,var(--radar-accent) 22%,#081729);
+}
+#tokenDetail .arcy-radar-overview-empty{
+  margin:21px 8px;
+  font-size:13px;
+  color:#afc4d5;
+  line-height:1.55;
+}
+#tokenDetail .arcy-radar-network:focus-visible,
+#tokenDetail .arcy-radar-overview-action:focus-visible,
+#tokenDetail a.arcy-radar-overview-token:focus-visible{
+  outline:2px solid #ffffff;
+  outline-offset:3px;
+}
+@media(max-width:1100px){
+  #tokenDetail .arcy-radar-hero-kicker{font-size:8px;letter-spacing:.09em}
+  #tokenDetail .arcy-radar-network{grid-template-columns:40px minmax(0,1fr) 20px;column-gap:8px;padding:11px 8px;min-height:77px}
+  #tokenDetail .arcy-radar-network-icon{width:39px;height:39px}
+  #tokenDetail .arcy-radar-network-logo{width:30px;height:30px}
+  #tokenDetail .arcy-radar-network .arcy-radar-chain-logo{width:29px;height:29px;font-size:20px}
+  #tokenDetail .arcy-radar-network-arrow{width:19px;height:19px;font-size:19px}
+}
+@media(max-width:700px){
+  #tokenDetail .arcy-radar-hero{grid-template-columns:1fr}
+  #tokenDetail .arcy-radar-hero h2{grid-column:1}
+  #tokenDetail .arcy-radar-intro{grid-column:1}
+  #tokenDetail .arcy-radar-hero-kicker{display:none}
+  #tokenDetail .arcy-radar-networks{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:17px 0 14px}
+  #tokenDetail .arcy-radar-network{
+    display:flex!important;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:5px;
+    min-width:0;
+    min-height:86px;
+    padding:8px 3px;
+    text-align:center;
+    border-radius:11px;
+  }
+  #tokenDetail .arcy-radar-network-icon{width:33px;height:33px;flex:0 0 33px}
+  #tokenDetail .arcy-radar-network-logo{width:24px;height:24px}
+  #tokenDetail .arcy-radar-network .arcy-radar-chain-logo{font-size:21px;width:25px;height:25px}
+  #tokenDetail .arcy-radar-network-copy{align-items:center;text-align:center;gap:2px}
+  #tokenDetail .arcy-radar-network-name{font-size:clamp(9px,2.35vw,12px);line-height:1.06}
+  #tokenDetail .arcy-radar-network-sub{font-size:8px;line-height:1.1}
+  #tokenDetail .arcy-radar-network-arrow{display:none}
+  #tokenDetail .arcy-radar-overview-card{padding:14px;min-height:330px!important}
+  #tokenDetail .arcy-radar-overview-head{gap:10px;flex-wrap:wrap;padding-bottom:13px}
+  #tokenDetail .arcy-radar-overview-mark{width:42px;height:42px;flex-basis:42px;border-radius:12px;font-size:25px}
+  #tokenDetail .arcy-radar-overview-chain-image{width:35px;height:35px}
+  #tokenDetail .arcy-radar-overview-heading-name{font-size:22px}
+  #tokenDetail .arcy-radar-overview-description{font-size:10px}
+  #tokenDetail .arcy-radar-overview-header-meta{gap:4px;margin-left:auto}
+  #tokenDetail .arcy-radar-overview-freshness{padding:5px 8px;font-size:9px}
+  #tokenDetail .arcy-radar-overview-updated{font-size:9px}
+  #tokenDetail .arcy-radar-overview-columns,
+  #tokenDetail .arcy-radar-overview-token{
+    grid-template-columns:minmax(0,1.33fr) minmax(0,.93fr) minmax(0,.73fr) minmax(0,1.10fr) 10px!important;
+    column-gap:5px;
+  }
+  #tokenDetail .arcy-radar-overview-columns{font-size:clamp(7px,1.76vw,9px);padding:9px 4px 10px;letter-spacing:0}
+  #tokenDetail .arcy-radar-overview-token{min-height:60px;padding:7px 4px}
+  #tokenDetail .arcy-radar-overview-symbol{gap:5px}
+  #tokenDetail .arcy-radar-overview-rank{width:20px;height:20px;flex-basis:20px;font-size:10px;border-radius:5px}
+  #tokenDetail .arcy-radar-overview-logo-wrap{width:23px;height:23px;flex-basis:23px}
+  #tokenDetail .arcy-radar-overview-token-logo{width:21px;height:21px;flex-basis:21px}
+  #tokenDetail .arcy-radar-overview-token-ticker{font-size:10px}
+  #tokenDetail .arcy-radar-overview-token-name{font-size:8px}
+  #tokenDetail .arcy-radar-overview-price,
+  #tokenDetail .arcy-radar-overview-change,
+  #tokenDetail .arcy-radar-overview-volume{font-size:clamp(8px,2.1vw,11px)}
+  #tokenDetail .arcy-radar-overview-token-arrow{font-size:17px}
+  #tokenDetail .arcy-radar-overview-count{font-size:10px}
+  #tokenDetail .arcy-radar-overview-action{min-height:44px;font-size:11px}
+}
+@media(max-width:390px){
+  #tokenDetail .arcy-radar-panel{padding:11px}
+  #tokenDetail .arcy-radar-network-sub{font-size:7px}
+  #tokenDetail .arcy-radar-network-name{font-size:9px}
+  #tokenDetail .arcy-radar-overview-card{padding:10px}
+  #tokenDetail .arcy-radar-overview-heading-name{font-size:20px}
+  #tokenDetail .arcy-radar-overview-description{font-size:9px}
+  #tokenDetail .arcy-radar-overview-symbol{gap:3px}
+  #tokenDetail .arcy-radar-overview-rank{width:17px;height:17px;flex-basis:17px;font-size:9px}
+  #tokenDetail .arcy-radar-overview-logo-wrap{width:20px;height:20px;flex-basis:20px}
+  #tokenDetail .arcy-radar-overview-token-logo{width:18px;height:18px;flex-basis:18px}
+  #tokenDetail .arcy-radar-overview-token-name{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  #tokenDetail .arcy-radar-network,
+  #tokenDetail .arcy-radar-overview-token{transition:none}
+  #tokenDetail .arcy-radar-network:hover,
+  #tokenDetail .arcy-radar-overview-token:hover{transform:none}
+}
