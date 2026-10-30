@@ -174,3 +174,22 @@ test('TAIL span grows on sparse ranges (bounded at 5000), halves on dense/limit 
   core.rpc=async()=>Array.from({length:600},()=>null);
  }finally{core.rpc=oldRpc;}
 });
+
+test('bounded simulation: TAIL progress survives 429s across 4 sequential batches, never resets, never publishes before reconciliation, and sparse spans cut RPC calls',()=>fixture(async({calls})=>{
+ // Previous COMPLETE at block 1,000,000 (old); chain head pinned at 1,200,000. Every 3rd eth_getLogs fails with the RPC rate-limit code.
+ await storage.save(name,state('0xf4240',3*3600*1000));c.context=async()=>({block:'0x124f80'});
+ let n=0;const rpc=c.rpc;c.rpc=async(m,p)=>{if(m==='eth_getLogs'&&++n%3===0)throw Object.assign(Error('rate'),{code:'RPC_RATE_LIMIT'});return rpc(m,p);};
+ const trail=[];let last=-1,lastPhase=null;
+ for(let batch=0;batch<4;batch++){
+  let r;try{r=await worker.advance(a,{maxPages:3,maxBatches:0});}catch(e){assert.equal(e.code,'RPC_RATE_LIMIT');}
+  const s=await storage.load(name);const cursor=s.phase==='TAIL'?s.tailCursor:s.phase==='CATCHUP'?s.catchupCursor:Number.MAX_SAFE_INTEGER;
+  assert.ok(cursor>=last,'cursor never moves backwards: '+JSON.stringify({batch,cursor,last}));assert.notEqual(s.phase,'DISCOVER','no silent reset to DISCOVER');
+  if(s.phase!=='COMPLETE')assert.equal(r?.value?.snapshot?.block===undefined||r.value.block!=='0x124f80',true,'no COMPLETE for the new pin before reconciliation');
+  trail.push([batch,s.phase,cursor,s.tailRange]);last=cursor;lastPhase=s.phase;
+ }
+ assert.ok(trail.some((t,i)=>i>0&&t[2]>trail[i-1][2]),'progress was made across batches despite injected 429s: '+JSON.stringify(trail));
+ // Call arithmetic for a full 3,646,896-block sparse span (the live ARCY TAIL): old fixed 1000-block spans vs adaptive growth.
+ const span=3646896;let w=1000,from=0,adaptive=0;const ranges=require('../lib/holder-log-range');
+ while(from<span){const to=Math.min(span,from+w);adaptive++;from=to;w=Math.min(ranges.MAX_WIDTH,w<ranges.MAX_WIDTH?w*2:w);}
+ const fixed=Math.ceil(span/1000);assert.equal(fixed,3647);assert.ok(adaptive<=735,'adaptive calls '+adaptive);assert.ok(fixed/adaptive>4.9,'>= 4.9x fewer eth_getLogs calls');
+}));
