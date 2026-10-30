@@ -22,6 +22,10 @@ const ctx={fetcher:async(u,o)=>{for(let i=0;i<5;i++){await new Promise(r=>setTim
  const curves=[...m.members].filter(([,x])=>x.version==='v2'&&x.phase===0).slice(0,10).map(([t,x])=>({token:t,curve:x.curve}));
  const cs=await pons.curveStates(RPC,curves,ctx);
  log('curve-phase tokens read: '+cs.size+' | progress% '+[...cs.values()].map(x=>x.progressPct).join(','));
+ const gr=await pons.recentGraduations(RPC,ctx);
+ const gm=await pons.graduatedV2(RPC,gr.graduations.map(g=>g.token),ctx);
+ const g2=[...gm.members.values()].filter(x=>x.phase===2).length;
+ log('PoolGraduated events: '+gr.total+' (status '+gr.status+') | confirmed phase 2 by getLaunchedToken: '+g2+'/'+gr.graduations.length+' | newest tokens '+gr.graduations.slice(0,5).map(g=>g.token.slice(0,8)).join(','));
  // negative control: the V2 factory must NOT confirm an unrelated address
  const neg=await pons.membershipMany(RPC,['0x0bd7d308f8e1639fab988df18a8011f41eacad73','0x000000000000000000000000000000000000dead'],ctx);
  log('negative control (WETH, dead): confirmed='+neg.members.size+' (expected 0)');

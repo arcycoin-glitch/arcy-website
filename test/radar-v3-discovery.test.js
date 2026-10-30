@@ -239,7 +239,7 @@ function v2Launched(tok,curve,phase,exists=1){
  return '0x'+words.join('');
 }
 // members: {token: {curve, phase}}; launches: [{token, curve, block}] announced by the V2 TokenLaunched event
-function rpcV2(members,launches=[],curveReads={}){
+function rpcV2(members,launches=[],curveReads={},grads=[]){
  return async(u,o)=>{const body=JSON.parse(o.body);return resp(body.map(c=>{
   const ok=r=>({jsonrpc:'2.0',id:c.id,result:r});
   if(c.method==='eth_chainId')return ok('0x'+(4663).toString(16));
@@ -247,6 +247,7 @@ function rpcV2(members,launches=[],curveReads={}){
   if(c.method==='eth_getBlockByNumber')return ok({timestamp:'0x'+Math.floor((T0-7200e3)/1000).toString(16)});
   if(c.method==='eth_getLogs'){
    const q=c.params[0];if(q.address!==V2F)return ok([]);
+   if(q.topics[0]===pons.TOPIC_GRADUATED_V2)return ok(grads.map(g=>({address:V2F,blockNumber:'0x'+g.block.toString(16),topics:[pons.TOPIC_GRADUATED_V2,'0x'+w64(g.token)],data:'0x'+[1,2,3].map(x=>w64(x.toString(16))).join('')})));
    return ok(launches.map(l=>({address:V2F,blockNumber:'0x'+l.block.toString(16),topics:[pons.TOPIC_LAUNCHED_V2,'0x'+w64(l.token),'0x'+w64(l.curve),'0x'+w64(addr(7))],data:'0x'+[addr(0),'0x1',(5n*10n**18n).toString(16)].map(w64).join('')})));
   }
   const {to,data}=c.params[0];
@@ -291,15 +292,15 @@ test('Pons V2: graduated V2 tokens from the provider window AND a factory-event-
  const bc=out.coverage.bondingCurve;assert.equal(bc.count,1);assert.equal(bc.items[0].token,CURVE_TOK);assert.equal(bc.items[0].progressPct,40);assert.equal(bc.items[0].priceUsd.status,'NOT_VERIFIED');
  assert.equal(out.coverage.factoryEvents.perFactory[V2F].logs,2);
 });
-test('Pons V2: older event launches that have since graduated are found through the V2 factory phase and ranked; still-on-curve ones are not',async()=>{
+test('Pons V2: tokens announced by the PoolGraduated event are accepted only if the V2 factory also reports phase 2 and ranked; still-on-curve ones are not',async()=>{
  const launches=[],members={};
  for(let i=0;i<30;i++){const tok=addr(400+i);launches.push({token:tok,curve:addr(500+i),block:10+i});members[tok]={curve:addr(500+i),phase:i<3?2:0};}
  const OLD_GRAD=addr(400),OLD_GRAD2=addr(401),NEW_CURVE=addr(429);
  const f=router([[/tokens\/multi/,()=>resp(multi('pons',[{a:OLD_GRAD,s:'OG1',vol:3e5,liq:4e5,tvol:3e5,tliq:4e5},{a:OLD_GRAD2,s:'OG2',vol:2e5,liq:3e5,tvol:2e5,tliq:3e5}]))],[/coingecko\.com/,()=>resp(page('pons',[]))],
-  [/rpc\.example/,rpcV2(members,launches)]]);
+  [/rpc\.example/,rpcV2(members,launches,{},[{token:OLD_GRAD,block:40},{token:OLD_GRAD2,block:41},{token:addr(402),block:42},{token:addr(405),block:43}])]]);
  const out=await radar.load('pons',{env:ENV,fetcher:f,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
  const a=out.tokens.map(t=>t.address);
  assert.ok(a.includes(OLD_GRAD)&&a.includes(OLD_GRAD2),'graduated V2 tokens ranked');assert.ok(!a.includes(NEW_CURVE));
- assert.equal(out.coverage.factoryEvents.graduatedFound,3);assert.equal(out.coverage.factoryEvents.olderChecked,10);
+ assert.equal(out.coverage.factoryEvents.graduatedFound,3);assert.equal(out.coverage.factoryEvents.olderChecked,4,'PoolGraduated event for 4 tokens, one (405) still reports phase 0 so it is not accepted');
  assert.equal(out.tokens.find(t=>t.address===OLD_GRAD).launch.factoryVersion,'v2');
 });
