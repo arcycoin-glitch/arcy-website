@@ -47,6 +47,8 @@ async function buildReport({network='ethereum',address}){
   logoUrl=decorated?.logoUrl||null;
  }
  if(logoUrl)result.token={...result.token,logoUrl};
+ // Additive evidence taxonomy + provenance (never alters value/status/dataState).
+ try{require('./evidence-class').annotate(result);}catch{}
  return result;
 }
 function report({network='ethereum',address,onProgress}){
