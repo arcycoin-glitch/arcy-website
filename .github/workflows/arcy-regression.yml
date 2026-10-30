@@ -17,5 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install real Redis for quota failure simulations
+        run: sudo apt-get update -qq && sudo apt-get install -y redis-server redis-tools
       - name: Static code and regression tests
         run: npm test
