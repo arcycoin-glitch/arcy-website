@@ -12,7 +12,7 @@ function geckoBody(net,{count=14,start=1,volume=i=>100000-i*100,created=i=>new D
  const id=sources.NETWORKS[net].gecko,included=[],data=[];
  for(let i=0;i<count;i++){
   const a=addr(dup?Math.floor(i/2)+start:i+start),tokenId=id+'_'+a,pool=addr(5000+i);
-  included.push({id:tokenId,type:'token',attributes:{address:a,name:'Token '+i,symbol:'T'+i}});
+  included.push({id:tokenId,type:'token',attributes:{address:a,name:'Token '+i,symbol:'T'+i,image_url:i%5===4?'https://assets.geckoterminal.com/missing.png':'https://coin-images.coingecko.com/coins/images/'+(100+i)+'/large/t'+i+'.png',coingecko_coin_id:'coin-'+i}});
   data.push({id:id+'_'+pool,type:'pool',attributes:{address:pool,pool_created_at:created(i),base_token_price_usd:'0.002',reserve_in_usd:'1500',fdv_usd:'2000000',market_cap_usd:null,volume_usd:{h24:String(volume(i))},price_change_percentage:{h24:'-3.2'},transactions:{h24:{buys:10,sells:7}}},
    relationships:{base_token:{data:{id:tokenId,type:'token'}},quote_token:{data:{id:id+'_'+addr(900),type:'token'}},dex:{data:{id:'uniswap-v4-'+id,type:'dex'}}}});
  }
@@ -23,6 +23,13 @@ function dexBody(net,body,{price='0.00205',vol=undefined,liq='1450',chg=-3.0,cre
  return body.data.map((p,i)=>({chainId:chain||sources.NETWORKS[net].dex,dexId:'uniswap',url:'https://dexscreener.com/'+net+'/'+p.attributes.address,pairAddress:p.attributes.address,
   baseToken:{address:p.relationships.base_token.data.id.split('_')[1],symbol:'T'+i},quoteToken:{address:addr(900),symbol:'USDC'},priceUsd:price,volume:{h24:vol??Number(p.attributes.volume_usd.h24)*1.05},liquidity:{usd:Number(liq)},priceChange:{h24:chg},fdv:2100000,pairCreatedAt:created??Date.parse(p.attributes.pool_created_at)+60000}));
 }
+function multiBody(net,body,{mc=false,liq='1500',price='0.002'}={}){
+ const id=sources.NETWORKS[net].gecko,seen=new Set(),data=[];
+ for(const p of body.data){const t=body.included.find(x=>x.id===p.relationships.base_token.data.id),a=t.attributes.address;if(seen.has(a))continue;seen.add(a);
+  data.push({id:id+'_'+a,type:'token',attributes:{address:a,name:t.attributes.name,symbol:t.attributes.symbol,image_url:t.attributes.image_url,coingecko_coin_id:t.attributes.coingecko_coin_id,price_usd:price,fdv_usd:'2000000',market_cap_usd:mc?'1800000':null,total_reserve_in_usd:liq,normalized_total_supply:'1000000000',volume_usd:{h24:p.attributes.volume_usd.h24}}});}
+ return {data};
+}
+const CG=(net,body,o)=>[[/tokens\/multi/,()=>resp(multiBody(net,body,o))],[/coingecko\.com/,()=>resp(body)]];
 const resp=body=>({ok:true,status:200,headers:new Headers(),text:async()=>JSON.stringify(body)});
 function router(routes){const calls=[];const f=async(url,opts={})=>{calls.push({url,opts});for(const [re,fn] of routes)if(re.test(url))return fn(url,opts);throw new Error('unrouted '+url);};f.calls=calls;return f;}
 const parseBatch=opts=>JSON.parse(opts.body);
@@ -31,13 +38,14 @@ const parseBatch=opts=>JSON.parse(opts.body);
 test('access policy fails closed: no key on Vercel = off; keyless only outside Vercel; Demo/Pro select the documented host+header',()=>{
  assert.equal(sources.geckoAccess({VERCEL:'1'}).mode,'off');
  const k=sources.geckoAccess({});assert.equal(k.mode,'keyless');assert.equal(k.host,'https://api.geckoterminal.com/api/v2');assert.equal(k.perMinute,5);assert.ok(k.ttlMs>=30*60*1000);
- const d=sources.geckoAccess({COINGECKO_DEMO_API_KEY:'x',VERCEL:'1'});assert.equal(d.mode,'demo');assert.equal(d.host,'https://api.coingecko.com/api/v3/onchain');assert.equal(d.header,'x-cg-demo-api-key');assert.ok(d.ttlMs>=20*60*1000);
+ const d=sources.geckoAccess({COINGECKO_DEMO_API_KEY:'x',VERCEL:'1'});assert.equal(d.mode,'demo');assert.equal(d.host,'https://api.coingecko.com/api/v3/onchain');assert.equal(d.header,'x-cg-demo-api-key');assert.ok(d.ttlMs>=40*60*1000);
  const p=sources.geckoAccess({COINGECKO_PRO_API_KEY:'x',COINGECKO_DEMO_API_KEY:'y',VERCEL:'1'});assert.equal(p.mode,'pro');assert.equal(p.header,'x-cg-pro-api-key');
- assert.equal(sources.geckoAccess({COINGECKO_DEMO_API_KEY:'x',RADAR_V2_TTL_MS:'1000'}).ttlMs,20*60*1000,'TTL cannot be configured below the Demo quota floor');
+ assert.equal(sources.geckoAccess({COINGECKO_DEMO_API_KEY:'x',RADAR_V2_TTL_MS:'1000'}).ttlMs,40*60*1000,'TTL cannot be configured below the Demo quota floor');
 });
-test('Demo plan quota arithmetic: default 30-minute cycle stays inside 10,000 credits/month; 10-minute would not',()=>{
- assert.equal(sources.demoBudget(30*60*1000).within10k,true);assert.equal(sources.demoBudget(30*60*1000).callsPerMonth,7200);
- assert.equal(sources.demoBudget(10*60*1000).within10k,false);
+test('Demo plan quota arithmetic: default 45-minute cycle (8 calls) stays inside 10,000 credits/month; 30 minutes would not',()=>{
+ const d=sources.demoBudget(45*60*1000);assert.equal(d.callsPerCycle,8);assert.equal(d.callsPerMonth,7680);assert.equal(d.within10k,true);
+ assert.equal(sources.demoBudget(40*60*1000).within10k,true,'the TTL floor itself is inside the budget');
+ assert.equal(sources.demoBudget(30*60*1000).within10k,false);assert.equal(sources.demoBudget(10*60*1000).within10k,false);
 });
 test('publication needs BOTH operator approvals in every environment; DEX Screener stays off on Vercel until its own approval',()=>{
  assert.equal(sources.publicationAllowed({}).ok,false);assert.equal(sources.publicationAllowed({MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:'true'}).ok,false);assert.equal(sources.publicationAllowed(APPROVED).ok,true);
@@ -78,17 +86,33 @@ test('dexscreener.parse drops other-chain pairs and malformed numbers',()=>{
 });
 
 // ── verification semantics ────────────────────────────────────────────────────────────────────────────────
-test('verify: agreement=CROSS_VERIFIED, one source=SOURCE_REPORTED, contradiction/missing=NOT_VERIFIED',()=>{
- const gt={address:addr(1),pool:addr(5000),priceUsd:1,volume24hUsd:1000,liquidityUsd:500,change24hPct:5,fdvUsd:null,marketCapUsd:null,poolCreatedAt:new Date(T0).toISOString()};
- const pair={pair:addr(5000),token:addr(1),priceUsd:1.02,volume24hUsd:1100,liquidityUsd:900,change24hPct:6,fdvUsd:2000,marketCapUsd:null,pairCreatedAt:new Date(T0+1000).toISOString(),poolCreatedAt:new Date(T0+1000).toISOString()};
- const v=verify.verifyRow(gt,{state:'MATCHED',pair});
- assert.equal(v.fields.priceUsd.status,'CROSS_VERIFIED');assert.equal(v.fields.volume24hUsd.status,'CROSS_VERIFIED');
- assert.equal(v.fields.liquidityUsd.status,'NOT_VERIFIED');assert.equal(v.fields.liquidityUsd.reasonCode,'SOURCES_DISAGREE');assert.equal(v.fields.liquidityUsd.value,null);
- assert.equal(v.fields.fdvUsd.status,'SOURCE_REPORTED');assert.equal(v.fields.fdvUsd.value,2000);
- assert.equal(v.fields.marketCapUsd.status,'NOT_VERIFIED');assert.equal(v.fields.marketCapUsd.reasonCode,'FIELD_NOT_PROVIDED');
+test('verify: agreement=CROSS_VERIFIED, one source=SOURCE_REPORTED, contradiction/missing=NOT_VERIFIED; FDV is never market cap',()=>{
+ const gt={address:addr(1),pool:addr(5000),scopeVolume:'TOKEN',scopeLiquidity:'TOKEN',priceUsd:1,volume24hUsd:1000,liquidityUsd:500,change24hPct:5,fdvUsd:2000,marketCapUsd:null,poolCreatedAt:new Date(T0).toISOString()};
+ const pairs=[{pair:addr(5000),token:addr(1),side:'base',priceUsd:1.02,volume24hUsd:600,liquidityUsd:900,change24hPct:6,fdvUsd:2050,marketCapUsd:null,pairCreatedAt:new Date(T0+1000).toISOString(),poolCreatedAt:new Date(T0+1000).toISOString(),logo:null},
+  {pair:addr(5001),token:addr(1),side:'quote',priceUsd:null,volume24hUsd:450,liquidityUsd:null,change24hPct:null,fdvUsd:null,marketCapUsd:null,pairCreatedAt:null,logo:null}];
+ const ds=verify.summarize(gt,pairs);
+ assert.equal(ds.state,'MATCHED');
+ const v=verify.verifyRow(gt,ds);
+ assert.equal(v.fields.priceUsd.status,'CROSS_VERIFIED');
+ assert.equal(v.fields.volume24hUsd.status,'CROSS_VERIFIED','token volume 1000 vs DEX Screener sum 600+450');
+ assert.equal(v.fields.liquidityUsd.status,'SOURCE_REPORTED','a pair with unknown liquidity makes that sum incomplete, so it is not used');
+ assert.equal(v.fields.fdvUsd.status,'CROSS_VERIFIED');assert.equal(v.fields.change24hPct.status,'CROSS_VERIFIED');
+ assert.equal(v.fields.marketCapUsd.status,'NOT_VERIFIED');assert.equal(v.fields.marketCapUsd.reasonCode,'MARKET_CAP_NOT_PROVIDED');assert.equal(v.fields.marketCapUsd.value,null,'FDV is never shown as market cap');
+ const mismatched=verify.verifyRow(gt,verify.summarize(gt,[{...pairs[0],pair:addr(7),volume24hUsd:1000,liquidityUsd:500}]));
+ assert.equal(mismatched.fields.change24hPct.status,'SOURCE_REPORTED','change is pool-specific: a different pool is not a check');
+ assert.equal(mismatched.fields.volume24hUsd.status,'CROSS_VERIFIED');
+ const partial=verify.verifyRow({...gt,volume24hUsd:5000},verify.summarize({...gt,volume24hUsd:5000},pairs));
+ assert.equal(partial.fields.volume24hUsd.status,'SOURCE_REPORTED','DEX Screener sees fewer pools than GeckoTerminal: partial coverage, not a contradiction');assert.equal(partial.fields.volume24hUsd.crossCheck,'PARTIAL_COVERAGE');assert.equal(partial.fields.volume24hUsd.value,5000);
+ const above=verify.verifyRow({...gt,volume24hUsd:100},verify.summarize({...gt,volume24hUsd:100},pairs));
+ assert.equal(above.fields.volume24hUsd.status,'NOT_VERIFIED','DEX Screener above the superset figure is a real contradiction');assert.equal(above.fields.volume24hUsd.reasonCode,'SOURCES_DISAGREE');
+ const capped=verify.summarize(gt,Array.from({length:30},(_,i)=>({...pairs[0],pair:addr(9000+i)})));
+ assert.equal(capped.values.volume24hUsd,null,'at DEX Screener\'s pair cap the sum is a lower bound and is not used');
  const solo=verify.verifyRow(gt,{state:'DISABLED'});
  assert.equal(solo.fields.priceUsd.status,'SOURCE_REPORTED');assert.equal(solo.fields.priceUsd.crossCheck,'DISABLED');
- assert.deepEqual(verify.matchPair(gt,[{...pair,pair:addr(7)}]),{state:'NO_MATCH'},'must be the SAME pool, not just the same token');
+ assert.deepEqual(verify.summarize(gt,[]),{state:'NO_MATCH'});
+ const gp={...gt,scopeVolume:'POOL',scopeLiquidity:'POOL'};
+ const pool=verify.verifyRow(gp,verify.summarize(gp,pairs));
+ assert.equal(pool.fields.volume24hUsd.scope,'POOL');assert.equal(pool.fields.volume24hUsd.status,'NOT_VERIFIED');assert.equal(pool.fields.volume24hUsd.reasonCode,'SOURCES_DISAGREE');
  assert.equal(verify.agree('change24hPct',1,4.5),false);assert.equal(verify.agree('priceUsd',0,0),true);assert.equal(verify.agree('priceUsd',null,1),false);
 });
 
@@ -96,17 +120,21 @@ test('verify: agreement=CROSS_VERIFIED, one source=SOURCE_REPORTED, contradictio
 for(const [net,chainId] of [['arc',5042],['ethereum',1],['robinhood',4663]]){
  test(net+': ranks 10 contract-bound tokens, cross-checks with DEX Screener, reports usage, no indexer calls',async()=>{
   const body=geckoBody(net,{count:14});
-  const f=router([[/coingecko\.com/,()=>resp(body)],[/dexscreener\.com/,()=>resp(dexBody(net,body))]]);
+  const f=router([...CG(net,body),[/dexscreener\.com/,()=>resp(dexBody(net,body))]]);
   const out=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
   assert.equal(out.chainId,chainId);assert.equal(out.tokens.length,10);assert.equal(out.version,2);
-  assert.equal(f.calls.length,2,'one ranking page + one batched cross-check call');
+  assert.equal(f.calls.length,3,'one ranking page + one token-stats call + one batched cross-check call');
   assert.equal(f.calls[0].opts.headers['x-cg-demo-api-key'],'demo-key-not-real');
   assert.ok(f.calls[0].url.startsWith('https://api.coingecko.com/api/v3/onchain/networks/'+sources.NETWORKS[net].gecko+'/pools?page=1&sort=h24_volume_usd_desc'));
-  assert.ok(f.calls[1].url.startsWith('https://api.dexscreener.com/tokens/v1/'+sources.NETWORKS[net].dex+'/'));
-  assert.deepEqual(out.usage,{geckoterminal:1,dexscreener:1,rpc:0});
+  assert.ok(f.calls[1].url.includes('/tokens/multi/'),'token-level stats for the exact candidate contracts');
+  assert.ok(f.calls[2].url.startsWith('https://api.dexscreener.com/tokens/v1/'+sources.NETWORKS[net].dex+'/'));
+  assert.deepEqual(out.usage,{geckoterminal:2,dexscreener:1,rpc:0});
   const t=out.tokens[0];
-  assert.equal(t.fields.priceUsd.status,'CROSS_VERIFIED');assert.equal(t.fields.liquidityUsd.status,'CROSS_VERIFIED');
-  assert.equal(t.fields.marketCapUsd.status,'NOT_VERIFIED');assert.equal(t.marketCapUsd,null);
+  assert.equal(t.fields.priceUsd.status,'CROSS_VERIFIED');assert.equal(t.fields.liquidityUsd.status,'CROSS_VERIFIED');assert.equal(t.fields.volume24hUsd.scope,'TOKEN');
+  assert.equal(t.fields.marketCapUsd.status,'NOT_VERIFIED');assert.equal(t.marketCapUsd,null);assert.equal(t.fields.marketCapUsd.reasonCode,'MARKET_CAP_NOT_PROVIDED');assert.equal(t.fdvUsd,2000000,'FDV stays FDV');
+  assert.ok(t.logo&&t.logo.url.startsWith('https://coin-images.coingecko.com/')&&t.logo.source==='GeckoTerminal');
+  assert.ok(out.tokens.every(x=>!x.logo||x.logo.url.startsWith('https://')),'only https provider-CDN logos');
+  assert.ok(out.coverage.logos<out.tokens.length&&out.coverage.logos>0,'tokens whose provider image is a "missing" placeholder get no logo');
   assert.ok(out.attribution.some(a=>/CoinGecko/.test(a.text))&&out.attribution.some(a=>/DEX Screener/.test(a.text)));
   assert.ok(out.coverage.fieldsCrossVerified>0&&out.coverage.fieldsNotVerified>0);
   assert.equal(out.sources.find(s=>s.id==='geckoterminal').monthly,10000);
@@ -114,23 +142,23 @@ for(const [net,chainId] of [['arc',5042],['ethereum',1],['robinhood',4663]]){
  });
 }
 test('DEX Screener disabled on Vercel without approval: rows stay SOURCE_REPORTED and DEX Screener is never called',async()=>{
- const body=geckoBody('arc',{count:12});const f=router([[/coingecko\.com/,()=>resp(body)]]);
+ const body=geckoBody('arc',{count:12});const f=router([...CG('arc',body)]);
  const out=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
- assert.equal(f.calls.length,1);assert.equal(out.coverage.crossCheckProvider,'DISABLED');
+ assert.equal(f.calls.length,2,'ranking page + token stats; DEX Screener is never called');assert.equal(out.coverage.crossCheckProvider,'DISABLED');
  assert.ok(out.tokens.every(t=>t.fields.priceUsd.status==='SOURCE_REPORTED'));
  assert.equal(out.sources.find(s=>s.id==='dexscreener').mode,'disabled-until-approved');assert.ok(!out.attribution.some(a=>/DEX Screener/.test(a.text)));
 });
 test('DEX Screener failure or wrong-chain answer degrades to SOURCE_REPORTED, never to invented agreement',async()=>{
  const body=geckoBody('arc',{count:12});
- const down=router([[/coingecko\.com/,()=>resp(body)],[/dexscreener/,()=>({ok:false,status:503,headers:new Headers(),text:async()=>''})]]);
+ const down=router([...CG('arc',body),[/dexscreener/,()=>({ok:false,status:503,headers:new Headers(),text:async()=>''})]]);
  const a=await radar.load('arc',{env:{...DEMO,VERCEL:undefined},fetcher:down,now:()=>T0,disableCache:true});
  assert.equal(a.coverage.crossCheckProvider,'RADAR_PROVIDER_HTTP_503');assert.ok(a.tokens.every(t=>t.fields.priceUsd.status==='SOURCE_REPORTED'&&t.fields.priceUsd.crossCheck==='UNAVAILABLE'));
- const wrong=router([[/coingecko\.com/,()=>resp(body)],[/dexscreener/,()=>resp(dexBody('arc',body,{chain:'ethereum'}))]]);
+ const wrong=router([...CG('arc',body),[/dexscreener/,()=>resp(dexBody('arc',body,{chain:'ethereum'}))]]);
  const b=await radar.load('arc',{env:{...DEMO,VERCEL:undefined},fetcher:wrong,now:()=>T0,disableCache:true});
  assert.ok(b.tokens.every(t=>t.verification.crossCheck==='NO_MATCH'&&t.fields.priceUsd.status==='SOURCE_REPORTED'));
 });
 test('contradicting providers produce NOT_VERIFIED (null), not a favoured value',async()=>{
- const body=geckoBody('arc',{count:12});const f=router([[/coingecko\.com/,()=>resp(body)],[/dexscreener/,()=>resp(dexBody('arc',body,{price:'0.5'}))]]);
+ const body=geckoBody('arc',{count:12});const f=router([...CG('arc',body),[/dexscreener/,()=>resp(dexBody('arc',body,{price:'0.5'}))]]);
  const out=await radar.load('arc',{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
  assert.equal(out.tokens[0].priceUsd,null);assert.equal(out.tokens[0].fields.priceUsd.reasonCode,'SOURCES_DISAGREE');assert.equal(out.tokens[0].fields.priceUsd.sources.length,2);
 });
@@ -144,19 +172,19 @@ test('no approval or no source key: provider is never contacted',async()=>{
  assert.equal(f.calls.length,0);
 });
 test('responses are cached for the tier TTL and concurrent loads coalesce into one upstream call',async()=>{
- const body=geckoBody('arc',{count:12});let n=0;const f=router([[/coingecko\.com/,()=>{n++;return resp(body);}]]);
+ const body=geckoBody('arc',{count:12});let n=0;const f=router([[/tokens\/multi/,()=>resp(multiBody('arc',body))],[/coingecko\.com/,()=>{n++;return resp(body);}]]);
  const env={...DEMO};let now=T0;
  const [a,b]=await Promise.all([radar.load('arc',{env,fetcher:f,now:()=>now}),radar.load('arc',{env,fetcher:f,now:()=>now})]);
  assert.equal(n,1);assert.equal(a.tokens.length,b.tokens.length);
- now=T0+19*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,1,'still cached at 19 min (Demo floor 20)');
- now=T0+31*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,2);
+ now=T0+44*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,1,'still cached at 44 min (Demo TTL 45)');
+ now=T0+46*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,2);
 });
 test('429 honours Retry-After, enters a cooldown with no further calls, and serves a bounded STALE result labelled as such',async()=>{
  const body=geckoBody('arc',{count:12});let mode='ok',n=0;
- const f=router([[/coingecko\.com/,()=>{n++;return mode==='ok'?resp(body):{ok:false,status:429,headers:new Headers({'retry-after':'120'}),text:async()=>''};}]]);
+ const f=router([[/coingecko\.com/,(u)=>{n++;return mode==='ok'?resp(/tokens\/multi/.test(u)?multiBody('arc',body):body):{ok:false,status:429,headers:new Headers({'retry-after':'120'}),text:async()=>''};}]]);
  const env={...DEMO};let now=T0;
  await radar.load('arc',{env,fetcher:f,now:()=>now});
- mode='limited';now=T0+31*60000;
+ mode='limited';now=T0+46*60000;
  const stale=await radar.load('arc',{env,fetcher:f,now:()=>now});
  assert.equal(stale.freshness,'STALE');assert.equal(stale.staleReason,'RADAR_PROVIDER_RATE_LIMITED');assert.equal(stale.asOf,new Date(T0).toISOString());
  const calls=n;now+=60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,calls,'cooldown: no request while the provider asked us to wait');
@@ -198,7 +226,7 @@ function rpcRouter({members=[],chainId=4663,fail=false}={}){
 test('pons: only tokens confirmed by an official factory are listed, newest first, with onchain launch + graduation evidence',async()=>{
  const body=geckoBody('pons',{count:12});
  const members=[addr(2),addr(5),addr(9)];
- const f=router([[/coingecko\.com/,()=>resp(body)],[/dexscreener/,()=>resp(dexBody('pons',body))],[/rpc\.example/,rpcRouter({members})]]);
+ const f=router([...CG('pons',body),[/dexscreener/,()=>resp(dexBody('pons',body))],[/rpc\.example/,rpcRouter({members})]]);
  const out=await radar.load('pons',{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
  assert.deepEqual(out.tokens.map(t=>t.address),members.map(String));
  assert.deepEqual(out.tokens.map(t=>t.rank),[1,2,3]);
@@ -263,7 +291,7 @@ test('UI: four sections, NOT VERIFIED rendered as N/A, text-only DOM, provider a
 });
 
 test('attribution follows the CoinGecko attribution guide and sits next to the data',async()=>{
- const body=geckoBody('arc',{count:12});const f=router([[/coingecko\.com/,()=>resp(body)]]);
+ const body=geckoBody('arc',{count:12});const f=router([...CG('arc',body)]);
  const demo=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
  assert.deepEqual(demo.attribution[0],{text:'Powered by CoinGecko API',url:'https://www.coingecko.com/en/api'});
  http._resetCooldowns();
@@ -271,4 +299,85 @@ test('attribution follows the CoinGecko attribution guide and sits next to the d
  assert.deepEqual(key.attribution[0],{text:'On-chain data provided by GeckoTerminal',url:'https://www.geckoterminal.com/'});
  const css=require('fs').readFileSync(require('path').join(__dirname,'../search/market-radar.css'),'utf8');
  assert.ok(/arcy-radar-credit\{font-size:1[2-9]px/.test(css),'credit text is at least 12px (terms: no smaller than 10)');
+});
+
+// ── logos, token-level stats, ranking, shared pages ──────────────────────────────────────────────────────
+test('logo URLs: only https provider CDNs, never "missing" placeholders, never other hosts',()=>{
+ const ok='https://coin-images.coingecko.com/coins/images/1/large/a.png?123';
+ assert.equal(gecko.logoUrl(ok),ok);assert.equal(gecko.logoUrl('https://assets.geckoterminal.com/abc'),'https://assets.geckoterminal.com/abc');assert.ok(gecko.logoUrl('https://cdn.dexscreener.com/cms/images/x'));
+ for(const bad of ['http://coin-images.coingecko.com/a.png','https://evil.example/a.png','https://coin-images.coingecko.com.evil.example/a.png','https://assets.geckoterminal.com/missing.png','javascript:alert(1)','https://user:pw@assets.geckoterminal.com/a','https://assets.geckoterminal.com/a b',null,42,'https://assets.geckoterminal.com/"onerror=x'])assert.equal(gecko.logoUrl(bad),null,String(bad));
+});
+test('tokens/multi is contract-keyed, strict, and never turns FDV into market cap',async()=>{
+ const body=geckoBody('arc',{count:3});const m=multiBody('arc',body);
+ m.data.push({id:'arc_'+addr(77),type:'token',attributes:{address:addr(78),price_usd:'1'}});          // id != stated address
+ m.data.push({id:'arc_'+addr(900),type:'token',attributes:{address:addr(900),price_usd:'1'}});        // not requested
+ const f=router([[/./,()=>resp(m)]]);
+ const out=await gecko.fetchMulti({host:'https://api.coingecko.com/api/v3/onchain',key:'k',header:'x-cg-demo-api-key'},'arc',[addr(1),addr(2),addr(3),addr(77)],{fetcher:f,now:()=>T0});
+ assert.deepEqual([...out.keys()].sort(),[addr(1),addr(2),addr(3)].sort());
+ assert.equal(out.get(addr(1)).marketCapUsd,null);assert.equal(out.get(addr(1)).fdvUsd,2000000);
+ assert.ok(f.calls[0].url.endsWith('/tokens/multi/'+[addr(1),addr(2),addr(3),addr(77)].join(',')));
+ await assert.rejects(gecko.fetchMulti({host:'https://x',key:null},'arc',[addr(1)],{fetcher:router([[/./,()=>resp({data:'x'})]]),now:()=>T0}),/INVALID_PROVIDER_RESPONSE|RADAR_/);
+});
+test('ranking uses token-level 24h volume across all pools; each row says which scope it carries',async()=>{
+ const body=geckoBody('arc',{count:14,volume:i=>100000-i*100});
+ const m=multiBody('arc',body);m.data.find(d=>d.attributes.address===addr(14)).attributes.volume_usd.h24='900000';   // last candidate has most volume over all its pools
+ const f=router([[/tokens\/multi/,()=>resp(m)],[/coingecko\.com/,()=>resp(body)]]);
+ const out=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
+ assert.equal(out.tokens[0].address,addr(14));assert.equal(out.tokens[0].volume24hUsd,900000);assert.equal(out.tokens[0].fields.volume24hUsd.scope,'TOKEN');
+ assert.match(out.selection,/ALL its indexed pools/);
+});
+test('tokens/multi failure degrades to pool-level numbers labelled scope POOL; the section still renders',async()=>{
+ const body=geckoBody('arc',{count:12});
+ const f=router([[/tokens\/multi/,()=>({ok:false,status:500,headers:new Headers(),text:async()=>''})],[/coingecko\.com/,()=>resp(body)]]);
+ const out=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
+ assert.equal(out.coverage.tokenStats,'RADAR_PROVIDER_HTTP_500');assert.equal(out.tokens.length,10);
+ assert.ok(out.tokens.every(t=>t.fields.volume24hUsd.scope==='POOL'));
+ assert.ok(out.tokens.some(t=>t.logo),'pool payload still carries token images');
+});
+test('DEX Screener supplies a logo only when GeckoTerminal has none, keyed by the exact base-token contract',async()=>{
+ const body=geckoBody('arc',{count:12});
+ for(const t of body.included)if(t.type==='token')t.attributes.image_url=null;
+ const ds=dexBody('arc',body).map((p,i)=>({...p,info:{imageUrl:i===0?'https://cdn.dexscreener.com/cms/images/abc':'https://evil.example/x.png'}}));
+ const f=router([...CG('arc',body),[/dexscreener/,()=>resp(ds)]]);
+ const out=await radar.load('arc',{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
+ const withLogo=out.tokens.filter(t=>t.logo);
+ assert.ok(withLogo.length<=1);if(withLogo[0])assert.equal(withLogo[0].logo.source,'DEX Screener');
+});
+test('a logo shared by several tokens (copy-cat clones) is kept only for the CoinGecko-curated one; no logo is ever invented',async()=>{
+ const body=geckoBody('robinhood',{count:12});
+ const same='https://coin-images.coingecko.com/coins/images/9/large/same.png';
+ for(const t of body.included)if(t.type==='token'){t.attributes.image_url=same;if(!['0x'+(1).toString(16).padStart(40,'0')].includes(t.attributes.address))t.attributes.coingecko_coin_id=null;}
+ const m=multiBody('robinhood',body);
+ const f=router([[/tokens\/multi/,()=>resp(m)],[/coingecko\.com/,()=>resp(body)]]);
+ const out=await radar.load('robinhood',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
+ const logos=out.tokens.filter(t=>t.logo);
+ assert.equal(logos.length,1);assert.equal(logos[0].address,addr(1));
+});
+test('Pons Launch reuses the cached Robinhood top-volume page instead of spending another provider call',async()=>{
+ const body=geckoBody('robinhood',{count:14});let top=0;
+ const f=router([[/tokens\/multi/,()=>resp(multiBody('robinhood',body))],[/coingecko\.com\/.*sort=h24_volume/,()=>{top++;return resp(body);}],[/coingecko\.com/,()=>resp(body)],[/rpc\.example/,rpcRouter({members:[addr(2)]})]]);
+ const env={...DEMO};
+ await radar.load('robinhood',{env,fetcher:f,now:()=>T0});
+ const out=await radar.load('pons',{env,fetcher:f,now:()=>T0,rpcUrl:'https://rpc.example/'});
+ assert.equal(top,1,'top-volume page fetched once for both sections');assert.equal(out.tokens.length,1);
+ assert.equal(out.usage.geckoterminal,2,'only the new-pools page and the token-stats call were spent');
+});
+
+test('token-level totals smaller than their own top pool are provider errors: that field falls back to the pool figure and is labelled POOL',async()=>{
+ const body=geckoBody('arc',{count:12});
+ const m=multiBody('arc',body,{liq:'4.04'});                       // total_reserve_in_usd 4.04 while the pool holds 1,500 (real Arc anomaly)
+ const f=router([[/tokens\/multi/,()=>resp(m)],[/coingecko\.com/,()=>resp(body)]]);
+ const out=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
+ const t=out.tokens[0];
+ assert.equal(t.fields.liquidityUsd.scope,'POOL');assert.equal(t.liquidityUsd,1500,'pool reserve, not the impossible total');assert.equal(t.fields.volume24hUsd.scope,'TOKEN');
+});
+test('a zero market cap or FDV is "not stated", not a value',async()=>{
+ const body=geckoBody('arc',{count:3});const m=multiBody('arc',body,{mc:false});for(const d of m.data){d.attributes.market_cap_usd='0';d.attributes.fdv_usd='0';}
+ const out=await gecko.fetchMulti({host:'https://x',key:null},'arc',m.data.map(d=>d.attributes.address),{fetcher:router([[/./,()=>resp(m)]]),now:()=>T0});
+ for(const v of out.values()){assert.equal(v.marketCapUsd,null);assert.equal(v.fdvUsd,null);}
+});
+
+test('HTML-escaped provider names are decoded to plain text',()=>{
+ const body=geckoBody('arc',{count:1});body.included.find(x=>x.type==='token'&&x.attributes.symbol==='T0').attributes.name='SPDR S&amp;P 500 &lt;ETF&gt; &quot;Trust&quot;';
+ assert.equal(gecko.parse(body,'arc').rows[0].name,'SPDR S&P 500 <ETF> "Trust"');
 });
