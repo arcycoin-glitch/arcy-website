@@ -6,7 +6,7 @@
 const fs=require('fs');
 const radar=require('../lib/radar-v2');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const NETS=(process.env.PROBE_NETWORKS||'pons,robinhood,arc,ethereum').split(',');
+const NETS=(process.env.PROBE_NETWORKS||'robinhood,pons,arc,ethereum').split(',');
 const rawBodies=new Map();
 const rec=async(u,o)=>{
  if(/geckoterminal/.test(u))await sleep(14000);
@@ -26,6 +26,7 @@ const hasVal=v=>v!==undefined&&v!==null&&v!=='ABSENT'&&String(v).trim()!==''&&Nu
  for(const net of NETS){
   const gk=S.NETWORKS[net==='pons'?'robinhood':net].gecko;
   try{
+   if(net==='pons')await sleep(20000);
    const out=await radar.load(net,{env,fetcher:rec,now:Date.now,rpcUrl:process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.com'});
    const tally={};const rows=out.tokens.map(t=>{
     const raw=rawFor(gk,t.pool),f=t.fields.change24hPct;
@@ -41,7 +42,8 @@ const hasVal=v=>v!==undefined&&v!==null&&v!=='ABSENT'&&String(v).trim()!==''&&Nu
    });
    report.networks[net]={tokens:rows.length,tally,rows};
    console.log('::notice::change24h '+net+' '+JSON.stringify(tally)+' of '+rows.length);
-   for(const r of rows)console.log('  '+net+' '+r.symbol+' '+r.class+' final='+r.final+' reason='+r.reasonCode+' raw='+JSON.stringify(Object.fromEntries(Object.entries(r.raw).map(([k,x])=>[k,x.listed?x.h24:'not-listed']))));
+   for(const r of rows)console.log('::notice::c24row '+net+' '+r.symbol+' '+r.class+' final='+r.final+' reason='+r.reasonCode+' src='+JSON.stringify(r.sources)+' raw='+JSON.stringify(Object.fromEntries(Object.entries(r.raw).map(([k,x])=>[k,x.listed?x.h24:'-'])))+' created='+r.poolCreatedAt+' pool='+String(r.pool).slice(0,10));
+   for(const r of []) console.log('  '+net+' '+r.symbol+' '+r.class+' final='+r.final+' reason='+r.reasonCode+' raw='+JSON.stringify(Object.fromEntries(Object.entries(r.raw).map(([k,x])=>[k,x.listed?x.h24:'not-listed']))));
   }catch(e){report.networks[net]={error:e.code||String(e.message||e)};console.log('::warning::change24h '+net+' failed '+(e.code||e.message));}
  }
  const out=process.env.PROBE_OUT||'change24h-report.json';fs.writeFileSync(out,JSON.stringify(report,null,1));
