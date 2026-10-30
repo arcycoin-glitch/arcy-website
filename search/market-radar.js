@@ -33,7 +33,7 @@
   const mark=el('span','arcy-radar-chain-logo arcy-radar-chain-logo-'+id);mark.setAttribute('aria-hidden','true');
   mark.textContent={pons:'P',arc:'◈',ethereum:'◆',robinhood:'R'}[id];
   // Reuse the three network logos already shipped with ARCY Search.
-  const logoSrc={arc:'/assets/arc-network-mark.svg',ethereum:'/assets/ethereum-mark.svg',robinhood:'/assets/robinhood-chain-mark.svg'}[id];
+  const logoSrc={pons:'https://pons.money/profile/image.png',arc:'/assets/arc-network-mark.svg',ethereum:'/assets/ethereum-mark.svg',robinhood:'/assets/robinhood-chain-mark.svg'}[id];
   if(logoSrc){
    const img=el('img','arcy-radar-network-logo');
    img.src=logoSrc;img.alt='';img.width=34;img.height=34;img.loading='lazy';img.decoding='async';
