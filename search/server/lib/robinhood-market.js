@@ -3,5 +3,5 @@
 // are distinct SOURCE_REPORTED market observations, not Robinhood quotes.
 module.exports={
  parse(body,address){return require('./gecko-market').parseMarket(body,'robinhood',address.toLowerCase()).fields},
- async inspect(address){return require('./dex-market').inspect('robinhood',address)}
+ async inspect(address){return require('./market-cross').inspect('robinhood',address)}
 };
