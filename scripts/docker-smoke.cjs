@@ -12,7 +12,7 @@ const sh=(args,o={})=>cp.spawnSync('docker',args,{cwd:root,encoding:'utf8',...o}
 const info=sh(['info','--format','{{.ServerVersion}}']);
 if(info.error||info.status!==0){const m='docker daemon unavailable: build/startup NOT exercised';console.error(m);process.exit(need?1:77);}
 const token=crypto.randomBytes(24).toString('hex'),port=String(18000+process.pid%2000);
-const volume=fs.mkdtempSync(path.join(os.tmpdir(),'arcy-worker-smoke-'));fs.mkdirSync(path.join(volume,'index'));const sentinel=path.join(volume,'index','release-sentinel.txt');fs.writeFileSync(sentinel,'preserve-existing-checkpoints');
+const volume=fs.mkdtempSync(path.join(os.tmpdir(),'arcy-worker-smoke-'));fs.chmodSync(volume,0o755);fs.mkdirSync(path.join(volume,'index'));const sentinel=path.join(volume,'index','release-sentinel.txt');fs.writeFileSync(sentinel,'preserve-existing-checkpoints');
 let code=1;
 const cleanup=()=>{sh(['rm','-f',name]);sh(['rmi','-f',tag]);fs.rmSync(volume,{recursive:true,force:true});};
 try{
