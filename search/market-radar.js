@@ -177,17 +177,20 @@
     d.score>=0&&d.score<=100&&typeof d.weightCoverage==='number'&&
     Number.isFinite(d.weightCoverage)&&d.weightCoverage>0&&d.weightCoverage<=1;
    const scoreCell=el('span','arcy-radar-overview-score');
+   scoreCell.append(el('small','arcy-radar-overview-score-label','SCORE'));
    if(scoreOk){
     scoreCell.append(el('strong','arcy-radar-overview-score-value',d.score.toFixed(1)));
     scoreCell.append(el('small','arcy-radar-overview-score-unit','/100'));
     scoreCell.title='ARCY keşif önceliği; güvenlik veya kazanç tahmini değildir. Skora dahil edilen ağırlık: %'+Math.round(d.weightCoverage*100);
     scoreCell.setAttribute('aria-label','ARCY Discovery Score '+d.score.toFixed(1)+' / 100');
    }else{
-    scoreCell.textContent='NOT VERIFIED';
+    scoreCell.append(el('span','arcy-radar-overview-score-missing','NOT VERIFIED'));
     scoreCell.classList.add('is-unverified');
    }
    const why=scoreOk?explainDiscovery(d.reason):{short:'NOT VERIFIED',full:'NOT VERIFIED'};
-   const reasonCell=el('span','arcy-radar-overview-reason',why.short);
+   const reasonCell=el('span','arcy-radar-overview-reason');
+   reasonCell.append(el('small','arcy-radar-overview-reason-label','NEDEN SEÇİLDİ?'));
+   reasonCell.append(el('span','arcy-radar-overview-reason-text',why.short));
    reasonCell.title=why.full;
    reasonCell.setAttribute('aria-label','Neden seçildi: '+why.full);
    if(scoreOk&&Array.isArray(d.flags)&&d.flags.length)reasonCell.classList.add('has-alert');
