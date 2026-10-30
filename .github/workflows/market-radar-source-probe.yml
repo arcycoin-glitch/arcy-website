@@ -26,6 +26,9 @@ jobs:
       - name: Pons V2 production-code chain probe (CI only)
         run: node scripts/probe-pons-v2.cjs
         continue-on-error: true
+      - name: Pons V2 factory event topics (CI only)
+        run: node scripts/probe-pons-v2-events.cjs
+        continue-on-error: true
       - name: Let the public RPC rate window reset
         run: sleep 45
       - name: Pons factory bounded-log probe (CI only)
