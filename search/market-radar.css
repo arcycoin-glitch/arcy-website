@@ -728,3 +728,37 @@
   #tokenDetail .arcy-radar-network:hover,
   #tokenDetail .arcy-radar-overview-token:hover{transform:none}
 }
+
+/* Search view discoverability: one persistent switcher above both detail views. */
+#tokenDetail .arcy-radar-switcher{
+ position:sticky;
+ top:max(8px,env(safe-area-inset-top,0px));
+ z-index:60;
+ padding:8px;
+ margin:0 0 18px;
+ border:1px solid rgba(75,174,206,.3);
+ border-radius:18px;
+ background:rgba(5,19,32,.94);
+ box-shadow:0 8px 28px rgba(0,0,0,.35);
+ -webkit-backdrop-filter:blur(14px);
+ backdrop-filter:blur(14px);
+}
+#tokenDetail .arcy-radar-switcher .arcy-radar-view-button{
+ min-width:0;
+ touch-action:manipulation;
+}
+@media(max-width:640px){
+ #tokenDetail .arcy-radar-switcher{
+  top:max(4px,env(safe-area-inset-top,0px));
+  gap:6px;
+  padding:6px;
+  margin-bottom:14px;
+  border-radius:14px;
+ }
+ #tokenDetail .arcy-radar-switcher .arcy-radar-view-button{
+  min-height:44px;
+  padding:8px 5px;
+  font-size:clamp(10px,2.8vw,12px);
+  line-height:1.25;
+ }
+}
