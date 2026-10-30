@@ -18,10 +18,10 @@ async function rpc(method,params){
  const [hi,lo]=await Promise.all([rpc('eth_getBlockByNumber',['0x'+B.toString(16),false]),rpc('eth_getBlockByNumber',['0x'+(B-100000).toString(16),false])]);
  const dt=Number(BigInt(hi.result.timestamp))-Number(BigInt(lo.result.timestamp));
  const bps=100000/dt;log('blocks per second ~'+bps.toFixed(2)+' ('+(dt/100000*1000).toFixed(0)+' ms/block); 24h ~ '+Math.round(bps*86400)+' blocks');
- for(const w of [5000,25000,100000,400000,1000000]){
+ for(const w of [1000000,3000000,8000000,20000000,45000000,92000000]){
   for(const f of FACT){
    const r=await rpc('eth_getLogs',[{address:f,fromBlock:'0x'+(B-w).toString(16),toBlock:'0x'+B.toString(16),topics:[TOPIC]}]);
-   log('getLogs window='+w+' ('+(w/bps/3600).toFixed(1)+'h) factory='+f.slice(0,8)+' -> '+(r.error?'ERROR '+String(r.error.message).slice(0,100):(r.result.length+' TokenLaunched logs'))+' in '+r.ms+'ms');
+   log('getLogs window='+w+' ('+(w/bps/3600).toFixed(1)+'h) factory='+f.slice(0,8)+' -> '+(r.error?'ERROR '+String(r.error.message).slice(0,100):(r.result.length+' TokenLaunched logs'+(r.result.length?'; newest '+((B-Number(BigInt(r.result[r.result.length-1].blockNumber)))/bps/3600).toFixed(1)+'h ago, oldest '+((B-Number(BigInt(r.result[0].blockNumber)))/bps/3600/24).toFixed(1)+'d ago':'')))+' in '+r.ms+'ms');
   }
  }
  console.log('::notice title=pons-logs-probe::'+lines.join('\n').replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'));
