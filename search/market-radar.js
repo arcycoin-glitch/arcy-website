@@ -94,13 +94,35 @@
  const icon={arc:'',ethereum:'',robinhood:'',pons:''};
  const overviewData=new Map();
  let expandedNetwork=null;
+ // UI-only: explain the source-backed V3 score without extra provider requests.
+ function explainDiscovery(raw){
+  if(typeof raw!=='string'||!raw.trim())return {short:'NOT VERIFIED',full:'NOT VERIFIED'};
+  const parts=raw.split(';').map(x=>x.trim()).filter(Boolean).slice(0,12);
+  const tr=part=>{
+   let m;
+   if((m=/^new pool \((<1|\d+) d\)$/i.exec(part)))return 'Yeni havuz ('+m[1]+' gün)';
+   if((m=/^recent pool \((\d+) d\)$/i.exec(part)))return 'Yakın tarihli havuz ('+m[1]+' gün)';
+   if((m=/^(\d+) trades$/i.exec(part)))return m[1]+' işlem / 24s';
+   if(/^24h volume /i.test(part))return part.replace(/^24h volume /i,'24s hacim ');
+   if(/^liquidity /i.test(part))return part.replace(/^liquidity /i,'Likidite ');
+   if(part==='independently cross-verified')return 'İki bağımsız kaynakla karşılaştırıldı';
+   if(part==='tokenized equity')return 'Tokenize hisse';
+   if(/^watch:/i.test(part))return '⚠ İzleme sinyali: '+part.replace(/^watch:\s*/i,'');
+   return part;
+  };
+  const translated=parts.map(tr),warnings=translated.filter(x=>x.startsWith('⚠'));
+  const featured=translated.filter(x=>!x.startsWith('⚠')).slice(0,3);
+  if(warnings.length)featured.push(warnings.join(' · '));
+  return {short:featured.join(' · ')||'NOT VERIFIED',full:translated.join(' · ')||'NOT VERIFIED'};
+ }
  function renderOverview(network,data){
   const card=overview.querySelector('[data-overview="'+network+'"]');
   if(!card)return;
   const list=card.querySelector('.arcy-radar-overview-list');
+  card.querySelector('.arcy-radar-discovery-note').hidden=data?.engine!=='arcy-radar-v3';
   list.replaceChildren();
   const headings=el('div','arcy-radar-overview-columns');
-  for(const text of ['Token','Fiyat (USD)','24s Değişim','24s Hacim (USD)','']){
+  for(const text of ['Token','Fiyat (USD)','24s Değişim','24s Hacim (USD)','Discovery Score','Neden seçildi?','']){
    headings.append(el('span','',text));
   }
   list.append(headings);
@@ -149,7 +171,28 @@
    identity.append(rank,logoWrap,tokenCopy);
    const scope=item.fields?.volume24hUsd?.scope;
    volume.title=scope==='TOKEN'?'Token genelindeki 24 saatlik hacim':scope==='POOL'?'Gözlemlenen havuzun 24 saatlik hacmi':'Sağlayıcının bildirdiği 24 saatlik hacim';
-   row.append(identity,priceLabel,change,volume,arrow);list.append(row);
+   const d=item.discovery;
+   const scoreOk=data?.engine==='arcy-radar-v3'&&data?.discovery?.scoreVersion==='arcy-discovery-1'&&
+    d?.version==='arcy-discovery-1'&&typeof d.score==='number'&&Number.isFinite(d.score)&&
+    d.score>=0&&d.score<=100&&typeof d.weightCoverage==='number'&&
+    Number.isFinite(d.weightCoverage)&&d.weightCoverage>0&&d.weightCoverage<=1;
+   const scoreCell=el('span','arcy-radar-overview-score');
+   if(scoreOk){
+    scoreCell.append(el('strong','arcy-radar-overview-score-value',d.score.toFixed(1)));
+    scoreCell.append(el('small','arcy-radar-overview-score-unit','/100'));
+    scoreCell.title='ARCY keşif önceliği; güvenlik veya kazanç tahmini değildir. Skora dahil edilen ağırlık: %'+Math.round(d.weightCoverage*100);
+    scoreCell.setAttribute('aria-label','ARCY Discovery Score '+d.score.toFixed(1)+' / 100');
+   }else{
+    scoreCell.textContent='NOT VERIFIED';
+    scoreCell.classList.add('is-unverified');
+   }
+   const why=scoreOk?explainDiscovery(d.reason):{short:'NOT VERIFIED',full:'NOT VERIFIED'};
+   const reasonCell=el('span','arcy-radar-overview-reason',why.short);
+   reasonCell.title=why.full;
+   reasonCell.setAttribute('aria-label','Neden seçildi: '+why.full);
+   if(scoreOk&&Array.isArray(d.flags)&&d.flags.length)reasonCell.classList.add('has-alert');
+   if(!scoreOk||why.short==='NOT VERIFIED')reasonCell.classList.add('is-unverified');
+   row.append(identity,priceLabel,change,volume,scoreCell,reasonCell,arrow);list.append(row);
   }
   if(!tokens.length)list.append(el('p','arcy-radar-overview-empty',network==='pons'?'Şu anda bu veri penceresinde factory ile doğrulanmış Pons lansmanı bulunamadı.':'Bu ağ için doğrulanmış sıralama şu anda alınamıyor.'));
  }
@@ -181,6 +224,8 @@
   head.append(mark,headingCopy,headerMeta);
   const count=el('p','arcy-radar-overview-count','Kaynaklar kontrol ediliyor…');
   const list=el('div','arcy-radar-overview-list');
+  const discoveryNote=el('p','arcy-radar-discovery-note','ARCY Discovery Score veriye dayalı keşif önceliğidir; güvenlik puanı, alım sinyali veya kazanç garantisi değildir. Liste tüm zinciri kapsamaz.');
+  discoveryNote.hidden=true;
   const action=el('button','arcy-radar-overview-action','Tümünü Gör →');
   action.type='button';action.addEventListener('click',()=>{
    expandedNetwork=expandedNetwork===id?null:id;
@@ -189,7 +234,7 @@
    action.setAttribute('aria-expanded',String(expandedNetwork===id));
    for(const other of overview.querySelectorAll('.arcy-radar-overview-action'))other.textContent=other.closest('.arcy-radar-overview-card')?.dataset.overview===expandedNetwork?'Daha Az Göster ↑':'Tümünü Gör →';
   });
-  action.setAttribute('aria-expanded','false');card.append(head,count,list,action);overview.append(card);
+  action.setAttribute('aria-expanded','false');card.append(head,count,list,discoveryNote,action);overview.append(card);
  }
 
  // Network headings control ONE full-width premium card at a time.
