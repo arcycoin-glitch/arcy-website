@@ -291,3 +291,15 @@ test('Pons V2: graduated V2 tokens from the provider window AND a factory-event-
  const bc=out.coverage.bondingCurve;assert.equal(bc.count,1);assert.equal(bc.items[0].token,CURVE_TOK);assert.equal(bc.items[0].progressPct,40);assert.equal(bc.items[0].priceUsd.status,'NOT_VERIFIED');
  assert.equal(out.coverage.factoryEvents.perFactory[V2F].logs,2);
 });
+test('Pons V2: older event launches that have since graduated are found through the V2 factory phase and ranked; still-on-curve ones are not',async()=>{
+ const launches=[],members={};
+ for(let i=0;i<30;i++){const tok=addr(400+i);launches.push({token:tok,curve:addr(500+i),block:10+i});members[tok]={curve:addr(500+i),phase:i<3?2:0};}
+ const OLD_GRAD=addr(400),OLD_GRAD2=addr(401),NEW_CURVE=addr(429);
+ const f=router([[/tokens\/multi/,()=>resp(multi('pons',[{a:OLD_GRAD,s:'OG1',vol:3e5,liq:4e5,tvol:3e5,tliq:4e5},{a:OLD_GRAD2,s:'OG2',vol:2e5,liq:3e5,tvol:2e5,tliq:3e5}]))],[/coingecko\.com/,()=>resp(page('pons',[]))],
+  [/rpc\.example/,rpcV2(members,launches)]]);
+ const out=await radar.load('pons',{env:ENV,fetcher:f,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
+ const a=out.tokens.map(t=>t.address);
+ assert.ok(a.includes(OLD_GRAD)&&a.includes(OLD_GRAD2),'graduated V2 tokens ranked');assert.ok(!a.includes(NEW_CURVE));
+ assert.equal(out.coverage.factoryEvents.graduatedFound,3);assert.equal(out.coverage.factoryEvents.olderChecked,10);
+ assert.equal(out.tokens.find(t=>t.address===OLD_GRAD).launch.factoryVersion,'v2');
+});
