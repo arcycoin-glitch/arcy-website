@@ -42,7 +42,8 @@ const hasVal=v=>v!==undefined&&v!==null&&v!=='ABSENT'&&String(v).trim()!==''&&Nu
    });
    report.networks[net]={tokens:rows.length,tally,rows};
    console.log('::notice::change24h '+net+' '+JSON.stringify(tally)+' of '+rows.length);
-   for(const r of rows)console.log('::notice::c24row '+net+' '+r.symbol+' '+r.class+' final='+r.final+' reason='+r.reasonCode+' src='+JSON.stringify(r.sources)+' raw='+JSON.stringify(Object.fromEntries(Object.entries(r.raw).map(([k,x])=>[k,x.listed?x.h24:'-'])))+' created='+r.poolCreatedAt+' pool='+String(r.pool).slice(0,10));
+   // GitHub keeps only 10 annotations per step: one compact annotation per network carries every row.
+   console.log('::notice::c24rows '+net+' '+rows.map(r=>[r.symbol,r.class,'final='+r.final,r.reasonCode||'-','src='+JSON.stringify(r.sources.map(x=>x.p[0]+':'+x.v)),'raw='+JSON.stringify(Object.fromEntries(Object.entries(r.raw).map(([k,x])=>[k[0],x.listed?x.h24:'-']))),'age='+(r.poolCreatedAt?Math.round((Date.now()-Date.parse(r.poolCreatedAt))/36e5)+'h':'?')].join(' ')).join(' ;; '));
    for(const r of []) console.log('  '+net+' '+r.symbol+' '+r.class+' final='+r.final+' reason='+r.reasonCode+' raw='+JSON.stringify(Object.fromEntries(Object.entries(r.raw).map(([k,x])=>[k,x.listed?x.h24:'not-listed']))));
   }catch(e){report.networks[net]={error:e.code||String(e.message||e)};console.log('::warning::change24h '+net+' failed '+(e.code||e.message));}
  }
