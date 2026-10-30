@@ -72,12 +72,12 @@ Multi-instance bound: the ledger is memory-only. With N warm instances the ceili
 
 | Section | Ranked | Notes |
 |---|---|---|
-| Arc | 8 | 25 below floors, 8 identity exclusions: genuine eligible-token shortfall |
+| Arc | 7–8 (varies by run) | ~25 below floors, 8 identity exclusions: genuine eligible-token shortfall |
 | Ethereum | 10 | |
 | Robinhood | 10 | |
 | Pons | 10 (was 5) | V2 TokenLaunched ≈ 27/hour; PoolGraduated 178 events, 30/30 phase-2 confirmed; negative control 0 |
 
-Overall field completeness 90.6 %, cross-verified 68.0 % (38 tokens). Figures describe one probe run, not a guarantee.
+On commit 7b06021: completeness 92.7 %, cross-verified 69.1 % (37 tokens; earlier run 90.6 % / 68.0 %). Figures describe one probe run, not a guarantee.
 
 ## 8. Open items
 
