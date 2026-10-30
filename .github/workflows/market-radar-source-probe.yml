@@ -32,7 +32,7 @@ jobs:
         run: node scripts/probe-pons-logs.cjs
         continue-on-error: true
       - name: Respect GeckoTerminal keyless 5 calls/minute
-        run: sleep 60
+        run: sleep 90
       - name: Radar V2 live source probe (paced, keyless, CI only)
         run: node scripts/probe-radar-v2.cjs
         continue-on-error: true
