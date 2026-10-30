@@ -151,3 +151,26 @@
 #tokenDetail .arcy-radar-warn{color:#f5bd62;font-size:10px}
 #tokenDetail .arcy-radar-change{font-weight:800;font-size:13px}
 @media(max-width:640px){#tokenDetail .arcy-radar-rows{gap:8px}#tokenDetail .arcy-radar-row{min-height:76px;padding:11px 9px;border-radius:13px;gap:7px;grid-template-columns:16px minmax(68px,.8fr) minmax(94px,1.15fr) 50px 9px}#tokenDetail .arcy-radar-ticker{font-size:12px}#tokenDetail .arcy-radar-token-name{font-size:10px}#tokenDetail .arcy-radar-primary{font-size:13px}#tokenDetail .arcy-radar-secondary{font-size:9px}#tokenDetail .arcy-radar-change{font-size:10px}#tokenDetail .arcy-radar-arrow{font-size:18px}}
+
+
+/* Reference-inspired Radar dashboard: 4 self-contained premium panels, no token wall. */
+#tokenDetail .arcy-radar-panel>.arcy-radar-status,#tokenDetail .arcy-radar-panel>.arcy-radar-rows,#tokenDetail .arcy-radar-panel>.arcy-radar-pager,#tokenDetail .arcy-radar-panel>.arcy-radar-disclaimer,#tokenDetail .arcy-radar-panel>.arcy-radar-credit-row{display:none!important}
+#tokenDetail .arcy-radar-overview{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:24px 0 6px}
+#tokenDetail .arcy-radar-overview-card{min-width:0;min-height:450px;border-radius:19px;box-shadow:0 0 20px color-mix(in srgb,var(--radar-accent,#26c8ed) 14%,transparent),inset 0 1px rgba(255,255,255,.09);background:linear-gradient(160deg,color-mix(in srgb,var(--radar-accent,#26c8ed) 18%,#071422),#071322 52%);display:flex;flex-direction:column}
+#tokenDetail .arcy-radar-overview-pons{--radar-accent:#f4a449;order:0}
+#tokenDetail .arcy-radar-overview-arc{--radar-accent:#29c9f5;order:1}
+#tokenDetail .arcy-radar-overview-ethereum{--radar-accent:#a47cff;order:2}
+#tokenDetail .arcy-radar-overview-robinhood{--radar-accent:#2cd4a0;order:3}
+#tokenDetail .arcy-radar-overview-head{font-size:19px;font-weight:800;padding:15px 4px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+#tokenDetail .arcy-radar-overview-mark{display:none!important}
+#tokenDetail .arcy-radar-overview-count{padding:10px 4px;font-size:12px;color:#a4c3d5}
+#tokenDetail .arcy-radar-overview-list{flex:1;display:flex;flex-direction:column;gap:2px}
+#tokenDetail .arcy-radar-overview-token{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,.9fr) minmax(0,.65fr) minmax(0,.85fr) 10px;align-items:center;gap:5px;min-height:53px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.08);text-decoration:none}
+#tokenDetail .arcy-radar-overview-token:hover{background:rgba(255,255,255,.05)}
+#tokenDetail .arcy-radar-overview-symbol{font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis}
+#tokenDetail .arcy-radar-overview-price,#tokenDetail .arcy-radar-overview-volume{font-size:10px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tokenDetail .arcy-radar-overview-change{font-size:10px;text-align:right;white-space:nowrap}
+#tokenDetail .arcy-radar-overview-action{margin-top:16px;min-height:43px;border-color:var(--radar-accent)!important;color:#f7fbff}
+#tokenDetail .arcy-radar-overview-card.is-expanded{grid-column:span 2;min-height:560px}
+@media(max-width:1050px){#tokenDetail .arcy-radar-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:580px){#tokenDetail .arcy-radar-overview{grid-template-columns:minmax(0,1fr);gap:13px}#tokenDetail .arcy-radar-overview-card{min-height:380px}#tokenDetail .arcy-radar-overview-card.is-expanded{grid-column:span 1;min-height:490px}#tokenDetail .arcy-radar-overview-token{min-height:46px}#tokenDetail .arcy-radar-overview-head{font-size:17px}}
