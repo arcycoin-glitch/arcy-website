@@ -5,6 +5,7 @@ on:
       - 'lib/market-radar.js'
       - 'lib/radar-v2/**'
       - 'scripts/probe-radar-v2.cjs'
+      - 'scripts/probe-radar-change24h.cjs'
       - 'scripts/probe-liquidity-definition.cjs'
       - 'scripts/probe-arc-log-range.cjs'
       - 'scripts/search-coverage-matrix.cjs'
@@ -52,6 +53,15 @@ jobs:
         continue-on-error: true
       - name: Respect GeckoTerminal keyless 5 calls/minute
         run: sleep 90
+      - name: Radar 24h change field coverage probe (read-only, CI only)
+        run: node scripts/probe-radar-change24h.cjs
+      - name: Upload 24h change evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: change24h-report
+          path: change24h-report.json
+          if-no-files-found: ignore
       - name: Radar V2 live source probe (paced, keyless, CI only)
         run: node scripts/probe-radar-v2.cjs
         continue-on-error: true
