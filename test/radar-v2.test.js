@@ -381,3 +381,14 @@ test('HTML-escaped provider names are decoded to plain text',()=>{
  const body=geckoBody('arc',{count:1});body.included.find(x=>x.type==='token'&&x.attributes.symbol==='T0').attributes.name='SPDR S&amp;P 500 &lt;ETF&gt; &quot;Trust&quot;';
  assert.equal(gecko.parse(body,'arc').rows[0].name,'SPDR S&P 500 <ETF> "Trust"');
 });
+
+test('Preview-only diagnostics name missing configuration items, never values, and never appear on Production',async()=>{
+ const handler=require('../search/server/api/radar'),own={method:'GET',query:{chain:'arc'},headers:{'sec-fetch-site':'same-origin',host:'x'}};
+ const clean={MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:undefined,MARKET_RADAR_JSON_DELIVERY_APPROVED:undefined,COINGECKO_DEMO_API_KEY:undefined,COINGECKO_PRO_API_KEY:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:undefined};
+ let r=await call(handler,own,{...clean,VERCEL_ENV:'preview'});
+ assert.deepEqual(r.body.previewDiagnostics.missing.slice(0,3),['MARKET_RADAR_PUBLIC_DISPLAY_APPROVED','MARKET_RADAR_JSON_DELIVERY_APPROVED','COINGECKO_DEMO_API_KEY']);
+ r=await call(handler,own,{...clean,VERCEL_ENV:'preview',MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:'true',MARKET_RADAR_JSON_DELIVERY_APPROVED:'true',VERCEL:'1',COINGECKO_DEMO_API_KEY:'secret-value-123'});
+ assert.ok(!JSON.stringify(r.body).includes('secret-value-123'));
+ r=await call(handler,own,{...clean,VERCEL_ENV:'production'});assert.equal(r.status,503);assert.equal(r.body.previewDiagnostics,undefined);
+ r=await call(handler,own,{...clean,VERCEL_ENV:undefined});assert.equal(r.body.previewDiagnostics,undefined);
+});
