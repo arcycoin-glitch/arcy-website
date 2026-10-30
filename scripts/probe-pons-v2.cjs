@@ -7,7 +7,7 @@ const V2=PONS.factories.find(f=>PONS.versions[f]==='v2');
 const lines=[];const log=m=>{lines.push(m);console.log(m);};
 const ctx={fetcher:(u,o)=>fetch(u,{...o,signal:AbortSignal.timeout(20000)}),now:Date.now};
 (async()=>{
- const rec=await pons.recentLaunches(RPC,ctx,{maxWindows:4,enough:200,maxLaunches:60});
+ const rec=await pons.recentLaunches(RPC,ctx,{maxWindows:8,enough:60,maxLaunches:60});
  const v2=rec.launches.filter(l=>l.version==='v2'),v1=rec.launches.filter(l=>l.version==='v1');
  log('head block '+rec.block+' | windows used '+rec.windowsUsed+' x '+rec.windowBlocks+' blocks | status '+rec.status+' | requests '+rec.requests);
  log('events: V2='+v2.length+' (factory '+V2.slice(0,10)+') V1='+v1.length+' | perFactory '+Object.entries(rec.perFactory).map(([f,x])=>f.slice(0,8)+':'+x.version+':'+x.logs).join(','));
