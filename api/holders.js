@@ -4,7 +4,7 @@ module.exports=c.route(async(a,req)=>{
  if(req.query.action==='queue')return require('../lib/holder-queue-client').enqueue(a);
  if(req.query.action==='status')return require('../lib/holder-queue-client').status(a);
  const snapshot=req.query.action==='published'?(await publication.remote(a)||await publication.read(a)):await publication.freshest(a);
- if(snapshot)return display.historical(snapshot,{state:'BACKGROUND'});
+ if(snapshot)return require('../search/server/lib/block-age').enrichHolderValue(display.historical(snapshot,{state:'BACKGROUND'}),{rpc:(m,p)=>c.rpc(m,p)}).catch(()=>display.historical(snapshot,{state:'BACKGROUND'}));
  const publicationLookup=publication.lookupState(a),failed=publicationLookup.state!=='ABSENT';
  const result=c.unknown(failed?'Signed publication lookup could not establish availability. This is not proof that indexing is incomplete.':'No published COMPLETE verified holder snapshot is available. Background work is separate.',failed?'HOLDER_PUBLICATION_UNAVAILABLE':'HOLDER_SNAPSHOT_NOT_PUBLISHED',failed?'SOURCE_API_FAILED':'NOT_VERIFIED');
  return {status:'NOT_VERIFIED',source:null,holderCount:null,largestWalletPct:null,top10Pct:null,top20Pct:null,...result,publicationLookup,coverage:{complete:false,refreshQueued:false},fields:Object.fromEntries(['holderCount','largestWalletPct','top10Pct','top20Pct'].map(k=>[k,{...result}]))};

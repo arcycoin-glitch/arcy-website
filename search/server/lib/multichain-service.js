@@ -48,6 +48,7 @@ async function buildReport({network='ethereum',address}){
  }
  if(logoUrl)result.token={...result.token,logoUrl};
  // Additive evidence taxonomy + provenance (never alters value/status/dataState).
+ try{await require('./block-age').enrich(result,{network});}catch{}
  try{require('./evidence-class').annotate(result);}catch{}
  return result;
 }
