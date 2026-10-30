@@ -376,3 +376,8 @@ test('a zero market cap or FDV is "not stated", not a value',async()=>{
  const out=await gecko.fetchMulti({host:'https://x',key:null},'arc',m.data.map(d=>d.attributes.address),{fetcher:router([[/./,()=>resp(m)]]),now:()=>T0});
  for(const v of out.values()){assert.equal(v.marketCapUsd,null);assert.equal(v.fdvUsd,null);}
 });
+
+test('HTML-escaped provider names are decoded to plain text',()=>{
+ const body=geckoBody('arc',{count:1});body.included.find(x=>x.type==='token'&&x.attributes.symbol==='T0').attributes.name='SPDR S&amp;P 500 &lt;ETF&gt; &quot;Trust&quot;';
+ assert.equal(gecko.parse(body,'arc').rows[0].name,'SPDR S&P 500 <ETF> "Trust"');
+});

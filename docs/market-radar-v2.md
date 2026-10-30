@@ -50,5 +50,26 @@ Assessment for this use model:
 All four sections returned HTTP 200 with live data (Arc 9, Ethereum 9, Robinhood 10, Pons Launch 1 tokens). Edge cache confirmed (`x-vercel-cache: HIT`, same `asOf` on repeat calls). Desktop and a 390 px frame render without horizontal overflow. Findings fixed in 6ccac61: full-width status badge, browser machine-translation of tickers/tab names, native-ETH zero-address rows linking to a research page, no hint about clone tickers (two non-factory "PONS" clones rank 3–4 on Robinhood with ~$50M volume and are correctly absent from Pons Launch) and extreme volume/liquidity ratios.
 Not verifiable from a browser: the `403 RADAR_SITE_ONLY` path (browsers cannot forge `Sec-Fetch-Site`); covered by unit tests.
 
+## Logos and coverage update (PR #99)
+Measured with real providers (GitHub Actions probe, keyless, in-process only, commit c9d4a8e); "before" = main at f799ee4 on Vercel Preview.
+
+| | Before | After |
+|---|---|---|
+| Tokens shown (Arc / Ethereum / Robinhood / Pons) | 9 / 9 / 10 / 1 = 29 | 10 / 9 / 10 / 1 = 30 |
+| Logo coverage | 0 % | 76.7 % (23/30) |
+| Field completeness (not N/A, 7 fields) | 89.7 % | 91.4 % |
+| Cross-verified fields | 41.9 % | 50.5 % |
+| GeckoTerminal/CoinGecko calls per section refresh | 1 (Pons 2) | 2 (Pons 2 + RPC) |
+
+Logos: the provider's token image for the exact chain + contract (GeckoTerminal/CoinGecko, DEX Screener fallback), https allow-listed provider CDNs only. The 7 tokens without a logo have no image at either provider: Arc WETH `0x41d5…`, cirBTC, EURC `0x834d…`, BTC `0x30ed…`; Ethereum native ETH (zero address); the two non-factory "PONS" clones on Robinhood. They get a neutral placeholder; no logo is borrowed from another chain or contract.
+
+Remaining N/A fields and exact reasons (live run): market cap `SOURCES_DISAGREE` (providers' circulating-supply definitions differ) or not published (native/rebasing tokens; FDV is never substituted); pool creation time `SOURCES_DISAGREE` (DEX Screener's first-seen time differs by more than 10 min for some V4 pools); 24h change `SOURCES_DISAGREE` (two pools differ); Robinhood liquidity `SOURCES_DISAGREE` for 3 tokens.
+
+Provider quirks found and handled: GeckoTerminal `tokens/multi.total_reserve_in_usd` can be impossible (4.04 for a $4.7M pool on Arc), so token totals smaller than the token's own top pool fall back to the pool figure and are labelled "(pool)"; provider names arrive HTML-escaped (decoded); zero market cap/FDV is treated as not stated; DEX Screener sees fewer pools than GeckoTerminal, so a lower DEX Screener volume/liquidity total is "partial coverage" (single-source), a higher one is a contradiction.
+
+Budget (Demo): 8 calls per cycle (3 top-pool pages + Pons new-pools page + 4 `tokens/multi`; Pons reuses the cached Robinhood top-volume page), TTL 45 min (floor 40) = 7,680 calls/month < 10,000.
+
+Not covered: whole-chain coverage (candidates are the base tokens of the provider's 20 highest-volume pools; ranking by provider-stated 24h token volume over all its pools). A second page would lift Ethereum from 9 to 10 tokens but needs a 60 min TTL on the free plan.
+
 ## Still unverified (needs CI probe / operator)
 CoinGecko Demo-key onchain coverage of Arc/Robinhood (keyless works; a Demo key was not available); the licence approvals above. Run `scripts/probe-radar-v2.cjs` via the "Market Radar source compatibility probe" workflow.
