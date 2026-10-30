@@ -41,6 +41,15 @@ const hasVal=v=>v!==undefined&&v!==null&&v!=='ABSENT'&&String(v).trim()!==''&&Nu
     return {symbol:t.symbol,address:t.address,pool:t.pool,poolCreatedAt:t.poolCreatedAt,class:cls,status:f.status,reasonCode:f.reasonCode||null,final:t.change24hPct,raw,sources:(f.sources||[]).map(s=>({p:s.provider,v:s.value}))};
    });
    report.networks[net]={tokens:rows.length,tally,rows};
+   if(net==='pons'){ // raw tokens/multi?include=top_pools for the listed tokens (probe-only call): proves what the provider returns for each exact pool
+    try{
+     await sleep(14000);
+     const list=out.tokens.map(t=>t.address).join(',');
+     const res=await fetch('https://api.geckoterminal.com/api/v2/networks/'+gk+'/tokens/multi/'+list+'?include=top_pools',{signal:AbortSignal.timeout(12000)});
+     const j=await res.json();const inc=new Map((j.included||[]).filter(x=>x.type==='pool').map(x=>[x.attributes.address.toLowerCase(),x.attributes]));
+     console.log('::notice::c24multi http='+res.status+' bytes~'+JSON.stringify(j).length+' includedPools='+inc.size+' '+out.tokens.map(t=>{const tok=(j.data||[]).find(d=>d.attributes&&d.attributes.address.toLowerCase()===t.address);const tp=((tok&&tok.relationships&&tok.relationships.top_pools&&tok.relationships.top_pools.data)||[]).map(x=>x.id.split('_')[1].slice(0,12));const a=inc.get(String(t.pool).toLowerCase());return t.symbol+':row='+String(t.pool).slice(0,12)+',top='+tp.join('/')+',rowInIncluded='+Boolean(a)+',h24='+(a&&a.price_change_percentage?a.price_change_percentage.h24:'-');}).join(' ;; '));
+    }catch(e){console.log('::warning::c24multi failed '+e.message);}
+   }
    console.log('::notice::change24h '+net+' '+JSON.stringify(tally)+' of '+rows.length);
    // GitHub keeps only 10 annotations per step: one compact annotation per network carries every row.
    console.log('::notice::c24rows '+net+' '+rows.map(r=>[r.symbol,r.class,'final='+r.final,r.reasonCode||'-','src='+JSON.stringify(r.sources.map(x=>x.p[0]+':'+x.v)),'raw='+JSON.stringify(Object.fromEntries(Object.entries(r.raw).map(([k,x])=>[k[0],x.listed?x.h24:'-']))),'age='+(r.poolCreatedAt?Math.round((Date.now()-Date.parse(r.poolCreatedAt))/36e5)+'h':'?')].join(' ')).join(' ;; '));
