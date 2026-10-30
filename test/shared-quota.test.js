@@ -6,6 +6,8 @@ test('quota-store validates input and enforces the cap atomically in worker memo
  store._reset();const cfg={};
  assert.equal((await store.apply({month:'bad',credits:4,cap:100,mode:'reserve'},{config:cfg})).reasonCode,'QUOTA_REQUEST_INVALID');
  assert.equal((await store.apply({month:M,credits:4,cap:9000,mode:'reserve'},{config:cfg})).ok,false);
+ assert.equal((await store.apply({month:M,credits:4,cap:100,mode:'settle'},{config:cfg})).reasonCode,'QUOTA_REQUEST_INVALID','settle can never add');
+ assert.equal((await store.apply({month:M,credits:-1,cap:100,mode:'reserve'},{config:cfg})).reasonCode,'QUOTA_REQUEST_INVALID');
  let g=0,r=0;for(let i=0;i<10;i++){const x=await store.apply({month:M,credits:4,cap:20,mode:'reserve'},{config:cfg});x.granted?g++:r++;}
  assert.deepEqual([g,r],[5,5]);
  const s=await store.apply({month:M,credits:-4,cap:20,mode:'settle'},{config:cfg});assert.equal(s.spent,16);
@@ -29,19 +31,27 @@ test('worker endpoint requires the bearer token and applies quota',async()=>{
   assert.equal((await post('Bearer tok',{month:'x'})).status,400);
  }finally{server.close();}
 });
-test('radar client: refused/granted/unavailable and fallback',async()=>{
+test('radar client: refused/granted/unverifiable/local',async()=>{
  const env={ARC_HOLDER_QUEUE_URL:'https://w.example/queue',ARC_HOLDER_QUEUE_TOKEN:'t'};
  const mk=(ok,body)=>async()=>({ok,json:async()=>body});
  assert.equal(await budget.shared('reserve',4,{env,fetcher:mk(true,{ok:true,granted:false})}),'refused');
  assert.equal(await budget.shared('reserve',4,{env,fetcher:mk(true,{ok:true,granted:true})}),'granted');
- assert.equal(await budget.shared('reserve',4,{env,fetcher:mk(false,{})}),'unavailable');
- assert.equal(await budget.shared('reserve',4,{env,fetcher:async()=>{throw new Error('t');}}),'unavailable');
- assert.equal(await budget.shared('reserve',4,{env:{},fetcher:mk(true,{})}),'unavailable');
+ assert.equal(await budget.shared('reserve',4,{env,fetcher:mk(false,{})}),'unverifiable');
+ assert.equal(await budget.shared('reserve',4,{env,fetcher:async()=>{throw new Error('t');}}),'unverifiable');
+ assert.equal(await budget.shared('reserve',4,{env,fetcher:async()=>({ok:false,status:404,json:async()=>({})})}),'local','old worker without the endpoint');
+ assert.equal(await budget.shared('reserve',4,{env:{},fetcher:mk(true,{})}),'local');
 });
 test('radar load refuses without any provider call when the shared cap says refused',async()=>{
  const radar=require('../lib/radar-v2');budget._reset();
  const env={MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:'true',MARKET_RADAR_JSON_DELIVERY_APPROVED:'true',COINGECKO_DEMO_API_KEY:'k',ARC_HOLDER_QUEUE_URL:'https://w.example/queue',ARC_HOLDER_QUEUE_TOKEN:'t'};
  const urls=[];const fetcher=async u=>{urls.push(String(u));if(String(u).includes('/quota/radar'))return {ok:true,json:async()=>({ok:true,granted:false})};throw new Error('provider must not be called');};
  await assert.rejects(()=>radar.load('robinhood',{env,fetcher,now:()=>Date.parse('2026-10-30T12:00:00Z')}),e=>e.code==='RADAR_BUDGET_EXHAUSTED');
+ assert.ok(urls.every(u=>u.includes('/quota/radar')));
+});
+test('radar load FAILS CLOSED (no provider call) when the worker is configured but the quota store is unreachable',async()=>{
+ const radar=require('../lib/radar-v2');budget._reset();
+ const env={MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:'true',MARKET_RADAR_JSON_DELIVERY_APPROVED:'true',COINGECKO_DEMO_API_KEY:'k',ARC_HOLDER_QUEUE_URL:'https://w.example/queue',ARC_HOLDER_QUEUE_TOKEN:'t'};
+ const urls=[];const fetcher=async u=>{urls.push(String(u));if(String(u).includes('/quota/radar'))return {ok:false,status:503,json:async()=>({})};throw new Error('provider must not be called');};
+ await assert.rejects(()=>radar.load('robinhood',{env,fetcher,now:()=>Date.parse('2026-10-30T12:00:00Z')}),e=>e.code==='RADAR_QUOTA_UNVERIFIABLE');
  assert.ok(urls.every(u=>u.includes('/quota/radar')));
 });
