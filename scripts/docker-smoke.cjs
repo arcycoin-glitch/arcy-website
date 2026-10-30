@@ -14,7 +14,7 @@ if(info.error||info.status!==0){const m='docker daemon unavailable: build/startu
 const token=crypto.randomBytes(24).toString('hex'),port=String(18000+process.pid%2000);
 const volume=fs.mkdtempSync(path.join(os.tmpdir(),'arcy-worker-smoke-'));fs.chmodSync(volume,0o755);fs.mkdirSync(path.join(volume,'index'));const sentinel=path.join(volume,'index','release-sentinel.txt');fs.writeFileSync(sentinel,'preserve-existing-checkpoints');
 let code=1;
-const cleanup=()=>{sh(['rm','-f',name]);sh(['rmi','-f',tag]);fs.rmSync(volume,{recursive:true,force:true});};
+const cleanup=()=>{sh(['rm','-f',name]);sh(['run','--rm','--user','0','--entrypoint','sh','-v',volume+':/data',tag,'-c','chmod -R a+rwX /data']);sh(['rmi','-f',tag]);fs.rmSync(volume,{recursive:true,force:true});};
 try{
  const b=sh(['build','-f','Dockerfile.holder-worker','-t',tag,'.'],{stdio:['ignore','inherit','inherit']});
  if(b.status!==0)throw Error('docker build failed');
