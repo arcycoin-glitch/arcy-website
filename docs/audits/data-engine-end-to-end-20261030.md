@@ -100,7 +100,7 @@ Redis is private to the Railway worker, so Vercel instances cannot reach it dire
 
 ## 11. Arc log-span probe
 
-Shell cannot reach the Arc RPC; `scripts/probe-arc-log-range.cjs` runs in CI (annotations) to find the maximum accepted `eth_getLogs` span. Widening `tailRange` stays blocked until that evidence exists (and `scripts/holder-worker.cjs` is pinned).
+Shell cannot reach the Arc RPC; `scripts/probe-arc-log-range.cjs` runs in CI (annotations) to find the maximum accepted `eth_getLogs` span. **CI result (commit b22b8e1, Arc head 28,683,493):** span 1000/2000/5000 accepted; **10000 rejected ("requested range too large")** → true maximum is between 5,000 and 9,999. ARCY had 0 Transfer logs in the last 5,000 blocks, so log density is not the limiting factor. The current ≤1000 cap is conservative; a safe widening to ~5,000 is technically possible but is not applied. Widening `tailRange` stays blocked until that evidence exists (and `scripts/holder-worker.cjs` is pinned).
 
 ## 12. Open items
 
