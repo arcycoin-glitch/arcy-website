@@ -404,3 +404,26 @@ test('Preview-only diagnostics name missing configuration items, never values, a
  r=await call(handler,own,{...clean,VERCEL_ENV:'production'});assert.equal(r.status,503);assert.equal(r.body.previewDiagnostics,undefined);
  r=await call(handler,own,{...clean,VERCEL_ENV:undefined});assert.equal(r.body.previewDiagnostics,undefined);
 });
+
+test('pons: a pool missing its 24h change in the pool pages is recovered from tokens/multi include=top_pools in the SAME request (no extra call, no estimate)',async()=>{
+ const body=geckoBody('pons',{count:12});
+ for(const p of body.data)delete p.attributes.price_change_percentage;
+ const members=[addr(2),addr(5),addr(9)],id=sources.NETWORKS.pons.gecko;
+ const multi=multiBody('pons',body);
+ multi.included=body.data.map(p=>({id:id+'_'+p.attributes.address,type:'pool',attributes:{address:p.attributes.address,price_change_percentage:{h24:p.attributes.address===addr(5001)?'-7.25':undefined}}}));
+ for(const d of multi.data)d.relationships={top_pools:{data:[{id:id+'_'+addr(5000+Number(BigInt(d.attributes.address)-1n)),type:'pool'}]}};
+ const urls=[];
+ const f=router([[/tokens\/multi/,u=>{urls.push(u);return resp(multi);}],[/coingecko\.com/,()=>resp(body)],[/rpc\.example/,rpcRouter({members})]]);
+ const out=await radar.load('pons',{env:{...DEMO,VERCEL:undefined},fetcher:f,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
+ assert.equal(urls.length,1,'one token lookup, include rides on it');assert.match(urls[0],/include=top_pools/);
+ const t2=out.tokens.find(t=>t.address===addr(2)),t5=out.tokens.find(t=>t.address===addr(5));
+ assert.equal(t2.change24hPct,-7.25);assert.equal(t2.fields.change24hPct.status,'SOURCE_REPORTED');assert.equal(t2.fields.change24hPct.recovery.from,'tokens/multi include=top_pools');
+ assert.equal(t5.change24hPct,null);assert.equal(t5.fields.change24hPct.status,'NOT_VERIFIED');assert.ok(['SOURCE_24H_CHANGE_UNAVAILABLE','POOL_LESS_THAN_24H_OLD'].includes(t5.fields.change24hPct.reasonCode));assert.ok(t5.fields.change24hPct.reason);
+});
+test('pons: if the include variant fails, token numbers are still obtained with one plain retry (never lost)',async()=>{
+ const body=geckoBody('pons',{count:12});const members=[addr(2)];let n=0;
+ const f=router([[/tokens\/multi.*include/,()=>{n++;return {ok:false,status:400,headers:new Headers(),text:async()=>'{}'};}],[/tokens\/multi/,()=>{n++;return resp(multiBody('pons',body));}],[/coingecko\.com/,()=>resp(body)],[/rpc\.example/,rpcRouter({members})]]);
+ for(const p of body.data)delete p.attributes.price_change_percentage;
+ const out=await radar.load('pons',{env:{...DEMO,VERCEL:undefined},fetcher:f,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
+ assert.equal(out.tokens.length,1);assert.equal(n,2);assert.notEqual(out.tokens[0].priceUsd,null);
+});

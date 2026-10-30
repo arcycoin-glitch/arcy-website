@@ -72,12 +72,12 @@ test('same exact pool listed by another channel supplies a missing h24 (no extra
 test('tokens/multi include=top_pools: pool-level h24 kept per exact pool; foreign/mismatched/junk entries ignored; plain call has no include',async()=>{
  const net='pons',id=sources.NETWORKS.robinhood.gecko,a=addr(77),pool=addr(8001),other=addr(8002);
  const mk=(pid,addrv,h24)=>({id:id+'_'+pid,type:'pool',attributes:{address:addrv,price_change_percentage:{h24}}});
- const bodyMulti={data:[{id:id+'_'+a,type:'token',attributes:{address:a,symbol:'X',name:'X',price_usd:'1',total_reserve_in_usd:'5',volume_usd:{h24:'9'}}}],
+ const bodyMulti={data:[{id:id+'_'+a,type:'token',relationships:{top_pools:{data:[{id:id+'_'+pool,type:'pool'}]}},attributes:{address:a,symbol:'X',name:'X',price_usd:'1',total_reserve_in_usd:'5',volume_usd:{h24:'9'}}}],
   included:[mk(pool,pool,'-3.5'),mk(other,other,'oops'),mk(addr(8003),addr(8004),'9'),{id:'x',type:'dex',attributes:{}}]};
  const urls=[];const fetcher=async u=>{urls.push(u);return resp(bodyMulti);};
  const withInc=await gecko.fetchMulti({host:'https://h',header:null,key:null},net,[a],{fetcher,now:()=>T0,includePools:true});
  assert.match(urls[0],/\?include=top_pools$/);
- const m=withInc.get(a).poolChange24h;assert.equal(m.get(pool),-3.5);assert.equal(m.has(other),false,'junk value ignored');assert.equal(m.has(addr(8004)),false,'id/address mismatch ignored');
+ const m=withInc.get(a).poolChange24h;assert.equal(m.get(pool),-3.5);assert.deepEqual(withInc.get(a).topPools,[pool]);assert.equal(m.has(other),false,'junk value ignored');assert.equal(m.has(addr(8004)),false,'id/address mismatch ignored');
  http._resetCooldowns();
  const plain=await gecko.fetchMulti({host:'https://h',header:null,key:null},net,[a],{fetcher,now:()=>T0});
  assert.ok(!/include/.test(urls[1]));assert.equal(plain.get(a).poolChange24h,undefined);
