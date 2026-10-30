@@ -34,7 +34,9 @@ test('row contains ranking, name and action to exact network/contract',()=>{
  assert.match(js,/item\.rank/);
  assert.match(js,/arcy-radar-overview-token-name/);
  assert.match(js,/TOKEN_NET\[network\]/);
- assert.match(js,/row\.append\(identity,priceLabel,change,volume,arrow\)/);
+ assert.match(js,/row\.append\(identity,priceLabel,change,volume,scoreCell,reasonCell,arrow\)/);
+ assert.match(js,/scoreOk/);
+ assert.match(js,/explainDiscovery\(d\.reason\)/);
 });
 test('mobile structure and keyboard accessibility are provided',()=>{
  assert.match(css,/@media\(max-width:390px\)/);
