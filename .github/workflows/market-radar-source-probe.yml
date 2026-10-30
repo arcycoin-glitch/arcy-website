@@ -6,6 +6,7 @@ on:
       - 'lib/radar-v2/**'
       - 'scripts/probe-radar-v2.cjs'
       - 'scripts/probe-liquidity-definition.cjs'
+      - 'scripts/probe-arc-log-range.cjs'
       - 'scripts/probe-market-radar.cjs'
       - '.github/workflows/market-radar-source-probe.yml'
   workflow_dispatch:
@@ -32,6 +33,9 @@ jobs:
         continue-on-error: true
       - name: Liquidity definition evidence (CI only)
         run: node scripts/probe-liquidity-definition.cjs
+        continue-on-error: true
+      - name: Arc eth_getLogs span evidence (CI only)
+        run: node scripts/probe-arc-log-range.cjs
         continue-on-error: true
       - name: Let the public RPC rate window reset
         run: sleep 45
