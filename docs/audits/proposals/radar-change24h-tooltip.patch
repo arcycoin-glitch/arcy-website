@@ -1,0 +1,18 @@
+--- a/search/market-radar.js
++++ b/search/market-radar.js
+@@ -154,6 +154,7 @@
+    const volume=el('span','arcy-radar-overview-volume',fieldOk(item,'volume24hUsd')?money(item.volume24hUsd):'N/A');
+    const priceLabel=el('span','arcy-radar-overview-price',fieldOk(item,'priceUsd')?price(item.priceUsd):'N/A');
+    const change=el('span','arcy-radar-overview-change',fieldOk(item,'change24hPct')?pct(item.change24hPct):'—');
++   if(!fieldOk(item,'change24hPct')&&item.fields&&item.fields.change24hPct&&item.fields.change24hPct.reason)change.title=item.fields.change24hPct.reason;
+    if(fieldOk(item,'change24hPct'))change.classList.add(item.change24hPct>=0?'positive':'negative');
+    const arrow=el('span','arcy-radar-overview-token-arrow',validAddress?'›':'');arrow.setAttribute('aria-hidden','true');
+    const rank=el('span','arcy-radar-overview-rank',String(Number.isInteger(item.rank)?item.rank:index+1));
+@@ -298,6 +299,7 @@
+    stats.append(volume,small,badges);if(onchain)stats.append(onchain);
+    for(const w of warn)stats.append(el('span','arcy-radar-warn',w));
+    const change=el('span','arcy-radar-change',fieldOk(item,'change24hPct')?pct(item.change24hPct):NV);
++   if(!fieldOk(item,'change24hPct')&&item.fields&&item.fields.change24hPct&&item.fields.change24hPct.reason)change.title=item.fields.change24hPct.reason;
+    if(fieldOk(item,'change24hPct')&&typeof item.change24hPct==='number')change.classList.add(item.change24hPct>=0?'positive':'negative');
+    link.append(rank,identity,stats,change,el('span','arcy-radar-arrow','›'));
+    rows.append(link);
