@@ -74,9 +74,9 @@ test('score: missing inputs remove their component (weights re-normalise, loss i
  const full=D.score(base,'arc',T0);
  assert.equal(full.missing.length,0);assert.equal(full.weightCoverage,1);
  const part=D.score({...base,poolCreatedAt:null,change24hPct:null,buys24h:null,sells24h:null,crossShare:null},'arc',T0);
- assert.deepEqual(part.missing.map(m=>m.id).sort(),['activity','balance','consistency','freshness','momentum']);
+ assert.deepEqual(part.missing.map(m=>m.id).sort(),['activity','balance','consistency','momentum']);
+ assert.equal(part.components.find(c=>c.id==='freshness').value,0,'unknown age earns no newness credit but keeps its weight');
  assert.ok(part.weightCoverage<1&&part.score>=0&&part.score<=100);
- assert.ok(!part.components.some(c=>c.id==='freshness'),'no age -> no freshness points, not a default age');
  assert.equal(D.score(base,'arc',T0).version,D.SCORE_VERSION);
  const sum=full.components.reduce((a,c)=>a+c.points,0);assert.ok(Math.abs(sum-full.score)<0.2,'component points explain the score');
 });
