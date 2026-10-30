@@ -220,7 +220,7 @@ test('Pons: a launch announced by the factory event but absent from every provid
  assert.ok(t,'discovered through the TokenLaunched event');assert.equal(t.symbol,'NEWL');assert.equal(t.launch.status,'ONCHAIN_VERIFIED');assert.equal(t.discovery.channels[0],'factory-event');
  assert.equal(t.fields.volume24hUsd.scope,'TOKEN');assert.ok(t.discovery.poolAgeDays<1,'age comes from the launch block timestamp');
  assert.equal(out.coverage.factoryEvents.launchesInWindow,1);
- const logs=f.calls.filter(c=>/eth_getLogs/.test(String(c.o.body)));assert.ok(logs.length<=2);
+ const logs=f.calls.filter(c=>/eth_getLogs/.test(String(c.o.body)));assert.ok(logs.length<=9,"bounded: 3 factories x at most 3 windows");for(const c of logs){const q=JSON.parse(c.o.body)[0].params[0];assert.ok(parseInt(q.toBlock,16)-parseInt(q.fromBlock,16)<=10000000)};
 });
 test('Pons: if the factory-event query fails, ranking continues from provider windows and the status says so',async()=>{
  const inner=rpcFor([addr(170)]);
@@ -228,4 +228,66 @@ test('Pons: if the factory-event query fails, ranking continues from provider wi
   [/rpc\.example/,async(u,o)=>{const b=JSON.parse(o.body);if(b.some(c=>c.method==='eth_getLogs'))return resp(b.map(c=>({jsonrpc:'2.0',id:c.id,error:{code:-32000,message:'boom'}})));return inner(u,o);}]]);
  const out=await radar.load('pons',{env:ENV,fetcher:g,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
  assert.equal(out.tokens.length,1);assert.equal(out.coverage.factoryEvents.status,'RADAR_PONS_LOGS_UNAVAILABLE');
+});
+
+// ── Pons V2 (bonding curve -> Uniswap v4 pool) ────────────────────────────────────────────────────────────────
+const keccak=require('../lib/keccak'),V2F=sources.PONS.factories.find(f=>sources.PONS.versions[f]==='v2');
+const w64=x=>String(x).replace('0x','').padStart(64,'0'),selOf=sig=>'0x'+keccak(Buffer.from(sig)).slice(2,10);
+function v2Launched(tok,curve,phase,exists=1){
+ const words=Array(15).fill('0'.repeat(64));
+ words[0]=w64(tok);words[1]=w64(curve);words[2]=w64(addr(7));words[4]=w64(addr(0));words[5]=w64((5n*10n**18n).toString(16));words[10]=w64(phase.toString(16));words[14]=w64(exists.toString(16));
+ return '0x'+words.join('');
+}
+// members: {token: {curve, phase}}; launches: [{token, curve, block}] announced by the V2 TokenLaunched event
+function rpcV2(members,launches=[],curveReads={}){
+ return async(u,o)=>{const body=JSON.parse(o.body);return resp(body.map(c=>{
+  const ok=r=>({jsonrpc:'2.0',id:c.id,result:r});
+  if(c.method==='eth_chainId')return ok('0x'+(4663).toString(16));
+  if(c.method==='eth_blockNumber')return ok('0x64');
+  if(c.method==='eth_getBlockByNumber')return ok({timestamp:'0x'+Math.floor((T0-7200e3)/1000).toString(16)});
+  if(c.method==='eth_getLogs'){
+   const q=c.params[0];if(q.address!==V2F)return ok([]);
+   return ok(launches.map(l=>({address:V2F,blockNumber:'0x'+l.block.toString(16),topics:[pons.TOPIC_LAUNCHED_V2,'0x'+w64(l.token),'0x'+w64(l.curve),'0x'+w64(addr(7))],data:'0x'+[addr(0),'0x1',(5n*10n**18n).toString(16)].map(w64).join('')})));
+  }
+  const {to,data}=c.params[0];
+  if(data.startsWith(pons.SEL.getLaunchedToken)){
+   const tok='0x'+data.slice(-40),m=members[tok];
+   if(to===V2F&&m)return ok(v2Launched(tok,m.curve,m.phase));
+   return ok('0x'+'0'.repeat(to===V2F?960:832));
+  }
+  const cr=curveReads[to];
+  if(cr){
+   if(data===selOf('realQuoteReserve()'))return ok('0x'+w64(cr.real.toString(16)));
+   if(data===selOf('graduationThreshold()'))return ok('0x'+w64((5n*10n**18n).toString(16)));
+   if(data===selOf('isNativeQuote()'))return ok('0x'+w64('1'));
+   if(data===selOf('getReserves()'))return ok('0x'+w64((9n*10n**18n).toString(16))+w64((8n*10n**26n).toString(16)));
+  }
+  return {jsonrpc:'2.0',id:c.id,error:{code:-32000,message:'execution reverted'}};
+ }));};
+}
+test('Pons V2: decodeLaunchV2 reads token/curve/deployer/pairToken/phase/exists from the 15-word struct and rejects wrong shapes',()=>{
+ const t=addr(300),c=addr(301);
+ const d=pons.decodeLaunchV2(v2Launched(t,c,2),t);
+ assert.deepEqual([d.version,d.curve,d.deployer,d.pairToken,d.phase],['v2',c,addr(7),addr(0),2]);
+ assert.equal(pons.decodeLaunchV2(v2Launched(t,c,2,0),t),null,'exists=false');
+ assert.equal(pons.decodeLaunchV2(v2Launched(t,c,2),addr(302)),null,'struct names another token');
+ assert.equal(pons.decodeLaunchV2(v2Launched(t,c,9),t),null,'unknown phase');
+ assert.equal(pons.decodeLaunchV2('0x'+'0'.repeat(832),t),null,'V1-sized answer is not a V2 struct');
+ assert.equal(pons.decodeLaunch(v2Launched(t,c,2),t),null,'V1 decoder does not accept a V2 struct');
+ assert.match(pons.TOPIC_LAUNCHED_V2,/^0x[0-9a-f]{64}$/);assert.notEqual(pons.TOPIC_LAUNCHED_V2,pons.TOPIC_LAUNCHED);
+});
+test('Pons V2: graduated V2 tokens from the provider window AND a factory-event-only V2 token are ranked; a curve-phase launch is reported separately, never ranked',async()=>{
+ const GRAD=addr(310),EVT=addr(311),CURVE_TOK=addr(312),FAKE=addr(313);
+ const listed=[{a:GRAD,s:'GRD',vol:4e5,liq:6e5,age:3},{a:FAKE,s:'GRD',n:'Fake',vol:9e6,liq:9e6,age:1}];
+ const f=router([[/tokens\/multi/,()=>resp(multi('pons',[...listed,{a:EVT,s:'EVT',n:'Event Token',vol:2e5,liq:3e5,tvol:2e5,tliq:3e5}]))],[/coingecko\.com/,()=>resp(page('pons',listed))],
+  [/rpc\.example/,rpcV2({[GRAD]:{curve:addr(320),phase:2},[EVT]:{curve:addr(321),phase:2},[CURVE_TOK]:{curve:addr(322),phase:0}},
+   [{token:EVT,curve:addr(321),block:90},{token:CURVE_TOK,curve:addr(322),block:95}],{[addr(322)]:{real:2n*10n**18n}})]]);
+ const out=await radar.load('pons',{env:ENV,fetcher:f,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
+ const syms=out.tokens.map(t=>t.address);
+ assert.ok(syms.includes(GRAD)&&syms.includes(EVT),'both graduated V2 tokens ranked');
+ assert.ok(!syms.includes(FAKE),'same ticker, not confirmed by the V2 factory');assert.ok(!syms.includes(CURVE_TOK),'curve-phase token has no verified USD volume/liquidity');
+ const g=out.tokens.find(t=>t.address===GRAD);
+ assert.equal(g.launch.factoryVersion,'v2');assert.equal(g.launch.phase,2);assert.equal(g.graduation.graduated,true);assert.equal(g.graduation.phaseName,'GRADUATED_POOL');
+ const bc=out.coverage.bondingCurve;assert.equal(bc.count,1);assert.equal(bc.items[0].token,CURVE_TOK);assert.equal(bc.items[0].progressPct,40);assert.equal(bc.items[0].priceUsd.status,'NOT_VERIFIED');
+ assert.equal(out.coverage.factoryEvents.perFactory[V2F].logs,2);
 });

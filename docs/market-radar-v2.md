@@ -101,3 +101,10 @@ CoinGecko Demo-key onchain coverage of Arc/Robinhood (keyless works; a Demo key 
 **Response additions (UI contract `version: 2` unchanged):** `engine`, `discovery` (weights, profile, channel counts/status, exclusion counts), `excluded[]` (≤ 40, with reason and evidence), per-token `discovery` (score, reason, components, flags, channels, scopes).
 
 **Quota (Demo plan):** per refresh cycle 3 chains × (top + trending + new) = 9 pool pages + 4 `tokens/multi` = **13 credits**; TTL fixed ≥ 60 min → 720 cycles × 13 = 9,360 credits/month (limit 10,000). Pons membership uses public-RPC point reads only: ≤ 40 candidates per refresh in batches of 10 (a public RPC rejected an 80-call batch), cached per address for the TTL and shared by Robinhood and Pons.
+
+
+## Pons V2 (bonding curve -> Uniswap v4) support
+- Factory `0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e` (docs.ponsfamily.com/docs/v2) is registered next to the V1 factories with its own decoder (15-word `getLaunchedToken`: exists = word 14, phase = word 10) and its own `TokenLaunched(address,address,address,address,uint256,uint256)` topic0 (computed locally).
+- Discovery: bounded, newest-first `eth_getLogs` windows (<=3 x 8M blocks, RPC cap 10M) over all factories; provider windows are still used. Membership proof is always `getLaunchedToken` on an official factory.
+- Phase 2 (GRADUATED_POOL) tokens are ranked like any other token from verified provider data. Phase 0 (BONDING_CURVE) tokens found only by event have no pool, so no verified USD price/volume/liquidity exists: they are listed in `coverage.bondingCurve` (progress from `realQuoteReserve / graduationThreshold`, USD `NOT_VERIFIED`) and never ranked or padded in.
+- No extra provider credits: the added work is RPC-only.

@@ -190,3 +190,9 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Canlı doğrulama: CI probe (gerçek sağlayıcılar). Vercel Preview'da gerçek API testi YAPILAMADI: Preview ortamında MARKET_RADAR_PUBLIC_DISPLAY_APPROVED, MARKET_RADAR_JSON_DELIVERY_APPROVED, COINGECKO_DEMO_API_KEY tanımlı değil (RADAR_NOT_CONFIGURED).
 - Açık: Pons son ~90 günde iki resmi factory'de TokenLaunched olayı yok (CI probe); yalnız resmi PONS doğrulanıyor.
 - Sonraki: operatör Preview env'i girince 4 bölümü Preview'da doğrula; lisans kararı; merge/deploy yalnızca onayla.
+
+
+## Radar V3 — Pons V2 support (branch feature/radar-v3-discovery-engine-20261030)
+- Added V2 factory registry (`PONS.versions`), `decodeLaunchV2`, V2 event topic, multi-window `recentLaunches`, `curveStates`, `coverage.bondingCurve`, event-only slot cap (20 of 30 shortlist).
+- Tests: radar-v2 + radar-v3-discovery green locally; CI probe `scripts/probe-pons-v2.cjs` collects real chain evidence.
+- Open: real Preview verification; Arc 9/10 funnel analysis; quota worst-case documentation.

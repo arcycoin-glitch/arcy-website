@@ -26,6 +26,9 @@ jobs:
       - name: Pons factory bounded-log probe (CI only)
         run: node scripts/probe-pons-logs.cjs
         continue-on-error: true
+      - name: Pons V2 production-code chain probe (CI only)
+        run: node scripts/probe-pons-v2.cjs
+        continue-on-error: true
       - name: Respect GeckoTerminal keyless 5 calls/minute
         run: sleep 60
       - name: Radar V2 live source probe (paced, keyless, CI only)
