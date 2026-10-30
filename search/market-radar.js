@@ -32,7 +32,13 @@
   button.type='button';button.dataset.network=id;
   const mark=el('span','arcy-radar-chain-logo arcy-radar-chain-logo-'+id);mark.setAttribute('aria-hidden','true');
   mark.textContent={pons:'P',arc:'◈',ethereum:'◆',robinhood:'R'}[id];
-  button.prepend(mark);
+  // Reuse the three network logos already shipped with ARCY Search.
+  const logoSrc={pons:'https://pons.money/profile/image.png',arc:'/assets/arc-network-mark.svg',ethereum:'/assets/ethereum-mark.svg',robinhood:'/assets/robinhood-chain-mark.svg'}[id];
+  if(logoSrc){
+   const img=el('img','arcy-radar-network-logo');
+   img.src=logoSrc;img.alt='';img.width=34;img.height=34;img.loading='lazy';img.decoding='async';
+   button.prepend(img);
+  }
   chainNav.append(button);buttons.set(id,button);
  }
  const overview=el('div','arcy-radar-overview');overview.setAttribute('aria-label','Network market overview');
@@ -50,7 +56,7 @@
  const FOOT={default:'Ranked by the single largest observed pool for each base token, not total token volume across the chain. Values marked Cross-checked agree between two independent indexers; this is not an onchain proof. Discovery, not an investment recommendation.',pons:'Pons Launch lists only tokens confirmed as launched by the official Pons factory contracts on Robinhood Chain (onchain read), found among the newest and most active pools; tokens still on the bonding curve are not covered and the list is not exhaustive. Discovery, not an investment recommendation.'};
  foot.textContent=FOOT.default;
  const credit=el('p','arcy-radar-credit-row');
- panel.append(title,subtitle,overview,status,rows,pager,foot,credit);
+ panel.append(title,subtitle,chainNav,overview,status,rows,pager,foot,credit);
  detail.prepend(panel);detail.prepend(switcher);
  // Never advertise an empty Radar as a completed public feature.
  // Activate the switcher when at least one section returns source-backed tokens; sections without data say so honestly.
@@ -96,6 +102,7 @@
  }
  for(const [id,name] of chains){
   const card=el('section','arcy-radar-overview-card arcy-radar-overview-'+networkTheme[id]);
+  card.hidden=id!=='pons';
   card.dataset.overview=id;
   const head=el('div','arcy-radar-overview-head');
   const mark=el('span','arcy-radar-overview-mark',icon[id]);mark.setAttribute('aria-hidden','true');mark.hidden=true;
@@ -114,6 +121,22 @@
   action.setAttribute('aria-expanded','false');card.append(head,count,list,action);overview.append(card);
  }
 
+ // Network headings control ONE full-width premium card at a time.
+ function selectNetwork(id){
+  selected=id;
+  expandedNetwork=null;
+  for(const [key,btn] of buttons){btn.setAttribute('aria-pressed',String(key===id));}
+  for(const card of overview.children){
+   const key=card.dataset.overview;
+   card.hidden=key!==id;
+   card.classList.remove('is-expanded');
+   const action=card.querySelector('.arcy-radar-overview-action');
+   if(action){action.setAttribute('aria-expanded','false');action.textContent='View all →';}
+  }
+  for(const [key,data] of overviewData)if(key===id)renderOverview(key,data);
+ }
+ for(const [id,btn] of buttons)btn.addEventListener('click',()=>selectNetwork(id));
+ selectNetwork('pons');
  const BADGE={CROSS_VERIFIED:['✓ Cross-checked','verified'],SOURCE_REPORTED:['Source-reported','reported'],NOT_VERIFIED:['NOT VERIFIED','unverified'],ONCHAIN_VERIFIED:['✓ Onchain','verified']};
  const fieldOk=(item,f)=>item.fields&&item.fields[f]&&item.fields[f].status!=='NOT_VERIFIED'&&item[f]!==null&&item[f]!==undefined;
  const ago=iso=>{const t=Date.parse(iso);if(!Number.isFinite(t))return NV;const m=Math.max(0,Math.round((Date.now()-t)/60000));return m<60?m+'m ago':m<2880?Math.round(m/60)+'h ago':Math.round(m/1440)+'d ago';};
@@ -202,7 +225,7 @@
  }
  researchBtn.addEventListener('click',()=>setView('research'));
  radarBtn.addEventListener('click',()=>setView('radar'));
- for(const [id,btn] of buttons)btn.addEventListener('click',()=>void load(id));
+ // Network headings are handled by selectNetwork; no duplicate token-wall request.
  prev.addEventListener('click',()=>{if(page>0){page--;render();}});
  next.addEventListener('click',()=>{if((page+1)*5<items.length){page++;render();}});
  setView('research');

@@ -174,3 +174,36 @@
 #tokenDetail .arcy-radar-overview-card.is-expanded{grid-column:span 2;min-height:560px}
 @media(max-width:1050px){#tokenDetail .arcy-radar-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:580px){#tokenDetail .arcy-radar-overview{grid-template-columns:minmax(0,1fr);gap:13px}#tokenDetail .arcy-radar-overview-card{min-height:380px}#tokenDetail .arcy-radar-overview-card.is-expanded{grid-column:span 1;min-height:490px}#tokenDetail .arcy-radar-overview-token{min-height:46px}#tokenDetail .arcy-radar-overview-head{font-size:17px}}
+
+
+/* Network headings remain visible; ONLY selected network data card expands below. */
+#tokenDetail .arcy-radar-networks{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0 16px}
+#tokenDetail .arcy-radar-network{min-width:0;min-height:68px;justify-content:center;white-space:normal}
+#tokenDetail .arcy-radar-overview{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:0;margin:0 0 14px}
+#tokenDetail .arcy-radar-overview-card{width:100%;min-height:350px!important;grid-column:1/-1!important;max-width:none!important;padding:22px}
+#tokenDetail .arcy-radar-overview-card[hidden]{display:none!important}
+#tokenDetail .arcy-radar-overview-head{font-size:22px}
+#tokenDetail .arcy-radar-overview-list{display:grid;grid-template-columns:minmax(0,1fr);gap:5px}
+#tokenDetail .arcy-radar-overview-token{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr) 18px!important;min-height:56px;padding:10px 12px}
+#tokenDetail .arcy-radar-overview-symbol{font-size:15px}
+#tokenDetail .arcy-radar-overview-price,#tokenDetail .arcy-radar-overview-change,#tokenDetail .arcy-radar-overview-volume{font-size:13px}
+#tokenDetail .arcy-radar-overview-action{width:100%;margin-top:12px}
+@media(max-width:640px){#tokenDetail .arcy-radar-networks{gap:5px;margin:12px 0}#tokenDetail .arcy-radar-network{min-height:62px;padding:6px 2px;font-size:clamp(8px,2.3vw,11px)}#tokenDetail .arcy-radar-overview-card{padding:12px;min-height:300px!important}#tokenDetail .arcy-radar-overview-token{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr) 10px!important;gap:3px;padding:8px 2px}#tokenDetail .arcy-radar-overview-symbol{font-size:11px}#tokenDetail .arcy-radar-overview-price,#tokenDetail .arcy-radar-overview-change,#tokenDetail .arcy-radar-overview-volume{font-size:10px}}
+
+
+/* Premium network header and single selected data panel. Existing site logo assets. */
+#tokenDetail .arcy-radar-network{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,var(--radar-tint,#0b2737),#071623 85%);border:1px solid var(--radar-color,#3d7188)!important;box-shadow:inset 0 1px rgba(255,255,255,.1),0 7px 22px rgba(0,0,0,.16);transition:transform .2s,box-shadow .2s}
+#tokenDetail .arcy-radar-network[data-network=pons]{--radar-color:#f4a449;--radar-tint:#49301e}
+#tokenDetail .arcy-radar-network[data-network=arc]{--radar-color:#29c9f5;--radar-tint:#123c55}
+#tokenDetail .arcy-radar-network[data-network=ethereum]{--radar-color:#a47cff;--radar-tint:#30234e}
+#tokenDetail .arcy-radar-network[data-network=robinhood]{--radar-color:#2cd4a0;--radar-tint:#103f36}
+#tokenDetail .arcy-radar-network::before{display:none!important}
+#tokenDetail .arcy-radar-network-logo{display:block;width:34px;height:34px;object-fit:contain;flex:0 0 34px;filter:drop-shadow(0 0 7px rgba(255,255,255,.14))}
+#tokenDetail .arcy-radar-network[aria-pressed=true]{background:linear-gradient(130deg,var(--radar-tint),#10273a);box-shadow:0 0 0 1px var(--radar-color),0 0 23px color-mix(in srgb,var(--radar-color) 22%,transparent),inset 0 1px rgba(255,255,255,.12)}
+#tokenDetail .arcy-radar-overview-card:not([hidden]){border:1px solid var(--radar-accent);background:radial-gradient(ellipse at 15% 0%,color-mix(in srgb,var(--radar-accent) 20%,transparent),transparent 54%),linear-gradient(150deg,#102b3d,#071725 75%);box-shadow:0 14px 38px rgba(0,0,0,.28),0 0 28px color-mix(in srgb,var(--radar-accent) 13%,transparent),inset 0 1px rgba(255,255,255,.09);border-radius:22px}
+#tokenDetail .arcy-radar-overview-head{font-size:clamp(20px,2.5vw,27px);font-weight:850;letter-spacing:-.02em;border-bottom:1px solid color-mix(in srgb,var(--radar-accent) 25%,transparent);padding-bottom:18px}
+#tokenDetail .arcy-radar-overview-count{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#9cbfd1}
+#tokenDetail .arcy-radar-overview-token{border:1px solid rgba(124,179,202,.12);border-radius:12px;background:rgba(5,17,30,.36);margin:3px 0;transition:background .2s,border-color .2s,transform .2s}
+#tokenDetail .arcy-radar-overview-token:hover{border-color:var(--radar-accent);background:rgba(31,66,85,.35);transform:translateY(-1px)}
+#tokenDetail .arcy-radar-overview-action{background:linear-gradient(135deg,color-mix(in srgb,var(--radar-accent) 13%,#061321),#071521);border:1px solid var(--radar-accent)!important;border-radius:12px;font-weight:800}
+@media(max-width:640px){#tokenDetail .arcy-radar-network{flex-direction:column;gap:4px;padding:7px 2px}#tokenDetail .arcy-radar-network-logo{width:23px;height:23px;flex-basis:23px}#tokenDetail .arcy-radar-overview-card:not([hidden]){border-radius:16px}#tokenDetail .arcy-radar-overview-head{font-size:19px}}
