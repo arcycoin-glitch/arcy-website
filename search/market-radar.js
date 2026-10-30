@@ -16,6 +16,8 @@
  const researchBtn=el('button','arcy-radar-view-button','🔍 Token Research');
  const radarBtn=el('button','arcy-radar-view-button','🔥 Market Radar');
  for(const btn of [researchBtn,radarBtn]){btn.type='button';switcher.append(btn);}
+ researchBtn.setAttribute('aria-controls','tokenDetail');
+ radarBtn.setAttribute('aria-controls','marketRadarPanel');
  const panel=el('section','arcy-radar-panel');
  panel.id='marketRadarPanel';panel.hidden=true;
  panel.setAttribute('aria-label','Market Radar');
@@ -290,8 +292,14 @@
      'Market Radar cannot verify current results for this network. No rankings are guessed.';
   }
  }
- researchBtn.addEventListener('click',()=>setView('research'));
- radarBtn.addEventListener('click',()=>setView('radar'));
+ // Keep the start of the newly selected view visible after its content height changes.
+ function moveToViewStart(){
+  if(detail.hidden)return;
+  const top=detail.getBoundingClientRect().top+window.scrollY;
+  window.scrollTo({top:Math.max(0,Math.round(top-8)),behavior:'instant'});
+ }
+ researchBtn.addEventListener('click',()=>{setView('research');moveToViewStart();});
+ radarBtn.addEventListener('click',()=>{setView('radar');moveToViewStart();});
  // Network headings are handled by selectNetwork; no duplicate token-wall request.
  prev.addEventListener('click',()=>{if(page>0){page--;render();}});
  next.addEventListener('click',()=>{if((page+1)*5<items.length){page++;render();}});
