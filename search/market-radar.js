@@ -33,12 +33,13 @@
   const mark=el('span','arcy-radar-chain-logo arcy-radar-chain-logo-'+id);mark.setAttribute('aria-hidden','true');
   mark.textContent={pons:'P',arc:'◈',ethereum:'◆',robinhood:'R'}[id];
   // Reuse the three network logos already shipped with ARCY Search.
-  const logoSrc={pons:'https://pons.money/profile/image.png',arc:'/assets/arc-network-mark.svg',ethereum:'/assets/ethereum-mark.svg',robinhood:'/assets/robinhood-chain-mark.svg'}[id];
+  const logoSrc={arc:'/search/assets/arc-network-mark.svg',ethereum:'/search/assets/ethereum-mark.svg',robinhood:'/search/assets/robinhood-chain-mark.svg'}[id];
   if(logoSrc){
    const img=el('img','arcy-radar-network-logo');
    img.src=logoSrc;img.alt='';img.width=34;img.height=34;img.loading='lazy';img.decoding='async';
+   img.addEventListener('error',()=>{img.remove();button.prepend(mark);});
    button.prepend(img);
-  }
+  }else{mark.textContent='P';button.prepend(mark);}
   chainNav.append(button);buttons.set(id,button);
  }
  const overview=el('div','arcy-radar-overview');overview.setAttribute('aria-label','Network market overview');
@@ -78,10 +79,15 @@
   if(!card)return;
   const list=card.querySelector('.arcy-radar-overview-list');
   list.replaceChildren();
+  const headings=el('div','arcy-radar-overview-columns');
+  for(const text of ['Token','Fiyat (USD)','24s Değişim','24s Hacim (USD)','']){
+   headings.append(el('span','',text));
+  }
+  list.append(headings);
   if(data?.ok===true&&Array.isArray(data.tokens))overviewData.set(network,data);
   const tokens=Array.isArray(data?.tokens)?data.tokens.slice(0,expandedNetwork===network?10:5):[];
   const total=card.querySelector('.arcy-radar-overview-count');
-  total.textContent=tokens.length?tokens.length+' observed tokens':'No verified tokens';
+  total.textContent=tokens.length?tokens.length+' gözlemlenen token · Hacim: en büyük gözlemlenen havuzun 24 saatlik USD hacmi':'Doğrulanmış token bulunamadı';
   for(const item of tokens){
    const validAddress=typeof item.address==='string'&&/^0x[0-9a-f]{40}$/i.test(item.address)&&!/^0x0{40}$/i.test(item.address);
    const row=el(validAddress?'a':'div','arcy-radar-overview-token');
