@@ -79,7 +79,30 @@ Multi-instance bound: the ledger is memory-only. With N warm instances the ceili
 
 On commit 7b06021: completeness 92.7 %, cross-verified 69.1 % (37 tokens; earlier run 90.6 % / 68.0 %). Figures describe one probe run, not a guarantee.
 
-## 8. Open items
+## 8. Production verification (read-only, 2026-10-30)
+
+| Area | Finding |
+|---|---|
+| Holder worker | Alive; ARCY job in TAIL (checkpoint ~17:23 local), ≤1000-block ranges. Last COMPLETE snapshot ~19 h old; backlog ≈3.78M blocks behind head at last measurement. Railway dashboard/logs/Redis NOT accessible to this audit. |
+| `/api/holders` default path | **Defect fixed**: served a 28-day-old committed snapshot (ARCY 41 holders) in front of the newer remote publication (37). Now `publication.freshest()` returns the highest-block valid COMPLETE one (remote memoised 60 s, successes only). Tests: `test/holder-freshest.test.js`. |
+| Unlocks | Signed worker edition present, 6 h cadence, back-off fix for failing source (was ~30 s retry loop). |
+| Pulse | Cron editions 3–5 signed Monday 06:0x UTC; live overlay differs from archive status for #5 (observation, protected file). |
+| Burn / Supply | Live on-chain reads OK. |
+| Search matrix | 10 tokens × 3 networks × 6 fields: 186/200 filled (93 %); gaps = Robinhood unknown-contract Mechanics fields, ASTOCK holders. |
+
+## 9. Shared Radar quota (feasibility → implemented, opt-in)
+
+Redis is private to the Railway worker, so Vercel instances cannot reach it directly. Implemented without new resources or Vercel env vars: `POST /quota/radar` on the worker (bearer auth, strict validation, cap ≤ 8000) running an atomic Redis `EVAL` (reserve-if-within-cap / settle); Radar calls it with a 2 s timeout using the already-present `ARC_HOLDER_QUEUE_URL/TOKEN`. Refused → `RADAR_BUDGET_EXHAUSTED` with zero provider calls. Unreachable/404 (old worker) → local per-process ledger still applies (never unlimited). **Activation requires a worker redeploy (operator approval; not done).** Tests: `test/shared-quota.test.js` (5).
+
+## 10. Unlocks CoinBell fan-out (protected file, proposal only)
+
+`api/unlocks.js` is hash-pinned; it was NOT modified and no baseline was refreshed. Patch: `docs/audits/proposals/unlocks-single-flight.patch` (per-instance single-flight + 5-min memo of successful results). Measured with `unlocks-single-flight-probe.mjs`, 5 concurrent cold requests: **15 CoinBell GETs before → 3 after**. Applying it needs an approved baseline update of `scripts/approved-baseline.cjs`/`test/search-v3-data.test.js`.
+
+## 11. Arc log-span probe
+
+Shell cannot reach the Arc RPC; `scripts/probe-arc-log-range.cjs` runs in CI (annotations) to find the maximum accepted `eth_getLogs` span. Widening `tailRange` stays blocked until that evidence exists (and `scripts/holder-worker.cjs` is pinned).
+
+## 12. Open items
 
 **P1** `api/unlocks.js` request-path fallback fans out 3 CoinBell GETs per uncached request (no single-flight). A tested fix exists conceptually but `test/search-v3-data.test.js` pins that file's hash as "unchanged from production"; changing it would need an approved baseline refresh, which this audit may not do. **Decision needed.**
 **P1** Global (cross-instance) Radar credit counter and holder-cursor/backlog metrics need durable storage/Railway access.
