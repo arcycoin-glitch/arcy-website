@@ -23,3 +23,10 @@ test('/api/holders payload carries block age next to completion age',async()=>{
  await age.enrichHolderValue(v,{rpc:async()=>({timestamp:'0x'+Math.floor(Date.parse('2026-10-08T12:21:00Z')/1000).toString(16)}),now:NOW});
  assert.equal(v.snapshot.ageSeconds,73149,'existing field untouched');assert.ok(v.snapshot.blockAgeSeconds>21*86400);assert.equal(v.snapshot.blockAgeBasis,'RPC block timestamp of the pinned block');
 });
+
+test('/api/holders is cache-only: no RPC, age filled once the Search path resolved the block',async()=>{
+ age._reset();const v=()=>({block:'0x17bf136',snapshot:{block:'0x17bf136',completedAt:'2026-10-29T22:09:36.801Z'},fields:{holderCount:{value:37,snapshot:{block:'0x17bf136',completedAt:'2026-10-29T22:09:36.801Z'}}}});
+ const a1=v();await age.enrichHolderValue(a1,{cacheOnly:true,now:NOW});assert.equal(a1.snapshot.blockAgeSeconds,null);assert.match(a1.snapshot.blockAgeBasis,/never makes RPC calls/);
+ await age.blockTimeMs('arc','0x17bf136',{rpc:async()=>({timestamp:'0x'+Math.floor(Date.parse('2026-10-08T12:21:00Z')/1000).toString(16)})});
+ const a2=v();await age.enrichHolderValue(a2,{cacheOnly:true,now:NOW});assert.ok(a2.snapshot.blockAgeSeconds>21*86400);
+});
