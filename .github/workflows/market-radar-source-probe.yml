@@ -23,11 +23,13 @@ jobs:
         run: node scripts/probe-market-radar.cjs
       - name: Radar V2 + V3 discovery unit tests
         run: node --test test/radar-v2.test.js test/radar-v3-discovery.test.js
-      - name: Pons factory bounded-log probe (CI only)
-        run: node scripts/probe-pons-logs.cjs
-        continue-on-error: true
       - name: Pons V2 production-code chain probe (CI only)
         run: node scripts/probe-pons-v2.cjs
+        continue-on-error: true
+      - name: Let the public RPC rate window reset
+        run: sleep 45
+      - name: Pons factory bounded-log probe (CI only)
+        run: node scripts/probe-pons-logs.cjs
         continue-on-error: true
       - name: Respect GeckoTerminal keyless 5 calls/minute
         run: sleep 60
