@@ -73,3 +73,27 @@ test('source-rendered Synthra button replaces duplicate community card before sc
  assert.match(src,/cta\.disabled=false;cta\.addEventListener\('click',\(\)=>open\(cta\)\)/,'JS enables the button and binds the notice modal');
  assert.doesNotMatch(src,/card\.replaceWith|actions\.appendChild|quick\.appendChild|querySelector\('#buy \.actions'\)/,'no late DOM replacement');
 });
+
+test('premium Synthra destination panel is scoped, responsive and contains only one external action',()=>{
+ const html=read('index.html'), start=html.indexOf('<section id="buy">'), end=html.indexOf('</section>',start);
+ assert.ok(start>=0&&end>start);
+ const section=html.slice(start,end);
+ const css=html.slice(html.indexOf('<style id="synthra-static-layout">'),html.indexOf('</style>',html.indexOf('<style id="synthra-static-layout">')));
+ assert.match(section,/class="syn-panel" aria-label="Synthra external swap"/);
+ assert.match(section,/class="syn-eyebrow">EXTERNAL SWAP/);
+ assert.match(section,/class="syn-channel">Direct platform link/);
+ assert.match(section,/class="syn-heading">Swap on <span>Synthra\.<\/span>/);
+ assert.match(section,/class="syn-copy">Access Synthra's independent swap platform/);
+ assert.match(section,/class="syn-footnote"/);
+ assert.match(section,/Independent platform · No wallet connection here/);
+ assert.equal((section.match(/data-synthra-open/g)||[]).length,1);
+ assert.doesNotMatch(section,/class="card swapbox"|<div class="eyebrow">ARCY COMMUNITY|>FOLLOW ON X|>JOIN TELEGRAM/);
+ assert.match(html,/<a href="#buy">Swap<\/a>/,'nav uses correct destination name');
+ assert.match(html,/id="navBuy" href="#buy">SWAP<\/a>/,'nav CTA no longer says Community');
+ assert.match(css,/#buy \.syn-panel\{/,'panel style isolated');
+ assert.match(css,/#buy \.visual img\{/,'owl dimensions isolated');
+ assert.match(css,/@media\(max-width:850px\)/,'mobile stacking');
+ assert.match(css,/@media\(max-width:480px\)/,'small mobile layout');
+ assert.match(css,/@media\(prefers-reduced-motion:reduce\)/,'reduced motion support');
+ assert.doesNotMatch(section,/onchain|token price|guaranteed return/i,'panel does not advertise token investment');
+});
