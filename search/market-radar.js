@@ -348,12 +348,14 @@
   const top=detail.getBoundingClientRect().top+window.scrollY;
   window.scrollTo({top:Math.max(0,Math.round(top-8)),behavior:'instant'});
  }
- researchBtn.addEventListener('click',()=>{setView('research');moveToViewStart();});
+ researchBtn.addEventListener('click',()=>{if(standalone){window.location.assign('/#search');return;}setView('research');moveToViewStart();});
  radarBtn.addEventListener('click',()=>{setView('radar');moveToViewStart();});
  // Network headings are handled by selectNetwork; no duplicate token-wall request.
  prev.addEventListener('click',()=>{if(page>0){page--;render();}});
  next.addEventListener('click',()=>{if((page+1)*5<items.length){page++;render();}});
- setView('research');
+ // The direct /radar shortcut opens the verified Radar without a token report.
+ const standalone=/^\/radar\/?$/.test(window.location?.pathname||'');
+ setView(standalone?'radar':'research');
  async function verifyPublicReadiness(){
   try{
    const all=await Promise.all(['arc','ethereum','robinhood','pons'].map(async network=>{
