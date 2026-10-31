@@ -54,3 +54,22 @@ test('the loader is attached without touching protected files and the legal link
 test('modal is accessible: dialog role, aria-modal, labelled, focus trap, mobile layout rule',()=>{
  for(const m of [/role','dialog'/,/aria-modal','true'/,/aria-labelledby','syn-title'/,/aria-describedby','syn-desc'/,/e\.key==='Tab'/,/@media\(max-width:480px\)/,/min-height:44px/])assert.match(src,m,String(m));
 });
+
+test('source-rendered Synthra button replaces duplicate community card before scripts execute',()=>{
+ const h=read('index.html'),start=h.indexOf('<section id="buy">'),end=h.indexOf('</section>',start);
+ assert.ok(start>=0&&end>start,'#buy section must exist');
+ const buy=h.slice(start,end);
+ assert.match(buy,/ARCY community illustration/,'original owl image preserved');
+ assert.match(buy,/class="syn-cta"/);
+ assert.match(buy,/data-synthra-open/);
+ assert.match(buy,/href="https:\/\/app\.synthra\.org\/swap"/);
+ assert.equal((buy.match(/data-synthra-open/g)||[]).length,1,'exactly one Synthra CTA');
+ assert.doesNotMatch(buy,/ARCY COMMUNITY|Build together|FOLLOW ON X|JOIN TELEGRAM/i,'duplicated community panel removed from original HTML');
+ assert.match(h,/<style id="synthra-static-layout">/,'purple styling available before JavaScript');
+ const footer=h.slice(h.indexOf('<span class="footer-quick-links"'),h.indexOf('</span>',h.indexOf('<span class="footer-quick-links"')));
+ assert.match(footer,/href="\/legal\.html"/,'legal link rendered in HTML without JavaScript');
+ assert.match(footer,/href="\/transparency\.html"/,'existing footer links retained');
+ assert.match(src,/querySelector\('#buy \[data-synthra-open\]'\)/,'bind to existing static CTA');
+ assert.match(src,/e\.preventDefault\(\);open\(cta\)/,'click shows existing warning modal');
+ assert.doesNotMatch(src,/card\.replaceWith|actions\.appendChild|quick\.appendChild|querySelector\('#buy \.actions'\)/,'no late DOM replacement');
+});
