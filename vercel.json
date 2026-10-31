@@ -28,7 +28,7 @@
     },
     {
       "source": "/radar",
-      "destination": "/search/index.html"
+      "destination": "/radar.html"
     },
     {
       "source": "/search/token/:network/:address",
