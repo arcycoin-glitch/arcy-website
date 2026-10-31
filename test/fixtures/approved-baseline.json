@@ -18,7 +18,7 @@
   },
   "current": {
     "files": {
-      "index.html": "b383ea04809c0c4ea56a8dad24a88c8335f75925eca9004ac7191ed7632a15d8",
+      "index.html": "144d40c4075ad70e0cfb2877cb6d251eb41a64ebe34620bb0b07d3ca320c545f",
       "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
       "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885",
       "api/pulse.js": "71a081d8f1a3b0b84bd706a2f5a1f5727af49c8643be8cfee1bfee4dc7bc4cc0",
@@ -69,7 +69,14 @@
         "index.html"
       ],
       "reason": "Source-approved, scoped SEO title, description, and two footer links to accurate ARCY coin and Turkish ARCY analysis/search landing pages; preserve all DOM/data research functions, current new-token status and animations."
+    },
+    {
+      "date": "2026-10-31",
+      "files": [
+        "index.html"
+      ],
+      "reason": "Owner-requested PR #121 premium Synthra section redesign: remove duplicate community copy, preserve original owl asset, display a compact premium external-swap panel with one disclaimer-gated CTA, and reduce footer quick-links. Header #buy nav label updated from Community to Swap. No token buy claim, wallet connection, transaction engine, or changes to protected Search, Radar, Pulse, backend or Railway."
     }
   ],
-  "refreshedAt": "2026-10-30T11:27:58.850Z"
+  "refreshedAt": "2026-10-31T16:09:00.000Z"
 }

@@ -56,16 +56,10 @@
   m.cancel.addEventListener('click',close);
   m.overlay.addEventListener('click',e=>{if(e.target===m.overlay)close();});
   m.go.addEventListener('click',()=>{openExternal(win);close();});
-  // Button: appended next to the existing community actions (no existing control is changed or removed).
-  const actions=doc.querySelector('#buy .actions');
-  if(actions){
-   const b=doc.createElement('button');b.type='button';b.className='btn syn-open';b.textContent=LABEL;b.setAttribute('data-synthra-open','');
-   b.setAttribute('aria-haspopup','dialog');b.addEventListener('click',()=>open(b));actions.appendChild(b);
-  }
-  const quick=doc.querySelector('.footer-quick-links');
-  if(quick&&!quick.querySelector('a[href="/legal.html"]')){
-   const l=doc.createElement('a');l.className='footer-source-link';l.href='/legal.html';l.textContent='Legal & Disclaimer';quick.appendChild(l);
-  }
+  // The single Synthra CTA exists in the initial HTML; only attach the confirmation modal.
+  // No DOM replacement, no duplicate community controls, and no inserted footer link.
+  const cta=doc.querySelector('#buy [data-synthra-open]');
+  if(cta){cta.disabled=false;cta.addEventListener('click',()=>open(cta));}
  }
  return {SWAP_URL,LABEL,TITLE,TEXT,mount,openExternal,buildModal};
 });

@@ -5,13 +5,16 @@
 // This test MUST NOT be bypassed, skipped, rewritten or rebaselined to make
 // data-only changes pass. If main changes independently, stop/review rather
 // than approving a new skeleton in this data audit.
+// 2026-10-31 owner-approved UI exception (PR #121): source-rendered single Synthra CTA
+// replaces the duplicate community card with a premium Synthra destination panel and scoped footer/layout CSS.
+// The owner-requested UI redesign changes only index.html; all other protected file hashes remain pinned.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const BASELINE = Object.freeze({
-  "index.html": "c5ea5fcab3fa20b48cb37cffe339b6b174166351",
+  "index.html": "252e374339219ec29ef2d068aeafaa5ef8ab8db7",
   "premium.css": "d80f98346802e34afd3aa66ac776e5bbf2c9217e",
   "v8-premium.js": "e51587419fb0d785d76149a2551fb1a3ac7e86f9",
   "hero-video.js": "40942f382f1650b90d1d7572d0d1874217d4a3c0",
