@@ -1,0 +1,16 @@
+{
+ "_note": "Field shapes recorded from https://www.arcyusdc.xyz /api/search?action=report on 2026-10-31 (Production 1c893ae). Real contracts/values; long strings truncated; provider URLs reduced to hosts. Before the fix every one of these was evidenceClass ON_CHAIN_VERIFIED.",
+ "arcoon":{"chain":"arc","field":{"value":8701969.15,"kind":"FDV","status":"ON_CHAIN_DERIVED","dataState":"DATA_FOUND","source":"Arc RPC totalSupply() × DexScreener","network":"arc","chainId":5042,
+  "evidence":[
+   {"chainId":5042,"network":"arc","address":"0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed","block":"0x1b74114","method":"totalSupply()","totalSupplyRaw":"997817812895461823182149020","decimals":18,"checkedAt":"2026-10-31T08:14:29.059Z"},
+   {"url":"api.dexscreener.com","chainId":5042,"address":"0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed","primaryPair":"0xa2ed014384e061ec2aaccea186d41798dcf4da29264c44a676d3006fdc252ae0","pairs":1,"checkedAt":"2026-10-31T08:14:29.059Z"},
+   {"chainId":5042,"network":"arc","address":"0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed","block":"0x1b74114","method":"totalSupply() × exact-contract USD price, rounded to USD cents","scope":"Fully diluted value; not circulating-supply market capitalization."}]}},
+ "arcy":{"chain":"arc","field":{"value":2944.82,"kind":"FDV","status":"ON_CHAIN_DERIVED","dataState":"DATA_FOUND","source":"Arc RPC totalSupply() × GeckoTerminal","network":"arc","chainId":5042,
+  "evidence":[
+   {"chainId":5042,"network":"arc","address":"0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b","block":"0x1b7406e","method":"totalSupply()","totalSupplyRaw":"1000000000000000000000000000","decimals":18,"checkedAt":"2026-10-31T08:13:07.425Z"},
+   {"url":"api.geckoterminal.com","chainId":5042,"address":"0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b","checkedAt":"2026-10-31T08:13:07.425Z"},
+   {"chainId":5042,"network":"arc","address":"0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b","block":"0x1b7406e","method":"totalSupply() × exact-contract USD price, rounded to USD cents"}]}},
+ "fwa":{"chain":"ethereum","field":{"value":5064740.063713124,"kind":"FDV","status":"ON_CHAIN_DERIVED","dataState":"DATA_FOUND","source":"Ethereum RPC totalSupply × DEX Screener","network":"ethereum","chainId":1,
+  "evidence":[{"chainId":1,"network":"ethereum","address":"0xa0df17b5ac76ababa36e1450e2cbcd18a620c845","block":"0x1917b30","method":"Pinned totalSupply × exact-contract USD price","totalSupplyRaw":"930163464410123596430074899","decimals":18,
+   "priceEvidence":[{"provider":"DEX Screener","chainId":1,"network":"ethereum","address":"0xa0df17b5ac76ababa36e1450e2cbcd18a620c845","checkedAt":"2026-10-31T08:15:00.000Z"}]}]}}
+}
