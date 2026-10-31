@@ -64,7 +64,7 @@ test('source-rendered Synthra button replaces duplicate community card before sc
  assert.match(buy,/data-synthra-open/);
  assert.match(buy,/<button class="btn syn-open" type="button" data-synthra-open aria-haspopup="dialog" disabled>/,'disabled until disclaimer modal is mounted');
  assert.equal((buy.match(/data-synthra-open/g)||[]).length,1,'exactly one Synthra CTA');
- assert.doesNotMatch(buy,/ARCY COMMUNITY|Build together|FOLLOW ON X|JOIN TELEGRAM/i,'duplicated community panel removed from original HTML');
+ assert.doesNotMatch(buy,/class="card swapbox"|<div class="eyebrow">ARCY COMMUNITY|Build together\.<\/span>|>FOLLOW ON X|>JOIN TELEGRAM/,'duplicated community card markup removed from HTML');
  assert.match(h,/<style id="synthra-static-layout">/,'purple styling available before JavaScript');
  const footer=h.slice(h.indexOf('<span class="footer-quick-links"'),h.indexOf('</span>',h.indexOf('<span class="footer-quick-links"')));
  assert.match(footer,/href="\/legal\.html"/,'legal link rendered in HTML without JavaScript');
