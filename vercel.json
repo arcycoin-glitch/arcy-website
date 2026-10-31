@@ -27,6 +27,10 @@
       "destination": "/api/market?_arcyRoute=activity"
     },
     {
+      "source": "/radar",
+      "destination": "/radar.html"
+    },
+    {
       "source": "/search/token/:network/:address",
       "destination": "/search/index.html"
     }
