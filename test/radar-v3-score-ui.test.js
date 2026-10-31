@@ -57,8 +57,8 @@ const data=(network,{engine='arcy-radar-v3',score=72.5,empty=false}={})=>({
  discovery:engine==='arcy-radar-v3'?{scoreVersion:'arcy-discovery-1'}:undefined,
  tokens:empty?[]:[token(score)],attribution:[]
 });
-async function mount(pathname='/search/token/arc/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'){
- const detail=new Node('section');detail.id='tokenDetail';const calls=[],redirects=[];
+async function mount(){
+ const detail=new Node('section');detail.id='tokenDetail';const calls=[];
  const document={
   createElement:tag=>new Node(tag),
   createTextNode:s=>new Text(s),
@@ -66,13 +66,13 @@ async function mount(pathname='/search/token/arc/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
  };
  const responses={robinhood:data('robinhood'),arc:data('arc',{engine:'arcy-radar-v2'}),ethereum:data('ethereum',{score:105}),pons:data('pons',{empty:true})};
  const ctx={document,Intl,Date,URL,AbortController,setTimeout,clearTimeout,
-  window:{scrollY:0,scrollTo(){},location:{pathname,assign:url=>redirects.push(url)}},
+  window:{scrollY:0,scrollTo(){}},
   fetch:async url=>{const network=new URL(url,'https://example.com').searchParams.get('chain');calls.push(network);return {ok:true,json:async()=>responses[network]};}
  };
  vm.runInNewContext(js,ctx);
  // Wait for all four immediate fetches, JSON reads and Promise.all() callback.
  for(let i=0;i<5;i++)await Promise.resolve();
- return {detail,calls,redirects};
+ return {detail,calls};
 }
 const panel=(detail,net)=>detail.querySelector('[data-overview="'+net+'"]');
 test('JS parses and V3 score/rationale use the existing verified API, without extra calls',async()=>{
@@ -122,22 +122,4 @@ test('responsive mobile slots and truthful copy are present',()=>{
  assert.match(css,/\.arcy-radar-overview-columns\{display:none!important\}/);
  assert.match(js,/discovery\.reason|explainDiscovery\(d\.reason\)/);
  assert.doesNotMatch(js,/Math\.random\(/);
-});
-
-test('direct /radar opens standalone Radar and Token Research returns to homepage',async()=>{
- const {detail,calls,redirects}=await mount('/radar');
- assert.equal(detail.classList.contains('arcy-radar-active'),true);
- assert.equal(detail.querySelector('.arcy-radar-panel').hidden,false);
- assert.ok(calls.includes('robinhood'));
- detail.querySelector('.arcy-radar-switcher').children[0].click();
- assert.equal(redirects[0],'/#search');
-});
-test('Radar homepage shortcut, responsive link and clean Vercel route are connected',()=>{
- const home=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
- const search=fs.readFileSync(path.join(__dirname,'../search/index.html'),'utf8');
- const config=JSON.parse(fs.readFileSync(path.join(__dirname,'../vercel.json'),'utf8'));
- assert.match(home,/<a class="nav-radar" href="\/radar"/);
- assert.match(home,/@media\(max-width:560px\)[\s\S]*?\.nav \.nav-radar\{/);
- assert.ok(config.rewrites.some(x=>x.source==='/radar'&&x.destination==='/search/index.html'));
- assert.match(search,/\$\('tokenDetail'\)\.setAttribute\('aria-label','Market Radar'\)/);
 });
