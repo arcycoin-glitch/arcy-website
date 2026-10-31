@@ -59,7 +59,7 @@
   // The single Synthra CTA exists in the initial HTML; only attach the confirmation modal.
   // No DOM replacement, no duplicate community controls, and no inserted footer link.
   const cta=doc.querySelector('#buy [data-synthra-open]');
-  if(cta)cta.addEventListener('click',e=>{e.preventDefault();open(cta);});
+  if(cta){cta.disabled=false;cta.addEventListener('click',()=>open(cta));}
  }
  return {SWAP_URL,LABEL,TITLE,TEXT,mount,openExternal,buildModal};
 });
