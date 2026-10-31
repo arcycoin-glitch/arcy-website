@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Market Radar · ARCY SEARCH</title>
+<meta name="description" content="Explore source-backed token discovery across Arc, Ethereum, Robinhood Chain and verified Pons launches. Research first, no hype.">
+<link rel="canonical" href="https://www.arcyusdc.xyz/radar">
+<link rel="icon" href="/assets/hero-arcy.png" type="image/png">
+<link rel="stylesheet" href="/search/market-radar.css">
+<style>
+:root{color-scheme:dark;--text:#e9f7ff;--muted:#8eaebf}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 80% 4%,#113247,#050d18 57%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+a{color:inherit;text-decoration:none}
+.radar-topbar{position:sticky;top:0;z-index:20;background:#071522ec;backdrop-filter:blur(16px);border-bottom:1px solid #254456}
+.radar-topbar-inner{max-width:1240px;margin:0 auto;min-height:70px;padding:10px max(4%,16px);display:flex;align-items:center;justify-content:space-between;gap:18px}
+.radar-brand{display:flex;align-items:center;gap:9px;font-size:18px;letter-spacing:.09em;font-weight:900;color:#dffaff;white-space:nowrap}
+.radar-brand img{width:36px;height:34px;object-fit:contain}
+.radar-brand span{color:#57dcf5}
+.radar-home-link{border:1px solid #326278;border-radius:999px;background:#102a3b;padding:11px 14px;font-size:12px;font-weight:750;color:#dff9ff;white-space:nowrap}
+.radar-home-link:hover{background:#16435a}
+.radar-home-link:focus-visible,.radar-brand:focus-visible{outline:2px solid #5de7ff;outline-offset:4px}
+.radar-shell{max-width:1300px;margin:0 auto;padding:clamp(16px,3.5vw,36px) 4% 70px}
+#tokenDetail{padding:0;min-height:70vh}
+#tokenDetail .arcy-radar-switcher{max-width:640px;margin:0 auto 22px}
+#tokenDetail .arcy-radar-panel{box-shadow:0 15px 50px #0005}
+#radarEntryStatus{margin:32px auto;color:#a9c5d3;text-align:center;font-size:13px}
+.radar-footer{padding:20px 4%;border-top:1px solid #183a4c;text-align:center;color:#91acba;font-size:11px;line-height:1.7}
+@media(max-width:390px){
+ .radar-topbar-inner{min-height:60px;gap:8px}
+ .radar-brand{font-size:14px;letter-spacing:.04em}
+ .radar-brand img{width:29px;height:29px}
+ .radar-home-link{padding:9px 10px;font-size:11px}
+}
+</style>
+<script defer src="/search/market-radar.js"></script>
+<script defer src="/radar-entry.js"></script>
+</head>
+<body>
+<nav class="radar-topbar" aria-label="Market Radar navigation">
+ <div class="radar-topbar-inner">
+  <a class="radar-brand" href="/"><img src="/search/assets/arcy-owl-reference.webp" alt="" width="36" height="34">ARCY <span>SEARCH</span></a>
+  <a class="radar-home-link" href="/#search">⌕ Token Research</a>
+ </div>
+</nav>
+<main class="radar-shell">
+ <section id="tokenDetail" aria-label="Market Radar">
+  <p id="radarEntryStatus" role="status" aria-live="polite">Checking available verified Radar data…</p>
+ </section>
+</main>
+<footer class="radar-footer">ARCY Discovery Score indicates discovery priority, not safety or expected returns. Verify before you buy.</footer>
+</body>
+</html>
