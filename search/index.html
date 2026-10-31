@@ -857,7 +857,14 @@ function activateDetail(address,network,{push=true,identity=null,logoUrl=null}={
 function restoreRoute(){
  const route=tokenRoute(location.pathname);
  if(route)activateDetail(route.address,route.network,{push:false});
- else activateHome();
+ else if(/^\/radar\/?$/.test(location.pathname)){
+  // Standalone Radar, no unrelated token/holder report request.
+  activateHome();
+  $('discovery').hidden=true;
+  $('tokenDetail').hidden=false;
+  $('tokenDetail').setAttribute('aria-label','Market Radar');
+  document.title='Market Radar · ARCY SEARCH';
+ }else activateHome();
 }
 const NS='http://www.w3.org/2000/svg';
 function clearPriceChart(){
