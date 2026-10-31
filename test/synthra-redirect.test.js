@@ -62,7 +62,7 @@ test('source-rendered Synthra button replaces duplicate community card before sc
  assert.match(buy,/ARCY community illustration/,'original owl image preserved');
  assert.match(buy,/class="syn-cta"/);
  assert.match(buy,/data-synthra-open/);
- assert.match(buy,/href="https:\/\/app\.synthra\.org\/swap"/);
+ assert.match(buy,/<button class="btn syn-open" type="button" data-synthra-open aria-haspopup="dialog" disabled>/,'disabled until disclaimer modal is mounted');
  assert.equal((buy.match(/data-synthra-open/g)||[]).length,1,'exactly one Synthra CTA');
  assert.doesNotMatch(buy,/ARCY COMMUNITY|Build together|FOLLOW ON X|JOIN TELEGRAM/i,'duplicated community panel removed from original HTML');
  assert.match(h,/<style id="synthra-static-layout">/,'purple styling available before JavaScript');
@@ -70,6 +70,6 @@ test('source-rendered Synthra button replaces duplicate community card before sc
  assert.match(footer,/href="\/legal\.html"/,'legal link rendered in HTML without JavaScript');
  assert.match(footer,/href="\/transparency\.html"/,'existing footer links retained');
  assert.match(src,/querySelector\('#buy \[data-synthra-open\]'\)/,'bind to existing static CTA');
- assert.match(src,/e\.preventDefault\(\);open\(cta\)/,'click shows existing warning modal');
+ assert.match(src,/cta\.disabled=false;cta\.addEventListener\('click',\(\)=>open\(cta\)\)/,'JS enables the button and binds the notice modal');
  assert.doesNotMatch(src,/card\.replaceWith|actions\.appendChild|quick\.appendChild|querySelector\('#buy \.actions'\)/,'no late DOM replacement');
 });
