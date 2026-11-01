@@ -405,20 +405,11 @@ View details →
   <div class="visual"><img src="/assets/unlocks-owl.webp" alt="ARCY Token Unlocks"></div>
  </div>
  <div class="monitor-label"><span class="monitor-dot"></span>PUBLISHED SUPPLY-RELEASE MONITOR</div><div class="tabs"><button class="tab active" data-days="1">TODAY</button><button class="tab" data-days="7">NEXT 7 DAYS</button><button class="tab" data-days="30">DAYS 8–30</button></div>
- <div class="unlock-coverage" role="status" aria-live="polite" aria-atomic="true">
-  <span><strong id="unlockTokenCount">—</strong> token entries</span>
-  <span><strong id="unlockEventCount">—</strong> events in this 30-day feed</span>
-  <small id="unlockSourceChecked">Loading source check time…</small>
- </div>
  <div class="unlock-tools">
   <input id="unlockSearch" type="search" placeholder="Search token (e.g. APT)" autocomplete="off" aria-label="Search token">
-  <label class="unlock-sort-label" for="unlockSort">Sort by
-   <select id="unlockSort"><option value="value">Largest event (USD)</option><option value="impact">Largest event (% circulating)</option><option value="soonest">Soonest</option></select>
-  </label>
-  <div class="unlock-pager"><button id="unlockPrev" type="button" aria-label="Previous token page">‹</button><span id="unlockPage">1 / 1</span><button id="unlockNext" type="button" aria-label="Next token page">›</button></div>
+  <div class="unlock-pager"><button id="unlockPrev" type="button">‹</button><span id="unlockPage">1 / 1</span><button id="unlockNext" type="button">›</button></div>
  </div>
- <p id="unlockResults" class="unlock-results" role="status" aria-live="polite">Loading published events…</p>
- <div class="tablebox"><table aria-label="Published token unlocks"><thead><tr><th scope="col">#</th><th scope="col">TOKEN / EVENTS</th><th scope="col">EVENT DATE (UTC)</th><th scope="col">EVENT AMOUNT</th><th scope="col">% CIRCULATING SUPPLY</th></tr></thead><tbody id="unlockRows"></tbody></table></div>
+ <div class="tablebox"><table><thead><tr><th>#</th><th>TOKEN</th><th>UNLOCK DATE</th><th>UNLOCK AMOUNT</th><th>% CIRCULATING SUPPLY</th></tr></thead><tbody id="unlockRows"></tbody></table></div>
  <p class="note">Loading published unlock schedules…</p>
 </div></section>
 
