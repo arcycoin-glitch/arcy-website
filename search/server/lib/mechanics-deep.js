@@ -45,7 +45,7 @@ async function sourceFor(cfg,address,code,diagnostics){
  const compiled=require('./mechanics-compiled-runtime').match(code);
  if(compiled)return compiled;
  const url='https://sourcify.dev/server/v2/contract/'+cfg.chainId+'/'+address+'?fields=abi,sources,compilation,runtimeBytecode';
- try{const body=await reader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{validateSource(d,{chainId:cfg.chainId,address,code});return true;}});return {...validateSource(body,{chainId:cfg.chainId,address,code}),url,retrievedAt:new Date(reader.observedAt(url)).toISOString()};}
+ try{const body=await reader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{validateSource(d,{chainId:cfg.chainId,address,code});return true;}});const checked=validateSource(body,{chainId:cfg.chainId,address,code});let template=null;try{template=require('./oz-template').analyze(body.sources,{lib:require('./oz-library-hashes'),main:typeof body.compilation?.name==='string'?body.compilation.name:undefined});}catch{}return {...checked,...(template?{template}:{}),url,retrievedAt:new Date(reader.observedAt(url)).toISOString()};}
  catch(e){diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason:e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':/SOURCE_/.test(e.message)?e.message:'SOURCE_API_FAILED'});return null;}
 }
 function abiFn(source,signature,type){
@@ -128,7 +128,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
   if(boundTarget)await publishProxy();
   else details.observations.push({method:'Unbound proxy storage candidate',implementation:target,admin,beacon,block,scope:'Storage/getter observations only. The outer execution path is not reviewed/bound; proxy architecture, upgradeability and admin authority remain unverified.'});
  }
- const reviewedImplementation=implementationSource&&Object.hasOwn(PROFILES,implementationSource.digest);
+ const reviewedImplementation=implementationSource&&(Object.hasOwn(PROFILES,implementationSource.digest)||Boolean(implementationSource.template));
  const resolved=boundTarget&&(target===address?nonDelegating(code):targetCode&&(nonDelegating(targetCode)||reviewedImplementation));
  const source=resolved?implementationSource:null;
  if(!resolved)diagnostics.push({reason:'IMPLEMENTATION_EXECUTION_UNRESOLVED'});
@@ -159,7 +159,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
     for(let i=0;i<Math.min(Number(n>4n?4n:n),4);i++){const member=addressWord(await call(address,'getRoleMember(bytes32,uint256)',role.slice(2)+BigInt(i).toString(16).padStart(64,'0')));if(!member)continue;const has=await word(address,'hasRole(bytes32,address)',role.slice(2)+member.slice(2).padStart(64,'0'));if(has&&BigInt(has)===1n){details.observations.push({method:'hasRole',role:name,member,value:true,block,...sourceProof});if(!fields.ownerAdmin)fields.ownerAdmin=fact(name+': '+member,'Verified ABI + enumerated role membership',{...sourceProof,role:name,roleId:role,member,scope:'Confirmed membership only. Role execution semantics and other roles not inferred.'},'GETTER_REPORTED');}}
    }
   }
-  const profile=PROFILES[source.digest];details.reviewedProfile=profile||null;
+  const profile=PROFILES[source.digest]||(source.template?'OZ_ERC20_TEMPLATE':undefined);details.reviewedProfile=profile||null;
   if(profile){
    const proof={...sourceProof,profile,scope:'Reviewed complete source matched to pinned deployed bytecode; token-level transfer mechanics only. DEX pool/hook fees are NOT VERIFIED; no trade simulation was performed.'};
    if(profile==='RECOMPILED_ROLE_BURN_MINT'&&source.runtimeReview){
@@ -240,6 +240,20 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
     if(deprecated&&BigInt(deprecated)===0n&&bps&&maximumFee&&BigInt(bps)<20n){const rate=BigInt(bps),max=BigInt(maximumFee);fields.tradingTaxes=fact('Transfer '+(max===0n?0:Number(rate)/100)+'% · DEX/hook fees NOT VERIFIED','Reviewed capped fee formula + pinned active parameters',{...proof,basisPointsRate:rate.toString(),denominator:'10000',maximumFeeRaw:max.toString(),deprecated:false,feeController:authority,mutable:true,coverage:'TOKEN_TRANSFER_ONLY',scope:'fee=min(amount*bps/10000, maximumFee). Owner can set bps<20 and maxFee<50 tokens. Rounding/cap changes effective rate. No sender exemption in reviewed transfer path; blacklist/pause can revert. DEX/hook fees separate.'},'VERIFIED_SOURCE_AND_STATE');}
     else diagnostics.push({reason:deprecated&&BigInt(deprecated)===1n?'LEGACY_FORWARDING_ACTIVE':'FEE_STATE_UNAVAILABLE'});
     if(authority)fields.mintCapability=fact('Owner-authorized issuance','Reviewed issue(uint256) + pinned owner',{...proof,owner:authority,scope:'Source issue() increases balances/supply under onlyOwner; no claim of successful execution now.'},'VERIFIED_SOURCE_AND_STATE');
+   }
+   if(profile==='OZ_ERC20_TEMPLATE'){
+    // Source-structure proof over PINNED unmodified OpenZeppelin ERC20 libraries (see oz-template.js). Token-level only.
+    const t=source.template,tmpl={libraries:t.libraries,contract:t.contract,ownerOnlyFunctions:t.ownerOnlyFunctions.slice(0,12),otherExternalFunctions:t.ungatedFunctions.slice(0,12),unprovenGates:t.unprovenGates.slice(0,12)};
+    const tproof={...proof,template:tmpl};
+    fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Pinned OpenZeppelin ERC20 transfer path (no override) + exact source/bytecode match',{...tproof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'The verified source inherits unmodified OpenZeppelin ERC20 (library files matched by SHA-256) and overrides no transfer, balance or supply path; no token fee setter exists. Pool, router and hook fees are separate and NOT VERIFIED.'},'VERIFIED_SOURCE');
+    const ownerRaw=t.ownable?await word(address,'owner()'):null,ownerZero=ownerRaw!==null&&BigInt(ownerRaw)===0n,ownerAddr=ownerRaw&&!ownerZero?addressWord(ownerRaw):null;
+    if(t.mint==='CONSTRUCTOR_ONLY'||t.mint==='NO_MINT_CALL')fields.mintCapability=fact('NONE DETECTED ✓','Pinned OpenZeppelin ERC20 + constructor-only _mint in verified source',{...tproof,scope:'Every _mint call is inside the constructor and no override or assembly can change supply; no runtime issuance entry point exists in this exact source. Burn capability, if any, is not a burn or buyback.'},'VERIFIED_SOURCE');
+    else if(t.mint==='OWNER_GATED'&&ownerAddr)fields.mintCapability=fact('Owner-authorized mint','Verified onlyOwner mint path + pinned owner()',{...tproof,owner:ownerAddr,scope:'Every runtime _mint call is in a public onlyOwner function of unmodified OpenZeppelin Ownable; this owner may call it. No mint transaction was executed.'},'VERIFIED_SOURCE_AND_STATE');
+    else if(t.mint==='OWNER_GATED'&&ownerZero)fields.mintCapability=fact('NONE ACTIVE ✓ · owner renounced','Verified onlyOwner mint path + pinned owner() = 0x0',{...tproof,scope:'The only runtime mint path requires the OpenZeppelin owner, which is the zero address at the pinned block. Applies to this implementation source only.'},'VERIFIED_SOURCE_AND_STATE');
+    if(t.ownable&&ownerAddr)fields.ownerAdmin=fact('Owner-governed'+(t.ownerOnlyFunctions.length?' ('+t.ownerOnlyFunctions.slice(0,6).join(', ')+')':'')+' · '+ownerAddr,'Unmodified OpenZeppelin Ownable + pinned owner()',{...tproof,owner:ownerAddr,scope:'Owner-gated functions listed from verified source. Source-level role only: whether the owner is an EOA, multisig or contract is not inferred.'},'VERIFIED_SOURCE_AND_STATE');
+    else if(t.ownable&&ownerZero)fields.ownerAdmin=fact('Ownership renounced · owner 0x0','Unmodified OpenZeppelin Ownable + pinned owner() = 0x0',{...tproof,scope:t.ungatedFunctions.length?'Owner-gated functions cannot be called. The source also has non-owner external functions ('+t.ungatedFunctions.slice(0,8).join(', ')+') whose access control was not analysed.':'Every state-changing entry point added by this source is onlyOwner, so none is callable. Standard ERC-20 user functions remain.'},'VERIFIED_SOURCE_AND_STATE');
+    else if(!t.ownable&&!t.ungatedFunctions.length&&!t.unprovenGates.length)fields.ownerAdmin=fact('No token owner/admin','Verified source: no owner, role or privileged entry point beyond OpenZeppelin ERC20',{...tproof,scope:'The source adds no state-changing function besides the standard ERC-20 library surface. External pool/launchpad contracts can hold separate privileges and are NOT audited.'},'VERIFIED_SOURCE');
+    if(t.burnable)details.observations.push({method:'OpenZeppelin ERC20Burnable library',block,...sourceProof,scope:'Public burn/burnFrom capability exists (holders may burn their own or approved tokens). This is not evidence that any burn or buyback occurred.'});
    }
    await require('./mechanics-reviewed-v4').apply({profile,fields,details,proof,fact,word,call,address,block,keccak,admin,direct:target===address&&nonDelegating(code)});
   }
