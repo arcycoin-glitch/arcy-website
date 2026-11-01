@@ -6,7 +6,9 @@ const FILES=['token/ERC20/ERC20.sol','token/ERC20/IERC20.sol','token/ERC20/exten
  // permit / access-control family and the pure helper libraries they import (pinned so that library assembly is never mistaken for token assembly)
  'token/ERC20/extensions/ERC20Permit.sol','token/ERC20/extensions/draft-ERC20Permit.sol','token/ERC20/extensions/IERC20Permit.sol','token/ERC20/extensions/draft-IERC20Permit.sol',
  'utils/cryptography/EIP712.sol','utils/cryptography/draft-EIP712.sol','utils/cryptography/ECDSA.sol','utils/cryptography/MessageHashUtils.sol','utils/Strings.sol','utils/math/Math.sol','utils/math/SignedMath.sol',
- 'utils/ShortStrings.sol','utils/StorageSlot.sol','utils/Nonces.sol','utils/Counters.sol','interfaces/IERC5267.sol','access/AccessControl.sol','access/IAccessControl.sol','utils/introspection/ERC165.sol','utils/introspection/IERC165.sol'];
+ 'utils/ShortStrings.sol','utils/StorageSlot.sol','utils/Nonces.sol','utils/Counters.sol','interfaces/IERC5267.sol','access/AccessControl.sol','access/IAccessControl.sol','utils/introspection/ERC165.sol','utils/introspection/IERC165.sol',
+ 'access/AccessControlEnumerable.sol','access/IAccessControlEnumerable.sol','utils/structs/EnumerableSet.sol','token/ERC20/extensions/ERC20Capped.sol',
+ 'token/ERC20/extensions/ERC20Votes.sol','governance/utils/Votes.sol','governance/utils/IVotes.sol','interfaces/IERC5805.sol','interfaces/IERC6372.sol','utils/types/Time.sol','utils/structs/Checkpoints.sol','utils/math/SafeCast.sol','utils/Panic.sol'];
 const versions=JSON.parse(execFileSync('npm',['view','@openzeppelin/contracts','versions','--json'],{encoding:'utf8'})).filter(v=>/^[45]\.\d+\.\d+$/.test(v));
 const out={},tmp=fs.mkdtempSync(path.join(os.tmpdir(),'oz-'));
 for(const v of versions){

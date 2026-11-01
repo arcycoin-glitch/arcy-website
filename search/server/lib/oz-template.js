@@ -44,10 +44,12 @@ function functions(body){
  return out;
 }
 const FORBIDDEN_FN=new Set(['transfer','transferFrom','_transfer','_update','_beforeTokenTransfer','_afterTokenTransfer','balanceOf','totalSupply','allowance','approve','_approve','_spendAllowance','_mint','_burn','_useNonce']);
-const OWNABLE_FN=new Set(['owner','_checkOwner','_transferOwnership','transferOwnership','renounceOwnership']);
+// transferOwnership/renounceOwnership overrides are allowed (commonly disabled or tightened); any UNGATED path that changes ownership is caught by the escalation guard.
+const OWNABLE_FN=new Set(['owner','_checkOwner','_transferOwnership']);
 const BANNED=/\b(assembly|delegatecall|callcode|selfdestruct|suicide)\b/;
 const LIB_CONTRACTS=['ERC20','IERC20','IERC20Metadata','ERC20Burnable','Ownable','Context','IERC20Errors','IERC721Errors','IERC1155Errors',
- 'ERC20Permit','IERC20Permit','EIP712','Nonces','IERC5267','AccessControl','IAccessControl','ERC165','IERC165','ECDSA','Strings','Math','SignedMath','ShortStrings','StorageSlot','MessageHashUtils','Counters'];
+ 'ERC20Permit','IERC20Permit','EIP712','Nonces','IERC5267','AccessControl','IAccessControl','ERC165','IERC165','ECDSA','Strings','Math','SignedMath','ShortStrings','StorageSlot','MessageHashUtils','Counters',
+ 'AccessControlEnumerable','IAccessControlEnumerable','EnumerableSet','ERC20Capped','ERC20Votes','Votes','IVotes','IERC5805','IERC6372','Time','Checkpoints','SafeCast','Panic'];
 /**
  * @param {Object<string,{content:string}>} sources Sourcify-style source map (path -> {content})
  * @param {{lib:Object<string,string>, main?:string}} opts lib maps sha256(content)->canonical library file name
@@ -79,7 +81,7 @@ function run(sources,{lib,main}={}){
  if(roots.length!==1)return REJ('ROOT_CONTRACT_AMBIGUOUS',{count:roots.length});
  const closure=new Set(),stack=[roots[0]];let reachesErc20=false,ownable=false,burnable=false,accessControl=false;
  while(stack.length){const c=stack.pop();if(closure.has(c))continue;closure.add(c);
-  for(const b of c.bases){if(b==='ERC20')reachesErc20=true;else if(b==='Ownable')ownable=true;else if(b==='AccessControl')accessControl=true;else if(b==='ERC20Burnable'){reachesErc20=true;burnable=true;}
+  for(const b of c.bases){if(b==='ERC20'||b==='ERC20Permit'||b==='ERC20Votes'||b==='ERC20Capped')reachesErc20=true;else if(b==='Ownable')ownable=true;else if(b==='AccessControl'||b==='AccessControlEnumerable')accessControl=true;else if(b==='ERC20Burnable'){reachesErc20=true;burnable=true;}
    else if(byName.has(b))stack.push(byName.get(b));
    else if(!LIB_CONTRACTS.includes(b))return REJ('UNPINNED_BASE',{base:b});}}
  if(!reachesErc20)return REJ('ERC20_NOT_INHERITED');

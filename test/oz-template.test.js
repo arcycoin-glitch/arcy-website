@@ -3,7 +3,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),crypto=re
 const {analyze,strip}=require('../search/server/lib/oz-template');
 const sha=t=>crypto.createHash('sha256').update(t).digest('hex');
 // Synthetic stand-ins for the pinned library files; real pins live in oz-library-hashes.js.
-const L={ERC20:'// SPDX\ncontract ERC20 is Context, IERC20 { }',IERC20:'interface IERC20 {}',Ownable:'abstract contract Ownable is Context { modifier onlyOwner(){_;} function owner() public view returns(address){} }',Context:'abstract contract Context {}',ERC20Burnable:'abstract contract ERC20Burnable is Context, ERC20 { function burn(uint256 a) public {} }',AccessControl:'abstract contract AccessControl is Context { modifier onlyRole(bytes32 r){_;} }',ECDSA:'library ECDSA { function tryRecover(bytes32 h) internal pure { assembly { } } }'};
+const L={ERC20:'// SPDX\ncontract ERC20 is Context, IERC20 { }',IERC20:'interface IERC20 {}',Ownable:'abstract contract Ownable is Context { modifier onlyOwner(){_;} function owner() public view returns(address){} }',Context:'abstract contract Context {}',ERC20Burnable:'abstract contract ERC20Burnable is Context, ERC20 { function burn(uint256 a) public {} }',AccessControl:'abstract contract AccessControl is Context { modifier onlyRole(bytes32 r){_;} }',ERC20Permit:'abstract contract ERC20Permit is ERC20 { }',ECDSA:'library ECDSA { function tryRecover(bytes32 h) internal pure { assembly { } } }'};
 const lib=Object.fromEntries(Object.entries(L).map(([k,v])=>[sha(v),k]));
 const src=(own,extra={})=>({...Object.fromEntries(Object.entries(L).map(([k,v])=>[k+'.sol',{content:v}])),...Object.fromEntries(Object.entries(own).map(([k,v])=>[k,{content:v}])),...extra});
 const run=(code,main)=>analyze(src({'T.sol':code}),{lib,main});
@@ -143,4 +143,10 @@ test('role-gated mint (OpenZeppelin AccessControl) is recognised; pinned helper 
  assert.equal(tok.fields.ownerAdmin,undefined);
  const esc=await m.inspect(fx(T({ownable:true,mint:'OWNER_GATED',escalation:true,ownerOnlyFunctions:['mint']}),{owner:addr(B)}));
  assert.equal(esc.fields.mintCapability,undefined);assert.equal(esc.fields.ownerAdmin,undefined);
+});
+
+test('ownership overrides are allowed only while no UNGATED path can change ownership; permit extension inherits the pinned ERC20',()=>{
+ assert.equal(run('contract T is ERC20, Ownable { function renounceOwnership() public override onlyOwner { revert(); } function mint(address a,uint256 v) external onlyOwner { _mint(a,v); } }','T').mint,'OWNER_GATED');
+ assert.equal(run('contract T is ERC20, Ownable { function transferOwnership(address n) public override { super.transferOwnership(n); } function mint(address a,uint256 v) external onlyOwner { _mint(a,v); } }','T').mint,'UNRESOLVED');
+ assert.equal(run('contract T is ERC20Permit, Ownable { constructor(){ _mint(msg.sender,1); } }','T').mint,'CONSTRUCTOR_ONLY');
 });
