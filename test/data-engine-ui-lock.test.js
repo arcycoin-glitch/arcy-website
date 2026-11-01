@@ -19,7 +19,8 @@ const BASELINE = Object.freeze({
   "v8-premium.js": "e51587419fb0d785d76149a2551fb1a3ac7e86f9",
   "hero-video.js": "40942f382f1650b90d1d7572d0d1874217d4a3c0",
   "search/index.html": "39cedc0b6f962c1e0755818be077ac9060c1f102",
-  "search/market-radar.js": "962d99f585824c899c86334321d962070d9c46b5",
+  // 2026-11-01 owner-requested Pons availability exception: truthful source states and controlled manual retry; layout/CSS unchanged.
+  "search/market-radar.js": "3455ddead09f3d4cdd26d97d2ee7556f6457ddf0",
   "search/market-radar.css": "b8884da23b11369d2ccc1176989c2508ce3443f7",
   "search/assets/arc-network-mark.svg": "164d2a27c837cd58e42cf12d5d9a89ad4a546225",
   "search/assets/ethereum-mark.svg": "b92e033331b638dc4e2904aaa96b9f7e20917eb7",
