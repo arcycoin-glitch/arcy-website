@@ -169,3 +169,19 @@ test('API contract: template facts pass through formatCard with the same field s
  assert.ok(r.fields.tradingTaxes.evidence.length>=1);
  const {classify}=require('../search/server/lib/evidence-class');assert.equal(classify(f,{card:'mechanics'}).evidenceClass,'SINGLE_SOURCE','source-structure facts are single-source, never promoted to cross-verified');
 });
+
+// The existing presentation policy must NOT promote a verified token-only 0% transfer
+// into verified buy/sell taxes. This protects the unchanged Mechanics UI.
+test('partial OpenZeppelin transfer-tax evidence never becomes a full Buy/Sell/Transfer claim',async()=>{
+ const engine=require('../search/server/lib/data-engine');
+ const cfg=require('../search/server/lib/chains').chain('ethereum');
+ const {assess}=require('../search/mechanics-policy');
+ const card=await m.enrich({...fx(T({})),card:{description:'x',fields:{tradingTaxes:{value:null,dataState:'NOT_VERIFIED',evidence:[]}}}});
+ const result=engine.formatCard('mechanics',card,cfg,{address:A,block});
+ const verdict=assess(result,{chainId:1,network:'ethereum',address:A,block});
+ assert.equal(result.fields.tradingTaxes.value,'Transfer 0% · DEX/hook fees NOT VERIFIED');
+ assert.equal(verdict.rows[0],false,'token transfer only cannot prove buy/sell taxes');
+ assert.equal(verdict.rows[1],true,'independently verified mint remains available');
+ assert.equal(verdict.rows[2],true,'independently verified ownership remains available');
+ assert.equal(verdict.visible,true,'other independently verified facts remain displayed');
+});

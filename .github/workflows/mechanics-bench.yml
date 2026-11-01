@@ -4,6 +4,7 @@ on:
     paths:
       - 'scripts/bench-mechanics.cjs'
       - 'scripts/probe-mechanics-gaps.cjs'
+      - 'scripts/assert-mechanics-bench.cjs'
       - '.github/workflows/mechanics-bench.yml'
       - 'search/server/lib/mechanics-*.js'
       - 'search/server/lib/admin-getters.js'
@@ -35,12 +36,12 @@ jobs:
       - name: BEFORE-LIVE (main) — records every provider answer; GoPlus disabled like Production
         run: BENCH_REPLAY=record BENCH_ROOT=$GITHUB_WORKSPACE/before node after/scripts/bench-mechanics.cjs beforelive
         continue-on-error: true
-      - name: BEFORE-REPLAY (main) — determinism check on identical evidence
+      - name: BEFORE-REPLAY (main) — deterministic recorded evidence
         run: BENCH_REPLAY=replay BENCH_ROOT=$GITHUB_WORKSPACE/before node after/scripts/bench-mechanics.cjs before mechanics-samples.json
-        continue-on-error: true
-      - name: AFTER-REPLAY (branch) — identical evidence, misses counted as extra requests
+      - name: AFTER-REPLAY (branch) — no network fallback for unrecorded requests
         run: BENCH_REPLAY=replay BENCH_ROOT=$GITHUB_WORKSPACE/after node after/scripts/bench-mechanics.cjs after mechanics-samples.json
-        continue-on-error: true
+      - name: Paired benchmark regression gate (mandatory)
+        run: node after/scripts/assert-mechanics-bench.cjs mechanics-bench-before.json mechanics-bench-after.json
       - name: Let public RPC windows reset
         run: sleep 45
       - name: AFTER-LIVE (branch) — latency/noise reference (not paired)
