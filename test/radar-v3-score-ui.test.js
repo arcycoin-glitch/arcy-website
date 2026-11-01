@@ -57,22 +57,22 @@ const data=(network,{engine='arcy-radar-v3',score=72.5,empty=false}={})=>({
  discovery:engine==='arcy-radar-v3'?{scoreVersion:'arcy-discovery-1'}:undefined,
  tokens:empty?[]:[token(score)],attribution:[]
 });
-async function mount(){
+async function mount({overrides={},http={},fetcher}={}){
  const detail=new Node('section');detail.id='tokenDetail';const calls=[];
  const document={
   createElement:tag=>new Node(tag),
   createTextNode:s=>new Text(s),
   getElementById:id=>id==='tokenDetail'?detail:null
  };
- const responses={robinhood:data('robinhood'),arc:data('arc',{engine:'arcy-radar-v2'}),ethereum:data('ethereum',{score:105}),pons:data('pons',{empty:true})};
+ const responses={robinhood:data('robinhood'),arc:data('arc',{engine:'arcy-radar-v2'}),ethereum:data('ethereum',{score:105}),pons:data('pons',{empty:true}),...overrides};
  const ctx={document,Intl,Date,URL,AbortController,setTimeout,clearTimeout,
   window:{scrollY:0,scrollTo(){}},
-  fetch:async url=>{const network=new URL(url,'https://example.com').searchParams.get('chain');calls.push(network);return {ok:true,json:async()=>responses[network]};}
+  fetch:async url=>{const network=new URL(url,'https://example.com').searchParams.get('chain');calls.push(network);return fetcher?fetcher(network):{ok:http[network]!==false,json:async()=>responses[network]};}
  };
  vm.runInNewContext(js,ctx);
  // Wait for all four immediate fetches, JSON reads and Promise.all() callback.
  for(let i=0;i<5;i++)await Promise.resolve();
- return {detail,calls};
+ return {detail,calls,responses,http};
 }
 const panel=(detail,net)=>detail.querySelector('[data-overview="'+net+'"]');
 test('JS parses and V3 score/rationale use the existing verified API, without extra calls',async()=>{
@@ -122,4 +122,66 @@ test('responsive mobile slots and truthful copy are present',()=>{
  assert.match(css,/\.arcy-radar-overview-columns\{display:none!important\}/);
  assert.match(js,/discovery\.reason|explainDiscovery\(d\.reason\)/);
  assert.doesNotMatch(js,/Math\.random\(/);
+});
+
+test('failed Pons response never claims that no launches were found; other networks remain available',async()=>{
+ const {detail,calls}=await mount({http:{pons:false}}),p=panel(detail,'pons');
+ assert.equal(p.querySelector('.arcy-radar-overview-freshness').textContent,'KAYNAK ERİŞİLEMİYOR');
+ assert.match(p.querySelector('.arcy-radar-overview-empty').textContent,/lansman olmadığı anlamına gelmez/);
+ assert.doesNotMatch(p.querySelector('.arcy-radar-overview-empty').textContent,/lansmanı bulunamadı/);
+ assert.equal(p.querySelector('.arcy-radar-overview-action').textContent,'Yeniden Dene ↻');
+ detail.querySelector('.arcy-radar-networks').children.find(c=>c.dataset.network==='pons').click();
+ assert.equal(p.querySelector('.arcy-radar-overview-action').textContent,'Yeniden Dene ↻','selecting an unavailable network must not restore an expansion label');
+ assert.equal(panel(detail,'robinhood').querySelectorAll('.arcy-radar-overview-token').length,1);
+ assert.equal(calls.length,4,'no automatic extra request on failure');
+});
+test('a valid empty Pons ranking is distinct from a source failure and does not claim full coverage',async()=>{
+ const {detail}=await mount(),p=panel(detail,'pons');
+ assert.equal(p.querySelector('.arcy-radar-overview-freshness').textContent,'PENCERE BOŞ');
+ assert.match(p.querySelector('.arcy-radar-overview-empty').textContent,/Liste tüm lansmanları kapsamaz/);
+ assert.equal(p.querySelector('.arcy-radar-overview-action').disabled,true);
+});
+test('wrong-network and malformed successful results cannot masquerade as verified Pons data',async()=>{
+ for(const wrong of [data('arc'),{...data('pons'),tokens:null},{...data('pons'),chainId:1}]){
+  const {detail}=await mount({overrides:{pons:wrong}}),p=panel(detail,'pons');
+  assert.equal(p.querySelector('.arcy-radar-overview-freshness').textContent,'KAYNAK ERİŞİLEMİYOR');
+  assert.equal(p.querySelectorAll('.arcy-radar-overview-token').length,0);
+ }
+});
+test('manual retry fetches only failed Pons and can recover without refetching healthy networks',async()=>{
+ const {detail,calls,http,responses}=await mount({http:{pons:false}}),p=panel(detail,'pons');
+ http.pons=true;responses.pons=data('pons');
+ detail.querySelector('.arcy-radar-networks').children.find(c=>c.dataset.network==='pons').click();
+ p.querySelector('.arcy-radar-overview-action').click();
+ await new Promise(setImmediate);
+ assert.deepEqual(calls,['arc','ethereum','robinhood','pons','pons']);
+ assert.equal(p.querySelector('.arcy-radar-overview-freshness').textContent,'DOĞRULANDI');
+ assert.equal(p.querySelectorAll('.arcy-radar-overview-token').length,1);
+ p.querySelector('.arcy-radar-overview-action').click();
+ assert.equal(calls.length,5,'expansion after recovery never fetches again');
+});
+test('repeated manual clicks coalesce while a Pons retry is pending',async()=>{
+ let attempt=0,finish;
+ const {detail,calls}=await mount({fetcher:async network=>{
+  if(network!=='pons')return {ok:true,json:async()=>data(network)};
+  if(attempt++===0)return {ok:false};
+  return new Promise(resolve=>{finish=()=>resolve({ok:true,json:async()=>data('pons')});});
+ }});
+ const p=panel(detail,'pons'),action=p.querySelector('.arcy-radar-overview-action');
+ action.click();action.click();
+ assert.equal(calls.filter(n=>n==='pons').length,2);
+ assert.equal(action.disabled,true);
+ assert.equal(p.querySelector('.arcy-radar-overview-freshness').textContent,'KONTROL EDİLİYOR');
+ finish();await new Promise(setImmediate);
+ assert.equal(action.disabled,false);
+ assert.equal(p.querySelector('.arcy-radar-overview-freshness').textContent,'DOĞRULANDI');
+});
+test('Retry-After disables manual retry without scheduling another provider request',async()=>{
+ const {detail,calls}=await mount({fetcher:async network=>network==='pons'?{ok:false,headers:{get:key=>key==='retry-after'?'60':null}}:{ok:true,json:async()=>data(network)}});
+ const p=panel(detail,'pons'),action=p.querySelector('.arcy-radar-overview-action');
+ assert.equal(action.disabled,true);
+ assert.equal(action.textContent,'Kaynak bekleme süresinde');
+ action.click();await new Promise(setImmediate);
+ assert.equal(calls.length,4);
+ assert.doesNotMatch(p.querySelector('.arcy-radar-overview-empty').textContent,/lansmanı bulunamadı/);
 });

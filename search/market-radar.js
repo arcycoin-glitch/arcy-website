@@ -93,6 +93,7 @@
  const networkTheme={arc:'arc',ethereum:'ethereum',robinhood:'robinhood',pons:'pons'};
  const icon={arc:'',ethereum:'',robinhood:'',pons:''};
  const overviewData=new Map();
+ const overviewPending=new Map(),overviewRetryAt=new Map(),overviewRetryTimers=new Map();
  let expandedNetwork=null;
  // UI-only: explain the source-backed V3 score without extra provider requests.
  function explainDiscovery(raw){
@@ -115,10 +116,17 @@
   if(warnings.length)featured.push(warnings.join(' · '));
   return {short:featured.join(' · ')||'NOT VERIFIED',full:translated.join(' · ')||'NOT VERIFIED'};
  }
- function renderOverview(network,data){
+ function validOverview(network,data){
+  return data?.ok===true&&data.version===2&&data.network===network&&data.chainId===CHAIN_ID[network]&&
+   Array.isArray(data.tokens)&&data.tokens.length<=10&&data.tokens.every((item,i)=>item?.rank===i+1&&
+    /^0x[0-9a-f]{40}$/i.test(item.address)&&typeof item.symbol==='string'&&typeof item.name==='string'&&item.fields&&typeof item.fields==='object');
+ }
+ function renderOverview(network,data,{loading=false}={}){
   const card=overview.querySelector('[data-overview="'+network+'"]');
   if(!card)return;
   const list=card.querySelector('.arcy-radar-overview-list');
+  const verified=validOverview(network,data);
+  if(!verified)data=null;
   card.querySelector('.arcy-radar-discovery-note').hidden=data?.engine!=='arcy-radar-v3';
   list.replaceChildren();
   const headings=el('div','arcy-radar-overview-columns');
@@ -126,7 +134,7 @@
    headings.append(el('span','',text));
   }
   list.append(headings);
-  if(data?.ok===true&&Array.isArray(data.tokens))overviewData.set(network,data);
+  if(verified)overviewData.set(network,data);else overviewData.delete(network);
   const tokens=Array.isArray(data?.tokens)?data.tokens.slice(0,expandedNetwork===network?10:5):[];
   const total=card.querySelector('.arcy-radar-overview-count');
   const allCount=Array.isArray(data?.tokens)?data.tokens.length:0;
@@ -134,10 +142,15 @@
   const freshness=card.querySelector('.arcy-radar-overview-freshness');
   const hasData=data?.ok===true&&Array.isArray(data?.tokens)&&allCount>0;
   const stamp=Date.parse(data?.asOf||'');
-  lastUpdated.textContent=hasData&&Number.isFinite(stamp)?'Son veri: '+new Date(stamp).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'Güncel veri doğrulanamadı';
-  freshness.textContent=hasData?(data.freshness==='STALE'?'ÖNBELLEK':'DOĞRULANDI'):'VERİ BEKLENİYOR';
+  lastUpdated.textContent=verified&&Number.isFinite(stamp)?'Son veri: '+new Date(stamp).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):loading?'Kaynaklar kontrol ediliyor…':'Güncel veri alınamadı';
+  freshness.textContent=verified?(data.freshness==='STALE'?'ÖNBELLEK':hasData?'DOĞRULANDI':'PENCERE BOŞ'):loading?'KONTROL EDİLİYOR':'KAYNAK ERİŞİLEMİYOR';
   freshness.classList.toggle('is-stale',!hasData||data.freshness==='STALE');
-  total.textContent=hasData?allCount+' gözlemlenen token · Veriler yalnızca kaynakların döndürdüğü havuz ve tokenlarla sınırlıdır':'Bu ağda doğrulanmış token listesi henüz alınamadı';
+  total.textContent=hasData?allCount+' gözlemlenen token · Veriler yalnızca kaynakların döndürdüğü havuz ve tokenlarla sınırlıdır':verified?'Bu veri penceresinde sıralanabilir token yok':loading?'Kaynaklar kontrol ediliyor…':'Token listesi şu anda doğrulanamıyor';
+  const action=card.querySelector('.arcy-radar-overview-action');
+  const wait=Math.max(0,(overviewRetryAt.get(network)||0)-Date.now());
+  action.disabled=loading||(!hasData&&verified)||wait>0;
+  action.textContent=verified?(hasData?(expandedNetwork===network?'Daha Az Göster ↑':'Tümünü Gör →'):'Bu pencerede liste boş'):loading?'Kontrol ediliyor…':wait>0?'Kaynak bekleme süresinde':'Yeniden Dene ↻';
+  action.setAttribute('aria-expanded',String(verified&&expandedNetwork===network));
   for(const [index,item] of tokens.entries()){
    const validAddress=typeof item.address==='string'&&/^0x[0-9a-f]{40}$/i.test(item.address)&&!/^0x0{40}$/i.test(item.address);
    const row=el(validAddress?'a':'div','arcy-radar-overview-token');
@@ -197,7 +210,9 @@
    if(!scoreOk||why.short==='NOT VERIFIED')reasonCell.classList.add('is-unverified');
    row.append(identity,priceLabel,change,volume,scoreCell,reasonCell,arrow);list.append(row);
   }
-  if(!tokens.length)list.append(el('p','arcy-radar-overview-empty',network==='pons'?'Şu anda bu veri penceresinde factory ile doğrulanmış Pons lansmanı bulunamadı.':'Bu ağ için doğrulanmış sıralama şu anda alınamıyor.'));
+  if(!tokens.length)list.append(el('p','arcy-radar-overview-empty',loading?'Güncel kaynak yanıtı bekleniyor.':!verified?
+   (network==='pons'?'Pons verisi şu anda alınamıyor. Bu durum, lansman olmadığı anlamına gelmez.':'Bu ağın veri kaynağına şu anda erişilemiyor. Token sayısı doğrulanamadı.'):
+   (network==='pons'?'Şu anda bu veri penceresinde factory ile doğrulanmış Pons lansmanı bulunamadı. Liste tüm lansmanları kapsamaz.':'Bu veri penceresinde sıralama koşullarını karşılayan token bulunamadı. Liste tüm ağı kapsamaz.')));
  }
  for(const [id,name] of chains){
   const card=el('section','arcy-radar-overview-card arcy-radar-overview-'+networkTheme[id]);
@@ -231,11 +246,11 @@
   discoveryNote.hidden=true;
   const action=el('button','arcy-radar-overview-action','Tümünü Gör →');
   action.type='button';action.addEventListener('click',()=>{
+   if(!overviewData.has(id)){void refreshOverview(id);return;}
    expandedNetwork=expandedNetwork===id?null:id;
    for(const [key,data] of overviewData)renderOverview(key,data);
    for(const node of overview.children)node.classList.toggle('is-expanded',node.dataset.overview===expandedNetwork);
    action.setAttribute('aria-expanded',String(expandedNetwork===id));
-   for(const other of overview.querySelectorAll('.arcy-radar-overview-action'))other.textContent=other.closest('.arcy-radar-overview-card')?.dataset.overview===expandedNetwork?'Daha Az Göster ↑':'Tümünü Gör →';
   });
   action.setAttribute('aria-expanded','false');card.append(head,count,list,discoveryNote,action);overview.append(card);
  }
@@ -250,7 +265,7 @@
    card.hidden=key!==id;
    card.classList.remove('is-expanded');
    const action=card.querySelector('.arcy-radar-overview-action');
-   if(action){action.setAttribute('aria-expanded','false');action.textContent='Tümünü Gör →';}
+   if(action){action.setAttribute('aria-expanded','false');if(overviewData.get(key)?.tokens.length)action.textContent='Tümünü Gör →';}
   }
   for(const [key,data] of overviewData)if(key===id)renderOverview(key,data);
  }
@@ -354,24 +369,41 @@
  prev.addEventListener('click',()=>{if(page>0){page--;render();}});
  next.addEventListener('click',()=>{if((page+1)*5<items.length){page++;render();}});
  setView('research');
+ async function refreshOverview(network){
+  if(overviewPending.has(network))return overviewPending.get(network);
+  if((overviewRetryAt.get(network)||0)>Date.now())return false;
+  renderOverview(network,null,{loading:true});
+  const task=(async()=>{
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),9500);
+   try{
+    const response=await fetch('/api/search?action=radar&chain='+network,{signal:controller.signal,headers:{accept:'application/json'},cache:'no-store'});
+    if(!response.ok){
+     const raw=response.headers?.get?.('retry-after');
+     const seconds=raw&&/^\d+$/.test(raw)?Number(raw):null;
+     const until=seconds!==null?Date.now()+seconds*1000:Date.parse(raw||'');
+     if(Number.isFinite(until)&&until>Date.now()){
+      const wait=Math.min(until-Date.now(),24*3600*1000);
+      overviewRetryAt.set(network,Date.now()+wait);
+      clearTimeout(overviewRetryTimers.get(network));
+      const retryTimer=setTimeout(()=>{overviewRetryAt.delete(network);overviewRetryTimers.delete(network);renderOverview(network,null);},wait);
+      retryTimer.unref?.();overviewRetryTimers.set(network,retryTimer);
+     }
+     renderOverview(network,null);return false;
+    }
+    const data=await response.json();
+    renderOverview(network,data);
+    const ready=validOverview(network,data)&&data.tokens.length>0;
+    if(ready){radarBtn.disabled=false;radarBtn.removeAttribute('title');}
+    return ready;
+   }catch{renderOverview(network,null);return false;}
+   finally{clearTimeout(timer);}
+  })();
+  overviewPending.set(network,task);
+  try{return await task;}finally{if(overviewPending.get(network)===task)overviewPending.delete(network);}
+ }
  async function verifyPublicReadiness(){
   try{
-   const all=await Promise.all(['arc','ethereum','robinhood','pons'].map(async network=>{
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),9500);
-    try{
-     const response=await fetch('/api/search?action=radar&chain='+network,{signal:controller.signal,headers:{accept:'application/json'},cache:'no-store'});
-     if(!response.ok){renderOverview(network,null);return false;}
-     const data=await response.json();
-     renderOverview(network,data?.ok===true?data:null);
-     return data?.ok===true&&data.version===2&&data.network===network&&Array.isArray(data.tokens)&&
-      data.tokens.length>0&&data.tokens.every((item,i)=>item?.rank===i+1&&/^0x[0-9a-f]{40}$/i.test(item.address));
-    }catch{
-     // A single timed-out source must not hide another verified network.
-     renderOverview(network,null);
-     return false;
-    }finally{clearTimeout(timer)}
-   }));
+   const all=await Promise.all(['arc','ethereum','robinhood','pons'].map(refreshOverview));
    if(all.some(Boolean)){radarBtn.disabled=false;radarBtn.removeAttribute('title');}
    else radarBtn.title='Market Radar is unavailable until verified data is ready';
   }catch{

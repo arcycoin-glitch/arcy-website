@@ -186,6 +186,29 @@ test('responses are cached for the tier TTL and concurrent loads coalesce into o
  now=T0+79*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,1,'still cached at 79 min (Demo TTL 80)');
  now=T0+81*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,2);
 });
+test('Robinhood and Pons share pending provider pages on a cold parallel load',async()=>{
+ const body=geckoBody('robinhood',{count:5}),rpc=rpcRouter({members:[addr(1)]});
+ const f=router([...CG('robinhood',body),[/dexscreener/,()=>resp([])],[/rpc\.example/,rpc]]);
+ const delayed=async(u,o)=>{if(/\/pools\?|trending_pools\?|new_pools\?/.test(String(u)))await new Promise(setImmediate);return f(u,o);};
+ const options={env:DEMO,fetcher:delayed,now:()=>T0,rpcUrl:'https://rpc.example/'};
+ const [rh,p]=await Promise.all([radar.load('robinhood',options),radar.load('pons',options)]);
+ const pages=f.calls.filter(c=>/\/pools\?|trending_pools\?|new_pools\?/.test(String(c.url)));
+ assert.equal(pages.length,3,'one request per shared top/trending/new page, rather than six');
+ assert.equal(rh.network,'robinhood');assert.equal(p.network,'pons');
+ assert.ok(p.tokens.every(t=>t.launch?.status==='ONCHAIN_VERIFIED'));
+ assert.equal(rh.usage.geckoterminal+p.usage.geckoterminal,5,'three shared pages plus two independent token lookups');
+});
+test('a rejected shared page is evicted, and a later request can recover',async()=>{
+ const body=geckoBody('robinhood',{count:5});let mode='fail',top=0;
+ const f=router([...CG('robinhood',body),[/dexscreener/,()=>resp([])],[/rpc\.example/,rpcRouter({members:[addr(1)]})]]);
+ const fetcher=async(u,o)=>{if(/\/pools\?/.test(String(u))){top++;await new Promise(setImmediate);if(mode==='fail')return {ok:false,status:503,headers:new Headers()};}return f(u,o);};
+ const options={env:DEMO,fetcher,now:()=>T0,rpcUrl:'https://rpc.example/'};
+ const failed=await Promise.allSettled([radar.load('robinhood',options),radar.load('pons',options)]);
+ assert.ok(failed.every(r=>r.status==='rejected'));
+ assert.equal(top,1);
+ mode='ready';const recovered=await radar.load('robinhood',options);
+ assert.equal(recovered.ok,true);assert.equal(top,2,'failed pending page was not retained');
+});
 test('429 honours Retry-After, enters a cooldown with no further calls, and serves a bounded STALE result labelled as such',async()=>{
  const body=geckoBody('arc',{count:12});let mode='ok',n=0;
  const f=router([[/coingecko\.com/,(u)=>{n++;return mode==='ok'?resp(/tokens\/multi/.test(u)?multiBody('arc',body):body):{ok:false,status:429,headers:new Headers({'retry-after':'120'}),text:async()=>''};}]]);
@@ -272,6 +295,18 @@ function call(handler,req,env){
  const res={setHeader(k,v){out.headers[k]=v;return this;},status(c){out.status=c;return this;},json(v){out.body=v;return this;}};
  return Promise.resolve(handler(req,res)).then(()=>out).finally(()=>{for(const [k,v] of Object.entries(saved)){if(v===undefined)delete process.env[k];else process.env[k]=v;}});
 }
+test('API preserves finite Retry-After for a date-based provider limit with the Radar clock callback',async()=>{
+ const original=radar.load,handler=require('../search/server/api/radar');
+ http._resetCooldowns();
+ radar.load=async()=>http.request('api-clock-test','https://provider.test',{now:()=>T0,fetcher:async()=>({ok:false,status:429,headers:new Headers({'retry-after':new Date(T0+90000).toUTCString()})})});
+ try{
+  const out=await call(handler,{method:'GET',query:{chain:'pons'},headers:{'sec-fetch-site':'same-origin'}},APPROVED);
+  assert.equal(out.status,503);
+  assert.equal(out.body.reasonCode,'RADAR_PROVIDER_RATE_LIMITED');
+  assert.equal(out.headers['Retry-After'],'90');
+  assert.equal(out.headers['Cache-Control'],'no-store');
+ }finally{radar.load=original;http._resetCooldowns();}
+});
 test('API: fail-closed 503 without approvals; 400 for unknown chain; 405 for non-GET; four sections accepted',async()=>{
  const handler=require('../search/server/api/radar'),clean={MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:undefined,MARKET_RADAR_JSON_DELIVERY_APPROVED:undefined,COINGECKO_DEMO_API_KEY:undefined,COINGECKO_PRO_API_KEY:undefined};
  let r=await call(handler,{method:'GET',query:{chain:'arc'}},clean);assert.equal(r.status,503);assert.equal(r.body.error,'RADAR_NOT_CONFIGURED');assert.equal(r.headers['Cache-Control'],'no-store');

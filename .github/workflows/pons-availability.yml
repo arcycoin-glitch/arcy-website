@@ -1,0 +1,35 @@
+name: Pons availability diagnosis (read-only)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/pons-availability.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: One public Pons response and one bounded public RPC batch
+        run: |
+          node <<'JS'
+          const {PONS}=require('./lib/radar-v2/sources'),pons=require('./lib/radar-v2/pons');
+          (async()=>{
+            const base='https://www.arcyusdc.xyz';
+            try{
+              const start=Date.now(),r=await fetch(base+'/api/search?action=radar&chain=pons',{headers:{accept:'application/json',referer:base+'/','sec-fetch-site':'same-origin'},signal:AbortSignal.timeout(30000)}),d=await r.json();
+              console.log('PONS_PUBLIC '+JSON.stringify({http:r.status,ms:Date.now()-start,ok:d.ok,error:d.error,reasonCode:d.reasonCode,retryAfter:r.headers.get('retry-after'),network:d.network,count:d.tokens?.length,freshness:d.freshness,coverage:d.coverage}));
+            }catch(e){console.log('PONS_PUBLIC '+JSON.stringify({error:e.name,message:e.message}));}
+            try{
+              const rpc=require('./search/server/lib/chains').CHAIN_CONFIG.robinhood.publicRpc,token='0x39dbed3a2bd333467115de45665cc57f813c4571';
+              const calls=[{jsonrpc:'2.0',id:1,method:'eth_chainId',params:[]},{jsonrpc:'2.0',id:2,method:'eth_blockNumber',params:[]},...PONS.factories.map((to,i)=>({jsonrpc:'2.0',id:i+3,method:'eth_call',params:[{to,data:pons.calldata(pons.SEL.getLaunchedToken,token)},'latest']}))];
+              const r=await fetch(rpc,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(calls),signal:AbortSignal.timeout(15000)}),d=await r.json();
+              console.log('PONS_PUBLIC_RPC '+JSON.stringify({http:r.status,batch:Array.isArray(d),results:Array.isArray(d)?d.map(x=>({id:x.id,error:x.error?.code,message:x.error?.message,resultBytes:typeof x.result==='string'?x.result.length:null,...(x.id<=2?{value:x.result}:{} )})):d}));
+            }catch(e){console.log('PONS_PUBLIC_RPC '+JSON.stringify({error:e.name,message:e.message}));}
+          })();
+          JS
