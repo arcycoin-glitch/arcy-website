@@ -203,3 +203,9 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - verify.js: DEX Screener liquidity at 1.85-2.15x GeckoTerminal = definition difference, lower value kept as SOURCE_REPORTED (needs owner sign-off).
 - Quota unchanged: 13 credits/cycle; all V2 work is RPC-only (about 13 requests per refresh on the public RPC, 429 => fail-closed status).
 - Open: Preview UI check blocked (JS execution denied on preview domain; radar API is site-only); Arc 8-9/10 is a genuine eligible-token shortfall within credit budget.
+
+## Contract & Mechanics data engine (2026-11-01, branch data/mechanics-engine-20261101, Draft PR #122)
+- Yapıldı: record/replay benchmark (aynı kanıt üzerinde main vs dal), pinned-OpenZeppelin kaynak-yapı analizi (`oz-template.js`, 296 SHA-256), `mechanics-deep.js` içine yalnızca `inspect` entegrasyonu (`enrich`/`validateSource` aynı).
+- Ölçüm (52 kontrat, eşli replay): Taxes 16→22, Mint 17→23, Owner 22→26, Architecture 47→47; 6 Ethereum kontratı iyileşti, hiçbiri kötüleşmedi; RPC/Sourcify isteği 0 ek. Ayrıntı: docs/MECHANICS_DATA_ENGINE_20261101.md.
+- Açık: Pons/Arc/Robinhood'un doğrulanmış kaynağı olmayan 17 kontratı; klasik şablonlar (10) için reviewed profil; legacy zos proxy (3).
+- Sonraki: PR #122 incelemesi; merge/deploy yalnızca açık onayla. UI, kart, API sözleşmesi, Railway, bütçeler değişmedi.
