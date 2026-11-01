@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'scripts/probe-discovery-latency.cjs'
+      - 'scripts/probe-explorer-access.cjs'
       - '.github/workflows/discovery-latency-probe.yml'
   workflow_dispatch:
 permissions:
@@ -19,4 +20,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node scripts/probe-discovery-latency.cjs
+      - run: node scripts/probe-explorer-access.cjs
