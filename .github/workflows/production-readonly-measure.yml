@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'scripts/probe-radar-missing24h.cjs'
+      - 'scripts/probe-radar-change24h.cjs'
       - '.github/workflows/production-readonly-measure.yml'
   workflow_dispatch:
 permissions:
