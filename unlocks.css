@@ -11,3 +11,29 @@
  #unlocks .unlock-tools{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
  #unlocks #unlockSearch{flex:1 1 180px;min-width:0}
 }
+
+/* Exact pre-update Unlocks skeleton: five clean rows, logos, symbol, name, date, amount, percent. */
+#unlocks .unlock-coverage,#unlocks .unlock-sort-label,#unlocks .unlock-results{display:none!important}
+#unlocks .unlock-main-row .unlock-event-note,#unlocks .unlock-main-row .unlock-expand{display:none!important}
+#unlocks .unlock-tools{margin-bottom:20px}
+#unlocks .tablebox{border:0;background:transparent}
+#unlocks table{border-collapse:collapse}
+#unlocks thead th{font-size:11px;letter-spacing:.06em;white-space:nowrap;color:#819eb0}
+#unlocks tbody tr.unlock-main-row{background:transparent;border:0}
+#unlocks tbody tr.unlock-main-row td{padding-top:25px!important;padding-bottom:25px!important;border-bottom:1px solid #10293b!important;white-space:nowrap}
+#unlocks .unlock-main-row .token-cell{display:flex;align-items:center;gap:13px}
+#unlocks .unlock-main-row .token-cell b{font-size:18px}
+#unlocks .unlock-main-row .token-cell small{font-size:12px;color:#879eaf}
+#unlocks .unlock-main-row .token-icon,#unlocks .unlock-main-row .token-icon-fallback{width:47px;height:47px;flex:0 0 47px}
+@media(max-width:560px){
+ #unlocks .tablebox{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+ #unlocks table{min-width:795px;width:100%;table-layout:auto;border-collapse:collapse}
+ #unlocks thead{display:table-header-group;position:static}
+ #unlocks .unlock-main-row .rank{display:table-cell}
+ #unlocks .unlock-main-row td{display:table-cell!important;padding:20px 11px!important;vertical-align:middle!important}
+ #unlocks .unlock-main-row .unlock-token{position:static;min-width:230px;background:transparent;box-shadow:none}
+ #unlocks .unlock-main-row .token-cell{flex-wrap:nowrap;gap:10px}
+ #unlocks .unlock-main-row .token-cell b{font-size:17px}
+ #unlocks .unlock-main-row .token-cell small{flex-basis:auto;font-size:11px}
+ #unlocks .unlock-main-row .token-icon,#unlocks .unlock-main-row .token-icon-fallback{width:44px;height:44px;flex:0 0 44px}
+}
