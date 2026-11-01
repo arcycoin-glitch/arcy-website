@@ -1,0 +1,22 @@
+name: Discovery latency probe (read-only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-discovery-latency.cjs'
+      - '.github/workflows/discovery-latency-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: discovery-latency-probe-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-discovery-latency.cjs
