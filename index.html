@@ -511,7 +511,7 @@ function unlockDetails(event){
   return `<li><b>${escapeHtml(event.date)} UTC · ${escapeHtml(event.amount)}</b><p>${escapeHtml(event.allocation||'Allocation not supplied')} · ${escapeHtml(ARCYUnlockView.scheduleLabel(event))}</p><p>Value: ${escapeHtml(event.value||'Not supplied')} · Circulating: ${escapeHtml(event.percent||'Not supplied')}</p><p class="unlock-evidence-label">${tier} · Execution not verified<br>Source checked: ${escapeHtml(unlockTime(checked))}</p>${source?`<a href="${escapeHtml(source)}" target="_blank" rel="noopener noreferrer">Published source ↗</a>`:'<span class="unlock-evidence-label">Source link unavailable</span>'}</li>`;
 }
 function renderUnlocks(days){
-  const all=filteredUnlockRows(days);
+  const all=filteredUnlockRows(days).map(group=>group.representative);
   const body=document.getElementById("unlockRows");
   if(!body)return;
   const pages=Math.max(1,Math.ceil(all.length/unlockPageSize));
@@ -519,23 +519,9 @@ function renderUnlocks(days){
   const offset=(unlockPage-1)*unlockPageSize;
   const rows=all.slice(offset,offset+unlockPageSize);
   body.innerHTML=rows.length
-    ? rows.map((group,i)=>{
-      const r=group.representative,id='unlock-events-'+(offset+i),open=unlockExpanded.has(group.key);
-      const basis=group.events.length>1?(document.getElementById('unlockSort')?.value==='soonest'||group.score===null?'Earliest event shown':'Largest known event shown'):ARCYUnlockView.scheduleLabel(r);
-      return `<tr class="unlock-main-row"><td class="rank">${offset+i+1}</td><td class="unlock-token"><span class="token-cell" translate="no">${tokenIcon(r.symbol||r.token||'', r.logo)}<b>${escapeHtml(r.symbol||r.token||r.name||'—')}</b>${r.name&&r.name!==(r.symbol||r.token)?` <small>${escapeHtml(r.name)}</small>`:''}</span><small class="unlock-event-note">${escapeHtml(basis)}${group.dateCount>1?' · '+group.dateCount+' dates; cadence unverified':''}</small><button class="unlock-expand" type="button" data-unlock-group="${i}" aria-controls="${id}" aria-expanded="${open}">${open?'Hide':'View'} ${group.events.length} event${group.events.length===1?'':'s'} &amp; source</button></td><td class="unlock-date" data-label="EVENT DATE (UTC)">${escapeHtml(r.date||'—')}</td><td data-label="EVENT AMOUNT">${escapeHtml(r.amount||'—')}<small class="unlock-event-note">${escapeHtml(r.value||'USD value not supplied')}</small></td><td data-label="% CIRCULATING">${escapeHtml(r.percent||'—')}</td></tr><tr class="unlock-events" id="${id}"${open?'':' hidden'}><td colspan="5"><ul class="unlock-event-list">${group.events.map(unlockDetails).join('')}</ul></td></tr>`;
-    }).join("")
+    ? rows.map((r,i)=>`<tr><td class="rank">${offset+i+1}</td><td translate="no"><span class="token-cell">${tokenIcon(r.symbol||r.token||'', r.logo)}<b>${escapeHtml(r.symbol||r.token||r.name||'—')}</b>${r.name&&r.name!==(r.symbol||r.token)?` <small>${escapeHtml(r.name)}</small>`:''}</span></td><td>${escapeHtml(r.date||'—')}</td><td>${escapeHtml(r.amount||'—')}</td><td>${escapeHtml(r.percent||r.pct||'—')}</td></tr>`).join("")
     : `<tr><td colspan="5" class="loading">${unlockState==='error'?'Live unlock feed temporarily unavailable.':unlockState==='loading'?'Loading live unlocks…':document.getElementById('unlockSearch').value.trim()?'No matching unlocks in this window.':'No published unlocks in this window. Coverage is limited.'}</td></tr>`;
   body.querySelectorAll("img.token-icon").forEach(img=>img.addEventListener("error",()=>{const fallback=document.createElement("span");fallback.className="token-icon-fallback";fallback.textContent=img.alt.slice(0,3);img.replaceWith(fallback);},{once:true}));
-  body.querySelectorAll('[data-unlock-group]').forEach(button=>button.addEventListener('click',()=>{
-    const group=rows[Number(button.dataset.unlockGroup)],panel=document.getElementById(button.getAttribute('aria-controls'));
-    if(!group||!panel)return;
-    const open=button.getAttribute('aria-expanded')!=='true';
-    if(open)unlockExpanded.add(group.key);else unlockExpanded.delete(group.key);
-    button.setAttribute('aria-expanded',String(open));panel.hidden=!open;
-    button.textContent=(open?'Hide':'View')+' '+group.events.length+' event'+(group.events.length===1?'':'s')+' & source';
-  }));
-  const result=document.getElementById('unlockResults');
-  if(result)result.textContent=unlockState==='ready'?`${all.length} token entries · ${all.reduce((n,g)=>n+g.events.length,0)} events in this window${document.getElementById('unlockSearch')?.value?' matching your search':''}. Amounts refer to the displayed event, not a group total.`:unlockState==='error'?'Coverage unavailable.':'Loading published events…';
   const page=document.getElementById("unlockPage"), prev=document.getElementById("unlockPrev"), next=document.getElementById("unlockNext");
   if(page)page.textContent=`${unlockPage} / ${pages}`;
   if(prev)prev.disabled=unlockPage<=1;
@@ -557,7 +543,7 @@ async function loadUnlocks({silent=false}={}){
     const note=document.querySelector('#unlocks .note');
     if(note){
       const stamp=j.updatedAt?new Date(j.updatedAt).toLocaleString():'';
-      note.textContent=`Published schedules${stamp?' • Checked: '+stamp:''} • Source: ${j.source||'public unlock calendar'}. Coverage is limited${j.partial?' • Some sources or records are unavailable':''}. TODAY, NEXT 7 DAYS and DAYS 8–30 are separate UTC windows. Source-published records are not independent onchain confirmations.${j.coverage?.independentPublishers===1?' '+(j.coverage.publisherNote||'All listed rows come from one publisher; they are not independent confirmations.'):''}`;
+      note.textContent=`Published calendars${stamp?' • Checked: '+stamp:''} • Source: ${j.source||'public calendar'}. Coverage is limited.`;
     }
     if(!silent)unlockPage=1;
     renderUnlocks(activeUnlockDays());
