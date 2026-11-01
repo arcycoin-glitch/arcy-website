@@ -1,0 +1,42 @@
+/* Scoped to the calendar; the homepage layout and other modules retain their styles. */
+#unlocks .unlock-coverage{display:flex;flex-wrap:wrap;gap:8px 22px;padding:14px 0;color:#a9bfcd;font-size:13px;border-bottom:1px solid #17394f}
+#unlocks .unlock-coverage strong{color:#e4f8ff}
+#unlocks .unlock-coverage small{flex-basis:100%;color:#91aabb;line-height:1.5}
+#unlocks .unlock-sort-label{display:flex;align-items:center;gap:8px;color:#a9bfcd;font-size:12px}
+#unlocks #unlockSort{min-width:0;max-width:100%;padding:10px;border:1px solid #1b536b;border-radius:10px;background:#071722;color:#dff8ff;font:inherit}
+#unlocks .unlock-results{font-size:12px;line-height:1.5;color:#91aabb;margin:8px 0 12px}
+#unlocks .unlock-event-note{display:block;margin-top:6px;color:#91aabb;font-size:11px;line-height:1.4;font-weight:400}
+#unlocks .unlock-expand{margin-top:9px;padding:5px 0;border:0;border-bottom:1px solid #28596b;background:none;color:#66e7ff;cursor:pointer;font:inherit;font-size:12px;text-align:left}
+#unlocks .unlock-expand:focus-visible,#unlocks #unlockSort:focus-visible{outline:2px solid #66e7ff;outline-offset:4px}
+#unlocks .unlock-events[hidden]{display:none!important}
+#unlocks .unlock-events>td{padding:0 16px 18px}
+#unlocks .unlock-event-list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+#unlocks .unlock-event-list li{padding:14px;border:1px solid #17394f;border-radius:12px;background:#071722;color:#c7dce5;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+#unlocks .unlock-event-list a{color:#66e7ff;text-decoration:underline;text-underline-offset:3px}
+#unlocks .unlock-event-list p{margin:4px 0}
+#unlocks .unlock-evidence-label{color:#91aabb;font-size:11px}
+#unlocks .unlock-main-row td{vertical-align:top}
+#unlocks .unlock-main-row .token-cell{min-width:0}
+#unlocks .unlock-main-row small{overflow-wrap:anywhere}
+@media(max-width:850px){#unlocks .unlock-tools{flex-wrap:wrap}#unlocks .unlock-sort-label{flex:1 1 auto}}
+@media(max-width:560px){
+ #unlocks .unlock-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
+ #unlocks #unlockSearch{grid-column:1/-1;width:100%;box-sizing:border-box}
+ #unlocks .unlock-sort-label{display:grid;gap:5px;min-width:0}
+ #unlocks .unlock-pager{align-self:end;padding-bottom:2px}
+ #unlocks .tablebox{overflow:visible;border:0;background:none}
+ #unlocks table{display:block;width:100%;min-width:0!important}
+ #unlocks thead{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ #unlocks tbody{display:block;width:100%}
+ #unlocks .unlock-main-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px;padding:16px;border:1px solid #17394f;border-radius:14px;background:#071722}
+ #unlocks .unlock-main-row td{display:block;min-width:0;padding:0!important;border:0!important;text-align:left!important;white-space:normal;overflow-wrap:anywhere}
+ #unlocks .unlock-main-row .rank{display:none}
+ #unlocks .unlock-main-row .unlock-token,#unlocks .unlock-main-row .unlock-date{grid-column:1/-1}
+ #unlocks .unlock-main-row td[data-label]::before{content:attr(data-label);display:block;margin-bottom:5px;color:#91aabb;font-size:10px;letter-spacing:.05em;font-weight:600}
+ #unlocks .unlock-main-row .token-cell{justify-content:flex-start;font-size:17px}
+ #unlocks .unlock-main-row .token-cell small{font-size:12px}
+ #unlocks .unlock-events{display:block;margin-top:-4px;margin-bottom:14px}
+ #unlocks .unlock-events>td{display:block;padding:0!important;border:0!important}
+ #unlocks .unlock-event-list li{font-size:12px}
+ #unlocks .loading{display:block;white-space:normal;padding:16px}
+}

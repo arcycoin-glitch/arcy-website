@@ -1,0 +1,439 @@
+{
+  "ok": true,
+  "measuredAt": "2026-11-01T20:51:11.186Z",
+  "sourceCheckedAt": "2026-11-01T20:34:12.012Z",
+  "partial": true,
+  "completeMarketCoverage": false,
+  "identityNote": "Token entries are calendar identities, not independently verified contracts.",
+  "counts": {
+    "tokenEntries": 65,
+    "events": 65,
+    "today": {
+      "tokenEntries": 10,
+      "events": 10
+    },
+    "next7": {
+      "tokenEntries": 9,
+      "events": 9
+    },
+    "days8to30": {
+      "tokenEntries": 46,
+      "events": 46
+    }
+  },
+  "reportedPublishers": 1,
+  "sourceViews": [
+    {
+      "status": "available",
+      "rows": 60
+    },
+    {
+      "status": "available",
+      "rows": 60
+    },
+    {
+      "status": "available",
+      "rows": 60
+    }
+  ],
+  "evidence": {
+    "projectConfirmed": 0,
+    "calendarReported": 65,
+    "scheduleTypeUnavailable": 65,
+    "sourceLinkUnavailable": 0
+  },
+  "quarantinedRecords": 3,
+  "tokens": [
+    {
+      "name": "Across Protocol",
+      "symbol": "ACX",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "AltLayer",
+      "symbol": "ALT",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Aptos",
+      "symbol": "APT",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Aster",
+      "symbol": "ASTER",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Berachain",
+      "symbol": "BERA",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Big Time",
+      "symbol": "BIGTIME",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "BSquared Network",
+      "symbol": "B2",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Canton",
+      "symbol": "CC",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "CARV",
+      "symbol": "CARV",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Celestia",
+      "symbol": "TIA",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Celo",
+      "symbol": "CELO",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "CYBER",
+      "symbol": "CYBER",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Delysium",
+      "symbol": "AGI",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Echelon Prime",
+      "symbol": "PRIME",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "EigenCloud (prev. EigenLayer)",
+      "symbol": "EIGEN",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Falcon Finance",
+      "symbol": "FF",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Forta",
+      "symbol": "FORT",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Geodnet",
+      "symbol": "GEOD",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "GMT",
+      "symbol": "GMT",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Gram (prev. Toncoin)",
+      "symbol": "GRAM",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Grass",
+      "symbol": "GRASS",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "GRVT Token",
+      "symbol": "GRVT",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Gunz",
+      "symbol": "GUN",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Hashflow",
+      "symbol": "HFT",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Humanity",
+      "symbol": "H",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "KAITO",
+      "symbol": "KAITO",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Kinetiq",
+      "symbol": "KNTQ",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Layer3",
+      "symbol": "L3",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "LayerZero",
+      "symbol": "ZRO",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Limitless",
+      "symbol": "LMTS",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Liquity",
+      "symbol": "LQTY",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Magic Eden",
+      "symbol": "ME",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Maverick Protocol",
+      "symbol": "MAV",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "MemeCore",
+      "symbol": "M",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Monad",
+      "symbol": "MON",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Moonbeam",
+      "symbol": "GLMR",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Morpho",
+      "symbol": "MORPHO",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Movement",
+      "symbol": "MOVE",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Opinion",
+      "symbol": "OPN",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Optimism",
+      "symbol": "OP",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Orderly",
+      "symbol": "ORDER",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "peaq",
+      "symbol": "PEAQ",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Plasma",
+      "symbol": "XPL",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Pump.fun",
+      "symbol": "PUMP",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Quai Network",
+      "symbol": "QUAI",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "RE",
+      "symbol": "RE",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Redbelly Network",
+      "symbol": "RBNT",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Renzo",
+      "symbol": "REZ",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Resolv",
+      "symbol": "RESOLV",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Sei",
+      "symbol": "SEI",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Sign",
+      "symbol": "SIGN",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Solayer",
+      "symbol": "LAYER",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Solv Protocol",
+      "symbol": "SOLV",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "​​Stable",
+      "symbol": "STABLE",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Stader",
+      "symbol": "SD",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "StakeStone",
+      "symbol": "STO",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Stargate Finance",
+      "symbol": "STG",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Starknet",
+      "symbol": "STRK",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "THORChain",
+      "symbol": "RUNE",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Vana",
+      "symbol": "VANA",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Walrus",
+      "symbol": "WAL",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Wormhole",
+      "symbol": "W",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Zest Protocol",
+      "symbol": "ZEST",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "ZetaChain",
+      "symbol": "ZETA",
+      "events": 1,
+      "dates": 1
+    },
+    {
+      "name": "Zora",
+      "symbol": "ZORA",
+      "events": 1,
+      "dates": 1
+    }
+  ],
+  "measurementRun": "https://github.com/arcycoin-glitch/arcy-website/actions/runs/41348957468"
+}
