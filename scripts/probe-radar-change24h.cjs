@@ -38,12 +38,16 @@ const hasVal=v=>v!==undefined&&v!==null&&v!=='ABSENT'&&String(v).trim()!==''&&Nu
     let cls;
     if(f.status!=='NOT_VERIFIED')cls=f.recovery?'RECOVERED_SAME_POOL':'REPORTED';
     else if(f.reasonCode==='SOURCES_DISAGREE')cls='CONFLICT';
+    else if(f.reasonCode==='POOL_LESS_THAN_24H_OLD')cls=f.sourcesDisagree===true?'CONFLICT_YOUNG_POOL':'PARTIAL_WINDOW_NOT_24H';
     else if(rawHas){cls='PARSE_LOSS';defects++;}
     else if(!sameKinds.length)cls='POOL_NOT_IN_RAW_PAGES';
     else cls='PROVIDER_OMISSION';
     tally[cls]=(tally[cls]||0)+1;
     return {symbol:t.symbol,address:t.address,pool:t.pool,poolCreatedAt:t.poolCreatedAt,class:cls,status:f.status,reasonCode:f.reasonCode||null,final:t.change24hPct,raw,sources:(f.sources||[]).map(s=>({p:s.provider,v:s.value}))};
    });
+   // Young pools (<24h): is the provider's "h24" a full 24h window or the span since creation? Compare h24 with the shorter windows it reports.
+   const young=rows.filter(r=>{const t=Date.parse(r.poolCreatedAt);return Number.isFinite(t)&&Date.now()-t<24*3600*1000;});
+   if(young.length)console.log('::notice::c24young '+net+' '+young.map(r=>{const k=Object.values(r.raw).find(x=>x.listed&&x.price_change_percentage&&x.price_change_percentage!=='ABSENT');return r.symbol+':ageH='+Math.round((Date.now()-Date.parse(r.poolCreatedAt))/36e5*10)/10+',class='+r.class+',final='+r.final+',pcp='+JSON.stringify(k?k.price_change_percentage:null)}).join(' ;; ').slice(0,3300));
    const wasMissing=rows.filter(r=>r.class==='RECOVERED_SAME_POOL').length;
    const reqs={...calls};
    report.networks[net]={tokens:rows.length,tally,rows,providerRequests:reqs,usage:out.usage||null,beforeReported:rows.filter(r=>r.class==='REPORTED').length,afterReported:rows.filter(r=>r.class==='REPORTED'||r.class==='RECOVERED_SAME_POOL').length,recovered:wasMissing};

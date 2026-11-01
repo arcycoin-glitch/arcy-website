@@ -94,3 +94,35 @@ test('Discovery identity: chain mismatch dropped, same symbol/address on two cha
  assert.ok(out.matches.every(m=>!m.identityVerified&&m.identity?.status!=='OFFICIAL_CONTRACT_MATCHED'));
  assert.throws(()=>service.combineDiscoveryResults('dup',[{status:'rejected',reason:Error('x')},{status:'rejected',reason:Error('x')},{status:'rejected',reason:Error('x')}]),/unavailable/);
 });
+
+// ---- Arc: same transient-vs-deterministic policy as Robinhood ----
+const arc=require('../search/server/lib/arc-rpc');
+function arcEnv(){const saved={...process.env};Object.assign(process.env,{ARC_RPC_URL:'https://primary.example',ARC_RPC_FALLBACK_URL:'https://backup.example'});return saved}
+test('Arc: a contract revert (missing optional getter) is NOT re-sent to the backup (quota saved)',async()=>{
+ const original=global.fetch,calls=[],saved=arcEnv();
+ global.fetch=async(url,{body})=>{const b=JSON.parse(body);calls.push(new URL(url).hostname+':'+b.method);return reply({jsonrpc:'2.0',id:b.id,error:{code:3,message:'execution reverted'}})};
+ try{
+  await assert.rejects(arc.rpc('eth_call',[{to:ADDRESS,data:'0x8da5cb5b'},'latest']),/invalid response/);
+  assert.deepEqual(calls,['primary.example:eth_call']);
+ }finally{global.fetch=original;process.env=saved}
+});
+test('Arc: rate limit and capacity errors still fail over to the chain-checked backup',async()=>{
+ const original=global.fetch,calls=[],saved=arcEnv();
+ global.fetch=async(url,{body})=>{const b=JSON.parse(body);const host=new URL(url).hostname;calls.push(host+':'+b.method);
+  if(host==='primary.example')return reply({jsonrpc:'2.0',id:b.id,error:{code:-32005,message:'rate limited'}});
+  return reply({jsonrpc:'2.0',id:b.id,result:b.method==='eth_chainId'?'0x13b2':'0x20'})};
+ try{
+  assert.equal(await arc.rpc('eth_blockNumber',[]),'0x20');
+  assert.deepEqual(calls,['primary.example:eth_blockNumber','backup.example:eth_chainId','backup.example:eth_blockNumber']);
+ }finally{global.fetch=original;process.env=saved}
+});
+test('Arc: pruned-history / unknown-block errors are deterministic for a pinned block (no retry)',async()=>{
+ const original=global.fetch,calls=[],saved=arcEnv();
+ global.fetch=async(url,{body})=>{const b=JSON.parse(body);calls.push(new URL(url).hostname);return reply({jsonrpc:'2.0',id:b.id,error:{code:-32000,message:'missing trie node abc (path ) state is not available'}})};
+ try{await assert.rejects(arc.rpc('eth_call',[{to:ADDRESS,data:'0x18160ddd'},'0x1']));assert.deepEqual(calls,['primary.example'])}
+ finally{global.fetch=original;process.env=saved}
+});
+test('transientRpcError: pruned-history wording is never transient even next to "unavailable"',()=>{
+ for(const m of ['missing trie node 0x12 (path) state unavailable','header not found','unknown block, temporarily unavailable','state at block is pruned; try again'])
+  assert.equal(transientRpcError({code:-32000,message:m}),false,m);
+});
