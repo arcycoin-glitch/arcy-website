@@ -6,6 +6,14 @@
 const BASE=process.env.ARCY_BASE||'https://www.arcyusdc.xyz';
 const H={accept:'application/json',referer:BASE+'/','sec-fetch-site':'same-origin'};
 const CHAIN_ID={arc:5042,ethereum:1,robinhood:4663};
+// Long-lived canonical contracts documented by their issuers (same entries as the in-repo identity registry).
+// Exact-address RPC reads prove the chain/RPC/decoding path works WITHOUT any DEX, explorer or market index,
+// and without depending on any one project's token listing.
+const CANONICAL={
+ ethereum:'0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+ arc:'0x3600000000000000000000000000000000000000',
+ robinhood:'0x492641f648a4986844848e0befe66d14817bce34'
+};
 const results=[];
 async function get(name,path,check){
  const t=Date.now();let ok=false,detail='';
@@ -22,7 +30,10 @@ async function get(name,path,check){
  for(const net of Object.keys(CHAIN_ID))
   await get('discover-isolation-'+net,'/api/search?action=discover&chain='+net+'&q=link',
    b=>b.ok===true&&b.network===net&&b.chainId===CHAIN_ID[net]&&(b.matches||[]).every(m=>m.network===net&&m.chainId===CHAIN_ID[net])?true:'identity/chain mismatch');
-  // Chain-scoped search must keep working for a known multi-network ticker; it must not
+  for(const net of Object.keys(CANONICAL))
+  await get('exact-token-'+net,'/api/search?action=token&chain='+net+'&address='+CANONICAL[net],
+   b=>b.ok===true&&b.chainId===CHAIN_ID[net]&&b.address===CANONICAL[net]&&/^0x[0-9a-f]+$/i.test(b.block||'')&&/^[1-9][0-9]*$/.test(String(b.totalSupplyRaw||''))?true:'on-chain read incomplete');
+ // Chain-scoped search must keep working for a known multi-network ticker; it must not
  // depend on any one historical token being listed. An empty result is still valid;
  // only a failed request or a cross-chain identity leak fails the check.
  const failed=results.filter(r=>!r.ok);

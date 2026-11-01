@@ -149,3 +149,26 @@ test('verify: two sources that disagree on a Robinhood pool stay NOT_VERIFIED (t
  assert.notEqual(f.status,'NOT_VERIFIED');
  assert.equal(verify.TOLERANCE.change24hPct.abs,3);
 });
+
+// ---- Young pools: providers report a PARTIAL window; the reason must say so (values stay null, tolerance untouched) ----
+test('pool younger than 24 h whose sources disagree: reason is the pool age (partial window), value null, never a 24h figure',()=>{
+ const ds=c=>({state:'MATCHED',matched:{},values:{change24hPct:c,priceUsd:null,marketCapUsd:null,fdvUsd:null,volume24hUsd:null,liquidityUsd:null,poolCreatedAt:null},pair:{},pairCount:1,complete:true});
+ const young=row('ethereum','291176.066',{created:T0-18*3600000});
+ let f=verify.verifyRow(young,ds(581192),{now:T0}).fields.change24hPct;
+ assert.equal(f.status,'NOT_VERIFIED');assert.equal(f.value,null);assert.equal(f.reasonCode,'POOL_LESS_THAN_24H_OLD');
+ assert.equal(f.poolAgeHours,18);assert.equal(f.sourcesDisagree,true);assert.match(f.reason,/kısmi dönem/);
+ assert.deepEqual(f.sources.map(s=>s.value),[291176.066,581192],'evidence kept for diagnostics only');
+ // a pool older than 24 h with the same disagreement keeps the disagreement reason
+ const old=row('ethereum','62.092',{created:T0-67*3600000});
+ f=verify.verifyRow(old,ds(57.19),{now:T0}).fields.change24hPct;
+ assert.equal(f.status,'NOT_VERIFIED');assert.equal(f.reasonCode,'SOURCES_DISAGREE');assert.equal(f.value,null);
+ // exactly 24 h and a future creation timestamp are not "younger than 24 h"
+ f=verify.verifyRow(row('ethereum','62.092',{created:T0-24*3600000}),ds(57.19),{now:T0}).fields.change24hPct;
+ assert.equal(f.reasonCode,'SOURCES_DISAGREE');
+ f=verify.verifyRow(row('ethereum','62.092',{created:T0+3600000}),ds(57.19),{now:T0}).fields.change24hPct;
+ assert.equal(f.reasonCode,'SOURCES_DISAGREE');
+ // agreeing sources on any age are unchanged by this rule
+ f=verify.verifyRow(row('ethereum','10',{created:T0-18*3600000}),ds(11),{now:T0}).fields.change24hPct;
+ assert.notEqual(f.status,'NOT_VERIFIED');
+ assert.equal(verify.TOLERANCE.change24hPct.abs,3);
+});
