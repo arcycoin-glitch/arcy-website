@@ -1,5 +1,6 @@
 {
   "mainCommit": "0006daadb2f59613537b1d4ae3b875e128c8894d",
   "homepageOutsideUnlocksSha256": "cb544be66d7815c183d0af2767432d2c3c44719e28bb40e1539c54077eed148e",
-  "unlocksOwlSha256": "e5ba21af81fe5146392227a8d3acf400257b24b350f34b37c58d64c6edbf51ad"
+  "unlocksOwlSha256": "e5ba21af81fe5146392227a8d3acf400257b24b350f34b37c58d64c6edbf51ad",
+  "restoredUnlocksSectionSha256": "c6e5fda71804db3642e9f180243b964a0d40d4c62de87a12fd135e34a497b5c1"
 }

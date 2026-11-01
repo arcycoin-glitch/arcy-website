@@ -73,58 +73,50 @@ function browser(fetcher) {
     if (!elements.has(id)) elements.set(id, { textContent: '', innerHTML: '', value: '', dataset: { days: '1' }, addEventListener() {}, querySelectorAll() { return []; } });
     return elements.get(id);
   }
-  element('unlockSort').value = 'value';
   const document = { getElementById: element, querySelector: selector => selector === '.tab.active' ? element('tab') : element(selector), querySelectorAll: () => [] };
   const context = vm.createContext({ fetch: fetcher, document, URL, AbortSignal, console, Intl, setTimeout });
-  vm.runInContext(fs.readFileSync(require.resolve('../unlock-view.js'), 'utf8'), context);
   const html = fs.readFileSync(require.resolve('../index.html'), 'utf8');
   const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][0][1].replace(/^loadUnlocks\(\);$/m, '');
   vm.runInContext(script, context);
   return { context, element };
 }
-test('healthy counts and rows clear after outage; retry succeeds without stale counters', async () => {
+test('classic calendar clears rows after outage and recovers without stale data', async () => {
   let healthy = true;
   const b = browser(async () => ({ ok: healthy, status: healthy ? 200 : 503, json: async () => feed([event()]) }));
   await b.context.loadUnlocks();
-  assert.equal(b.element('unlockTokenCount').textContent, '1');
   assert.match(b.element('unlockRows').innerHTML, /100K TIA/);
   healthy = false;
   await b.context.loadUnlocks({ silent: true });
-  assert.equal(b.element('unlockTokenCount').textContent, '—');
-  assert.equal(b.element('unlockEventCount').textContent, '—');
   assert.doesNotMatch(b.element('unlockRows').innerHTML, /100K TIA/);
-  assert.match(b.element('unlockResults').textContent, /unavailable/);
+  assert.match(b.element('unlockRows').innerHTML, /temporarily unavailable/);
   healthy = true;
   await b.context.loadUnlocks({ silent: true });
-  assert.equal(b.element('unlockTokenCount').textContent, '1');
+  assert.match(b.element('unlockRows').innerHTML, /100K TIA/);
 });
 test('malformed successful response is unavailable rather than an empty healthy calendar', async () => {
   const b = browser(async () => ({ ok: true, json: async () => ({ ok: true, live: true }) }));
   await b.context.loadUnlocks();
-  assert.equal(b.element('unlockTokenCount').textContent, '—');
   assert.match(b.element('unlockRows').innerHTML, /temporarily unavailable/);
 });
-test('a failed presentation asset leaves a truthful unavailable state', async () => {
+test('classic calendar renders without loading the audit-only presentation module', async () => {
   const b = browser(async () => ({ ok: true, json: async () => feed([event()]) }));
-  vm.runInContext('delete ARCYUnlockView', b.context);
+  assert.equal(typeof b.context.ARCYUnlockView, 'undefined');
   await b.context.loadUnlocks();
-  assert.equal(b.element('unlockTokenCount').textContent, '—');
-  assert.match(b.element('unlockRows').innerHTML, /temporarily unavailable/);
+  assert.match(b.element('unlockRows').innerHTML, /100K TIA/);
 });
-test('group pagination survives silent refresh and clamps after search; source markup is escaped', async () => {
+test('classic pagination survives silent refresh and clamps after search; event markup is escaped', async () => {
   const rows = Array.from({ length: 7 }, (_, i) => event({ name: 'Project ' + i, symbol: 'T' + i, amount: '1 T' + i }));
   rows.push(event({ name: 'Project 0', symbol: 'T0', date: '2026-11-02', amount: '<img src=x onerror=alert(1)>' }));
   const b = browser(async () => ({ ok: true, json: async () => feed(rows) }));
   await b.context.loadUnlocks();
-  assert.equal(b.element('unlockTokenCount').textContent, '7');
-  assert.equal(b.element('unlockEventCount').textContent, '8');
-  assert.match(b.element('unlockRows').innerHTML, /&lt;img/);
-  assert.doesNotMatch(b.element('unlockRows').innerHTML, /<img src=x/);
   vm.runInContext('unlockPage=2', b.context);
   await b.context.loadUnlocks({ silent: true });
   assert.equal(b.element('unlockPage').textContent, '2 / 2');
+  assert.match(b.element('unlockRows').innerHTML, /&lt;img/);
+  assert.doesNotMatch(b.element('unlockRows').innerHTML, /<img src=x/);
   b.element('unlockSearch').value = 'Project 0';
   b.context.renderUnlocks(1);
   assert.equal(b.element('unlockPage').textContent, '1 / 1');
-  assert.match(b.element('unlockResults').textContent, /1 token entries · 2 events/);
+  assert.match(b.element('unlockRows').innerHTML, /1 T0/);
+  assert.match(b.element('unlockRows').innerHTML, /&lt;img/);
 });
