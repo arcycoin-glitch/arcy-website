@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'scripts/bench-mechanics.cjs'
+      - 'scripts/probe-mechanics-gaps.cjs'
       - '.github/workflows/mechanics-bench.yml'
       - 'search/server/lib/mechanics-*.js'
       - 'search/server/lib/admin-getters.js'
@@ -35,6 +36,9 @@ jobs:
         run: sleep 60
       - name: AFTER (branch) — identical sample list
         run: BENCH_ROOT=$GITHUB_WORKSPACE/after node after/scripts/bench-mechanics.cjs after mechanics-samples.json
+        continue-on-error: true
+      - name: Gap diagnostics (why NOT VERIFIED) — read-only
+        run: node after/scripts/probe-mechanics-gaps.cjs mechanics-samples.json
         continue-on-error: true
       - uses: actions/upload-artifact@v4
         if: always()
