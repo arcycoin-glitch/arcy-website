@@ -1,0 +1,44 @@
+name: Mechanics before/after benchmark (read-only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/bench-mechanics.cjs'
+      - '.github/workflows/mechanics-bench.yml'
+      - 'search/server/lib/mechanics-*.js'
+      - 'search/server/lib/admin-getters.js'
+      - 'search/server/lib/control.js'
+      - 'search/server/lib/arc-adapter.js'
+      - 'search/server/lib/robinhood-adapter.js'
+      - 'search/server/lib/report.js'
+      - 'lib/mechanics-*.js'
+      - 'lib/verified-source.js'
+  workflow_dispatch:
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: after
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: before
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: BEFORE (main) — read-only, GoPlus disabled like Production
+        run: BENCH_ROOT=$GITHUB_WORKSPACE/before node after/scripts/bench-mechanics.cjs before
+        continue-on-error: true
+      - name: Let public RPC windows reset
+        run: sleep 60
+      - name: AFTER (branch) — identical sample list
+        run: BENCH_ROOT=$GITHUB_WORKSPACE/after node after/scripts/bench-mechanics.cjs after mechanics-samples.json
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mechanics-bench
+          path: mechanics-bench-*.json
+          if-no-files-found: ignore
