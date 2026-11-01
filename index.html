@@ -405,20 +405,11 @@ View details →
   <div class="visual"><img src="/assets/unlocks-owl.webp" alt="ARCY Token Unlocks"></div>
  </div>
  <div class="monitor-label"><span class="monitor-dot"></span>PUBLISHED SUPPLY-RELEASE MONITOR</div><div class="tabs"><button class="tab active" data-days="1">TODAY</button><button class="tab" data-days="7">NEXT 7 DAYS</button><button class="tab" data-days="30">DAYS 8–30</button></div>
- <div class="unlock-coverage" role="status" aria-live="polite" aria-atomic="true">
-  <span><strong id="unlockTokenCount">—</strong> token entries</span>
-  <span><strong id="unlockEventCount">—</strong> events in this 30-day feed</span>
-  <small id="unlockSourceChecked">Loading source check time…</small>
- </div>
  <div class="unlock-tools">
   <input id="unlockSearch" type="search" placeholder="Search token (e.g. APT)" autocomplete="off" aria-label="Search token">
-  <label class="unlock-sort-label" for="unlockSort">Sort by
-   <select id="unlockSort"><option value="value">Largest event (USD)</option><option value="impact">Largest event (% circulating)</option><option value="soonest">Soonest</option></select>
-  </label>
   <div class="unlock-pager"><button id="unlockPrev" type="button" aria-label="Previous token page">‹</button><span id="unlockPage">1 / 1</span><button id="unlockNext" type="button" aria-label="Next token page">›</button></div>
  </div>
- <p id="unlockResults" class="unlock-results" role="status" aria-live="polite">Loading published events…</p>
- <div class="tablebox"><table aria-label="Published token unlocks"><thead><tr><th scope="col">#</th><th scope="col">TOKEN / EVENTS</th><th scope="col">EVENT DATE (UTC)</th><th scope="col">EVENT AMOUNT</th><th scope="col">% CIRCULATING SUPPLY</th></tr></thead><tbody id="unlockRows"></tbody></table></div>
+  <div class="tablebox"><table aria-label="Published token unlocks"><thead><tr><th scope="col">#</th><th scope="col">TOKEN</th><th scope="col">UNLOCK DATE</th><th scope="col">UNLOCK AMOUNT</th><th scope="col">% CIRCULATING SUPPLY</th></tr></thead><tbody id="unlockRows"></tbody></table></div>
  <p class="note">Loading published unlock schedules…</p>
 </div></section>
 
@@ -530,8 +521,7 @@ function renderUnlocks(days){
   body.innerHTML=rows.length
     ? rows.map((group,i)=>{
       const r=group.representative,id='unlock-events-'+(offset+i),open=unlockExpanded.has(group.key);
-      const basis=group.events.length>1?(document.getElementById('unlockSort')?.value==='soonest'||group.score===null?'Earliest event shown':'Largest known event shown'):ARCYUnlockView.scheduleLabel(r);
-      return `<tr class="unlock-main-row"><td class="rank">${offset+i+1}</td><td class="unlock-token"><span class="token-cell" translate="no">${tokenIcon(r.symbol||r.token||'', r.logo)}<b>${escapeHtml(r.symbol||r.token||r.name||'—')}</b>${r.name&&r.name!==(r.symbol||r.token)?` <small>${escapeHtml(r.name)}</small>`:''}</span><small class="unlock-event-note">${escapeHtml(basis)}${group.dateCount>1?' · '+group.dateCount+' dates; cadence unverified':''}</small><button class="unlock-expand" type="button" data-unlock-group="${i}" aria-controls="${id}" aria-expanded="${open}">${open?'Hide':'View'} ${group.events.length} event${group.events.length===1?'':'s'} &amp; source</button></td><td class="unlock-date" data-label="EVENT DATE (UTC)">${escapeHtml(r.date||'—')}</td><td data-label="EVENT AMOUNT">${escapeHtml(r.amount||'—')}<small class="unlock-event-note">${escapeHtml(r.value||'USD value not supplied')}</small></td><td data-label="% CIRCULATING">${escapeHtml(r.percent||'—')}</td></tr><tr class="unlock-events" id="${id}"${open?'':' hidden'}><td colspan="5"><ul class="unlock-event-list">${group.events.map(unlockDetails).join('')}</ul></td></tr>`;
+      return `<tr class="unlock-main-row"><td class="rank">${offset+i+1}</td><td class="unlock-token"><span class="token-cell" translate="no">${tokenIcon(r.symbol||r.token||'',r.logo)}<b>${escapeHtml(r.symbol||r.token||r.name||'—')}</b>${r.name&&r.name!==(r.symbol||r.token)?` <small>${escapeHtml(r.name)}</small>`:''}</span></td><td class="unlock-date">${escapeHtml(r.date||'—')}</td><td>${escapeHtml(r.amount||'—')}</td><td>${escapeHtml(r.percent||'—')}</td></tr>`;
     }).join("")
     : `<tr><td colspan="5" class="loading">${unlockState==='error'?'Live unlock feed temporarily unavailable.':unlockState==='loading'?'Loading live unlocks…':document.getElementById('unlockSearch').value.trim()?'No matching unlocks in this window.':'No published unlocks in this window. Coverage is limited.'}</td></tr>`;
   body.querySelectorAll("img.token-icon").forEach(img=>img.addEventListener("error",()=>{const fallback=document.createElement("span");fallback.className="token-icon-fallback";fallback.textContent=img.alt.slice(0,3);img.replaceWith(fallback);},{once:true}));
