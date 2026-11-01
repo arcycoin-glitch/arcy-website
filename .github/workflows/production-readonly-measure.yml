@@ -1,0 +1,49 @@
+name: Production read-only measurement (manual)
+# Reads PUBLIC production endpoints only. Manual or when its own scripts change; never scheduled.
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-radar-missing24h.cjs'
+      - '.github/workflows/production-readonly-measure.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: production-readonly-measure-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  radar-missing-24h:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-radar-missing24h.cjs
+  coverage-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Per-network, per-card field coverage and evidence classes (10 tokens per network)
+        env:
+          PER_CHAIN: '10'
+          COVERAGE_OUTPUT: coverage.json
+        run: node scripts/search-coverage-matrix.cjs
+      - name: Compact summary annotation
+        if: always()
+        run: |
+          node -e "
+          const r=require('./coverage.json');
+          const agg={};
+          for(const s of r.samples){const k=s.section;const a=agg[k]||={slots:0,filled:0,classes:{}};a.slots++;if(s.evidenceClass!=='NOT_VERIFIED')a.filled++;a.classes[s.evidenceClass]=(a.classes[s.evidenceClass]||0)+1;}
+          const tokens={};for(const s of r.samples){(tokens[s.section]||=new Set()).add(s.address)}
+          for(const k of Object.keys(agg))console.log('::notice title=coverage-'+k+'::'+JSON.stringify({tokens:tokens[k].size,...agg[k]}));
+          const cards={};for(const [k,v] of Object.entries(r.totals))cards[k]=v.filled+'/'+v.slots;
+          console.log('::notice title=coverage-cards::'+JSON.stringify(cards).slice(0,3500));
+          console.log('::notice title=coverage-errors::'+JSON.stringify(r.errors).slice(0,3000));
+          "
