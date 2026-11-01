@@ -156,3 +156,16 @@ test('Ownable2Step (pinned) counts as Ownable; its own _transferOwnership overri
  const r=run('contract T is ERC20, Ownable2Step { constructor(){ _mint(msg.sender,1); } function mint(address a,uint256 v) external onlyOwner { _mint(a,v); } }','T');
  assert.equal(r.ownable,true);assert.equal(r.mint,'OWNER_GATED','initial constructor mint plus later owner-gated mint is owner-gated, never "none"');
 });
+
+test('API contract: template facts pass through formatCard with the same field set, string values and an existing status vocabulary',async()=>{
+ const engine=require('../search/server/lib/data-engine'),schema=require('../search/server/schema');
+ const r=await m.inspect(fx(T({})));
+ const card=await m.enrich({...fx(T({})),card:{description:'x',fields:{tradingTaxes:{value:null,dataState:'NOT_VERIFIED',evidence:[]}}}});
+ const out=engine.formatCard('mechanics',card,require('../search/server/lib/chains').chain('ethereum'),{address:A,block});
+ const keys=Object.keys(out.fields).sort();
+ const expected=schema.find(c=>c.id==='mechanics').fields.map(([k])=>k).sort();
+ for(const k of keys)assert.ok(expected.includes(k),k+' must be an existing Mechanics field');
+ const f=out.fields.tradingTaxes;assert.equal(typeof f.value,'string');assert.equal(f.dataState,'DATA_FOUND');assert.ok(['VERIFIED_SOURCE','VERIFIED_SOURCE_AND_STATE','GETTER_REPORTED','ON_CHAIN','SOURCE_REPORTED','NOT_DETECTED'].includes(f.status));
+ assert.ok(r.fields.tradingTaxes.evidence.length>=1);
+ const {classify}=require('../search/server/lib/evidence-class');assert.equal(classify(f,{card:'mechanics'}).evidenceClass,'SINGLE_SOURCE','source-structure facts are single-source, never promoted to cross-verified');
+});
