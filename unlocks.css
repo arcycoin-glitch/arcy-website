@@ -52,3 +52,45 @@
  #unlocks .unlock-event-list li{font-size:12px}
  #unlocks .loading{display:table-cell;white-space:normal;padding:16px}
 }
+
+
+/* Keep token identity and real project logo visible while horizontal table scrolls.
+   CSS only; no modifications to calendars, amounts, sources or API. */
+@media(max-width:560px){
+ #unlocks .tablebox{position:relative;overflow-x:auto;isolation:isolate}
+ #unlocks table{min-width:780px}
+ #unlocks thead th:first-child,
+ #unlocks .unlock-main-row td.rank{display:none!important}
+ #unlocks thead th:nth-child(2){
+  position:sticky;left:0;z-index:3;width:190px;min-width:190px;
+  background:#071722;box-shadow:5px 0 10px rgba(0,0,0,.22)
+ }
+ #unlocks .unlock-main-row td.unlock-token{
+  position:sticky;left:0;z-index:2;box-sizing:border-box;
+  width:190px;min-width:190px;max-width:190px;
+  background:#071722;box-shadow:5px 0 10px rgba(0,0,0,.22);
+  padding:12px 9px!important;white-space:normal
+ }
+ #unlocks .unlock-main-row .token-cell{
+  display:flex;align-items:center;gap:8px;min-width:0;
+  font-size:14px;line-height:1.25;white-space:normal
+ }
+ #unlocks .unlock-main-row .token-cell b{min-width:0;overflow-wrap:anywhere}
+ #unlocks .unlock-main-row .token-cell small{display:block;font-size:10px;color:#8fa9ba}
+ #unlocks .unlock-main-row .token-icon,
+ #unlocks .unlock-main-row .token-icon-fallback{
+  display:inline-flex;width:30px;height:30px;flex:0 0 30px;
+  border-radius:50%;object-fit:contain
+ }
+ #unlocks .unlock-main-row .unlock-event-note{font-size:10px;line-height:1.35}
+ #unlocks .unlock-main-row .unlock-expand{font-size:11px;margin-top:4px}
+}
+@media(max-width:360px){
+ #unlocks thead th:nth-child(2),
+ #unlocks .unlock-main-row td.unlock-token{width:155px;min-width:155px;max-width:155px}
+ #unlocks .unlock-main-row .token-cell{font-size:12px;gap:5px}
+ #unlocks .unlock-main-row .token-icon,
+ #unlocks .unlock-main-row .token-icon-fallback{
+  width:26px;height:26px;flex-basis:26px
+ }
+}
