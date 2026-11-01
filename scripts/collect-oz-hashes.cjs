@@ -20,5 +20,8 @@ for(const v of versions){
 }
 fs.writeFileSync('oz-hashes.json',JSON.stringify(out,null,1));
 const esc=x=>x.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A');
-let i=0;for(const [f,m] of Object.entries(out)){const row={f,h:Object.fromEntries(Object.entries(m).map(([h,vs])=>[h,vs[0]+'..'+vs[vs.length-1]+'('+vs.length+')']))};console.log('::notice title=oz-'+(i++)+'::'+esc(JSON.stringify(row)));}
-console.log('::notice title=oz-versions::'+versions.length);
+// <=10 annotations per step: pack files into ~3.3 KB chunks, hash -> first version only.
+let chunk={},size=0,i=0;const flush=()=>{if(size){console.log('::notice title=oz-'+(i++)+'::'+esc(JSON.stringify(chunk)));chunk={};size=0;}};
+for(const [f,m] of Object.entries(out)){const row=Object.fromEntries(Object.entries(m).map(([h,vs])=>[h,vs[0]]));const n=JSON.stringify(row).length+f.length+8;if(size+n>3300)flush();chunk[f]=row;size+=n;}
+flush();
+console.log('::notice title=oz-versions::'+versions.length+' files='+Object.keys(out).length);
