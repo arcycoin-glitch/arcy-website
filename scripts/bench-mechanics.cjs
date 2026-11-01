@@ -15,6 +15,7 @@ const ETH_KNOWN=['0xdAC17F958D2ee523a2206206994597C13D831ec7','0xA0b86991c6218b3
 const net={rpc:0,sourcify:0,goplus:0,explorer:0,other:0,failed:0,replayHit:0,replayMiss:0};
 const MODE=process.env.BENCH_REPLAY||'off',RFILE=process.env.BENCH_REPLAY_FILE||'mechanics-replay.json';
 const store=MODE==='replay'&&fs.existsSync(RFILE)?JSON.parse(fs.readFileSync(RFILE,'utf8')):{};
+const cursor={};
 const stripId=o=>{const c={...o};delete c.id;return c;};
 function canon(url,opts){let b=opts?.body;if(typeof b==='string'){try{const j=JSON.parse(b);b=JSON.stringify(Array.isArray(j)?j.map(stripId):stripId(j));}catch{}}return (opts?.method||'GET')+' '+String(url?.url||url)+' '+(b||'');}
 function reid(text,opts){try{const rq=JSON.parse(opts?.body),rs=JSON.parse(text);if(Array.isArray(rq)&&Array.isArray(rs))rs.forEach((x,i)=>{if(x&&rq[i])x.id=rq[i].id;});else if(rq&&rs&&!Array.isArray(rs))rs.id=rq.id;return JSON.stringify(rs);}catch{return text;}}
@@ -22,10 +23,10 @@ const realFetch=globalThis.fetch;
 globalThis.fetch=async(url,opts)=>{const u=String(url?.url||url);let k='other';
  if(/sourcify/.test(u))k='sourcify';else if(/gopluslabs/.test(u))k='goplus';else if(/blockscout|explorer/.test(u))k='explorer';else if(opts?.method==='POST'&&/rpc|publicnode|chain\.robinhood|arc\./.test(u))k='rpc';
  net[k]++;const key=canon(url,opts);
- if(MODE==='replay'&&store[key]){net.replayHit++;const e=store[key];if(e.status>=400)net.failed++;return new Response(e.status===204?null:reid(e.text,opts),{status:e.status,headers:{'content-type':e.type||'application/json'}});}
+ if(MODE==='replay'&&store[key]?.length){net.replayHit++;const q=store[key];const e=q[Math.min(cursor[key]=(cursor[key]??-1)+1,q.length-1)];if(e.status>=400)net.failed++;return new Response(e.status===204?null:reid(e.text,opts),{status:e.status,headers:{'content-type':e.type||'application/json'}});}
  if(MODE==='replay')net.replayMiss++;
  try{const r=await realFetch(url,opts);if(!r.ok)net.failed++;
-  if(MODE==='record'||MODE==='replay'){const text=await r.text();store[key]={status:r.status,type:r.headers.get('content-type'),text};return new Response(r.status===204?null:text,{status:r.status,headers:{'content-type':r.headers.get('content-type')||'application/json'}});}
+  if(MODE==='record'||MODE==='replay'){const text=await r.text();(store[key]||=[]).push({status:r.status,type:r.headers.get('content-type'),text});return new Response(r.status===204?null:text,{status:r.status,headers:{'content-type':r.headers.get('content-type')||'application/json'}});}
   return r;}catch(e){net.failed++;throw e;}};
 async function get(p){const base=process.env.ARCY_BASE||'https://www.arcyusdc.xyz';const r=await realFetch(base+p,{headers:{accept:'application/json',referer:base+'/','sec-fetch-site':'same-origin'},signal:AbortSignal.timeout(30000)});if(!r.ok)throw Error('HTTP '+r.status);return r.json();}
 async function buildSamples(){
