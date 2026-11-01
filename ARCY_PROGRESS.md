@@ -211,7 +211,7 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Sonraki: PR #122 incelemesi; merge/deploy yalnızca açık onayla. UI, kart, API sözleşmesi, Railway, bütçeler değişmedi.
 
 ## Search reliability pass (2026-11-01, branch data/search-reliability-20261101, Draft PR #123)
-- Baseline main 426e23f: 819/819. After: 828/828.
+- Baseline main 426e23f: 819/819. After: 827/827.
 - Measured (CI runner): Ethereum explorer search p50 2.7 s/p95 6.4 s (flat 1 s cap dropped 6/9); Arc and Robinhood explorers 403 from CI (UA does not help).
-- Changed: Robinhood RPC transient JSON-RPC failover (`rpc-errors.js`), tiered explorer window in `multichain-service.discover`, diagnostics labels + `deadline` outcome, scheduled read-only health check, 9 tests. See docs/SEARCH_RELIABILITY_20261101.md.
+- Changed: Robinhood RPC transient JSON-RPC failover (`rpc-errors.js`), tiered explorer window in `multichain-service.discover`, diagnostics labels + `deadline` outcome, scheduled read-only health check, 8 tests. See docs/SEARCH_RELIABILITY_20261101.md.
 - Open: Production reachability of Arc/Robinhood explorers unmeasured; Pons name discovery without explorer; single Ethereum RPC endpoint. No merge/deploy.

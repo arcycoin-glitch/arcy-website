@@ -20,13 +20,13 @@ Consequences: (1) the old flat 1 s cap discarded most valid Ethereum explorer an
 1. `rpc-errors.js` (new) + `robinhood-rpc.js`: JSON-RPC rate-limit/capacity errors (e.g. -32005) now fail over to the independent backup, which still has to prove chain 4663. Reverts, invalid params and invalid opcodes are deterministic and are never re-sent. Before this, Robinhood treated every JSON-RPC error as final while Arc and Ethereum already recovered. Test 2 in `test/rpc-resilience.test.js` fails on `main` and passes here.
 2. `multichain-service.discover`: foreground stays ~1 s whenever any other candidate exists (the existing contract, pinned by two existing tests). Only when nothing else was found does the explorer index get up to 4 s (UI waits 7–12 s).
 3. `diagnostics.js`: explorer.arc.io, robinhoodchain.blockscout.com and api.robinhood.com get proper provider labels (previously "other"); new aggregate-only outcome `deadline` shows when an optional provider misses its window. No addresses, queries or URLs are stored (tested).
-4. Tests: `test/rpc-resilience.test.js` (9 tests: transient vs deterministic classification, failover, no-resend of reverts, wrong-chain backup rejected, slow explorer kept, hung explorer bounded, telemetry privacy, cross-chain identity isolation).
+4. Tests: `test/rpc-resilience.test.js` (8 tests: transient vs deterministic classification, failover, no-resend of reverts, wrong-chain backup rejected, slow explorer kept, hung explorer bounded, telemetry privacy, cross-chain identity isolation).
 5. `scripts/scheduled-health.cjs` + `.github/workflows/scheduled-health.yml`: read-only check every 6 h (6 requests): health, per-chain discovery isolation, official ARCY identity.
 
 Tried and rejected: an origin-wide 403 cool-down in `source-request.js`. It would change request counts that an existing test pins and the benefit is unmeasured, so it was removed.
 
 ## Before / after
-- Tests: 819/819 → 828/828 (full suite).
+- Tests: 819/819 → 827/827 (full suite).
 - Discovery: Ethereum answers arriving in 1–4 s are now kept when no other candidate exists; latency for searches that already had candidates is unchanged. Not measured in Production.
 - Robinhood: JSON-RPC rate limits now recover through the backup (proved by unit test, not by Production traffic).
 - RPC/API budget: no new requests on the normal path; at most the already-existing backup call on a transient Robinhood error.
