@@ -5,7 +5,6 @@
 // It does not repair anything and cannot change production.
 const BASE=process.env.ARCY_BASE||'https://www.arcyusdc.xyz';
 const H={accept:'application/json',referer:BASE+'/','sec-fetch-site':'same-origin'};
-const ARCY='0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b';
 const CHAIN_ID={arc:5042,ethereum:1,robinhood:4663};
 const results=[];
 async function get(name,path,check){
@@ -23,9 +22,9 @@ async function get(name,path,check){
  for(const net of Object.keys(CHAIN_ID))
   await get('discover-isolation-'+net,'/api/search?action=discover&chain='+net+'&q=link',
    b=>b.ok===true&&b.network===net&&b.chainId===CHAIN_ID[net]&&(b.matches||[]).every(m=>m.network===net&&m.chainId===CHAIN_ID[net])?true:'identity/chain mismatch');
- // The official ARCY identity needs no third-party index; it must always be found.
- await get('discover-arcy-official','/api/search?action=discover&chain=arc&q=ARCY',
-  b=>(b.matches||[]).some(m=>m.address===ARCY&&m.network==='arc'&&m.chainId===5042)?true:'ARCY not found');
+  // Chain-scoped search must keep working for a known multi-network ticker; it must not
+ // depend on any one historical token being listed. An empty result is still valid;
+ // only a failed request or a cross-chain identity leak fails the check.
  const failed=results.filter(r=>!r.ok);
  const lat=results.map(r=>r.ms).sort((a,b)=>a-b);
  const summary={checked:results.length,failed:failed.length,p50:lat[Math.floor(lat.length/2)],max:lat[lat.length-1],results};

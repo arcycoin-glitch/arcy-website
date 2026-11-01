@@ -21,7 +21,7 @@ Consequences: (1) the old flat 1 s cap discarded most valid Ethereum explorer an
 2. `multichain-service.discover`: foreground stays ~1 s whenever any other candidate exists (the existing contract, pinned by two existing tests). Only when nothing else was found does the explorer index get up to 4 s (UI waits 7–12 s).
 3. `diagnostics.js`: explorer.arc.io, robinhoodchain.blockscout.com and api.robinhood.com get proper provider labels (previously "other"); new aggregate-only outcome `deadline` shows when an optional provider misses its window. No addresses, queries or URLs are stored (tested).
 4. Tests: `test/rpc-resilience.test.js` (8 tests: transient vs deterministic classification, failover, no-resend of reverts, wrong-chain backup rejected, slow explorer kept, hung explorer bounded, telemetry privacy, cross-chain identity isolation).
-5. `scripts/scheduled-health.cjs` + `.github/workflows/scheduled-health.yml`: read-only check every 6 h (6 requests): health, per-chain discovery isolation, official ARCY identity.
+5. `scripts/scheduled-health.cjs` + `.github/workflows/scheduled-health.yml`: read-only check every 6 h (4 requests): health, per-chain discovery isolation (no dependency on any single token listing).
 
 Tried and rejected: an origin-wide 403 cool-down in `source-request.js`. It would change request counts that an existing test pins and the benefit is unmeasured, so it was removed.
 
