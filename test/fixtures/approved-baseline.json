@@ -18,7 +18,7 @@
   },
   "current": {
     "files": {
-      "index.html": "144d40c4075ad70e0cfb2877cb6d251eb41a64ebe34620bb0b07d3ca320c545f",
+      "index.html": "c015b31b7116ccee56298c9499ac51063889c77b42bdf85937e6d247472c9884",
       "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
       "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885",
       "api/pulse.js": "71a081d8f1a3b0b84bd706a2f5a1f5727af49c8643be8cfee1bfee4dc7bc4cc0",
@@ -76,6 +76,13 @@
         "index.html"
       ],
       "reason": "Owner-requested PR #121 premium Synthra section redesign: remove duplicate community copy, preserve original owl asset, display a compact premium external-swap panel with one disclaimer-gated CTA, and reduce footer quick-links. Header #buy nav label updated from Community to Swap. No token buy claim, wallet connection, transaction engine, or changes to protected Search, Radar, Pulse, backend or Railway."
+    },
+    {
+      "date": "2026-11-01",
+      "files": [
+        "index.html"
+      ],
+      "reason": "Owner-requested Unlocks-only coverage counters, grouped events, sorting, source details and mobile readability. All non-Unlocks homepage bytes protected by unlocks-scope-baseline.json; API, collectors, evidence policy, Search, Radar, Pulse and worker unchanged."
     }
   ],
   "refreshedAt": "2026-10-31T16:09:00.000Z"
