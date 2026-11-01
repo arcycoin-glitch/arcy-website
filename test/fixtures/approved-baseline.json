@@ -13,12 +13,12 @@
     }
   },
   "approvedFrom": {
-    "mainCommit": "42096934523dc4523387692a588e80af5998eea4",
-    "note": "This PR intentionally adds static navigation/footer references to /transparency.html and removes the retired X account icon; all other homepage bytes are preserved. Protected baseline fingerprint refreshed for this reviewed scope."
+    "mainCommit": "fc0b7f4deafe8c73348a7295c1af6361de35bda0",
+    "note": "Owner requested the previous Unlocks table design. Homepage outside Unlocks is pinned; API, worker, Radar and all other protected fingerprints remain unchanged. Existing owl bytes retained in the extracted asset."
   },
   "current": {
     "files": {
-      "index.html": "c015b31b7116ccee56298c9499ac51063889c77b42bdf85937e6d247472c9884",
+      "index.html": "7498341d649b342adf2856e4b07086e88566dcdcf705a7d8e7077d6f2bba9c94",
       "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
       "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885",
       "api/pulse.js": "71a081d8f1a3b0b84bd706a2f5a1f5727af49c8643be8cfee1bfee4dc7bc4cc0",

@@ -16,13 +16,13 @@ test('Unlocks UI exception preserves every unrelated homepage byte from main', (
   const hash = crypto.createHash('sha256').update(outsideUnlocks(html)).digest('hex');
   assert.equal(hash, baseline.homepageOutsideUnlocksSha256, 'Out-of-scope homepage change: review rather than refresh the scope fingerprint');
 });
-test('new calendar CSS is exclusively scoped to #unlocks', () => {
-  const css = fs.readFileSync(require.resolve('../unlocks.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-  for (const match of css.matchAll(/([^{}]+)\{/g)) {
-    const selectors = match[1].trim();
-    if (selectors.startsWith('@media')) continue;
-    assert.ok(selectors.split(',').every(selector => selector.trim().startsWith('#unlocks ')), selectors);
-  }
+test('restored Unlocks uses the previous table design without the rejected controls or stylesheet', () => {
+  const html = fs.readFileSync(require.resolve('../index.html'), 'utf8');
+  const start = html.indexOf('<section id="unlocks">'), end = html.indexOf('</section>', start) + '</section>'.length;
+  const section = html.slice(start, end);
+  assert.equal(crypto.createHash('sha256').update(section).digest('hex'), baseline.restoredUnlocksSectionSha256);
+  assert.doesNotMatch(html, /href="\/unlocks\.css"|src="\/unlock-view\.js"/);
+  assert.doesNotMatch(section, /unlockTokenCount|unlockEventCount|unlockSort|unlockResults/);
 });
 test('Unlocks owl retains the exact original image bytes after extraction from the data URI', () => {
   const bytes = fs.readFileSync(require.resolve('../assets/unlocks-owl.webp'));

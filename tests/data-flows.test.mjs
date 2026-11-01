@@ -27,7 +27,6 @@ function browser(fetch) {
   };
   const document = {getElementById:element,querySelector:selector=>selector==='.tab.active'?element('tab'):element(selector),querySelectorAll:()=>[]};
   const context = vm.createContext({fetch,document,URL,AbortSignal,Intl,console,setTimeout});
-  vm.runInContext(fs.readFileSync(new URL('unlock-view.js',root),'utf8'),context);
   const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
   vm.runInContext(scripts[0].replace(/^loadBurn\(\);$/m,'').replace(/^loadUnlocks\(\);$/m,''), context);
   return {context,element,scripts};
