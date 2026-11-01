@@ -59,7 +59,7 @@ const short=v=>String(v??'').replace(/\s+/g,' ').slice(0,70);
   const before={...net},t0=Date.now();let res=null,err=null;
   try{res=await Promise.race([mechanics(s.chain,s.address),new Promise((_,r)=>setTimeout(()=>r(Error('BENCH_TIMEOUT_60S')),60000))]);}catch(e){err=String(e.message||e).slice(0,80);}
   const ms=Date.now()-t0,d=Object.fromEntries(Object.keys(net).map(k=>[k,net[k]-before[k]]));
-  const f={},fails=new Set();for(const k of FIELDS){const x=res?.card?.fields?.[k];for(const q of (x?.analysisDiagnostics?.failures||[]))if(q?.reason)fails.add(q.reason);const c=classify(x||null,{card:'mechanics'});f[k]={ok:x?.dataState==='DATA_FOUND',cls:c.evidenceClass,status:x?.status||null,reason:x?.reasonCode||null,value:short(x?.value),scope:short(x?.scope)};}
+  const f={},fails=new Set();for(const k of FIELDS){const x=res?.card?.fields?.[k];for(const q of (x?.analysisDiagnostics?.failures||[]))if(q?.reason)fails.add(q.reason);const c=classify(x||null,{card:'mechanics'});f[k]={ok:x?.dataState==='DATA_FOUND',cls:c.evidenceClass,status:x?.status||null,reason:x?.reasonCode||null,value:short(x?.value).slice(0,70)+(k==='ownerAdmin'&&x?.value?String(x.value).replace(/\s+/g,' ').slice(70,256):''),scope:short(x?.scope)};}
   rows.push({...s,block:res?.block||null,err,ms,net:d,f,fails:[...fails].sort()});
   await new Promise(r=>setTimeout(r,600));
  }

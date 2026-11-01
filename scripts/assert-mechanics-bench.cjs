@@ -21,8 +21,16 @@ for(let i=0;i<before.rows.length;i++){
   const x=b.f[f],y=a.f[f];
   assert.ok(x&&y,'Missing field '+f+' for '+id);
   if(x.ok){assert.equal(y.ok,true,'Verified field lost: '+id+'/'+f);
-   assert.equal(y.value,x.value,'Previously verified value changed: '+id+'/'+f);
-   assert.equal(y.status,x.status,'Previously verified status changed: '+id+'/'+f);}
+   // One intentional strength upgrade: a prior owner() address-only getter can
+   // become reviewed owner-governance evidence for the SAME full 20-byte address.
+   // Never allow the reverse, a new owner, a mint/tax change, or a weaker source.
+   if(y.value!==x.value||y.status!==x.status){
+    const oldOwner=/^owner\\(\\) getter: (0x[0-9a-f]{40})$/i.exec(x.value||'')?.[1];
+    const newOwner=/0x[0-9a-f]{40}/i.exec(y.value||'')?.[0];
+    const upgrade=f==='ownerAdmin'&&x.status==='GETTER_REPORTED'&&y.status==='VERIFIED_SOURCE_AND_STATE'&&
+      x.cls==='SINGLE_SOURCE'&&y.cls==='ON_CHAIN_VERIFIED'&&oldOwner&&newOwner&&oldOwner.toLowerCase()===newOwner.toLowerCase();
+    assert.ok(upgrade,'Previously verified field changed without same-owner stronger proof: '+id+'/'+f+' old='+x.value+' new='+y.value);
+   }}
   stats[f].before+=Number(x.ok);stats[f].after+=Number(y.ok);
   if(!x.ok&&y.ok)stats[f].gain++;
  }
