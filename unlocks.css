@@ -1,89 +1,13 @@
-/* Scoped to the calendar; the homepage layout and other modules retain their styles. */
-#unlocks .unlock-coverage{display:flex;flex-wrap:wrap;gap:8px 22px;padding:14px 0;color:#a9bfcd;font-size:13px;border-bottom:1px solid #17394f}
-#unlocks .unlock-coverage strong{color:#e4f8ff}
-#unlocks .unlock-coverage small{flex-basis:100%;color:#91aabb;line-height:1.5}
-#unlocks .unlock-sort-label{display:flex;align-items:center;gap:8px;color:#a9bfcd;font-size:12px}
-#unlocks #unlockSort{min-width:0;max-width:100%;padding:10px;border:1px solid #1b536b;border-radius:10px;background:#071722;color:#dff8ff;font:inherit}
-#unlocks .unlock-results{font-size:12px;line-height:1.5;color:#91aabb;margin:8px 0 12px}
-#unlocks .unlock-event-note{display:block;margin-top:6px;color:#91aabb;font-size:11px;line-height:1.4;font-weight:400}
-#unlocks .unlock-expand{margin-top:9px;padding:5px 0;border:0;border-bottom:1px solid #28596b;background:none;color:#66e7ff;cursor:pointer;font:inherit;font-size:12px;text-align:left}
-#unlocks .unlock-expand:focus-visible,#unlocks #unlockSort:focus-visible{outline:2px solid #66e7ff;outline-offset:4px}
-#unlocks .unlock-events[hidden]{display:none!important}
-#unlocks .unlock-events>td{padding:0 16px 18px}
-#unlocks .unlock-event-list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
-#unlocks .unlock-event-list li{padding:14px;border:1px solid #17394f;border-radius:12px;background:#071722;color:#c7dce5;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
-#unlocks .unlock-event-list a{color:#66e7ff;text-decoration:underline;text-underline-offset:3px}
-#unlocks .unlock-event-list p{margin:4px 0}
-#unlocks .unlock-evidence-label{color:#91aabb;font-size:11px}
-#unlocks .unlock-main-row td{vertical-align:top}
-#unlocks .unlock-main-row .token-cell{min-width:0}
-#unlocks .unlock-main-row small{overflow-wrap:anywhere}
-@media(max-width:850px){#unlocks .unlock-tools{flex-wrap:wrap}#unlocks .unlock-sort-label{flex:1 1 auto}}
-/* Classic Token Unlocks mobile table presentation restored.
-   Presentation only: current schedule API, data, sorting, filtering,
-   source evidence, pagination and source timestamps remain untouched. */
+/* Classic five-record Unlocks presentation. No source, API, schedule or evidence changes. */
 @media(max-width:560px){
- #unlocks .unlock-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
- #unlocks #unlockSearch{flex:1 1 180px;min-width:0;width:auto}
- #unlocks .unlock-sort-label{display:flex;gap:5px;flex:1 1 140px;min-width:0}
- #unlocks #unlockSort{max-width:100%;min-width:0}
- #unlocks .unlock-pager{margin-left:auto;flex-shrink:0}
- #unlocks .tablebox{
-   display:block;width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;
-   -webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;
-   border:0;background:transparent;scrollbar-width:thin;
- }
- #unlocks table{display:table;table-layout:auto;min-width:690px;width:100%;border-collapse:collapse}
- #unlocks thead{position:static;width:auto;height:auto;clip-path:none;overflow:visible;white-space:nowrap}
+ #unlocks .tablebox{max-width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+ #unlocks table{width:100%;min-width:690px;border-collapse:collapse}
+ #unlocks thead{position:static;clip-path:none;width:auto;height:auto;overflow:visible}
  #unlocks tbody{display:table-row-group}
- #unlocks .unlock-main-row{display:table-row;margin:0;padding:0;border:0;border-radius:0;background:transparent}
- #unlocks .unlock-main-row td{
-   display:table-cell;min-width:0;padding:15px 12px!important;
-   border-bottom:1px solid #17394f!important;vertical-align:middle;
-   text-align:left!important;white-space:nowrap;overflow-wrap:normal;
- }
- #unlocks .unlock-main-row .rank{display:table-cell}
- #unlocks .unlock-main-row .unlock-token,#unlocks .unlock-main-row .unlock-date{grid-column:auto}
- #unlocks .unlock-main-row td[data-label]::before{content:none;display:none}
- #unlocks .unlock-main-row .token-cell{justify-content:flex-start;font-size:16px}
- #unlocks .unlock-main-row .token-cell small{font-size:12px}
- #unlocks .unlock-events{display:table-row;margin:0}
- #unlocks .unlock-events>td{display:table-cell;padding:8px 12px 15px!important;border:0!important}
- #unlocks .unlock-event-list li{font-size:12px}
- #unlocks .loading{display:table-cell;white-space:normal;padding:16px}
-}
-
-
-/* Mobile premium repair: keep token symbol/logo visible during horizontal scroll.
-   No data, endpoints, event grouping, or unlock processing changes. */
-@media(max-width:560px){
- #unlocks .tablebox{border:1px solid #19435a;border-radius:15px;background:#071723;scrollbar-color:#356e88 transparent}
- #unlocks table{min-width:790px;border-collapse:separate;border-spacing:0}
- #unlocks table th,#unlocks table td{box-sizing:border-box}
- #unlocks thead th{background:#0b2030;padding:12px 10px;color:#8eacc0;font-size:10px;letter-spacing:.04em;white-space:nowrap}
- #unlocks thead th:first-child{display:none}
- #unlocks .unlock-main-row .rank{display:none}
- #unlocks thead th:nth-child(2),#unlocks .unlock-main-row .unlock-token{
-  position:sticky;left:0;z-index:3;width:177px;min-width:177px;max-width:177px;
-  background:#0b2030;box-shadow:8px 0 14px rgba(0,0,0,.22);
- }
- #unlocks .unlock-main-row .unlock-token{
-  padding:12px 10px!important;white-space:normal;z-index:2;
- }
- #unlocks .unlock-main-row:nth-of-type(4n+1) .unlock-token{background:#102a3b}
- #unlocks .unlock-main-row .token-cell{
-  display:flex;align-items:center;flex-wrap:wrap;gap:6px;
-  font-size:14px;line-height:1.25;overflow-wrap:anywhere
- }
- #unlocks .unlock-main-row .token-cell b{white-space:nowrap}
- #unlocks .unlock-main-row .token-cell small{flex-basis:100%;font-size:10px;color:#a2b8c6}
- #unlocks .unlock-main-row .token-icon,
- #unlocks .unlock-main-row .token-icon-fallback{
-  display:inline-flex;width:29px;height:29px;flex:0 0 29px;object-fit:cover
- }
- #unlocks .unlock-main-row .unlock-event-note{font-size:10px;line-height:1.35;white-space:normal}
- #unlocks .unlock-expand{font-size:10px;white-space:normal}
- #unlocks .unlock-main-row .unlock-date{min-width:128px}
- #unlocks .unlock-main-row td{font-size:13px}
- #unlocks .unlock-events>td{background:#081b29}
+ #unlocks tbody tr{display:table-row}
+ #unlocks tbody td{display:table-cell;vertical-align:middle;white-space:nowrap}
+ #unlocks tbody .token-cell{display:flex;align-items:center;gap:10px}
+ #unlocks tbody .token-icon,#unlocks tbody .token-icon-fallback{width:28px;height:28px;flex:0 0 28px}
+ #unlocks .unlock-tools{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+ #unlocks #unlockSearch{flex:1 1 180px;min-width:0}
 }

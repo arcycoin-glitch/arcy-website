@@ -497,7 +497,21 @@ function renderUnlockCoverage(){
 }
 function filteredUnlockRows(days){
   if(typeof ARCYUnlockView==='undefined')return [];
-  return ARCYUnlockView.groupEvents(unlockData[days]||[],document.getElementById('unlockSort')?.value||'value',document.getElementById('unlockSearch')?.value||'');
+  // Legacy five-row calendar: retain first-source publication order instead
+  // of ranking by guessed impact/value. Keep source-grouped evidence intact.
+  const events=unlockData[days]||[];
+  const groups=ARCYUnlockView.groupEvents(events,'soonest',document.getElementById('unlockSearch')?.value||'');
+  const order=new Map();
+  for(let i=0;i<events.length;i++){
+    const key=ARCYUnlockView.tokenKey(events[i]);
+    if(!order.has(key))order.set(key,i);
+  }
+  groups.sort((a,b)=>(order.get(a.key)??Infinity)-(order.get(b.key)??Infinity));
+  for(const g of groups){
+    const first=events.find(e=>ARCYUnlockView.tokenKey(e)===g.key);
+    if(first)g.representative=first;
+  }
+  return groups;
 }
 function unlockDetails(event){
   const source=ARCYUnlockView.sourceUrl(event.sourceUrl);
