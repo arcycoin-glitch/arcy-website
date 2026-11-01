@@ -184,7 +184,7 @@ test('young pool h24 remains source evidence, never displayed as a full-day chan
  assert.equal(c.window,'PARTIAL_SINCE_POOL_CREATION');
  assert.equal(c.sources.length,2);assert.equal(c.sources[0].value,2262.8);
  assert.equal(c.sourcesDisagree,undefined,'agreement on a partial window is not full 24h evidence');
- const valid=verify.verifyRow(row('pons','15',{created:T0-25*3600000}),ds={...ds,values:{...ds.values,change24hPct:15,poolCreatedAt:new Date(T0-25*3600000).toISOString()}},{now:T0});
+ const valid=verify.verifyRow(row('pons','15',{created:T0-25*3600000}),{...ds,values:{...ds.values,change24hPct:15,poolCreatedAt:new Date(T0-25*3600000).toISOString()}},{now:T0});
  assert.equal(valid.fields.change24hPct.value,15,'older than 24h retains the full-day value');
 });
 test('young pools never earn momentum or EXTREME_PUMP_24H even in provisional Discovery Score',()=>{
