@@ -242,6 +242,10 @@ module.exports=Object.freeze({
  '9353af89436556f7ba8abb3f37a6677249aa4df6024fbfaa94f79ab2f44f3231':'Ownable', // access/Ownable.sol from 4.7.0
  'a8e4e1ae19d9bd3e8b0a6d46577eec098c01fbaffd3ec1252fd20d799e73393b':'Ownable', // access/Ownable.sol from 4.9.0
  'dc6ecf2fb375c223c78b1eecb52d9ddf2397a622af29aa39597bf9fa5e800ad4':'Ownable', // access/Ownable.sol from 4.0.0
+ '3e3bdb084bc14ade54e8259e710287956a7dbf2b2b4ad1e4cd8899d2293c7241':'Ownable2Step', // access/Ownable2Step.sol from 4.9.0
+ '90f1f1cdd07ce4b90e987065e82899fdaa6ef967d1996915143c6e39818e160c':'Ownable2Step', // access/Ownable2Step.sol from 5.0.0
+ '91f67752cac6ee9b4ad56191190e745140825098acfa024ac3403ffd77886a47':'Ownable2Step', // access/Ownable2Step.sol from 4.8.0
+ 'c75345d7b9feef17ae29f2a800ca2f65f8021cf80436a41d6ec00f57f5180f36':'Ownable2Step', // access/Ownable2Step.sol from 5.1.0
  '270fc8401c1a13fae6a7a4a2dd6e381b95d658896701e51f0d3e2688acab3dec':'Panic', // utils/Panic.sol from 5.1.0
  '089488198de38548e4e8ee7940d307f18396e5b295de5bca7ff7567fd4142cc3':'SafeCast', // utils/math/SafeCast.sol from 5.0.0
  '110ee9a0670fde43b638d94508879f4c5d7fe54905191f4c66824ec07e4bc85a':'SafeCast', // utils/math/SafeCast.sol from 4.4.1
