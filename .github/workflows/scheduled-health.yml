@@ -1,0 +1,24 @@
+name: Scheduled production health check (read-only)
+# Runs by itself on GitHub's scheduler (best-effort, may be delayed). It only
+# reads public endpoints and fails the run when an invariant breaks; GitHub then
+# notifies according to each person's own notification settings. No repair,
+# no deploy, no secrets, no paid service.
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: scheduled-health
+  cancel-in-progress: false
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/scheduled-health.cjs

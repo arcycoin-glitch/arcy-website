@@ -209,3 +209,9 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Ölçüm (52 kontrat, eşli replay): Taxes 16→22, Mint 17→23, Owner 22→26, Architecture 47→47; 6 Ethereum kontratı iyileşti, hiçbiri kötüleşmedi; RPC/Sourcify isteği 0 ek. Ayrıntı: docs/MECHANICS_DATA_ENGINE_20261101.md.
 - Açık: Pons/Arc/Robinhood'un doğrulanmış kaynağı olmayan 17 kontratı; klasik şablonlar (10) için reviewed profil; legacy zos proxy (3).
 - Sonraki: PR #122 incelemesi; merge/deploy yalnızca açık onayla. UI, kart, API sözleşmesi, Railway, bütçeler değişmedi.
+
+## Search reliability pass (2026-11-01, branch data/search-reliability-20261101, Draft PR #123)
+- Baseline main 426e23f: 819/819. After: 828/828.
+- Measured (CI runner): Ethereum explorer search p50 2.7 s/p95 6.4 s (flat 1 s cap dropped 6/9); Arc and Robinhood explorers 403 from CI (UA does not help).
+- Changed: Robinhood RPC transient JSON-RPC failover (`rpc-errors.js`), tiered explorer window in `multichain-service.discover`, diagnostics labels + `deadline` outcome, scheduled read-only health check, 9 tests. See docs/SEARCH_RELIABILITY_20261101.md.
+- Open: Production reachability of Arc/Robinhood explorers unmeasured; Pons name discovery without explorer; single Ethereum RPC endpoint. No merge/deploy.

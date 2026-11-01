@@ -79,3 +79,18 @@ test('Diagnostics: new provider labels and the deadline outcome are accepted; no
  const snap=JSON.stringify(d.snapshot());
  assert.match(snap,/"registry"/);assert.doesNotMatch(snap,/not-a-provider|bogus|0xa{40}/);
 });
+test('Discovery identity: chain mismatch dropped, same symbol/address on two chains stays two identities, ticker is never proof',()=>{
+ const service=require('../search/server/lib/multichain-service');
+ const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40);
+ const ok=(network,chainId,matches)=>({status:'fulfilled',value:{ok:true,network,chainId,matches}});
+ const item=(network,chainId,address,extra={})=>({network,chainId,address,name:'Dup',symbol:'DUP',...extra});
+ const out=service.combineDiscoveryResults('dup',[
+  ok('arc',5042,[item('arc',5042,A),item('arc',1,B),item('ethereum',1,B)]), // wrong chainId + wrong network label
+  ok('ethereum',1,[item('ethereum',1,A),item('ethereum',1,A.toUpperCase().replace('0X','0x'))]), // same address on another chain; case-duplicate
+  ok('robinhood',4663,[item('robinhood',4663,'0xnot-an-address')])
+ ]);
+ const keys=out.matches.map(m=>m.network+':'+m.address);
+ assert.deepEqual(keys,['arc:'+A,'ethereum:'+A]);
+ assert.ok(out.matches.every(m=>!m.identityVerified&&m.identity?.status!=='OFFICIAL_CONTRACT_MATCHED'));
+ assert.throws(()=>service.combineDiscoveryResults('dup',[{status:'rejected',reason:Error('x')},{status:'rejected',reason:Error('x')},{status:'rejected',reason:Error('x')}]),/unavailable/);
+});
