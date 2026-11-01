@@ -517,3 +517,24 @@ html.search-upgraded #search .home-search-form{gap:7px;grid-template-rows:auto a
  }
  html.search-upgraded #search .home-search-results{width:100%}
 }
+
+/* Always-visible Market Radar entry; isolated from the immutable top-bar markup. */
+.nav .nav-radar{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-height:40px;padding:9px 12px;border:1px solid #eca65a;border-radius:999px;background:#422914;color:#ffcf93;font-weight:800;font-size:12px;white-space:nowrap;letter-spacing:.03em;transition:background-color .16s,border-color .16s}
+.nav .nav-radar:hover{background:#5a3818;border-color:#ffd09a;color:#fff}
+.nav .nav-radar:focus-visible{outline:2px solid #ffd09a;outline-offset:3px}
+@media(min-width:851px) and (max-width:1100px){
+ .nav .navin{gap:8px}
+ .nav #siteLinks{gap:4px}
+ .nav #siteLinks a{padding-left:7px;padding-right:7px;font-size:11px}
+ .nav #navBuy{display:none}
+}
+@media(max-width:560px){
+ .nav #navBuy{display:none}
+ .nav .nav-radar{margin-left:auto;padding:9px 10px;font-size:11px}
+ .nav .menu-toggle{margin-left:0}
+}
+@media(max-width:390px){
+ .nav .brand{font-size:17px;letter-spacing:.06em}
+ .nav .nav-radar{padding:8px;font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){.nav .nav-radar{transition:none}}

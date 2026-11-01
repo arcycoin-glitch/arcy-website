@@ -1,0 +1,23 @@
+name: Mechanics OZ-template quick probe (read-only)
+on:
+  pull_request:
+    paths:
+      - 'search/server/lib/oz-*.js'
+      - 'scripts/probe-mechanics-gaps.cjs'
+      - '.github/workflows/mechanics-quick-probe.yml'
+concurrency:
+  group: mechanics-quick-probe-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build sample list (radar-derived, read-only)
+        run: BENCH_SAMPLES_ONLY=1 node scripts/bench-mechanics.cjs samples
+      - name: Template diagnostics on real verified sources
+        run: node scripts/probe-mechanics-gaps.cjs mechanics-samples.json

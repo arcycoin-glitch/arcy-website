@@ -50,6 +50,23 @@ test('reported market cap and non-derived statuses are untouched by lineage; lin
  assert.equal(classify({status:'SOURCE_REPORTED',value:5,source:'DEX Screener'},{card:'activity'}).evidenceClass,'SINGLE_SOURCE');
  assert.equal(classify({status:'ON_CHAIN',value:5,source:'RPC'},{card:'supply'}).evidenceClass,'ON_CHAIN_VERIFIED');
 });
+test('derived status alone cannot prove chain provenance when evidence is empty, missing or unidentified',()=>{
+ for(const evidence of [undefined,[],[{}]]){
+  const f={value:2,status:'ON_CHAIN_DERIVED',dataState:'DATA_FOUND',source:'RPC',evidence};
+  const r=classify(f,{card:'supply'});
+  assert.equal(r.evidenceClass,'SINGLE_SOURCE');
+  assert.equal(r.provenance.lineage.weakest,'UNKNOWN');
+ }
+});
+test('an unidentified additional input cannot disappear beside a pinned on-chain input',()=>{
+ const f={value:2,status:'ON_CHAIN_DERIVED',dataState:'DATA_FOUND',source:'RPC',evidence:[
+  {block:'0x1',address:'0xt',method:'totalSupply()'},
+  {scope:'Unidentified denominator used by the derivation'}
+ ]};
+ const r=classify(f,{card:'supply'});
+ assert.equal(r.evidenceClass,'SINGLE_SOURCE');
+ assert.equal(r.provenance.lineage.weakest,'UNKNOWN');
+});
 test('report-level: the same 3-chain + Pons-subset report keeps every key; summary counts lineage-capped fields; zero FDV is ON_CHAIN_VERIFIED',()=>{
  const mk=(chain,k)=>({chain,cards:{activity:{fields:{valuation:withFresh(fx[k].field),priceUsd:{value:1,status:'SOURCE_REPORTED',source:'DEX Screener'}}},supply:{fields:{burn:{value:0.1,status:'ON_CHAIN_DERIVED',dataState:'DATA_FOUND',source:'Arc RPC',evidence:[{block:'0x1',address:'0xt',method:'balanceOf / totalSupply()'}]}}}}});
  for(const [chain,k] of [['arc','arcoon'],['ethereum','fwa'],['robinhood','arcy'],['pons','arcoon']]){

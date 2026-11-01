@@ -40,15 +40,14 @@ function sourceTermsOffchain(f){
 function lineage(f){
  if(!f||typeof f!=='object'||!DERIVED.has(f.status))return null;
  const inputs=flat(f).map(e=>({role:roleOf(e,f),origin:originOf(e),provider:typeof e.provider==='string'?e.provider:null,
-  block:e.block??null,asOf:e.checkedAt||e.fetchedAt||null,method:typeof e.method==='string'?e.method.slice(0,120):null}))
-  .filter(i=>i.origin!=='UNKNOWN'||i.method);
+  block:e.block??null,asOf:e.checkedAt||e.fetchedAt||null,method:typeof e.method==='string'?e.method.slice(0,120):null}));
  const market=inputs.filter(i=>i.origin==='MARKET_API'),unknown=inputs.filter(i=>i.origin==='UNKNOWN'),onchain=inputs.filter(i=>i.origin==='ONCHAIN');
  const textOff=sourceTermsOffchain(f);
  const isFdv=f.kind==='FDV';
  let weakest='ONCHAIN',reason='all identified essential inputs are read on-chain';
  if(market.length||textOff){weakest='MARKET_API';reason='an essential input is an off-chain market-data value'+(market[0]?.provider?' ('+market[0].provider+')':'');}
  else if(isFdv&&(!onchain.some(i=>i.role==='supply')||!inputs.some(i=>i.role==='price'))){weakest='UNKNOWN';reason='FDV needs both a supply input and a price input; the evidence does not identify both';}
- else if(unknown.length){weakest='UNKNOWN';reason='an essential input is not identified by the evidence';}
+ else if(!onchain.length||unknown.length){weakest='UNKNOWN';reason='an essential input is not identified by the evidence';}
  return {rule:'WEAKEST_ESSENTIAL_INPUT',derived:true,weakest,onchainOnly:weakest==='ONCHAIN',reason,inputs:inputs.slice(0,8)};
 }
 module.exports={lineage,originOf};

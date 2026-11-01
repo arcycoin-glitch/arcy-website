@@ -1,26 +1,51 @@
 'use strict';
-// Read-only acceptance gate (Issue #117 A): fetch Search reports from a deployment (default Production, ARCY_BASE to point at a Preview)
-// for the Radar tokens of the three chains + regression contracts and FAIL if any derived field is ON_CHAIN_VERIFIED while one of its
-// essential inputs is off-chain, or if any field that names a market provider in its source is ON_CHAIN_VERIFIED. Prints per-chain counts.
-const BASE=process.env.ARCY_BASE||'https://www.arcyusdc.xyz',MAX=Number(process.env.AUDIT_MAX||40);
-const H={accept:'application/json',referer:BASE+'/','sec-fetch-site':'same-origin'};
-const get=async p=>{const r=await fetch(BASE+p,{headers:H,signal:AbortSignal.timeout(55000)});return r.json();};
-const MARKET=/gecko|dex ?screener|coingecko|defillama/i;
-(async()=>{
- const toks=[['arc','0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b'],['arc','0xf76b1d00bd3d63a37246b5f512074e864010e33d'],['robinhood','0x39dbed3a2bd333467115de45665cc57f813c4571']];
- for(const c of ['arc','ethereum','robinhood']){try{for(const t of (await get('/api/search?action=radar&chain='+c)).tokens||[])toks.push([c,t.address]);}catch(e){console.log('radar '+c+' unavailable: '+e.message);}}
- const seen=new Set(),sample=toks.filter(([c,a])=>!seen.has(c+a.toLowerCase())&&seen.add(c+a.toLowerCase())).slice(0,MAX);
- const stat={},bad=[];let fdv=0,errors=0;
- for(const [c,a] of sample){
-  try{const j=await get('/api/search?action=report&chain='+c+'&address='+a);
-   for(const [card,b] of Object.entries(j.cards||{}))for(const [k,f] of Object.entries(b.fields||{})){
-    if(!f||typeof f!=='object')continue;
-    const s=stat[c]=stat[c]||{};s[f.evidenceClass||'NONE']=(s[f.evidenceClass||'NONE']||0)+1;
-    const derived=f.status==='ON_CHAIN_DERIVED',isFdv=f.kind==='FDV';if(isFdv)fdv++;
-    const lin=f.provenance&&f.provenance.lineage;
-    if(f.evidenceClass==='ON_CHAIN_VERIFIED'&&((derived&&lin&&!lin.onchainOnly)||(derived&&isFdv&&!lin)||(derived&&MARKET.test(f.source||''))))bad.push({chain:c,address:a,card,field:k,source:f.source,kind:f.kind});
-   }}catch(e){errors++;console.log('report '+c+' '+a.slice(0,10)+' failed: '+e.message);}
+// Read-only FDV release gate. Missing reports, HTTP errors or an unexercised
+// derived-FDV path cannot produce a successful verification result.
+const MARKET=/gecko|dex ?screener|coingecko|coinmarketcap|defillama|market ?api/i;
+const SEEDS=[
+ ['arc','0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed'],
+ ['ethereum','0xa0df17b5ac76ababa36e1450e2cbcd18a620c845'],
+ ['robinhood','0x39dbed3a2bd333467115de45665cc57f813c4571']
+];
+async function audit({base=process.env.ARCY_BASE||'https://www.arcyusdc.xyz',max=Number(process.env.AUDIT_MAX||40),fetchImpl=globalThis.fetch,log=console.log}={}){
+ if(!Number.isInteger(max)||max<3||max>100)throw Error('AUDIT_MAX must be an integer from 3 to 100');
+ const headers={accept:'application/json',referer:base+'/','sec-fetch-site':'same-origin'};
+ const get=async path=>{
+  const r=await fetchImpl(base+path,{headers,signal:AbortSignal.timeout(55000)});
+  if(!r.ok)throw Error('HTTP '+r.status);
+  return r.json();
+ };
+ const tokens=[...SEEDS];let radarErrors=0;
+ for(const chain of ['arc','ethereum','robinhood']){
+  try{
+   const j=await get('/api/search?action=radar&chain='+chain);
+   if(!Array.isArray(j.tokens))throw Error('Radar token list missing');
+   for(const t of j.tokens)if(/^0x[0-9a-f]{40}$/i.test(t.address||''))tokens.push([chain,t.address]);
+  }catch(e){radarErrors++;log('radar '+chain+' unavailable: '+e.message);}
  }
- console.log(JSON.stringify({base:BASE,tokens:sample.length,fdvFields:fdv,reportErrors:errors,classesByChain:stat,falselyOnChainVerified:bad.length},null,1));
- if(bad.length){console.log(JSON.stringify(bad,null,1));process.exit(1);}
-})();
+ const seen=new Set(),sample=tokens.filter(([c,a])=>!seen.has(c+a.toLowerCase())&&seen.add(c+a.toLowerCase())).slice(0,max);
+ const classesByChain={},bad=[];let fdvFields=0,derivedFdvFields=0,reportErrors=0,fields=0;
+ for(const [chain,address] of sample){
+  try{
+   const j=await get('/api/search?action=report&chain='+chain+'&address='+address);
+   const entries=Object.entries(j.cards||{}).flatMap(([card,b])=>Object.entries(b?.fields||{}).map(([key,f])=>({card,key,f})));
+   if(!entries.length)throw Error('Report fields missing');
+   for(const {card,key,f} of entries){
+    if(!f||typeof f!=='object')continue;
+    fields++;
+    const counts=classesByChain[chain]??={};counts[f.evidenceClass||'NONE']=(counts[f.evidenceClass||'NONE']||0)+1;
+    const derived=f.status==='ON_CHAIN_DERIVED',present=f.value!==null&&f.value!==undefined;
+    if(f.kind==='FDV'&&present){fdvFields++;if(derived)derivedFdvFields++;}
+    const lin=f.provenance?.lineage;
+    const claimsOnchain=f.evidenceClass==='ON_CHAIN_VERIFIED'||f.provenance?.underlyingClass==='ON_CHAIN_VERIFIED';
+    if(claimsOnchain&&((derived&&(!lin||lin.onchainOnly!==true))||MARKET.test(f.source||'')))bad.push({chain,address,card,field:key,source:f.source,kind:f.kind});
+   }
+  }catch(e){reportErrors++;log('report '+chain+' '+address.slice(0,10)+' failed: '+e.message);}
+ }
+ const summary={base,tokens:sample.length,fields,fdvFields,derivedFdvFields,radarErrors,reportErrors,classesByChain,falselyOnChainVerified:bad.length};
+ summary.ok=radarErrors===0&&reportErrors===0&&fields>0&&derivedFdvFields>0&&bad.length===0;
+ log(JSON.stringify(summary,null,1));if(bad.length)log(JSON.stringify(bad,null,1));
+ return summary;
+}
+if(require.main===module)audit().then(s=>{process.exitCode=s.ok?0:1;}).catch(e=>{console.error(e.message);process.exitCode=1;});
+module.exports={audit};

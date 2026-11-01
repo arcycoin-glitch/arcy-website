@@ -1,5 +1,15 @@
 'use strict';
 (()=>{
+ // Public Radar shortcut: visible in the top bar even when mobile links collapse.
+ // Inject separately from immutable index.html; no existing sections are moved.
+ const nav=document.querySelector('.nav .navin'),menu=nav?.querySelector('.menu-toggle');
+ if(menu&&!nav.querySelector('.nav-radar')){
+  const radar=document.createElement('a');
+  radar.href='/radar';radar.className='nav-radar';
+  radar.textContent='🔥 RADAR';
+  radar.setAttribute('aria-label','Open ARCY Market Radar');
+  menu.before(radar);
+ }
  const section=document.querySelector('main > #search');
  const header=section?.querySelector('.header');
 

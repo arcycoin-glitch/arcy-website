@@ -1,0 +1,21 @@
+name: OpenZeppelin library hash collection (provenance, read-only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/collect-oz-hashes.cjs'
+      - '.github/workflows/oz-hashes.yml'
+  workflow_dispatch:
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/collect-oz-hashes.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oz-hashes
+          path: oz-hashes.json

@@ -25,6 +25,11 @@ jobs:
         env:
           PER_CHAIN: '1'
         run: node scripts/search-coverage-matrix.cjs
+      - name: Verify derived FDV provenance on Production
+        if: github.event_name == 'push'
+        env:
+          AUDIT_MAX: '6'
+        run: node scripts/audit-evidence-lineage.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

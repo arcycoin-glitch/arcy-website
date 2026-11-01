@@ -1,0 +1,61 @@
+name: Mechanics before/after benchmark (read-only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/bench-mechanics.cjs'
+      - 'scripts/probe-mechanics-gaps.cjs'
+      - 'scripts/assert-mechanics-bench.cjs'
+      - '.github/workflows/mechanics-bench.yml'
+      - 'search/server/lib/mechanics-*.js'
+      - 'search/server/lib/admin-getters.js'
+      - 'search/server/lib/control.js'
+      - 'search/server/lib/arc-adapter.js'
+      - 'search/server/lib/arc-rpc.js'
+      - 'search/server/lib/robinhood-rpc.js'
+      - 'search/server/lib/rpc-errors.js'
+      - 'search/server/lib/robinhood-adapter.js'
+      - 'search/server/lib/report.js'
+      - 'lib/mechanics-*.js'
+      - 'lib/verified-source.js'
+  workflow_dispatch:
+concurrency:
+  group: mechanics-bench-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: after
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: before
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: BEFORE-LIVE (main) — records every provider answer; GoPlus disabled like Production
+        run: BENCH_REPLAY=record BENCH_ROOT=$GITHUB_WORKSPACE/before node after/scripts/bench-mechanics.cjs beforelive
+        continue-on-error: true
+      - name: BEFORE-REPLAY (main) — deterministic recorded evidence
+        run: BENCH_REPLAY=replay BENCH_ROOT=$GITHUB_WORKSPACE/before node after/scripts/bench-mechanics.cjs before mechanics-samples.json
+      - name: AFTER-REPLAY (branch) — no network fallback for unrecorded requests
+        run: BENCH_REPLAY=replay BENCH_ROOT=$GITHUB_WORKSPACE/after node after/scripts/bench-mechanics.cjs after mechanics-samples.json
+      - name: Paired benchmark regression gate (mandatory)
+        run: node after/scripts/assert-mechanics-bench.cjs mechanics-bench-before.json mechanics-bench-after.json
+      - name: Let public RPC windows reset
+        run: sleep 45
+      - name: AFTER-LIVE (branch) — latency/noise reference (not paired)
+        run: BENCH_ROOT=$GITHUB_WORKSPACE/after node after/scripts/bench-mechanics.cjs afterlive mechanics-samples.json
+        continue-on-error: true
+      - name: Gap diagnostics (why NOT VERIFIED) — read-only
+        run: node after/scripts/probe-mechanics-gaps.cjs mechanics-samples.json
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mechanics-bench
+          path: mechanics-bench-*.json
+          if-no-files-found: ignore

@@ -82,3 +82,122 @@ test('tokens/multi include=top_pools: pool-level h24 kept per exact pool; foreig
  const plain=await gecko.fetchMulti({host:'https://h',header:null,key:null},net,[a],{fetcher,now:()=>T0});
  assert.ok(!/include/.test(urls[1]));assert.equal(plain.get(a).poolChange24h,undefined);
 });
+
+// ---- Robinhood: same-pool recovery from the token lookup's included pools (PR #123) ----
+function multiBody(net,tokens){ // tokens: [{i,pools:[{pool,h24}]}]
+ const id=sources.NETWORKS[net].gecko,data=[],included=[];
+ for(const t of tokens){
+  const a=addr(t.i);
+  data.push({id:id+'_'+a,type:'token',attributes:{address:a,symbol:'T'+t.i,name:'Token'+t.i,price_usd:'0.002',total_reserve_in_usd:'3000000',volume_usd:{h24:'2000000'}},
+   relationships:{top_pools:{data:t.pools.map(p=>({id:id+'_'+addr(p.pool),type:'pool'}))}}});
+  for(const p of t.pools)included.push({id:id+'_'+addr(p.pool),type:'pool',attributes:{address:addr(p.pool),...(p.h24===undefined?{}:{price_change_percentage:{h24:p.h24}})}});
+ }
+ return {data,included};
+}
+function rhRouter(net,{top,multi}){
+ const calls=[];
+ const f=async url=>{calls.push(url);
+  if(/tokens\/multi/.test(url))return resp(multi);
+  if(/new_pools|trending_pools|\/pools\?/.test(url))return resp(top);
+  throw new Error('unrouted '+url);};f.calls=calls;return f;
+}
+const gt=f=>f.calls.filter(u=>/\/api\/v3\/onchain\//.test(u));
+const pools10=(net,first)=>body(net,Array.from({length:10},(_,k)=>({i:k+1,pool:5000+k+1,change:k===0?first:'5',vol:2000000-k})));
+const loadRow=async(net,fetcher,i=1)=>{radar._cache.clear();http._resetCooldowns();return (await radar.load(net,{env:ENV,fetcher,now:()=>T0,disableCache:true})).tokens.find(x=>x.address===addr(i))};
+const multiFor=(net,h24,pool=5001)=>multiBody(net,[{i:1,pools:[{pool,h24}]},...Array.from({length:9},(_,k)=>({i:k+2,pools:[{pool:5000+k+2,h24:'5'}]}))]);
+
+test('Robinhood: a missing pool-level h24 is recovered from the SAME exact pool in the token lookup, at no extra provider request',async()=>{
+ const f=rhRouter('robinhood',{top:pools10('robinhood',undefined),multi:multiFor('robinhood','-13.25')});
+ const t=await loadRow('robinhood',f);
+ assert.ok(t);assert.equal(t.change24hPct,-13.25);assert.equal(t.fields.change24hPct.status,'SOURCE_REPORTED');
+ assert.equal(t.fields.change24hPct.recovery.from,'tokens/multi include=top_pools');assert.equal(t.fields.change24hPct.recovery.pool,addr(5001));
+ const multi=gt(f).filter(u=>/tokens\/multi/.test(u));
+ assert.equal(multi.length,1,'exactly one token lookup');assert.match(multi[0],/include=top_pools/);
+ assert.equal(gt(f).length,4,'3 pool pages + 1 token lookup: same GeckoTerminal request count as without the include');
+});
+test('Robinhood: wrong pool is never borrowed; exactly 0% is kept as 0; absent stays NOT_VERIFIED with its reason',async()=>{
+ const top=pools10('robinhood',undefined);
+ let t=await loadRow('robinhood',rhRouter('robinhood',{top,multi:multiFor('robinhood','42',9999)})); // value belongs to ANOTHER pool
+ assert.equal(t.change24hPct,null);assert.equal(t.fields.change24hPct.status,'NOT_VERIFIED');assert.equal(t.fields.change24hPct.reasonCode,'SOURCE_24H_CHANGE_UNAVAILABLE');
+ t=await loadRow('robinhood',rhRouter('robinhood',{top,multi:multiFor('robinhood','0')}));
+ assert.strictEqual(t.change24hPct,0);assert.equal(t.fields.change24hPct.status,'SOURCE_REPORTED');
+ t=await loadRow('robinhood',rhRouter('robinhood',{top,multi:multiFor('robinhood',undefined)}));
+ assert.equal(t.change24hPct,null);assert.equal(t.fields.change24hPct.reasonCode,'SOURCE_24H_CHANGE_UNAVAILABLE');
+});
+test('Robinhood: a pool younger than 24 h keeps its own reason and is never filled from a shorter window',async()=>{
+ const top=body('robinhood',Array.from({length:10},(_,k)=>({i:k+1,pool:5000+k+1,change:k===0?undefined:'5',pcp:k===0?{h1:'9',h6:'8'}:undefined,created:k===0?T0-3*3600000:undefined,vol:2000000-k})));
+ const t=await loadRow('robinhood',rhRouter('robinhood',{top,multi:multiFor('robinhood',undefined)}));
+ assert.equal(t.change24hPct,null);assert.equal(t.fields.change24hPct.reasonCode,'POOL_LESS_THAN_24H_OLD');
+});
+test('request shape: no missing value => plain token lookup (no include) on Robinhood; Arc and Ethereum never request the include',async()=>{
+ let f=rhRouter('robinhood',{top:pools10('robinhood','7'),multi:multiFor('robinhood','7')});
+ await loadRow('robinhood',f);
+ assert.ok(gt(f).filter(u=>/tokens\/multi/.test(u)).every(u=>!/include/.test(u)));
+ for(const net of ['arc','ethereum']){
+  f=rhRouter(net,{top:pools10(net,undefined),multi:multiFor(net,'-1')});
+  await loadRow(net,f);
+  assert.ok(gt(f).filter(u=>/tokens\/multi/.test(u)).every(u=>!/include/.test(u)),net+' unchanged');
+ }
+});
+test('verify: two sources that disagree on a Robinhood pool stay NOT_VERIFIED (tolerance is not widened; no value is forced)',()=>{
+ const ds=c=>({state:'MATCHED',matched:{},values:{change24hPct:c,priceUsd:null,marketCapUsd:null,fdvUsd:null,volume24hUsd:null,liquidityUsd:null,poolCreatedAt:null},pair:{},pairCount:1,complete:true});
+ let f=verify.verifyRow(row('robinhood','748.678'),ds(609),{now:T0}).fields.change24hPct;
+ assert.equal(f.status,'NOT_VERIFIED');assert.equal(f.reasonCode,'SOURCES_DISAGREE');assert.equal(f.value,null);
+ f=verify.verifyRow(row('robinhood','744.951'),ds(753),{now:T0}).fields.change24hPct; // 8.05 points apart: beyond the 3-point rule
+ assert.equal(f.status,'NOT_VERIFIED');assert.equal(f.reasonCode,'SOURCES_DISAGREE');
+ f=verify.verifyRow(row('robinhood','45.669'),ds(45.1),{now:T0}).fields.change24hPct;
+ assert.notEqual(f.status,'NOT_VERIFIED');
+ assert.equal(verify.TOLERANCE.change24hPct.abs,3);
+});
+
+// ---- Young pools: providers report a PARTIAL window; the reason must say so (values stay null, tolerance untouched) ----
+test('pool younger than 24 h whose sources disagree: reason is the pool age (partial window), value null, never a 24h figure',()=>{
+ const ds=c=>({state:'MATCHED',matched:{},values:{change24hPct:c,priceUsd:null,marketCapUsd:null,fdvUsd:null,volume24hUsd:null,liquidityUsd:null,poolCreatedAt:null},pair:{},pairCount:1,complete:true});
+ const young=row('ethereum','291176.066',{created:T0-18*3600000});
+ let f=verify.verifyRow(young,ds(581192),{now:T0}).fields.change24hPct;
+ assert.equal(f.status,'NOT_VERIFIED');assert.equal(f.value,null);assert.equal(f.reasonCode,'POOL_LESS_THAN_24H_OLD');
+ assert.equal(f.poolAgeHours,18);assert.equal(f.sourcesDisagree,true);assert.match(f.reason,/kısmi dönem/);
+ assert.deepEqual(f.sources.map(s=>s.value),[291176.066,581192],'evidence kept for diagnostics only');
+ // a pool older than 24 h with the same disagreement keeps the disagreement reason
+ const old=row('ethereum','62.092',{created:T0-67*3600000});
+ f=verify.verifyRow(old,ds(57.19),{now:T0}).fields.change24hPct;
+ assert.equal(f.status,'NOT_VERIFIED');assert.equal(f.reasonCode,'SOURCES_DISAGREE');assert.equal(f.value,null);
+ // exactly 24 h and a future creation timestamp are not "younger than 24 h"
+ f=verify.verifyRow(row('ethereum','62.092',{created:T0-24*3600000}),ds(57.19),{now:T0}).fields.change24hPct;
+ assert.equal(f.reasonCode,'SOURCES_DISAGREE');
+ f=verify.verifyRow(row('ethereum','62.092',{created:T0+3600000}),ds(57.19),{now:T0}).fields.change24hPct;
+ assert.equal(f.reasonCode,'SOURCES_DISAGREE');
+ // Agreement on a partial window still does not make it a full 24-hour change.
+ f=verify.verifyRow(row('ethereum','10',{created:T0-18*3600000}),ds(11),{now:T0}).fields.change24hPct;
+ assert.equal(f.status,'NOT_VERIFIED');assert.equal(f.reasonCode,'POOL_LESS_THAN_24H_OLD');
+ assert.equal(verify.TOLERANCE.change24hPct.abs,3);
+});
+
+test('young pool h24 remains source evidence, never displayed as a full-day change even if providers agree',()=>{
+ const fresh=T0-5*3600000;
+ const rowYoung=row('pons','2262.8',{created:fresh});
+ const ds={state:'MATCHED',matched:{},values:{change24hPct:2262.8,poolCreatedAt:new Date(fresh).toISOString()},pair:{},pairCount:1,complete:true};
+ const v=verify.verifyRow(rowYoung,ds,{now:T0});
+ const c=v.fields.change24hPct;
+ assert.equal(c.status,'NOT_VERIFIED');assert.equal(c.value,null);
+ assert.equal(c.reasonCode,'POOL_LESS_THAN_24H_OLD');assert.equal(c.poolAgeHours,5);
+ assert.equal(c.window,'PARTIAL_SINCE_POOL_CREATION');
+ assert.equal(c.sources.length,2);assert.equal(c.sources[0].value,2262.8);
+ assert.equal(c.sourcesDisagree,undefined,'agreement on a partial window is not full 24h evidence');
+ const valid=verify.verifyRow(row('pons','15',{created:T0-25*3600000}),{...ds,values:{...ds.values,change24hPct:15,poolCreatedAt:new Date(T0-25*3600000).toISOString()}},{now:T0});
+ assert.equal(valid.fields.change24hPct.value,15,'older than 24h retains the full-day value');
+});
+test('young pools never earn momentum or EXTREME_PUMP_24H even in provisional Discovery Score',()=>{
+ const D=require('../lib/radar-v2/discovery');
+ const base={address:addr(123),symbol:'TEST',name:'Test',volume24hUsd:2500000,liquidityUsd:400000,
+  priceUsd:1,buys24h:60,sells24h:40,scopeVolume:'POOL',crossShare:0.5};
+ const young=new Date(T0-5*3600000).toISOString(),old=new Date(T0-25*3600000).toISOString();
+ const bad=D.score({...base,poolCreatedAt:young,change24hPct:2262.8},'pons',T0,{pons:true});
+ const omitted=D.score({...base,poolCreatedAt:young,change24hPct:null},'pons',T0,{pons:true});
+ const full=D.score({...base,poolCreatedAt:old,change24hPct:2262.8},'pons',T0,{pons:true});
+ assert.equal(bad.score,omitted.score);
+ assert.deepEqual(bad.missing.find(x=>x.id==='momentum'),{id:'momentum',weight:5,why:'POOL_LESS_THAN_24H_OLD'});
+ assert.equal(bad.flags.includes('EXTREME_PUMP_24H'),false);
+ assert.ok(full.components.some(x=>x.id==='momentum'));
+ assert.equal(full.flags.includes('EXTREME_PUMP_24H'),true);
+});

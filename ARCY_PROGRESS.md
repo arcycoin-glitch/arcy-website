@@ -203,3 +203,22 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - verify.js: DEX Screener liquidity at 1.85-2.15x GeckoTerminal = definition difference, lower value kept as SOURCE_REPORTED (needs owner sign-off).
 - Quota unchanged: 13 credits/cycle; all V2 work is RPC-only (about 13 requests per refresh on the public RPC, 429 => fail-closed status).
 - Open: Preview UI check blocked (JS execution denied on preview domain; radar API is site-only); Arc 8-9/10 is a genuine eligible-token shortfall within credit budget.
+
+## Contract & Mechanics data engine (2026-11-01, branch data/mechanics-engine-20261101, Draft PR #122)
+- Yapıldı: record/replay benchmark (aynı kanıt üzerinde main vs dal), pinned-OpenZeppelin kaynak-yapı analizi (`oz-template.js`, 296 SHA-256), `mechanics-deep.js` içine yalnızca `inspect` entegrasyonu (`enrich`/`validateSource` aynı).
+- Ölçüm (52 kontrat, eşli replay): Taxes 16→22, Mint 17→23, Owner 22→26, Architecture 47→47; 6 Ethereum kontratı iyileşti, hiçbiri kötüleşmedi; RPC/Sourcify isteği 0 ek. Ayrıntı: docs/MECHANICS_DATA_ENGINE_20261101.md.
+- Açık: Pons/Arc/Robinhood'un doğrulanmış kaynağı olmayan 17 kontratı; klasik şablonlar (10) için reviewed profil; legacy zos proxy (3).
+- Sonraki: PR #122 incelemesi; merge/deploy yalnızca açık onayla. UI, kart, API sözleşmesi, Railway, bütçeler değişmedi.
+
+## Search reliability pass (2026-11-01, branch data/search-reliability-20261101, Draft PR #123)
+- Baseline main 426e23f: 819/819. After: 827/827.
+- Measured (CI runner): Ethereum explorer search p50 2.7 s/p95 6.4 s (flat 1 s cap dropped 6/9); Arc and Robinhood explorers 403 from CI (UA does not help).
+- Changed: Robinhood RPC transient JSON-RPC failover (`rpc-errors.js`), tiered explorer window in `multichain-service.discover`, diagnostics labels + `deadline` outcome, scheduled read-only health check, 8 tests. See docs/SEARCH_RELIABILITY_20261101.md.
+- Open: Production reachability of Arc/Robinhood explorers unmeasured; Pons name discovery without explorer; single Ethereum RPC endpoint. No merge/deploy.
+- PR #123 follow-up (head after b1aff35): Robinhood same-pool 24h recovery (only when a row lacks h24) + health check without ARCY dependency. Real-source probe: 0 omissions at source on Robinhood; `—` cells are SOURCES_DISAGREE on +700..+2900 % movers (tolerance NOT widened; owner decision). Requests unchanged (GT 4 / DEX 1 / RPC 5). Suite 836/836.
+
+## Production reliability pass (PR #124, branch fix/reliability-final-20261101)
+- Base main bd9ddee (PR #123), suite 836 -> 843. Measured fill (10 tokens/network): Arc 81.0 %, Ethereum 91.0 %, Robinhood 90.0 %, three networks 524/600 = 87.3 %; Pons (subset) 139/160 = 86.9 %. Accuracy UNESTABLISHED.
+- Fixed: scheduled health check asserted 6 cards (health reports 5) - caught by a real run; Arc re-sent contract reverts to the backup (RPC Arc 426 -> 312 in paired replay, fields identical); young-pool disagreement now explained by pool age.
+- Open finding (not applied): GeckoTerminal h24 on pools < 24 h is a partial window; 7 rows displayed as 24h. Needs owner decision (changes values and Discovery Score).
+- Open: Ethereum single RPC; Arc/Robinhood explorer 403 from CI; Railway worker state not observable here.

@@ -406,7 +406,9 @@ test('Preview-only diagnostics name missing configuration items, never values, a
 });
 
 test('pons: a pool missing its 24h change in the pool pages is recovered from tokens/multi include=top_pools in the SAME request (no extra call, no estimate)',async()=>{
- const body=geckoBody('pons',{count:12});
+ // This recovery test checks complete 24-hour windows. A separate test verifies
+ // young-pool h24 is withheld, never mislabelled as a full-day change.
+ const body=geckoBody('pons',{count:12,created:i=>new Date(T0-(25+i/60)*3600000).toISOString()});
  for(const p of body.data)delete p.attributes.price_change_percentage;
  const members=[addr(2),addr(5),addr(9)],id=sources.NETWORKS.pons.gecko;
  const multi=multiBody('pons',body);
