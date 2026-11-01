@@ -41,3 +41,25 @@ Phase 3 areas other than the Robinhood RPC path (supply, holder snapshots, liqui
 
 ## Release / rollback
 Release only after review: mark PR #123 ready, merge via the protected workflow, let Vercel deploy, then run `node scripts/scheduled-health.cjs` against Production. Rollback: revert the merge commit (or promote the previous Vercel deployment); the change is additive and has no data migration.
+
+## Addendum — Radar 24h change (Robinhood) and health check
+
+Real-source probe (`scripts/probe-radar-change24h.cjs`, production Radar code, keyless GeckoTerminal + DEX Screener, CI runner, ~minutes apart, so the token lists differ slightly):
+
+| Network | Run | Reported | Recovered same-pool | Sources disagree | Missing at source | Parse loss (software) | GeckoTerminal / DEX / RPC requests |
+|---|---|---|---|---|---|---|---|
+| Robinhood | before | 8 | 0 | 2 (Claude, Kongo) | 0 | 0 | 4 / 1 / 5 |
+| Robinhood | after  | 7 | 0 | 3 (Claude, ORIGO, Kongo) | 0 | 0 | 4 / 1 / 5 |
+| Pons | before / after | 1 | 9 / 9 | 0 | 0 | 0 | 1 / 1 / 13 (both) |
+| Arc | before / after | 8 / 9 | 0 | 2 / 0 | 0 | 0 | 4 / 1 / 0 (both) |
+| Ethereum | after | 8 | 0 | 2 | 0 | 0 | 4 / 1 / 0 |
+
+(The "before" Ethereum line was dropped by GitHub's 10-annotation cap; its request counts are therefore only shown for "after". The before/after lists are different snapshots, so only the mechanism, not a coverage delta, is comparable.)
+
+Root cause of the `—` cells: in every measured Robinhood row the provider **did** report `price_change_percentage.h24` for the exact pool (raw column), and no value was lost in parsing or candidate selection. The cells are empty because GeckoTerminal and DEX Screener disagree by more than the existing 3-point rule on very large movers (e.g. Claude +750 % vs +609 %; ORIGO +2880 % vs +2524 %; Kongo +836 % vs +797 %). Those values are correctly `NOT_VERIFIED / SOURCES_DISAGREE`. A fixed 3-point band is strict for +700 % moves (a 1 % price-snapshot drift is already ~8 points there); relaxing it would be a verification-standard change, so it was **not** made and is an owner decision. The reported screenshot cell for FOREVER was not reproducible (both sources agreed in both runs).
+
+Change: same-pool recovery from the token lookup's `include=top_pools` (same single request, same credit) now also runs for Robinhood, but only when a shortlisted row lacks h24. Measured effect on today's data: 0 additional values, 0 additional requests (nothing was missing at the source). It protects against pool-list rows that omit h24, proven only by unit tests (recovered from the same exact pool; other pools never borrowed; exact 0 % kept; pools younger than 24 h keep POOL_LESS_THAN_24H_OLD; Arc/Ethereum request shape unchanged; no include when nothing is missing).
+
+Health check: `scheduled-health.cjs` no longer requires the historical Arc ARCY token to be discoverable and contains no token address; it still checks the health endpoint (6 cards), the chain ids 5042 / 1 / 4663 and per-network identity isolation with 4 requests (tests in `test/scheduled-health.test.js`).
+
+Full suite: 836/836.
