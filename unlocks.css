@@ -52,3 +52,38 @@
  #unlocks .unlock-event-list li{font-size:12px}
  #unlocks .loading{display:table-cell;white-space:normal;padding:16px}
 }
+
+
+/* Mobile premium repair: keep token symbol/logo visible during horizontal scroll.
+   No data, endpoints, event grouping, or unlock processing changes. */
+@media(max-width:560px){
+ #unlocks .tablebox{border:1px solid #19435a;border-radius:15px;background:#071723;scrollbar-color:#356e88 transparent}
+ #unlocks table{min-width:790px;border-collapse:separate;border-spacing:0}
+ #unlocks table th,#unlocks table td{box-sizing:border-box}
+ #unlocks thead th{background:#0b2030;padding:12px 10px;color:#8eacc0;font-size:10px;letter-spacing:.04em;white-space:nowrap}
+ #unlocks thead th:first-child{display:none}
+ #unlocks .unlock-main-row .rank{display:none}
+ #unlocks thead th:nth-child(2),#unlocks .unlock-main-row .unlock-token{
+  position:sticky;left:0;z-index:3;width:177px;min-width:177px;max-width:177px;
+  background:#0b2030;box-shadow:8px 0 14px rgba(0,0,0,.22);
+ }
+ #unlocks .unlock-main-row .unlock-token{
+  padding:12px 10px!important;white-space:normal;z-index:2;
+ }
+ #unlocks .unlock-main-row:nth-of-type(4n+1) .unlock-token{background:#102a3b}
+ #unlocks .unlock-main-row .token-cell{
+  display:flex;align-items:center;flex-wrap:wrap;gap:6px;
+  font-size:14px;line-height:1.25;overflow-wrap:anywhere
+ }
+ #unlocks .unlock-main-row .token-cell b{white-space:nowrap}
+ #unlocks .unlock-main-row .token-cell small{flex-basis:100%;font-size:10px;color:#a2b8c6}
+ #unlocks .unlock-main-row .token-icon,
+ #unlocks .unlock-main-row .token-icon-fallback{
+  display:inline-flex;width:29px;height:29px;flex:0 0 29px;object-fit:cover
+ }
+ #unlocks .unlock-main-row .unlock-event-note{font-size:10px;line-height:1.35;white-space:normal}
+ #unlocks .unlock-expand{font-size:10px;white-space:normal}
+ #unlocks .unlock-main-row .unlock-date{min-width:128px}
+ #unlocks .unlock-main-row td{font-size:13px}
+ #unlocks .unlock-events>td{background:#081b29}
+}
