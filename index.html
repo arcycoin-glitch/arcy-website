@@ -409,7 +409,8 @@ View details →
   <input id="unlockSearch" type="search" placeholder="Search token (e.g. APT)" autocomplete="off" aria-label="Search token">
   <div class="unlock-pager"><button id="unlockPrev" type="button" aria-label="Previous token page">‹</button><span id="unlockPage">1 / 1</span><button id="unlockNext" type="button" aria-label="Next token page">›</button></div>
  </div>
-  <div class="tablebox"><table aria-label="Published token unlocks"><thead><tr><th scope="col">#</th><th scope="col">TOKEN</th><th scope="col">UNLOCK DATE</th><th scope="col">UNLOCK AMOUNT</th><th scope="col">% CIRCULATING SUPPLY</th></tr></thead><tbody id="unlockRows"></tbody></table></div>
+  <p id="unlockResults" class="unlock-results" role="status" aria-live="polite" hidden></p>
+ <div class="tablebox"><table aria-label="Published token unlocks"><thead><tr><th scope="col">#</th><th scope="col">TOKEN</th><th scope="col">UNLOCK DATE</th><th scope="col">UNLOCK AMOUNT</th><th scope="col">% CIRCULATING SUPPLY</th></tr></thead><tbody id="unlockRows"></tbody></table></div>
  <p class="note">Loading published unlock schedules…</p>
 </div></section>
 
@@ -521,7 +522,7 @@ function renderUnlocks(days){
   body.innerHTML=rows.length
     ? rows.map((group,i)=>{
       const r=group.representative,id='unlock-events-'+(offset+i),open=unlockExpanded.has(group.key);
-      return `<tr class="unlock-main-row"><td class="rank">${offset+i+1}</td><td class="unlock-token"><span class="token-cell" translate="no">${tokenIcon(r.symbol||r.token||'',r.logo)}<b>${escapeHtml(r.symbol||r.token||r.name||'—')}</b>${r.name&&r.name!==(r.symbol||r.token)?` <small>${escapeHtml(r.name)}</small>`:''}</span></td><td class="unlock-date">${escapeHtml(r.date||'—')}</td><td>${escapeHtml(r.amount||'—')}</td><td>${escapeHtml(r.percent||'—')}</td></tr>`;
+      return `<tr class="unlock-main-row"><td class="rank">${offset+i+1}</td><td class="unlock-token"><span class="token-cell" translate="no">${tokenIcon(r.symbol||r.token||'',r.logo)}<b>${escapeHtml(r.symbol||r.token||r.name||'—')}</b>${r.name&&r.name!==(r.symbol||r.token)?` <small>${escapeHtml(r.name)}</small>`:''}</span></td><td class="unlock-date">${escapeHtml(r.date||'—')}</td><td>${escapeHtml(r.amount||'—')}</td><td>${escapeHtml(r.percent||'—')}</td></tr><tr class="unlock-events" id="${id}" hidden><td colspan="5"><ul class="unlock-event-list">${group.events.map(unlockDetails).join('')}</ul></td></tr>`;
     }).join("")
     : `<tr><td colspan="5" class="loading">${unlockState==='error'?'Live unlock feed temporarily unavailable.':unlockState==='loading'?'Loading live unlocks…':document.getElementById('unlockSearch').value.trim()?'No matching unlocks in this window.':'No published unlocks in this window. Coverage is limited.'}</td></tr>`;
   body.querySelectorAll("img.token-icon").forEach(img=>img.addEventListener("error",()=>{const fallback=document.createElement("span");fallback.className="token-icon-fallback";fallback.textContent=img.alt.slice(0,3);img.replaceWith(fallback);},{once:true}));
