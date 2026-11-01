@@ -216,3 +216,9 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Changed: Robinhood RPC transient JSON-RPC failover (`rpc-errors.js`), tiered explorer window in `multichain-service.discover`, diagnostics labels + `deadline` outcome, scheduled read-only health check, 8 tests. See docs/SEARCH_RELIABILITY_20261101.md.
 - Open: Production reachability of Arc/Robinhood explorers unmeasured; Pons name discovery without explorer; single Ethereum RPC endpoint. No merge/deploy.
 - PR #123 follow-up (head after b1aff35): Robinhood same-pool 24h recovery (only when a row lacks h24) + health check without ARCY dependency. Real-source probe: 0 omissions at source on Robinhood; `—` cells are SOURCES_DISAGREE on +700..+2900 % movers (tolerance NOT widened; owner decision). Requests unchanged (GT 4 / DEX 1 / RPC 5). Suite 836/836.
+
+## Production reliability pass (PR #124, branch fix/reliability-final-20261101)
+- Base main bd9ddee (PR #123), suite 836 -> 843. Measured fill (10 tokens/network): Arc 81.0 %, Ethereum 91.0 %, Robinhood 90.0 %, three networks 524/600 = 87.3 %; Pons (subset) 139/160 = 86.9 %. Accuracy UNESTABLISHED.
+- Fixed: scheduled health check asserted 6 cards (health reports 5) - caught by a real run; Arc re-sent contract reverts to the backup (RPC Arc 426 -> 312 in paired replay, fields identical); young-pool disagreement now explained by pool age.
+- Open finding (not applied): GeckoTerminal h24 on pools < 24 h is a partial window; 7 rows displayed as 24h. Needs owner decision (changes values and Discovery Score).
+- Open: Ethereum single RPC; Arc/Robinhood explorer 403 from CI; Railway worker state not observable here.

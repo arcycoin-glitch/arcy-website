@@ -63,3 +63,59 @@ Change: same-pool recovery from the token lookup's `include=top_pools` (same sin
 Health check: `scheduled-health.cjs` no longer requires the historical Arc ARCY token to be discoverable and contains no token address; it still checks the health endpoint (5 token-card schema; the sixth UI card is the global Unlock calendar), the chain ids 5042 / 1 / 4663 and per-network identity isolation with 4 requests (tests in `test/scheduled-health.test.js`).
 
 Full suite: 836/836.
+
+## Final reliability pass (PR #124) — measurements of 2026-11-01 (CI runner → public production API, read-only)
+
+Baseline: `main` bd9ddee (merge of PR #123), Production deployment on the same SHA, `npm test` 836/836. Rollback candidate: the previous Vercel production deployment (promote it in Vercel) or revert the merge commit.
+
+### Field fill by network and card (10 Radar tokens per network; Pons = 8 tokens, Robinhood subset, NOT added to the three-network total)
+Fill is **completeness, not accuracy**; no ground truth exists, so accuracy is UNESTABLISHED. Each card has 4 measured fields per token.
+
+| Network | Supply | Holder & Whale | Liquidity & Exit | Market Activity | Contract & Mechanics | All five cards |
+|---|---|---|---|---|---|---|
+| Arc (10) | 40/40 | 24/40 | 39/40 | 40/40 | 19/40 | 162/200 = 81.0 % |
+| Ethereum (10) | 40/40 | 37/40 | 39/40 | 40/40 | 26/40 | 182/200 = 91.0 % |
+| Robinhood (10) | 40/40 | 40/40 | 40/40 | 40/40 | 20/40 | 180/200 = 90.0 % |
+| **Three networks** | | | | | | **524/600 = 87.3 %** |
+| Pons (8, subset) | 32/32 | 32/32 | 32/32 | 32/32 | 11/32 | 139/160 = 86.9 % |
+
+(The sixth UI card, Token Unlocks, is a global calendar and not part of per-token fill.)
+
+Evidence classes of the same fields (three networks, 600 fields): on-chain verified 248, single source 276, not verified 76. Independently cross-verified (multi-source) fields in these five cards: 0. Pons: on-chain 65, single source 74, not verified 21. Data freshness/staleness was not separately measured in this pass. Weakest cards: Contract & Mechanics (19–26 of 40 on main networks, 11 of 32 on Pons) and Arc Holder & Whale (24/40) — consistent with PR #122's finding that most gaps are missing verified source code, not parsing defects.
+
+### Radar "—" cells (24 h change), reasons and decisions
+| Network | Shown | Dash | Reason of each dash |
+|---|---|---|---|
+| Pons | 10 (8 recovered from the same exact pool) | 0 | – |
+| Robinhood | 8 | 2 | Claude (13.6 h old) and NIGGARACKET (~15 h old): both providers report a partial window and disagree |
+| Ethereum | 9 | 1 | **GTA6** (pool `0xc4fc3066…f88f`, opened 2026-10-29, > 2 days): GeckoTerminal 62.092 vs DEX Screener 57.19 → 4.9 points apart; both are full 24 h windows, so this is a genuine source disagreement; tolerance (3 points) intentionally unchanged |
+| Arc | 8 | 2 | bob and NVIDIH (< 1 h old): partial window, providers disagree |
+
+DacityCoin and Super Inu were no longer among the ten Ethereum Radar rows at measurement time, so their current state could not be re-verified by address; the young-pool rule was verified on the Arc/Robinhood young pools above and by unit tests.
+
+**Finding (not changed):** GeckoTerminal reports `h24` for pools younger than 24 h as the change since the pool opened (e.g. Ribon 0.2 h old: m15 = m30 = h1 = h6 = h24 = 189.894; ORIGO 5.1 h: h6 = h24 = 2262.8). Seven rows currently shown as "24 h change" are therefore partial windows (Arc Ribon, Pons WANDER, ORIGO, ZKBLAST, WAFERMAP, INSULA, SLIPPYGME). Hiding them changes displayed values and the Discovery Score (momentum component and the EXTREME_PUMP flag), and the ranking effect could not be bounded here, so it is a recommendation for owner approval, not a code change.
+
+**Changed:** when a pool is younger than 24 h and the sources disagree, the stored reason is now `POOL_LESS_THAN_24H_OLD` with a text that says the figures are partial windows (value stays null; `sourcesDisagree: true` kept for diagnostics). Pools older than 24 h keep `SOURCES_DISAGREE`.
+
+### Transport policy (Arc and Robinhood)
+Provider-side rate-limit/capacity errors fail over to the chain-checked backup; contract reverts, invalid params, wrong chain and pruned-history/unknown-block errors are deterministic and are not re-sent. Arc previously re-sent every JSON-RPC error (including a missing optional `owner()` getter) to the backup, and then to the legacy reader. Unit tests count the calls (1 instead of 2–3 per revert).
+
+Measured with the paired Mechanics replay benchmark (same recorded provider answers fed to `main` and to this branch, 52 contracts): RPC requests Arc **426 → 312 (−114, −26.8 %)**, all networks **1078 → 964 (−10.6 %)**; Sourcify 76 → 76; field coverage identical on every network and field (Arc 6/6/6/11, Robinhood 3/3/4/10, Ethereum 12/12/16/18, Pons 0/0/0/7 for taxes/mint/owner/architecture); provider failures 36 → 33; the mandatory regression gate passed. Live latency is noise and is not claimed.
+
+### Health check (`scripts/scheduled-health.cjs`)
+7 read-only requests: health endpoint (5-entry token-card schema; the sixth UI card is the global Unlock calendar), per-network discovery isolation ×3, exact-address on-chain read of one issuer-documented canonical contract per network ×3 (proves RPC → decoding → API without any DEX/explorer index). Does not call Radar/holders/reports (no provider credits). A first run against Production caught a wrong card-count assumption in the version merged by PR #123 (it would have failed every scheduled run); fixed here and re-run green against Production.
+
+## Can the site run itself? (answer as of this PR)
+**Does by itself, without a person:** serves every request from stateless Vercel functions with bounded timeouts; coalesces identical in-flight reads; keeps per-origin cool-downs and circuit breakers per process; fails over Arc/Robinhood RPC to a chain-checked backup on transient errors; withholds (shows "—"/NOT_VERIFIED with a reason) instead of inventing data; GitHub Actions runs the regression suite on every PR and the scheduled health check every 6 h (first scheduled run after PR #123 is 18:17 UTC; GitHub cron is best-effort).
+**Absorbs automatically:** a single RPC provider outage or rate limit on Arc/Robinhood; slow/hung explorer or DEX index (partial result with `unavailableSources`); a failed health probe is surfaced as a failed GitHub run.
+**Still needs a person:** Ethereum has a single RPC endpoint (no backup); Arc/Robinhood explorer indexes returned 403 to CI (Production reachability unmeasured); the Railway holder worker's health is not observable from this repository (state UNKNOWN in `/api/search?action=health`); alerts depend on GitHub notification settings; provider licences/approvals, budget decisions, merges and deploys; anything that needs new data sources (verified source code for unlisted tokens, Pons names without an explorer); the young-pool and tolerance decisions above.
+
+## 7–14 day unattended monitoring plan (existing tools only)
+1. Day 0: merge PR #124 after review; confirm `Scheduled production health check` is green on the next scheduled run.
+2. Daily (2 min, optional): open the Actions tab; expected: 4 scheduled runs/day, all green. Any red run = look at the `::error title=ARCY health …` annotation.
+3. Day 3 and Day 7: run **Production read-only measurement (manual)** (workflow_dispatch) and compare the per-network fill table with this document; a drop of more than 10 percentage points on one network/card, or any new `NO_REASON` dash in the Radar probe, is a regression to investigate.
+4. Day 7 and Day 14: run the **Mechanics before/after benchmark** manually only if mechanics files changed.
+5. Success criteria after 14 days: ≥ 95 % of scheduled health runs green (GitHub-side outages excluded), no run red for the same check on two consecutive days without an explanation, fill table not below this baseline by more than 5 points, no unexplained dash in Radar rows.
+This plan relies on GitHub-hosted scheduling; it does not rely on a Claude session.
+
+Full suite at the final head: 843/843 (836 baseline + 7 new).
