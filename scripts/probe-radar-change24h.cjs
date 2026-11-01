@@ -8,7 +8,10 @@ const radar=require('../lib/radar-v2');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const NETS=(process.env.PROBE_NETWORKS||'robinhood,pons,arc,ethereum').split(',');
 const rawBodies=new Map();
+let calls={gecko:0,dex:0,other:0};
+const count=u=>{calls[/geckoterminal/.test(u)?'gecko':/dexscreener/.test(u)?'dex':'other']++};
 const rec=async(u,o)=>{
+ count(u);
  if(/geckoterminal/.test(u))await sleep(14000);
  const r=await fetch(u,{...o,signal:AbortSignal.timeout(12000)});
  if(/geckoterminal.*\/(pools|new_pools|trending_pools)\?/.test(u)){
@@ -27,6 +30,7 @@ const hasVal=v=>v!==undefined&&v!==null&&v!=='ABSENT'&&String(v).trim()!==''&&Nu
   const gk=S.NETWORKS[net==='pons'?'robinhood':net].gecko;
   try{
    if(net==='pons')await sleep(20000);
+   calls={gecko:0,dex:0,other:0};
    const out=await radar.load(net,{env,fetcher:rec,now:Date.now,rpcUrl:process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.com'});
    const tally={};const rows=out.tokens.map(t=>{
     const raw=rawFor(gk,t.pool),f=t.fields.change24hPct;
@@ -40,8 +44,11 @@ const hasVal=v=>v!==undefined&&v!==null&&v!=='ABSENT'&&String(v).trim()!==''&&Nu
     tally[cls]=(tally[cls]||0)+1;
     return {symbol:t.symbol,address:t.address,pool:t.pool,poolCreatedAt:t.poolCreatedAt,class:cls,status:f.status,reasonCode:f.reasonCode||null,final:t.change24hPct,raw,sources:(f.sources||[]).map(s=>({p:s.provider,v:s.value}))};
    });
-   report.networks[net]={tokens:rows.length,tally,rows};
-   if(net==='pons'){ // raw tokens/multi?include=top_pools for the listed tokens (probe-only call): proves what the provider returns for each exact pool
+   const wasMissing=rows.filter(r=>r.class==='RECOVERED_SAME_POOL').length;
+   const reqs={...calls};
+   report.networks[net]={tokens:rows.length,tally,rows,providerRequests:reqs,usage:out.usage||null,beforeReported:rows.filter(r=>r.class==='REPORTED').length,afterReported:rows.filter(r=>r.class==='REPORTED'||r.class==='RECOVERED_SAME_POOL').length,recovered:wasMissing};
+   console.log('::notice::c24sum '+net+' tokens='+rows.length+' tally='+JSON.stringify(tally)+' reqs='+JSON.stringify(reqs)+' usage='+JSON.stringify(out.usage||null));
+   if(net==='pons'||net==='robinhood'){ // raw tokens/multi?include=top_pools for the listed tokens (probe-only call): proves what the provider returns for each exact pool
     try{
      await sleep(14000);
      const list=out.tokens.map(t=>t.address).join(',');

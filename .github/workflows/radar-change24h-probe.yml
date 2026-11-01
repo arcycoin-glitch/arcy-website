@@ -1,0 +1,25 @@
+name: Radar 24h change coverage probe (read-only, paced)
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-radar-change24h.cjs'
+      - '.github/workflows/radar-change24h-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: radar-change24h-probe-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 24h change coverage on production code (keyless, 14 s pacing)
+        env:
+          PROBE_NETWORKS: robinhood,pons,arc,ethereum
+        run: node scripts/probe-radar-change24h.cjs
