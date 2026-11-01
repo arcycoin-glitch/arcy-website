@@ -11,7 +11,7 @@ for(const v of versions){
   execFileSync('npm',['pack','@openzeppelin/contracts@'+v,'--pack-destination',dir],{cwd:dir,stdio:'ignore'});
   const tgz=fs.readdirSync(dir).find(f=>f.endsWith('.tgz'));
   execFileSync('tar',['xzf',tgz,'--strip-components=1'],{cwd:dir});
-  for(const f of new Set(FILES)){const p=path.join(dir,f);if(!fs.existsSync(p))continue;const h=crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');((out[f]||={})[h]||=[]).push(v);}
+  for(const f of new Set(FILES)){const p=path.join(dir,f.replace(/^contracts\//,''));if(!fs.existsSync(p))continue;const h=crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');((out[f]||={})[h]||=[]).push(v);}
  }catch(e){console.error('skip',v,e.message);}
 }
 fs.writeFileSync('oz-hashes.json',JSON.stringify(out,null,1));
