@@ -52,6 +52,7 @@ const short=v=>String(v??'').replace(/\s+/g,' ').slice(0,70);
 (async()=>{
  const {classify}=req('search/server/lib/evidence-class');
  const samples=samplesFile&&fs.existsSync(samplesFile)?JSON.parse(fs.readFileSync(samplesFile,'utf8')):await buildSamples();
+ if(process.env.BENCH_SAMPLES_ONLY==='1'){fs.writeFileSync('mechanics-samples.json',JSON.stringify(samples));console.log('samples',samples.length);return;}
  const rows=[];
  for(const s of samples){
   const before={...net},t0=Date.now();let res=null,err=null;

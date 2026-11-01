@@ -3,7 +3,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),crypto=re
 const {analyze,strip}=require('../search/server/lib/oz-template');
 const sha=t=>crypto.createHash('sha256').update(t).digest('hex');
 // Synthetic stand-ins for the pinned library files; real pins live in oz-library-hashes.js.
-const L={ERC20:'// SPDX\ncontract ERC20 is Context, IERC20 { }',IERC20:'interface IERC20 {}',Ownable:'abstract contract Ownable is Context { modifier onlyOwner(){_;} function owner() public view returns(address){} }',Context:'abstract contract Context {}',ERC20Burnable:'abstract contract ERC20Burnable is Context, ERC20 { function burn(uint256 a) public {} }'};
+const L={ERC20:'// SPDX\ncontract ERC20 is Context, IERC20 { }',IERC20:'interface IERC20 {}',Ownable:'abstract contract Ownable is Context { modifier onlyOwner(){_;} function owner() public view returns(address){} }',Context:'abstract contract Context {}',ERC20Burnable:'abstract contract ERC20Burnable is Context, ERC20 { function burn(uint256 a) public {} }',AccessControl:'abstract contract AccessControl is Context { modifier onlyRole(bytes32 r){_;} }',ECDSA:'library ECDSA { function tryRecover(bytes32 h) internal pure { assembly { } } }'};
 const lib=Object.fromEntries(Object.entries(L).map(([k,v])=>[sha(v),k]));
 const src=(own,extra={})=>({...Object.fromEntries(Object.entries(L).map(([k,v])=>[k+'.sol',{content:v}])),...Object.fromEntries(Object.entries(own).map(([k,v])=>[k,{content:v}])),...extra});
 const run=(code,main)=>analyze(src({'T.sol':code}),{lib,main});
@@ -101,7 +101,7 @@ test('pipeline: reviewed digest profiles keep priority over the generic template
 test('pinned OpenZeppelin hash table: only known library names, 64-hex digests, ERC20 pinned for every 4.x/5.x release line',()=>{
  const h=require('../search/server/lib/oz-library-hashes');
  assert.ok(Object.isFrozen(h));
- for(const [k,v] of Object.entries(h)){assert.match(k,/^[0-9a-f]{64}$/);assert.ok(['ERC20','IERC20','IERC20Metadata','ERC20Burnable','Ownable','Context','IERC6093'].includes(v));}
+ for(const [k,v] of Object.entries(h)){assert.match(k,/^[0-9a-f]{64}$/);assert.ok(['ERC20','IERC20','IERC20Metadata','ERC20Burnable','Ownable','Context','IERC6093','ERC20Permit','IERC20Permit','EIP712','ECDSA','MessageHashUtils','Strings','Math','SignedMath','ShortStrings','StorageSlot','Nonces','Counters','IERC5267','AccessControl','IAccessControl','ERC165','IERC165'].includes(v));}
  assert.ok(Object.values(h).filter(v=>v==='ERC20').length>=15);
 });
 
@@ -121,4 +121,26 @@ test('diagnose explains rejections without ever producing evidence',()=>{
  assert.equal(diagnose({'T.sol':{content:'contract T is ERC20 {}'}},{lib,main:'T'}).reason,'ERC20_NOT_PINNED');
  assert.equal(diagnose(src({'T.sol':'contract T is ERC20, Weird {}'}),{lib,main:'T'}).reason,'UNPINNED_BASE');
  assert.equal(diagnose(src({'T.sol':'contract T is ERC20 { constructor(){ _mint(msg.sender,1); } }'}),{lib,main:'T'}).ok,true);
+});
+
+test('ownership/role escalation through an UNGATED function defeats every gate-based conclusion',()=>{
+ const own=run('contract T is ERC20, Ownable { function take() external { _transferOwnership(msg.sender); } function mint(address to,uint256 a) external onlyOwner { _mint(to,a); } }','T');
+ assert.equal(own.escalation,true);assert.equal(own.mint,'UNRESOLVED');
+ const rol=run('contract T is ERC20, AccessControl { bytes32 public constant MINTER_ROLE=keccak256("M"); function join() external { _grantRole(MINTER_ROLE,msg.sender); } function mint(address to,uint256 a) external onlyRole(MINTER_ROLE) { _mint(to,a); } }','T');
+ assert.equal(rol.escalation,true);assert.equal(rol.mint,'UNRESOLVED');
+ // gated escalation is fine (only the owner can transfer ownership)
+ const ok=run('contract T is ERC20, Ownable { function hand(address n) external onlyOwner { _transferOwnership(n); } function mint(address to,uint256 a) external onlyOwner { _mint(to,a); } }','T');
+ assert.equal(ok.escalation,false);assert.equal(ok.mint,'OWNER_GATED');
+});
+test('role-gated mint (OpenZeppelin AccessControl) is recognised; pinned helper libraries may use assembly, own code may not',async()=>{
+ const r=run('contract T is ERC20, AccessControl { bytes32 public constant MINTER_ROLE=keccak256("M"); constructor(){ _grantRole(DEFAULT_ADMIN_ROLE,msg.sender); } function mint(address to,uint256 a) external onlyRole(MINTER_ROLE) { _mint(to,a); } }','T');
+ assert.equal(r.mint,'ROLE_GATED');assert.deepEqual(r.roleOnlyFunctions,['mint']);assert.equal(r.accessControl,true);
+ // pinned library with assembly is accepted (its hash is in the table); the same text in an own file is rejected
+ const withLib=src({'T.sol':'contract T is ERC20 { constructor(){ _mint(msg.sender,1); } }'});assert.ok(analyze(withLib,{lib,main:'T'}));
+ assert.equal(run('library ECDSA2 { function f() internal pure { assembly {} } }\ncontract T is ERC20 {}','T'),null);
+ const tok=await m.inspect(fx(T({mint:'ROLE_GATED',accessControl:true,roleOnlyFunctions:['mint']})));
+ assert.equal(tok.fields.mintCapability.value,'Role-gated mint');assert.equal(tok.fields.mintCapability.status,'VERIFIED_SOURCE');assert.match(tok.fields.mintCapability.evidence[0].scope,/not enumerated/);
+ assert.equal(tok.fields.ownerAdmin,undefined);
+ const esc=await m.inspect(fx(T({ownable:true,mint:'OWNER_GATED',escalation:true,ownerOnlyFunctions:['mint']}),{owner:addr(B)}));
+ assert.equal(esc.fields.mintCapability,undefined);assert.equal(esc.fields.ownerAdmin,undefined);
 });

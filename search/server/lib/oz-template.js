@@ -46,7 +46,8 @@ function functions(body){
 const FORBIDDEN_FN=new Set(['transfer','transferFrom','_transfer','_update','_beforeTokenTransfer','_afterTokenTransfer','balanceOf','totalSupply','allowance','approve','_approve','_spendAllowance','_mint','_burn','_useNonce']);
 const OWNABLE_FN=new Set(['owner','_checkOwner','_transferOwnership','transferOwnership','renounceOwnership']);
 const BANNED=/\b(assembly|delegatecall|callcode|selfdestruct|suicide)\b/;
-const LIB_CONTRACTS=['ERC20','IERC20','IERC20Metadata','ERC20Burnable','Ownable','Context','IERC20Errors','IERC721Errors','IERC1155Errors'];
+const LIB_CONTRACTS=['ERC20','IERC20','IERC20Metadata','ERC20Burnable','Ownable','Context','IERC20Errors','IERC721Errors','IERC1155Errors',
+ 'ERC20Permit','IERC20Permit','EIP712','Nonces','IERC5267','AccessControl','IAccessControl','ERC165','IERC165','ECDSA','Strings','Math','SignedMath','ShortStrings','StorageSlot','MessageHashUtils','Counters'];
 /**
  * @param {Object<string,{content:string}>} sources Sourcify-style source map (path -> {content})
  * @param {{lib:Object<string,string>, main?:string}} opts lib maps sha256(content)->canonical library file name
@@ -76,13 +77,13 @@ function run(sources,{lib,main}={}){
  const byName=new Map(mine.map(c=>[c.name,c]));
  const roots=main&&byName.has(main)?[byName.get(main)]:mine.filter(c=>c.kind.endsWith('contract')&&!mine.some(o=>o!==c&&o.bases.includes(c.name)));
  if(roots.length!==1)return REJ('ROOT_CONTRACT_AMBIGUOUS',{count:roots.length});
- const closure=new Set(),stack=[roots[0]];let reachesErc20=false,ownable=false,burnable=false;
+ const closure=new Set(),stack=[roots[0]];let reachesErc20=false,ownable=false,burnable=false,accessControl=false;
  while(stack.length){const c=stack.pop();if(closure.has(c))continue;closure.add(c);
-  for(const b of c.bases){if(b==='ERC20')reachesErc20=true;else if(b==='Ownable')ownable=true;else if(b==='ERC20Burnable'){reachesErc20=true;burnable=true;}
+  for(const b of c.bases){if(b==='ERC20')reachesErc20=true;else if(b==='Ownable')ownable=true;else if(b==='AccessControl')accessControl=true;else if(b==='ERC20Burnable'){reachesErc20=true;burnable=true;}
    else if(byName.has(b))stack.push(byName.get(b));
    else if(!LIB_CONTRACTS.includes(b))return REJ('UNPINNED_BASE',{base:b});}}
  if(!reachesErc20)return REJ('ERC20_NOT_INHERITED');
- const fns=[],mintSites=[];let updateCalls=0;
+ const fns=[],mintSites=[];let updateCalls=0,escalation=false;
  for(const c of closure){
   const list=functions(c.body);if(!list)return REJ('PARSE_FUNCTIONS',{contract:c.name});
   for(const f of list){
@@ -97,26 +98,31 @@ function run(sources,{lib,main}={}){
   const hasBody=f.body.length>0||/\{/.test(f.header);
   if(f.kind==='constructor'){for(const m of f.body.matchAll(/\b_mint\s*\(/g))mintSites.push({where:'constructor'});continue;}
   const isPublic=/\b(public|external)\b/.test(f.header),isView=/\b(view|pure)\b/.test(f.header);
+  const gatedOwner=/\bonlyOwner\b/.test(f.header)&&ownable,gatedRole=/\bonlyRole\s*\(/.test(f.header)&&accessControl;
+  // An UNGATED function that can change who owns/administers the contract defeats every gate-based conclusion.
+  if(!gatedOwner&&!gatedRole&&/\b(_transferOwnership|transferOwnership|renounceOwnership|_grantRole|grantRole|_setupRole|_setRoleAdmin|_revokeRole|revokeRole|renounceRole)\s*\(/.test(f.body))escalation=true;
   const calls=[...f.body.matchAll(/\b_mint\s*\(/g)].length;
-  if(calls)mintSites.push({where:f.name,gated:/\bonlyOwner\b/.test(f.header)&&ownable&&isPublic&&f.kind==='function'});
+  if(calls)mintSites.push({where:f.name,gate:isPublic&&f.kind==='function'?(gatedOwner?'owner':gatedRole?'role':null):null});
   if(/\b_update\s*\(/.test(f.body))updateCalls++;
-  if(f.kind==='function'&&isPublic&&!isView&&hasBody)external.push({name:f.name,ownerOnly:/\bonlyOwner\b/.test(f.header)&&ownable,header:f.header.replace(/\s+/g,' ').trim()});
+  if(f.kind==='function'&&isPublic&&!isView&&hasBody)external.push({name:f.name,ownerOnly:gatedOwner,roleOnly:gatedRole,header:f.header.replace(/\s+/g,' ').trim()});
  }
  if(updateCalls)return REJ('CALLS_UPDATE_DIRECTLY');
  // Free-standing modifiers other than onlyOwner make a gate unproven.
- const customGate=external.filter(f=>!f.ownerOnly&&/\b(only[A-Z]\w*|auth|requiresAuth|whenNotPaused|whenPaused)\b/.test(f.header)).map(f=>f.name);
- const constructorMintOnly=mintSites.length>0&&mintSites.every(s=>s.where==='constructor');
- const gatedMint=mintSites.some(s=>s.where!=='constructor')&&mintSites.filter(s=>s.where!=='constructor').every(s=>s.gated);
- const ungatedMint=mintSites.some(s=>s.where!=='constructor'&&!s.gated);
+ const customGate=external.filter(f=>!f.ownerOnly&&!f.roleOnly&&/\b(only[A-Z]\w*|auth|requiresAuth|whenNotPaused|whenPaused)\b/.test(f.header)).map(f=>f.name);
+ const nonCtor=mintSites.filter(x=>x.where!=='constructor');
+ const constructorMintOnly=mintSites.length>0&&nonCtor.length===0;
+ const allOwner=nonCtor.length>0&&nonCtor.every(x=>x.gate==='owner'),allRole=nonCtor.length>0&&nonCtor.every(x=>x.gate==='role');
  return {
   profile:'OZ_ERC20_TEMPLATE',
   libraries:[...libNames].sort(),
   contract:roots[0].name,
   ownable,burnable,
   transferUnmodified:true,
-  mint:ungatedMint?'UNRESOLVED':gatedMint?'OWNER_GATED':constructorMintOnly?'CONSTRUCTOR_ONLY':mintSites.length===0?'NO_MINT_CALL':'UNRESOLVED',
+  mint:updateCalls||(nonCtor.length&&escalation)?'UNRESOLVED':allOwner?'OWNER_GATED':allRole?'ROLE_GATED':constructorMintOnly?'CONSTRUCTOR_ONLY':mintSites.length===0?'NO_MINT_CALL':'UNRESOLVED',
+  escalation,accessControl,
   ownerOnlyFunctions:external.filter(f=>f.ownerOnly).map(f=>f.name).sort(),
-  ungatedFunctions:external.filter(f=>!f.ownerOnly).map(f=>f.name).sort(),
+  roleOnlyFunctions:external.filter(f=>f.roleOnly).map(f=>f.name).sort(),
+  ungatedFunctions:external.filter(f=>!f.ownerOnly&&!f.roleOnly).map(f=>f.name).sort(),
   unprovenGates:customGate.sort()
  };
 }
