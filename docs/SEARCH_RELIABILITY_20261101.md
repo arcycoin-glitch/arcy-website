@@ -81,6 +81,8 @@ Fill is **completeness, not accuracy**; no ground truth exists, so accuracy is U
 
 (The sixth UI card, Token Unlocks, is a global calendar and not part of per-token fill.)
 
+Reproducibility: a second run of the same matrix gave identical three-network numbers (162 / 182 / 180 of 200). The Pons repeat hit Production's own per-IP limiter (HTTP 429 on 2 of 8 reports, shown as errors, 105/160 filled), so the Pons row above is the clean first run; the limiter working as designed is not a product defect.
+
 Evidence classes of the same fields (three networks, 600 fields): on-chain verified 248, single source 276, not verified 76. Independently cross-verified (multi-source) fields in these five cards: 0. Pons: on-chain 65, single source 74, not verified 21. Data freshness/staleness was not separately measured in this pass. Weakest cards: Contract & Mechanics (19–26 of 40 on main networks, 11 of 32 on Pons) and Arc Holder & Whale (24/40) — consistent with PR #122's finding that most gaps are missing verified source code, not parsing defects.
 
 ### Radar "—" cells (24 h change), reasons and decisions

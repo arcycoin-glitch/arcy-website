@@ -38,6 +38,7 @@ const hasVal=v=>v!==undefined&&v!==null&&v!=='ABSENT'&&String(v).trim()!==''&&Nu
     let cls;
     if(f.status!=='NOT_VERIFIED')cls=f.recovery?'RECOVERED_SAME_POOL':'REPORTED';
     else if(f.reasonCode==='SOURCES_DISAGREE')cls='CONFLICT';
+    else if(f.sourcesDisagree===true&&f.reasonCode==='POOL_LESS_THAN_24H_OLD')cls='CONFLICT_YOUNG_POOL';
     else if(rawHas){cls='PARSE_LOSS';defects++;}
     else if(!sameKinds.length)cls='POOL_NOT_IN_RAW_PAGES';
     else cls='PROVIDER_OMISSION';
