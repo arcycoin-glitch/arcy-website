@@ -29,13 +29,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: BEFORE (main) — read-only, GoPlus disabled like Production
-        run: BENCH_ROOT=$GITHUB_WORKSPACE/before node after/scripts/bench-mechanics.cjs before
+      - name: BEFORE-LIVE (main) — records every provider answer; GoPlus disabled like Production
+        run: BENCH_REPLAY=record BENCH_ROOT=$GITHUB_WORKSPACE/before node after/scripts/bench-mechanics.cjs beforelive
+        continue-on-error: true
+      - name: BEFORE-REPLAY (main) — determinism check on identical evidence
+        run: BENCH_REPLAY=replay BENCH_ROOT=$GITHUB_WORKSPACE/before node after/scripts/bench-mechanics.cjs before mechanics-samples.json
+        continue-on-error: true
+      - name: AFTER-REPLAY (branch) — identical evidence, misses counted as extra requests
+        run: BENCH_REPLAY=replay BENCH_ROOT=$GITHUB_WORKSPACE/after node after/scripts/bench-mechanics.cjs after mechanics-samples.json
         continue-on-error: true
       - name: Let public RPC windows reset
-        run: sleep 60
-      - name: AFTER (branch) — identical sample list
-        run: BENCH_ROOT=$GITHUB_WORKSPACE/after node after/scripts/bench-mechanics.cjs after mechanics-samples.json
+        run: sleep 45
+      - name: AFTER-LIVE (branch) — latency/noise reference (not paired)
+        run: BENCH_ROOT=$GITHUB_WORKSPACE/after node after/scripts/bench-mechanics.cjs afterlive mechanics-samples.json
         continue-on-error: true
       - name: Gap diagnostics (why NOT VERIFIED) — read-only
         run: node after/scripts/probe-mechanics-gaps.cjs mechanics-samples.json

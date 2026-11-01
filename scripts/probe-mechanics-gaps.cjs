@@ -25,10 +25,11 @@ const jget=async(u,ms=6000)=>{try{const r=await fetch(u,{headers:{accept:'applic
   let tsy=null,tbs=null,tcode=null;
   if(target){try{tcode=await rpc('eth_getCode',[target,'latest']);}catch{}tsy=await jget('https://sourcify.dev/server/v2/contract/'+cfg.chainId+'/'+target);if(cfg.blockscoutTokens)tbs=await jget(cfg.blockscoutTokens.replace('/tokens/','/smart-contracts/')+target);}
   const sl=selectors(tcode&&/^0x(?:[0-9a-f]{2})+$/.test(tcode)?tcode:code);
+  let ow='-';if(sl.has(sel('owner()'))||sl.has(sel('getOwner()'))){try{const r=await rpc('eth_call',[{to:a,data:'0x'+sel('owner()')},'latest']);ow=/^0x0{64}$/.test(r)?'ZERO':/^0x0{24}[0-9a-f]{40}$/.test(r)?'addr':'odd';}catch{ow='revert';}}
   const flags=[...sl].map(x=>TABLE[x]).filter(Boolean).map(n=>n.replace(/\(.*/,''));
   rows.push([s.chain[0]+(s.group==='pons'?'p':''),a.slice(2,8),(code.length-2)/2,h,clone?'clone':impl?'1967':'-',target?target.slice(2,8):'-',
    'sy:'+sy.s+(sy.j?.runtimeMatch||''),'bs:'+bs.s+(bs.j?(bs.j.is_verified?'V':'u')+(bs.j.proxy_type?'/'+bs.j.proxy_type:''):''),
-   target?'tsy:'+tsy.s+(tsy.j?.runtimeMatch||'')+' tbs:'+tbs?.s+(tbs?.j?(tbs.j.is_verified?'V':'u'):''):'',[...new Set(flags)].join(',')]);
+   target?'tsy:'+tsy.s+(tsy.j?.runtimeMatch||'')+' tbs:'+tbs?.s+(tbs?.j?(tbs.j.is_verified?'V':'u'):''):'',[...new Set(flags)].join(','),'ow:'+ow]);
   await new Promise(r=>setTimeout(r,400));
  }
  const esc=x=>x.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A');
