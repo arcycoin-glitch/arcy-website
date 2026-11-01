@@ -74,22 +74,41 @@ async function token({network='ethereum',address}){
    burnAddressBalance:supply.fields.burnAddressBalance,
    burnAddressPct:supply.fields.burnAddressPct}};
 }
+const EXPLORER_EXTENDED_DEADLINE_MS=4000;
 async function discover({network='ethereum',query}){
  chains.chain(network);
  // Providers are independent; Blockscout 403 or an unavailable official
  // registry must not blank other verified/source-scoped search candidates.
- const deadline=operation=>require('./timeout').withTimeout(Promise.resolve().then(operation),1000,'Optional discovery provider deadline');
- const [registry,indexed,dexSearch]=await Promise.allSettled([
+ // Measured (CI, 10 Ethereum explorer searches): p50 2.7 s, p95 6.4 s, so a flat 1 s cap
+ // discarded 6 of 9 valid answers. Foreground latency stays bounded at ~1 s whenever any
+ // other candidate exists (existing contract); only when NOTHING else was found does the
+ // explorer index get a longer window (still bounded; the UI waits 7-12 s).
+ const deadline=(operation,ms=1000)=>require('./timeout').withTimeout(Promise.resolve().then(operation),ms,'Optional discovery provider deadline');
+ const settle=p=>p.then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason}));
+ const started=Date.now();
+ const explorerPending=settle(deadline(()=>explorerDiscovery.searchExplorer(network,query),EXPLORER_EXTENDED_DEADLINE_MS));
+ const [registry,dexSearch]=await Promise.allSettled([
   deadline(()=>network==='robinhood'?robinhood.discover({query}):[]),
-  deadline(()=>explorerDiscovery.searchExplorer(network,query)),
   deadline(()=>dexMarket.discover(network,query))
  ]);
+ const fastCandidates=[registry,dexSearch].flatMap(r=>r.status==='fulfilled'&&Array.isArray(r.value)?r.value:[]).length+
+  require('./prefix-catalog').discover(network,query).length;
+ const SHORT=Symbol('short');
+ let indexed;
+ if(fastCandidates>0){
+  // Foreground stays fast: late explorer rows are only a cache warm-up for the next identical search.
+  indexed=await Promise.race([explorerPending,new Promise(r=>{const t=setTimeout(()=>r(SHORT),Math.max(0,1000-(Date.now()-started)));t.unref?.()})]);
+  if(indexed===SHORT)indexed={status:'rejected',reason:Error('Optional discovery provider deadline')};
+ }else indexed=await explorerPending;
  const providers=[
   {name:'Robinhood official registry',response:registry},
   {name:'Blockscout explorer index',response:indexed},
   {name:'DEX Screener exact-chain pair index',response:dexSearch}
  ];
  const errors=providers.filter(p=>p.response.status==='rejected').map(p=>p.name);
+ // Aggregate-only operational signal: which optional provider missed its bounded window.
+ for(const [p,label] of [[providers[0],'registry'],[providers[1],'explorer'],[providers[2],'dex']])
+  if(p.response.status==='rejected'&&/deadline/i.test(p.response.reason?.message||''))require('./diagnostics').record('source',label,'deadline',0);
  const candidates=[
   ...providers.flatMap(p=>p.response.status==='fulfilled'&&Array.isArray(p.response.value)?
    p.response.value:[]),
