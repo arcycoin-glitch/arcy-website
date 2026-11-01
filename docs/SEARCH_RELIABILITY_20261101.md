@@ -60,6 +60,6 @@ Root cause of the `—` cells: in every measured Robinhood row the provider **di
 
 Change: same-pool recovery from the token lookup's `include=top_pools` (same single request, same credit) now also runs for Robinhood, but only when a shortlisted row lacks h24. Measured effect on today's data: 0 additional values, 0 additional requests (nothing was missing at the source). It protects against pool-list rows that omit h24, proven only by unit tests (recovered from the same exact pool; other pools never borrowed; exact 0 % kept; pools younger than 24 h keep POOL_LESS_THAN_24H_OLD; Arc/Ethereum request shape unchanged; no include when nothing is missing).
 
-Health check: `scheduled-health.cjs` no longer requires the historical Arc ARCY token to be discoverable and contains no token address; it still checks the health endpoint (6 cards), the chain ids 5042 / 1 / 4663 and per-network identity isolation with 4 requests (tests in `test/scheduled-health.test.js`).
+Health check: `scheduled-health.cjs` no longer requires the historical Arc ARCY token to be discoverable and contains no token address; it still checks the health endpoint (5 token-card schema; the sixth UI card is the global Unlock calendar), the chain ids 5042 / 1 / 4663 and per-network identity isolation with 4 requests (tests in `test/scheduled-health.test.js`).
 
 Full suite: 836/836.

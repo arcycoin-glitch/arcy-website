@@ -26,7 +26,7 @@ async function get(name,path,check){
  results.push({name,ok,ms:Date.now()-t,detail});
 }
 (async()=>{
- await get('health','/api/search?action=health',b=>b.ok===true&&b.expectedCards===6?true:'unexpected card count '+b.expectedCards);
+ await get('health','/api/search?action=health',b=>b.ok===true&&b.expectedCards===5?true:'unexpected card count '+b.expectedCards);
  for(const net of Object.keys(CHAIN_ID))
   await get('discover-isolation-'+net,'/api/search?action=discover&chain='+net+'&q=link',
    b=>b.ok===true&&b.network===net&&b.chainId===CHAIN_ID[net]&&(b.matches||[]).every(m=>m.network===net&&m.chainId===CHAIN_ID[net])?true:'identity/chain mismatch');

@@ -13,7 +13,7 @@ function run(handler){
   });
  });
 }
-const healthy=p=>p.get('action')==='health'?{ok:true,expectedCards:6}:p.get('action')==='token'?{ok:true,chainId:IDS[p.get('chain')],address:p.get('address'),block:'0x10',totalSupplyRaw:'1000'}:{ok:true,network:p.get('chain'),chainId:IDS[p.get('chain')],matches:[]};
+const healthy=p=>p.get('action')==='health'?{ok:true,expectedCards:5}:p.get('action')==='token'?{ok:true,chainId:IDS[p.get('chain')],address:p.get('address'),block:'0x10',totalSupplyRaw:'1000'}:{ok:true,network:p.get('chain'),chainId:IDS[p.get('chain')],matches:[]};
 test('health check passes with EMPTY discovery results (no dependency on any historical token listing)',async()=>{
  const r=await run(healthy);assert.equal(r.code,0,r.out);
  const s=JSON.parse(r.out.trim().split('\n')[0]);assert.equal(s.checked,7);assert.equal(s.failed,0);
@@ -24,12 +24,12 @@ test('health check makes only 7 read-only requests and does not depend on the hi
  assert.doesNotMatch(src,/discover-arcy|ARCY not found/);
 });
 test('health check fails on a cross-chain identity leak',async()=>{
- const r=await run(p=>p.get('action')==='health'?{ok:true,expectedCards:6}:
+ const r=await run(p=>p.get('action')==='health'?{ok:true,expectedCards:5}:
   {ok:true,network:p.get('chain'),chainId:IDS[p.get('chain')],matches:p.get('chain')==='arc'?[{network:'ethereum',chainId:1,address:'0x'+'a'.repeat(40)}]:[]});
  assert.equal(r.code,1);assert.match(r.out,/discover-isolation-arc/);
 });
 test('health check fails on a wrong card count',async()=>{
- assert.equal((await run(p=>p.get('action')==='health'?{ok:true,expectedCards:5}:healthy(p))).code,1);
+ assert.equal((await run(p=>p.get('action')==='health'?{ok:true,expectedCards:6}:healthy(p))).code,1);
 });
 test('health check fails when an exact on-chain read is empty, on the wrong chain, or has zero supply',async()=>{
  for(const bad of [{ok:false},{chainId:999},{totalSupplyRaw:'0'},{block:'nope'},{address:'0x'+'1'.repeat(40)}]){
