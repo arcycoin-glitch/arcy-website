@@ -131,4 +131,4 @@ function run(sources,{lib,main}={}){
 function analyze(sources,opts){const r=run(sources,opts);return r&&!r.reject?r:null;}
 /** Same analysis, but explains a rejection (diagnostics only; never evidence). */
 function diagnose(sources,opts){const r=run(sources,opts);return r&&!r.reject?{ok:true,mint:r.mint,ownable:r.ownable,ungated:r.ungatedFunctions.length}:{ok:false,reason:r?.reject||'UNKNOWN',...(r||{})};}
-module.exports={analyze,diagnose,strip,contracts,functions};
+module.exports={analyze,diagnose,strip,contracts,functions,LIB_CONTRACTS};

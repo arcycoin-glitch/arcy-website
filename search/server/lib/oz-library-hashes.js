@@ -20,6 +20,18 @@ module.exports=Object.freeze({
  'a6893a46a6270c2016db590e3e597c32b004052dad63ccc929ad23ee2ec85473':'AccessControl', // access/AccessControl.sol from 5.7.0
  'afd98330d27bddff0db7cb8fcf42bd4766dda5f60b40871a3bec6220f9c9edf7':'AccessControl', // access/AccessControl.sol from 4.9.0
  'da5d7dd5a4d4a45ac05348b9b004bb8f0e595ffb61c763e8a601c16849704769':'AccessControl', // access/AccessControl.sol from 4.1.0
+ '47861db7fa8d98b58cef570e7c8fca6af6d9d82e3ec0f525c3ad035cbfbed195':'AccessControlEnumerable', // access/AccessControlEnumerable.sol from 4.5.0
+ '6814b1ef0f4108732ad28f3ada1b2eec09404ca3a012979a35512fe97295038d':'AccessControlEnumerable', // access/AccessControlEnumerable.sol from 4.4.0
+ '69797a1354b990e0d54f70b60ad71825a697141bba3e90f78908c166f30d0b7f':'AccessControlEnumerable', // access/AccessControlEnumerable.sol from 4.4.1
+ '80f821aef438c0e45949bfd9b18b57c547f8df0b0e376d8ecdf8605c6481316d':'AccessControlEnumerable', // access/AccessControlEnumerable.sol from 4.2.0
+ '8ba6bba31bca985840ed4ed2d01c1a994c81d3d814a17a186b1e52d4327110f0':'AccessControlEnumerable', // access/AccessControlEnumerable.sol from 4.3.0
+ 'eb6efbc025e5dc88063bcb9108274729ea47c3ff577478bd14248326095a43d8':'AccessControlEnumerable', // access/AccessControlEnumerable.sol from 4.0.0
+ '51fdad936cefb4c63e987e97e516af965fbfca31e1798f380ae16e5b3a6fb3d1':'Checkpoints', // utils/structs/Checkpoints.sol from 5.1.0
+ '7753753c3c8cbfd75c9ceab1917fbfbc862d205f894eeb29c438a2c5cc5223af':'Checkpoints', // utils/structs/Checkpoints.sol from 5.7.0
+ 'bcb82ddf3742b104336967e44fbacf59e609da5b590315eb13a17de36e32739d':'Checkpoints', // utils/structs/Checkpoints.sol from 5.0.0
+ 'd908ee19a12ef183693ba9635c4bd5ec902614c493fb7967898de286218e42f7':'Checkpoints', // utils/structs/Checkpoints.sol from 5.4.0
+ 'e8efef277044b66b660e7888e0f7093022e4a437e2d95a82ffc590e6699abd94':'Checkpoints', // utils/structs/Checkpoints.sol from 5.5.0
+ 'f48eb8e093d6f908c09df790ac6c322f204fa0f00645966aa8cfb66ac0df4f5c':'Checkpoints', // utils/structs/Checkpoints.sol from 5.3.0
  '1458c260d010a08e4c20a4a517882259a23a4baa0b5bd9add9fb6d6a1549814a':'Context', // utils/Context.sol from 4.4.1
  '543c46d0f81fd4e5d9d6a92beef3d2be18badb483b0b4718c819fe3dbbc37587':'Context', // utils/Context.sol from 4.0.0
  '5828bf38f9376b659a8edbbe2df0d06b29a09e37ecd470465dda2bbcb612c85d':'Context', // utils/Context.sol from 4.3.0
@@ -91,6 +103,12 @@ module.exports=Object.freeze({
  '3e8f4e104b24f455bb59de491b54809299dd6286f13680e264480613bbc10a26':'ERC20Burnable', // token/ERC20/extensions/ERC20Burnable.sol from 4.0.0
  '600052c7df2ee2e969592df597ae5f78aad5822c8bee181e58b2713321efb888':'ERC20Burnable', // token/ERC20/extensions/ERC20Burnable.sol from 4.2.0
  '73a072fe19957844b14b87a3ef77283d78a424a6690f03f32928f94e4b042b41':'ERC20Burnable', // token/ERC20/extensions/ERC20Burnable.sol from 5.7.0
+ '00d9364a71bfb7590fdeb7e097fe84159f4fc002c4f603b036c61f91e6368861':'ERC20Capped', // token/ERC20/extensions/ERC20Capped.sol from 4.4.1
+ '2403fec28c40f964320bfb4a025b12392ce240c732f648f9080e3521418ffea1':'ERC20Capped', // token/ERC20/extensions/ERC20Capped.sol from 5.4.0
+ 'b1e35fdae1a895c2b3875bb46c22cc1e3f451585cb075645ccdb9d7f47c29868':'ERC20Capped', // token/ERC20/extensions/ERC20Capped.sol from 4.0.0
+ 'cb15f210495f2119cfec53e32738ddb23469d414c45a2d7444c2181a9940bbed':'ERC20Capped', // token/ERC20/extensions/ERC20Capped.sol from 5.0.0
+ 'e8a4cec1f3aef511fe11d20c93b0727c66bac86448f053355369355f8386df6c':'ERC20Capped', // token/ERC20/extensions/ERC20Capped.sol from 4.4.0
+ 'edfbbc5c61fb60eadd7ce9a902fd3a0f1b26e889eedba3533e28b1f35c53426e':'ERC20Capped', // token/ERC20/extensions/ERC20Capped.sol from 4.2.0
  '076f17ea572a2761ec40fd5d4e982ef13c3e8fbd1b667628c50bf6e60ab0882f':'ERC20Permit', // token/ERC20/extensions/ERC20Permit.sol from 5.4.0
  '1fdb4b7986e8a58011eb17e8d54685735e5d2991de26932ae57e93e6866deb5e':'ERC20Permit', // token/ERC20/extensions/draft-ERC20Permit.sol from 4.4.0
  '243e9133374f78f57888ef7280d76b79b0b4f550f56268659506dde9438425a1':'ERC20Permit', // token/ERC20/extensions/draft-ERC20Permit.sol from 4.8.0
@@ -105,6 +123,34 @@ module.exports=Object.freeze({
  '8e81856d41aaf8e47586358b5224ce65e9a45c9c863a94f47241478de984a92c':'ERC20Permit', // token/ERC20/extensions/draft-ERC20Permit.sol from 4.4.1
  'd070a08919d4a38aa08043c687d1fe1522098b212d2e185aedf2f37275b64087':'ERC20Permit', // token/ERC20/extensions/draft-ERC20Permit.sol from 4.6.0
  'd7afc8308e745732e88831c951fe4c721845d650b723b698d54d6f2551588a5d':'ERC20Permit', // token/ERC20/extensions/ERC20Permit.sol from 4.9.0
+ '09852784cfc3ed955e4d9129231fedd23c0eaad720092821bf622f41b5376ae7':'ERC20Votes', // token/ERC20/extensions/ERC20Votes.sol from 4.3.0
+ '4c74d2f49b481ab3386392007f057a0beb86da1dedc11d3e9509898de815303d':'ERC20Votes', // token/ERC20/extensions/ERC20Votes.sol from 4.8.1
+ '4c82ad33252664f710c6ace2a68f49db365f531e787b9d1625ad4c2ac70e0247':'ERC20Votes', // token/ERC20/extensions/ERC20Votes.sol from 4.2.0
+ '697a396ebd26913f4dcc80430f457da291189ba333a75e1f5383a4d8e156e5ea':'ERC20Votes', // token/ERC20/extensions/ERC20Votes.sol from 5.0.0
+ '6b5e3c328215481e9af641ea7cc62b39a19c7c44399d5691e64527cd35d54610':'ERC20Votes', // token/ERC20/extensions/ERC20Votes.sol from 4.8.0
+ '9e9b494831630db53ffd1d0bce7fe22d606ce9263fc8d4d1983d235261e918e9':'ERC20Votes', // token/ERC20/extensions/ERC20Votes.sol from 5.5.0
+ 'a473c45d1a29691d95022adb4bf0fc57e5aa691352841c866eff85f6ba1e3fc9':'ERC20Votes', // token/ERC20/extensions/ERC20Votes.sol from 4.4.1
+ 'd9d59ec21da6f3fd5500277f1d036943a04017bc670d523e5db9e9d52851c5d9':'ERC20Votes', // token/ERC20/extensions/ERC20Votes.sol from 4.4.0
+ 'e33bd5974dbcb0f6c2d6af45e29a2f10bb53bc9f63b8d899d0b746beff4f84bc':'ERC20Votes', // token/ERC20/extensions/ERC20Votes.sol from 4.9.0
+ 'f2a0c9b7b4b67cec3ae19dad94454da68da553512f22e4eaf39c46447e11815a':'ERC20Votes', // token/ERC20/extensions/ERC20Votes.sol from 5.1.0
+ 'fb449cd9e8ce63e968e8b5c3d39e64f9928a854fcfa4db33d6a853f890e47fd6':'ERC20Votes', // token/ERC20/extensions/ERC20Votes.sol from 4.5.0
+ '000b9ea0423e2384130d16e211a96a83ad0ad0f65622ed14b6650cf707a2d41d':'EnumerableSet', // utils/structs/EnumerableSet.sol from 4.6.0
+ '111c83d836d9c73a99f58ac17ff03ad515858c1098fb795c9f07004204b5e5fb':'EnumerableSet', // utils/structs/EnumerableSet.sol from 5.3.0
+ '17b9dd0046758767e35f41abe264bdb1893377cb666fb0ed176d3cd15acc7c38':'EnumerableSet', // utils/structs/EnumerableSet.sol from 4.3.0
+ '237e7c572082649eb4381077f9d103191be6d223a0d4338cb52009d268780bad':'EnumerableSet', // utils/structs/EnumerableSet.sol from 4.1.0
+ '42a618e7d36efd2319d1bf05fedb31f3042baf535cfb97e783128cc1fe326686':'EnumerableSet', // utils/structs/EnumerableSet.sol from 4.4.1
+ '53507e71995d0e76d29d6dd897d0bcc3f069fd81f03cb431d7342bdfcc0d5345':'EnumerableSet', // utils/structs/EnumerableSet.sol from 5.4.0
+ '6328f5661ddf0785e5211b16d23ddcdb9cb9f39d39d8369da9020533d0cef89d':'EnumerableSet', // utils/structs/EnumerableSet.sol from 4.4.0
+ '66b0b3fcb937546975e7bf50c676444048c06d3fb2c41b49a8d41b0511b31c55':'EnumerableSet', // utils/structs/EnumerableSet.sol from 5.5.0
+ '76c7af99039281b3075780b21b4e2f6be0166d09f89c24171b4bed3b1961c810':'EnumerableSet', // utils/structs/EnumerableSet.sol from 5.6.0
+ '778d5305652c4eb562b12880cb6cf023d67df24844c15783a0b80fac2e715585':'EnumerableSet', // utils/structs/EnumerableSet.sol from 4.7.0
+ 'a64e5d0e83019d9caa51e6fe6f68ac54b583ac15792b8557cb8e4fab20711b9f':'EnumerableSet', // utils/structs/EnumerableSet.sol from 4.9.0
+ 'c40bf629cac9f40a2d68153867e1099325bee57b2232add4b3e4c2bb08d0a6f5':'EnumerableSet', // utils/structs/EnumerableSet.sol from 5.0.0
+ 'd8508ddcfb255875b542cef61ad9bcc9a2d74453bf92c914ee6a546b876ba42b':'EnumerableSet', // utils/structs/EnumerableSet.sol from 4.8.0
+ 'e3714759569aa412612eef66b0315bb48f11b60f09b11add0faf5bf9dca8bd8a':'EnumerableSet', // utils/structs/EnumerableSet.sol from 4.0.0
+ 'ed0804f9dcff9d2dceba8cc83f31669a84491dfcfe510050c9371aa7c48db09c':'EnumerableSet', // utils/structs/EnumerableSet.sol from 5.1.0
+ 'f7b69cd8e46762273807f9b8282690baaae7a5458c99373dabea5882ffd6493c':'EnumerableSet', // utils/structs/EnumerableSet.sol from 4.2.0
+ 'fde556db3500287cc2901f24ec0f2b81c1ebaf150167a5b5a2a8627931d473d6':'EnumerableSet', // utils/structs/EnumerableSet.sol from 5.7.0
  '140304b7e99d517c57a13f391dfd3b550ca633a507f7b2af130f391b6cd89cc5':'IAccessControl', // access/IAccessControl.sol from 5.4.0
  '1d6ef09193265172824fa1139e85cba422117ca918961183f080e692489d8c3b':'IAccessControl', // access/IAccessControl.sol from 5.0.0
  '6fae0696b6b6defad9e1fba0543f48441d620e7b13a38eb35e2c80673ec8eb39':'IAccessControl', // access/IAccessControl.sol from 4.4.0
@@ -112,6 +158,9 @@ module.exports=Object.freeze({
  'c112f5c86fdc4e862f88d4f5694530342320923ebd5b5e7d9d8493550d337c2d':'IAccessControl', // access/IAccessControl.sol from 5.1.0
  'd03c1257f2094da6c86efa7aa09c1c07ebd33dd31046480c5097bc2542140e45':'IAccessControl', // access/IAccessControl.sol from 4.4.1
  'e3c0885d437bb495ca88d12a04cadaa89db7288f4f0400f728a7634025a24536':'IAccessControl', // access/IAccessControl.sol from 5.3.0
+ '655ab8dc2a9617376734d04ca293e099cc24f8ce893997e68c29cfebc4a61d39':'IAccessControlEnumerable', // access/IAccessControlEnumerable.sol from 4.4.1
+ 'a2f313ce3f1bc0d78cb8b90caa85b86b56cffec2f4a2075a0166009560643764':'IAccessControlEnumerable', // access/IAccessControlEnumerable.sol from 4.4.0
+ 'a3e9577412711a14bcb80be6da8da2d5036f7d5ade9380f68d856725ffa6b411':'IAccessControlEnumerable', // access/IAccessControlEnumerable.sol from 4.3.0
  '072805b211a653c333b232a3199b9e65fa7b82fc7a40ee5a3bc8a2dadd1cba01':'IERC165', // utils/introspection/IERC165.sol from 4.0.0
  '07ae1ac964ab74dedada999e2dfc642031a6495469cffc0bf715daa4f1e4f904':'IERC165', // utils/introspection/IERC165.sol from 5.0.0
  '701e025d13ec6be09ae892eb029cd83b3064325801d73654847a5fb11c58b1e5':'IERC165', // utils/introspection/IERC165.sol from 4.4.1
@@ -149,10 +198,22 @@ module.exports=Object.freeze({
  '72424d3a7a9b7d1c3584d4ec83bf116f30dfaf7180298a32669eefacb55ccb92':'IERC5267', // interfaces/IERC5267.sol from 4.9.0
  'efd1ebd1e04b6ef9c3b8781a097588f83da954323f438d54a71dc06508e6c7b8':'IERC5267', // interfaces/IERC5267.sol from 5.0.0
  'f89772d2d4fafcbef8b73bb10ee9a3373edec2eedb2f1b302320915b351dc3d1':'IERC5267', // interfaces/IERC5267.sol from 5.4.0
+ '0c84f6635322f7ac57baf8f2b8ea5221467632c3db7feaad39633bfd9be9f540':'IERC5805', // interfaces/IERC5805.sol from 4.9.0
+ '2b1e317a9ad0303948d00cfee78c42f99f7558c8d2002a7c63f04d2b70324cac':'IERC5805', // interfaces/IERC5805.sol from 5.4.0
+ '6ecc2370599496e6d862c2b4893975ec240f0ef8475daef1d20b5dd1efa90102':'IERC5805', // interfaces/IERC5805.sol from 5.0.0
  '4aea87243e6de38804bf8737bf86f750443d3b5e63dd0fd0b7ad92f77cdbd3e3':'IERC6093', // interfaces/draft-IERC6093.sol from 5.0.0
  '56380323009ef4a119d44550b910fde1bff9cedde8f7f4c690152c7629bc3338':'IERC6093', // interfaces/draft-IERC6093.sol from 5.1.0
  'df936240c9a5d342582cbda70dd773b1c1d0e0dda3042b1c17b902ef0c36827b':'IERC6093', // interfaces/draft-IERC6093.sol from 5.4.0
  'fa7068f56bc180571a6095be6eaef06d51dbe81e30cb128397d993c9599ecc30':'IERC6093', // interfaces/draft-IERC6093.sol from 5.5.0
+ '0f923364f34f89a8a505cb10f6a7932ae6c25f3a4509334ae671ed7f8cb167eb':'IERC6372', // interfaces/IERC6372.sol from 4.9.0
+ '2294c70df203a6a38985d064adca030293bec4b7aaa1237b62c7b1a34154f130':'IERC6372', // interfaces/IERC6372.sol from 5.0.0
+ 'b82e19cde1eaa6c179ac49ba38db89d8cf291522e3c7b90cc2dd327df2e6cc4d':'IERC6372', // interfaces/IERC6372.sol from 5.4.0
+ 'cc16276c221713bc438556c8236a8a785aef60adc25318d9fc06712ad8fadd38':'IERC6372', // interfaces/IERC6372.sol from 5.7.0
+ '059fcf54ee8e21e9dac976491d7d7441049ce12e351a8c66b894846243b60a0b':'IVotes', // governance/utils/IVotes.sol from 5.5.0
+ '55fe90680900ea253e4e5b11d9b6ab5c4ff3e85e48ffb94c8b2c29694d01312b':'IVotes', // governance/utils/IVotes.sol from 4.5.0
+ '5876ce02c2f959a2b94a46735c8e4f9b717c645c9a47c72bc6e6ed1c659225e7':'IVotes', // governance/utils/IVotes.sol from 5.4.0
+ '5fdb83e09b93aaa36987b83e4929c0badb7c0dbe12b8c94b5621a2a266e21419':'IVotes', // governance/utils/IVotes.sol from 4.9.0
+ 'f033b73ce92762d9ed9496b8a0f5f72bd0479e42388da584c2ff276cbb5cb9b1':'IVotes', // governance/utils/IVotes.sol from 5.0.0
  '0c9d5d99d6c2eb63297a5d087aed5d1527dadbfef1487911c69069e73a685f3d':'Math', // utils/math/Math.sol from 4.5.0
  '259b145649e562dced1a2b0af5353a9a775025d3281a1375f70b04efe357ca60':'Math', // utils/math/Math.sol from 4.4.1
  '40aef7c97beee695ad0738cf93d143181dd76162b64a6d573036560a27701790':'Math', // utils/math/Math.sol from 4.2.0
@@ -181,6 +242,16 @@ module.exports=Object.freeze({
  '9353af89436556f7ba8abb3f37a6677249aa4df6024fbfaa94f79ab2f44f3231':'Ownable', // access/Ownable.sol from 4.7.0
  'a8e4e1ae19d9bd3e8b0a6d46577eec098c01fbaffd3ec1252fd20d799e73393b':'Ownable', // access/Ownable.sol from 4.9.0
  'dc6ecf2fb375c223c78b1eecb52d9ddf2397a622af29aa39597bf9fa5e800ad4':'Ownable', // access/Ownable.sol from 4.0.0
+ '270fc8401c1a13fae6a7a4a2dd6e381b95d658896701e51f0d3e2688acab3dec':'Panic', // utils/Panic.sol from 5.1.0
+ '089488198de38548e4e8ee7940d307f18396e5b295de5bca7ff7567fd4142cc3':'SafeCast', // utils/math/SafeCast.sol from 5.0.0
+ '110ee9a0670fde43b638d94508879f4c5d7fe54905191f4c66824ec07e4bc85a':'SafeCast', // utils/math/SafeCast.sol from 4.4.1
+ '1a84d711b82c44c02c920bef70f2384e2038f045c31faae3815b17304c70bb1a':'SafeCast', // utils/math/SafeCast.sol from 4.0.0
+ '5779bc848bde39f1ad7bc02b4f708a0040888e0083b1a33f119cd94639350134':'SafeCast', // utils/math/SafeCast.sol from 5.6.0
+ '8dec6dd63908459be4b909861eb3a00b31431575f8169c1f0cbb6519af754bfe':'SafeCast', // utils/math/SafeCast.sol from 4.2.0
+ '9769274bf53f26a7c7896c526ea1980dc9bea5bf5c2a5fd04870008c4afc1de9':'SafeCast', // utils/math/SafeCast.sol from 5.1.0
+ 'a5dab332e2caa1db5aae709693e59431132aa720528d0245a647dde6e93d7436':'SafeCast', // utils/math/SafeCast.sol from 4.8.0
+ 'ada88576131902db866504c4ddcde84e74a4dca0f92a8538607de3b9c4fd8735':'SafeCast', // utils/math/SafeCast.sol from 4.4.0
+ 'e44469cf1affcd59005dc9c69df91af9c7b93e6bc4095148232f86ba9e7f749d':'SafeCast', // utils/math/SafeCast.sol from 4.7.0
  '0b66f6166641f1951f7a412d55df071224f1ba3a629bab73d185505026851c06':'ShortStrings', // utils/ShortStrings.sol from 5.7.0
  '0f1abe1770f7e80f0b9221aac780424a42e5c64b9814aa735d28115a0f549915':'ShortStrings', // utils/ShortStrings.sol from 4.9.0
  '1cfa08d3c551e9ec0b9cd249b09987f04e7e90f352e1a5e3b0d6a3bc426b3de7':'ShortStrings', // utils/ShortStrings.sol from 5.5.0
@@ -212,4 +283,17 @@ module.exports=Object.freeze({
  'd99cb2df33b265a5533b0e9fa6f5da0bc60e98a8855c3392e8ffdc712149f0dd':'Strings', // utils/Strings.sol from 5.3.0
  'e318709bbe73a7831d64c1351e8bdc43780b245f25191234e361e6ab9b98c67b':'Strings', // utils/Strings.sol from 5.6.0
  'f81f11dca62dcd3e0895e680559676f4ba4f2e12a36bb0291d7ecbb6b983141f':'Strings', // utils/Strings.sol from 4.8.0
+ '338550afac6c340197c1f97df3c113a22c0b6730991df1167407d576dbd1fcb0':'Time', // utils/types/Time.sol from 5.0.0
+ '79534431c3934b23eafab9d02bda493cfc2ae383ba117a7c9698750c2e4845f1':'Time', // utils/types/Time.sol from 5.1.0
+ '8085f943150cce1a10aa843f83519960c3010efe5792a9ee58f87c1993d33472':'Time', // utils/types/Time.sol from 5.5.0
+ '0ae891568bf10bdeace16185c68a1d562dd36658834d8307cb84d1ac792ff5ec':'Votes', // governance/utils/Votes.sol from 4.8.0
+ '4079d2646757f4301da94a90c544f567b2492d0245d7fa9964585726ec5daf5e':'Votes', // governance/utils/Votes.sol from 5.5.0
+ '8ba04ef5d879df0eac088ee30f38798e15c447423b52b539820d1f17217fe3b8':'Votes', // governance/utils/Votes.sol from 5.6.0
+ '8ea94677604a2485015f1bae5dbe3f511f3859cd0d57e1f3147dfcf37d6eb23f':'Votes', // governance/utils/Votes.sol from 4.6.0
+ '95716c694e1029d95c9ae7dd7fb0307e42db95644fcb56ebf4e238d903a88c16':'Votes', // governance/utils/Votes.sol from 4.9.0
+ 'a51b07bbb6cb017cff537731d0a6355e46d1640330e3df4a20adf6d9353962d0':'Votes', // governance/utils/Votes.sol from 5.0.0
+ 'aba45a51c702b1edc1ee0d239a98b87ea01ff3c274f34841e21b881fe11345e0':'Votes', // governance/utils/Votes.sol from 5.7.0
+ 'cec996abb05f5c986d2dc2eefac3ad44e8ec2b9f649ea17030466cef4d48cac7':'Votes', // governance/utils/Votes.sol from 4.5.0
+ 'dea1532e5e0d920d9c40a6719a84e71b5de91391c1e2f65bb50d03878e7270bb':'Votes', // governance/utils/Votes.sol from 5.1.0
+ 'feded838fdab8e52e1a3352f95dd7e63311b2c079f2293bda17633fbefda6d96':'Votes', // governance/utils/Votes.sol from 5.2.0
 });

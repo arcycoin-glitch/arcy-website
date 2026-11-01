@@ -98,10 +98,11 @@ test('pipeline: reviewed digest profiles keep priority over the generic template
  const r=await m.inspect(x);assert.equal(r.details.reviewedProfile,'FIXED_SUPPLY_BURNABLE_LAUNCH');
 });
 
+const LABELS=require('../search/server/lib/oz-template').LIB_CONTRACTS.concat(['IERC6093']);
 test('pinned OpenZeppelin hash table: only known library names, 64-hex digests, ERC20 pinned for every 4.x/5.x release line',()=>{
  const h=require('../search/server/lib/oz-library-hashes');
  assert.ok(Object.isFrozen(h));
- for(const [k,v] of Object.entries(h)){assert.match(k,/^[0-9a-f]{64}$/);assert.ok(['ERC20','IERC20','IERC20Metadata','ERC20Burnable','Ownable','Context','IERC6093','ERC20Permit','IERC20Permit','EIP712','ECDSA','MessageHashUtils','Strings','Math','SignedMath','ShortStrings','StorageSlot','Nonces','Counters','IERC5267','AccessControl','IAccessControl','ERC165','IERC165'].includes(v));}
+ for(const [k,v] of Object.entries(h)){assert.match(k,/^[0-9a-f]{64}$/);assert.ok(LABELS.includes(v));}
  assert.ok(Object.values(h).filter(v=>v==='ERC20').length>=15);
 });
 
