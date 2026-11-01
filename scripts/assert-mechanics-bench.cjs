@@ -25,10 +25,10 @@ for(let i=0;i<before.rows.length;i++){
    // become reviewed owner-governance evidence for the SAME full 20-byte address.
    // Never allow the reverse, a new owner, a mint/tax change, or a weaker source.
    if(y.value!==x.value||y.status!==x.status){
-    const oldOwner=/^owner\\(\\) getter: (0x[0-9a-f]{40})$/i.exec(x.value||'')?.[1];
+    const oldOwner=(x.value||'').startsWith('owner() getter: ')?x.value.slice('owner() getter: '.length):null;
     const newOwner=/0x[0-9a-f]{40}/i.exec(y.value||'')?.[0];
     const upgrade=f==='ownerAdmin'&&x.status==='GETTER_REPORTED'&&y.status==='VERIFIED_SOURCE_AND_STATE'&&
-      x.cls==='SINGLE_SOURCE'&&y.cls==='ON_CHAIN_VERIFIED'&&oldOwner&&newOwner&&oldOwner.toLowerCase()===newOwner.toLowerCase();
+      x.cls==='SINGLE_SOURCE'&&y.cls==='ON_CHAIN_VERIFIED'&&oldOwner&&/^0x[0-9a-f]{40}$/i.test(oldOwner)&&newOwner&&oldOwner.toLowerCase()===newOwner.toLowerCase();
     assert.ok(upgrade,'Previously verified field changed without same-owner stronger proof: '+id+'/'+f+' old='+x.value+' new='+y.value);
    }}
   stats[f].before+=Number(x.ok);stats[f].after+=Number(y.ok);
