@@ -151,3 +151,8 @@ test('ownership overrides are allowed only while no UNGATED path can change owne
  assert.equal(run('contract T is ERC20, Ownable { function transferOwnership(address n) public override { super.transferOwnership(n); } function mint(address a,uint256 v) external onlyOwner { _mint(a,v); } }','T').mint,'UNRESOLVED');
  assert.equal(run('contract T is ERC20Permit, Ownable { constructor(){ _mint(msg.sender,1); } }','T').mint,'CONSTRUCTOR_ONLY');
 });
+
+test('Ownable2Step (pinned) counts as Ownable; its own _transferOwnership override is library code, not token code',()=>{
+ const r=run('contract T is ERC20, Ownable2Step { constructor(){ _mint(msg.sender,1); } function mint(address a,uint256 v) external onlyOwner { _mint(a,v); } }','T');
+ assert.equal(r.ownable,true);assert.equal(r.mint,'OWNER_GATED','initial constructor mint plus later owner-gated mint is owner-gated, never "none"');
+});
