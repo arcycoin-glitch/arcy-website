@@ -8,6 +8,7 @@ const sel=s=>keccak(Buffer.from(s)).slice(2,10);
 const NAMES=['owner()','getOwner()','admin()','authority()','transferOwnership(address)','renounceOwnership()','mint(address,uint256)','mint(uint256)','burn(uint256)','burnFrom(address,uint256)','pause()','paused()','blacklist(address)','isBlacklisted(address)','setTaxes(uint256,uint256)','taxFee()','_taxFee()','buyTax()','sellTax()','buyFee()','sellFee()','setFees(uint256,uint256)','excludeFromFee(address)','isExcludedFromFee(address)','maxTxAmount()','_maxTxAmount()','tradingEnabled()','enableTrading()','openTrading()','swapAndLiquify()','initialize(string,string,uint256,address)','implementation()','upgradeTo(address)','hasRole(bytes32,address)','totalSupply()','MINTER_ROLE()','cap()','pair()','uniswapV2Pair()','router()'];
 const TABLE=Object.fromEntries(NAMES.map(n=>[sel(n),n]));
 function selectors(code){const b=Buffer.from(code.slice(2),'hex'),out=new Set();for(let i=0;i<b.length-4;i++){if(b[i]===0x63){out.add(b.slice(i+1,i+5).toString('hex'));}}return out;}
+const oz=require('../search/server/lib/oz-template'),lib=require('../search/server/lib/oz-library-hashes');
 const jget=async(u,ms=6000)=>{try{const r=await fetch(u,{headers:{accept:'application/json'},signal:AbortSignal.timeout(ms)});let j=null;try{j=await r.json();}catch{}return {s:r.status,j};}catch(e){return {s:0,j:null};}};
 (async()=>{
  const samples=JSON.parse(fs.readFileSync(process.argv[2]||'mechanics-samples.json','utf8'));
@@ -22,6 +23,9 @@ const jget=async(u,ms=6000)=>{try{const r=await fetch(u,{headers:{accept:'applic
   const target=clone?'0x'+clone[1]:impl;
   const sy=await jget('https://sourcify.dev/server/v2/contract/'+cfg.chainId+'/'+a);
   let bs={s:-1,j:null};if(cfg.blockscoutTokens)bs=await jget(cfg.blockscoutTokens.replace('/tokens/','/smart-contracts/')+a);
+  let ozr='-';
+  {const sa=target||a;const full=await jget('https://sourcify.dev/server/v2/contract/'+cfg.chainId+'/'+sa+'?fields=sources,compilation',9000);
+   if(full.s===200&&full.j?.sources){const d=oz.diagnose(full.j.sources,{lib,main:full.j.compilation?.name});ozr=d.ok?'OK:'+d.mint+(d.ownable?'+own':'')+(d.ungated?'+u'+d.ungated:''):d.reason+(d.unpinned?'['+d.unpinned.map(x=>x.split('/').pop()).join(',').slice(0,60)+']':'')+(d.base?'['+d.base+']':'')+(d.file?'['+String(d.file).split('/').pop()+']':'');}}
   let tsy=null,tbs=null,tcode=null;
   if(target){try{tcode=await rpc('eth_getCode',[target,'latest']);}catch{}tsy=await jget('https://sourcify.dev/server/v2/contract/'+cfg.chainId+'/'+target);if(cfg.blockscoutTokens)tbs=await jget(cfg.blockscoutTokens.replace('/tokens/','/smart-contracts/')+target);}
   const sl=selectors(tcode&&/^0x(?:[0-9a-f]{2})+$/.test(tcode)?tcode:code);
@@ -29,7 +33,7 @@ const jget=async(u,ms=6000)=>{try{const r=await fetch(u,{headers:{accept:'applic
   const flags=[...sl].map(x=>TABLE[x]).filter(Boolean).map(n=>n.replace(/\(.*/,''));
   rows.push([s.chain[0]+(s.group==='pons'?'p':''),a.slice(2,8),(code.length-2)/2,h,clone?'clone':impl?'1967':'-',target?target.slice(2,8):'-',
    'sy:'+sy.s+(sy.j?.runtimeMatch||''),'bs:'+bs.s+(bs.j?(bs.j.is_verified?'V':'u')+(bs.j.proxy_type?'/'+bs.j.proxy_type:''):''),
-   target?'tsy:'+tsy.s+(tsy.j?.runtimeMatch||'')+' tbs:'+tbs?.s+(tbs?.j?(tbs.j.is_verified?'V':'u'):''):'',[...new Set(flags)].join(','),'ow:'+ow]);
+   target?'tsy:'+tsy.s+(tsy.j?.runtimeMatch||'')+' tbs:'+tbs?.s+(tbs?.j?(tbs.j.is_verified?'V':'u'):''):'',[...new Set(flags)].join(','),'ow:'+ow,'oz:'+ozr]);
   await new Promise(r=>setTimeout(r,400));
  }
  const esc=x=>x.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A');

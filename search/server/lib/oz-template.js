@@ -52,40 +52,42 @@ const LIB_CONTRACTS=['ERC20','IERC20','IERC20Metadata','ERC20Burnable','Ownable'
  * @param {{lib:Object<string,string>, main?:string}} opts lib maps sha256(content)->canonical library file name
  * @returns {null|object} null = no claim possible
  */
-function analyze(sources,{lib,main}={}){
- if(!sources||typeof sources!=='object'||!lib)return null;
+function run(sources,{lib,main}={}){
+ const REJ=(reason,detail={})=>({reject:reason,...detail});
+ if(!sources||typeof sources!=='object'||!lib)return REJ('NO_SOURCES');
  const own=[],libNames=new Set();
  for(const [p,f] of Object.entries(sources)){
-  if(typeof f?.content!=='string')return null;
+  if(typeof f?.content!=='string')return REJ('BAD_SOURCE_ENTRY');
   const known=lib[sha(f.content)];
   if(known)libNames.add(known);else own.push({path:p,text:strip(f.content)});
  }
- if(!own.length||!libNames.has('ERC20'))return null;
+ if(!own.length)return REJ('NO_OWN_FILES');
+ if(!libNames.has('ERC20'))return REJ('ERC20_NOT_PINNED',{unpinned:own.map(f=>f.path).slice(0,6)});
  const mine=[];
  for(const f of own){
-  if(BANNED.test(f.text))return null;
-  const cs=contracts(f.text);if(!cs)return null;
+  {const bm=BANNED.exec(f.text);if(bm)return REJ('BANNED_'+bm[1].toUpperCase(),{file:f.path});}
+  const cs=contracts(f.text);if(!cs)return REJ('PARSE_CONTRACTS',{file:f.path});
   for(const c of cs)mine.push({...c,file:f.path});
  }
- if(!mine.length)return null;
+ if(!mine.length)return REJ('NO_CONTRACTS');
  // Shadowing: an own contract may never reuse a pinned library contract name.
- if(mine.some(c=>LIB_CONTRACTS.includes(c.name)))return null;
+ if(mine.some(c=>LIB_CONTRACTS.includes(c.name)))return REJ('SHADOWS_LIBRARY_NAME',{names:mine.filter(c=>LIB_CONTRACTS.includes(c.name)).map(c=>c.name).slice(0,4)});
  // Inheritance closure of the deployed contract (when known) must reach the pinned ERC20.
  const byName=new Map(mine.map(c=>[c.name,c]));
  const roots=main&&byName.has(main)?[byName.get(main)]:mine.filter(c=>c.kind.endsWith('contract')&&!mine.some(o=>o!==c&&o.bases.includes(c.name)));
- if(roots.length!==1)return null;
+ if(roots.length!==1)return REJ('ROOT_CONTRACT_AMBIGUOUS',{count:roots.length});
  const closure=new Set(),stack=[roots[0]];let reachesErc20=false,ownable=false,burnable=false;
  while(stack.length){const c=stack.pop();if(closure.has(c))continue;closure.add(c);
   for(const b of c.bases){if(b==='ERC20')reachesErc20=true;else if(b==='Ownable')ownable=true;else if(b==='ERC20Burnable'){reachesErc20=true;burnable=true;}
    else if(byName.has(b))stack.push(byName.get(b));
-   else if(!LIB_CONTRACTS.includes(b))return null;}}
- if(!reachesErc20)return null;
+   else if(!LIB_CONTRACTS.includes(b))return REJ('UNPINNED_BASE',{base:b});}}
+ if(!reachesErc20)return REJ('ERC20_NOT_INHERITED');
  const fns=[],mintSites=[];let updateCalls=0;
  for(const c of closure){
-  const list=functions(c.body);if(!list)return null;
+  const list=functions(c.body);if(!list)return REJ('PARSE_FUNCTIONS',{contract:c.name});
   for(const f of list){
-   if(f.kind==='function'&&FORBIDDEN_FN.has(f.name))return null;
-   if(ownable&&(f.kind==='modifier'&&f.name==='onlyOwner'||f.kind==='function'&&OWNABLE_FN.has(f.name)))return null;
+   if(f.kind==='function'&&FORBIDDEN_FN.has(f.name))return REJ('OVERRIDES_'+f.name,{contract:c.name});
+   if(ownable&&(f.kind==='modifier'&&f.name==='onlyOwner'||f.kind==='function'&&OWNABLE_FN.has(f.name)))return REJ('OVERRIDES_OWNABLE_'+f.name,{contract:c.name});
    if(f.kind==='fallback'||f.kind==='receive')continue;
    fns.push({...f,contract:c.name});
   }
@@ -100,7 +102,7 @@ function analyze(sources,{lib,main}={}){
   if(/\b_update\s*\(/.test(f.body))updateCalls++;
   if(f.kind==='function'&&isPublic&&!isView&&hasBody)external.push({name:f.name,ownerOnly:/\bonlyOwner\b/.test(f.header)&&ownable,header:f.header.replace(/\s+/g,' ').trim()});
  }
- if(updateCalls)return null;
+ if(updateCalls)return REJ('CALLS_UPDATE_DIRECTLY');
  // Free-standing modifiers other than onlyOwner make a gate unproven.
  const customGate=external.filter(f=>!f.ownerOnly&&/\b(only[A-Z]\w*|auth|requiresAuth|whenNotPaused|whenPaused)\b/.test(f.header)).map(f=>f.name);
  const constructorMintOnly=mintSites.length>0&&mintSites.every(s=>s.where==='constructor');
@@ -118,4 +120,7 @@ function analyze(sources,{lib,main}={}){
   unprovenGates:customGate.sort()
  };
 }
-module.exports={analyze,strip,contracts,functions};
+function analyze(sources,opts){const r=run(sources,opts);return r&&!r.reject?r:null;}
+/** Same analysis, but explains a rejection (diagnostics only; never evidence). */
+function diagnose(sources,opts){const r=run(sources,opts);return r&&!r.reject?{ok:true,mint:r.mint,ownable:r.ownable,ungated:r.ungatedFunctions.length}:{ok:false,reason:r?.reject||'UNKNOWN',...(r||{})};}
+module.exports={analyze,diagnose,strip,contracts,functions};

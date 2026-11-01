@@ -258,6 +258,12 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
    await require('./mechanics-reviewed-v4').apply({profile,fields,details,proof,fact,word,call,address,block,keccak,admin,direct:target===address&&nonDelegating(code)});
   }
  }
+ // Source/ABI-matched owner getter returning the zero address: recorded as a diagnostic observation ONLY. Project policy (see
+ // 'ABI zero owner cannot establish absence of all privileges') is that it never becomes the displayed owner/admin fact.
+ if(source)for(const name of ['owner','getOwner'])if(abiFn(source,name+'()','address')){
+  const raw=await word(address,name+'()');
+  if(raw&&BigInt(raw)===0n){details.observations.push({method:name+'()',value:'zero address',zero:true,block,...sourceProof,scope:'ABI/source-matched getter returns the zero address at the pinned block. Not an absence-of-control proof: roles, other admin getters, proxy/upgrade authority and external controllers are not excluded.'});break;}
+ }
  // Optional read-only authority evidence. No Safe/timelock identity from a
  // selector alone: source must match the authority's pinned runtime first.
  const authorities=[...new Set([admin,...details.observations.map(x=>x.value)].filter(x=>ADDRESS.test(x||'')))].slice(0,2);

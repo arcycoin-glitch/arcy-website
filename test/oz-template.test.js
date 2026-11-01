@@ -104,3 +104,21 @@ test('pinned OpenZeppelin hash table: only known library names, 64-hex digests, 
  for(const [k,v] of Object.entries(h)){assert.match(k,/^[0-9a-f]{64}$/);assert.ok(['ERC20','IERC20','IERC20Metadata','ERC20Burnable','Ownable','Context','IERC6093'].includes(v));}
  assert.ok(Object.values(h).filter(v=>v==='ERC20').length>=15);
 });
+
+test('pipeline: ABI-matched zero owner() is a diagnostic observation only and never the displayed owner/admin fact',async()=>{
+ const owner={type:'function',name:'owner',stateMutability:'view',inputs:[],outputs:[{type:'address'}]};
+ const x=fx(null);x.sourceLoader=async()=>({digest:'e'.repeat(64),abi:[owner],url:'https://sourcify.dev/x'});
+ const r=await m.inspect(x);
+ assert.equal(r.fields.ownerAdmin,undefined);
+ const obs=r.details.observations.find(o=>o.zero);assert.equal(obs.value,'zero address');assert.match(obs.scope,/Not an absence-of-control proof/);
+ const y=fx(null);y.sourceLoader=async()=>({digest:'e'.repeat(64),abi:[],url:'u'});assert.ok(!(await m.inspect(y)).details.observations.some(o=>o.zero));
+});
+
+test('diagnose explains rejections without ever producing evidence',()=>{
+ const {diagnose}=require('../search/server/lib/oz-template');
+ assert.equal(diagnose(src({'T.sol':'contract T is ERC20 { function _update(address a,address b,uint256 v) internal override {} }'}),{lib,main:'T'}).reason,'OVERRIDES__update');
+ assert.equal(diagnose(src({'T.sol':'contract T is ERC20 { function f() external { assembly {} } }'}),{lib,main:'T'}).reason,'BANNED_ASSEMBLY');
+ assert.equal(diagnose({'T.sol':{content:'contract T is ERC20 {}'}},{lib,main:'T'}).reason,'ERC20_NOT_PINNED');
+ assert.equal(diagnose(src({'T.sol':'contract T is ERC20, Weird {}'}),{lib,main:'T'}).reason,'UNPINNED_BASE');
+ assert.equal(diagnose(src({'T.sol':'contract T is ERC20 { constructor(){ _mint(msg.sender,1); } }'}),{lib,main:'T'}).ok,true);
+});
