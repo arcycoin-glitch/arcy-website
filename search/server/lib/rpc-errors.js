@@ -8,7 +8,7 @@ const TRANSIENT_TEXT=/rate.?limit|too many requests|capacity|overload|temporar|t
 function transientRpcError(error){
  if(!error||typeof error!=='object')return false;
  const message=typeof error.message==='string'?error.message.slice(0,300):'';
- if(error.code===3||/revert|invalid opcode|out of gas|stack/i.test(message))return false;
+ if(error.code===3||/revert|invalid opcode|out of gas|stack|missing trie node|header not found|block not found|unknown block|pruned|state .*not available/i.test(message))return false;
  if(TRANSIENT_CODES.has(error.code))return true;
  // Generic server errors (-32000/-32603) only count when the text says why.
  return [-32000,-32603].includes(error.code)&&TRANSIENT_TEXT.test(message);
