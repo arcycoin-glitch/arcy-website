@@ -18,7 +18,7 @@
   },
   "current": {
     "files": {
-      "index.html": "c015b31b7116ccee56298c9499ac51063889c77b42bdf85937e6d247472c9884",
+      "index.html": "214c6500a6c74a16fcc00f81d50e90937060b34e01bd78b52c49a19f02a99cd5",
       "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
       "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885",
       "api/pulse.js": "71a081d8f1a3b0b84bd706a2f5a1f5727af49c8643be8cfee1bfee4dc7bc4cc0",
@@ -83,7 +83,14 @@
         "index.html"
       ],
       "reason": "Owner-requested Unlocks-only coverage counters, grouped events, sorting, source details and mobile readability. All non-Unlocks homepage bytes protected by unlocks-scope-baseline.json; API, collectors, evidence policy, Search, Radar, Pulse and worker unchanged."
+    },
+    {
+      "date": "2026-11-03",
+      "files": [
+        "index.html"
+      ],
+      "reason": "Owner-directed Unlocks restore to the classic five-row renderer (#133, #134, deployed on main) plus restoring the single-publisher disclosure in the Unlocks note that #134 had dropped; unrelated homepage bytes pinned separately by test/unlock-scope.test.js."
     }
   ],
-  "refreshedAt": "2026-10-31T16:09:00.000Z"
+  "refreshedAt": "2026-11-03T09:50:51.106Z"
 }
