@@ -33,7 +33,7 @@
   sizes();
  }
  addEventListener('arcy-pulse-networks',event=>publications(event.detail));
- addEventListener('DOMContentLoaded',()=>{publications(window.ARCYPulseNetworks);const chain=new URLSearchParams(location.search).get('pulseChain');if(chain==='ethereum')select(1);if(chain==='robinhood')select(2);if(typeof syncControls==='function')syncControls();});
+ addEventListener('DOMContentLoaded',()=>{publications(window.ARCYPulseNetworks);const chain=new URLSearchParams(location.search).get('pulseChain');if(chain==='ethereum')select(1);if(chain==='robinhood')select(2);});
  if(document.readyState!=='loading')publications(window.ARCYPulseNetworks);
  // Mirror only category labels/classes. Never copy Arc news, source URLs or editions.
  function sizes(){for(const panel of panels.slice(1)){for(const selector of['.head','.pulse-take'])panel.querySelector(selector).style.minHeight=arc.querySelector(selector).getBoundingClientRect().height+'px';const source=[...arc.querySelectorAll('.pulse-card')];panel.querySelectorAll('.pulse-card').forEach((card,i)=>{card.style.minHeight=(source[i]?.getBoundingClientRect().height||0)+'px';});}}
@@ -43,35 +43,57 @@
  function select(index,focus=false){if(index===active){if(focus)buttons[index].focus();return;}const direction=index>active?1:-1;animation?.cancel();active=index;
   panels.forEach((panel,i)=>{panel.inert=i!==index;panel.setAttribute('aria-hidden',String(i!==index));buttons[i].setAttribute('aria-selected',String(i===index));buttons[i].tabIndex=i===index?0:-1;});
   if(focus)buttons[index].focus();if(!reduced.matches)animation=panels[index].animate([{transform:'translateX('+direction*12+'px)',opacity:.7},{transform:'translateX(0)',opacity:1}],{duration:180,easing:'ease-out'});
-  syncControls();
  }
- // Mobile-only horizontal gesture navigation for the existing three chain panels.
- // Keep the existing tab navigation, data loading, and desktop layout untouched.
- const viewport=root.querySelector('.pulse-chain-panels');
- const controls=document.createElement('nav');controls.className='pulse-swipe-controls';controls.setAttribute('aria-label','Pulse carousel navigation');
- const previous=document.createElement('button'),next=document.createElement('button'),counter=document.createElement('span');
- previous.type=next.type='button';previous.textContent='‹ Previous';next.textContent='Next ›';counter.setAttribute('aria-live','polite');counter.className='pulse-swipe-counter';
- controls.append(previous,counter,next);viewport.insertAdjacentElement('afterend',controls);
- function syncControls(){previous.disabled=active===0;next.disabled=active===panels.length-1;counter.textContent=(active+1)+' / '+panels.length;}
- previous.addEventListener('click',()=>{select(Math.max(0,active-1));syncControls();});
- next.addEventListener('click',()=>{select(Math.min(panels.length-1,active+1));syncControls();});
- buttons.forEach(button=>button.addEventListener('click',syncControls));
- let touchStart=null;
- viewport.addEventListener('touchstart',event=>{
-  if(!matchMedia('(max-width: 580px)').matches||event.touches.length!==1){touchStart=null;return;}
-  const target=event.target;
-  if(target.closest('a,button,input,textarea,select,[contenteditable="true"]')){touchStart=null;return;}
-  touchStart={x:event.touches[0].clientX,y:event.touches[0].clientY};
- },{passive:true});
- viewport.addEventListener('touchend',event=>{
-  if(!touchStart||event.changedTouches.length!==1)return;
-  const dx=event.changedTouches[0].clientX-touchStart.x,dy=event.changedTouches[0].clientY-touchStart.y;touchStart=null;
-  if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.4)return;
-  select(Math.max(0,Math.min(panels.length-1,active+(dx<0?1:-1))));syncControls();
- },{passive:true});
- viewport.addEventListener('touchcancel',()=>{touchStart=null;},{passive:true});
- syncControls();
- addEventListener('DOMContentLoaded',syncControls);
+ // Mobile carousel applies to RESEARCH CARDS inside each chain, NOT the chain tabs.
+ // Keep the existing network selector, Pulse source data and ARCY TAKE unchanged.
+ function initResearchCarousel(panel){
+  const grid=panel.querySelector('.pulse-grid');
+  if(!grid)return;
+  const controls=document.createElement('nav');
+  controls.className='pulse-card-controls';
+  controls.setAttribute('aria-label','Pulse research card navigation');
+  const previous=document.createElement('button'),next=document.createElement('button'),counter=document.createElement('span');
+  previous.type='button';next.type='button';
+  previous.textContent='‹ Previous';next.textContent='Next ›';
+  previous.setAttribute('aria-label','Previous Pulse research card');
+  next.setAttribute('aria-label','Next Pulse research card');
+  counter.className='pulse-card-counter';counter.setAttribute('aria-live','polite');
+  controls.append(previous,counter,next);
+  grid.insertAdjacentElement('afterend',controls);
+  const slides=()=>[...grid.querySelectorAll(':scope > .pulse-card')];
+  function positionOf(card,first){return card.offsetLeft-first.offsetLeft;}
+  function selectedIndex(items){
+   if(!items.length)return 0;
+   const initial=items[0],left=grid.scrollLeft;
+   let chosen=0,best=Infinity;
+   items.forEach((item,i)=>{const distance=Math.abs(positionOf(item,initial)-left);if(distance<best){best=distance;chosen=i;}});
+   return chosen;
+  }
+  function sync(){
+   const items=slides(),index=selectedIndex(items);
+   previous.disabled=index===0;
+   next.disabled=index>=items.length-1;
+   counter.textContent=items.length?(index+1)+' / '+items.length:'0 / 0';
+  }
+  function step(direction){
+   const items=slides();if(!items.length)return;
+   const index=Math.max(0,Math.min(items.length-1,selectedIndex(items)+direction));
+   grid.scrollTo({left:positionOf(items[index],items[0]),behavior:reduced.matches?'instant':'smooth'});
+   previous.disabled=index===0;next.disabled=index===items.length-1;
+   counter.textContent=(index+1)+' / '+items.length;
+  }
+  previous.addEventListener('click',()=>step(-1));
+  next.addEventListener('click',()=>step(1));
+  let frame=0;
+  grid.addEventListener('scroll',()=>{
+   if(frame)return;
+   frame=requestAnimationFrame(()=>{frame=0;sync();});
+  },{passive:true});
+  new MutationObserver(()=>{grid.scrollLeft=0;sync();}).observe(grid,{childList:true});
+  addEventListener('resize',sync,{passive:true});
+  sync();
+ }
+ panels.forEach(initResearchCarousel);
  buttons.forEach((button,index)=>{button.addEventListener('click',()=>select(index));button.addEventListener('keydown',event=>{let next;if(event.key==='ArrowRight')next=(index+1)%buttons.length;else if(event.key==='ArrowLeft')next=(index+buttons.length-1)%buttons.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=buttons.length-1;else return;event.preventDefault();select(next,true);});});
  reduced.addEventListener('change',()=>{if(reduced.matches)animation?.cancel();});
 })();
