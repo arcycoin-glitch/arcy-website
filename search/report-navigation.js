@@ -48,3 +48,34 @@
  let width=0;if('ResizeObserver'in window)new ResizeObserver(entries=>{const nextWidth=entries[0].contentRect.width;if(Math.abs(nextWidth-width)>.5){width=nextWidth;align(activeIndex());}}).observe(cards);else addEventListener('resize',()=>align(activeIndex()));
  motion.addEventListener('change',()=>{if(motion.matches)align(activeIndex());});report.addEventListener('toggle',()=>{if(report.open)requestAnimationFrame(()=>align(activeIndex()));});bind();
 })();
+
+/*
+ * Discovery badges are presentation of issuer identity, not evidence quality.
+ * Keep the immutable search/index.html intact and preserve the data-layer
+ * NOT_VERIFIED state. Only re-label indexed search *candidates*.
+ */
+(()=>{
+ const note='Indexed contract candidate; the issuing project is not independently confirmed.';
+ function labelCandidates(container){
+  // Query results may be rebuilt asynchronously after a typeahead/search.
+  for(const badge of container.querySelectorAll('.detail-match-badge')){
+   if(!badge.textContent.endsWith(' · NOT VERIFIED'))continue;
+   badge.textContent=badge.textContent.replace(/ · NOT VERIFIED$/,' · INDEXED');
+   badge.title=note;
+   badge.setAttribute('aria-label',badge.textContent+' · issuer identity unconfirmed');
+  }
+  for(const badge of container.querySelectorAll('.candidate-badge.unknown')){
+   if(badge.textContent.trim().toLowerCase()!=='unverified')continue;
+   badge.textContent='INDEXED';
+   badge.title=note;
+   badge.setAttribute('aria-label','INDEXED · issuer identity unconfirmed');
+  }
+ }
+ for(const id of ['matches','detailMatches']){
+  const container=document.getElementById(id);
+  if(!container)continue;
+  const refresh=()=>labelCandidates(container);
+  new MutationObserver(refresh).observe(container,{childList:true,subtree:true});
+  refresh();
+ }
+})();
