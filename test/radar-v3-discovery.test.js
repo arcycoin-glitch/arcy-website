@@ -164,6 +164,26 @@ test('Arc rescues legitimate candidates using token-level totals without lowerin
  assert.equal(out.usage.geckoterminal,4,'three existing pages plus one existing tokens/multi call');
  assert.equal(out.usage.dexscreener,0,'no new cross-check when public DEX gate is off');
 });
+test('Arc fills ranks from candidates 21–30 when top 20 fail actual source cross-verification, using one DEX request',async()=>{
+ const specs=Array.from({length:25},(_,i)=>({a:addr(800+i),s:'ARC'+i,
+  vol:800000-i*1000,liq:500000,price:0.5,age:5,buys:250,sells:240}));
+ const ds=specs.map((x,i)=>({
+  chainId:'arc',pairAddress:addr(70000+i),dexId:'testdex',
+  baseToken:{address:x.a},quoteToken:{address:addr(900)},
+  priceUsd:i<20?'99':'0.5',volume:{h24:x.vol},liquidity:{usd:500000},
+  priceChange:{h24:12},fdv:1000000,pairCreatedAt:T0-5*DAY
+ }));
+ const f=router([[/tokens\/multi/,()=>resp(multi('arc',specs))],
+  [/coingecko\.com/,()=>resp(page('arc',specs))],
+  [/api\.dexscreener\.com/,()=>resp(ds)]]);
+ const out=await radar.load('arc',{env:{...ENV,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
+ assert.equal(out.tokens.length,5,'remaining five verified candidates fill unoccupied positions');
+ assert.deepEqual(out.tokens.map(t=>t.symbol).sort(),specs.slice(20).map(x=>x.s).sort());
+ assert.equal(out.discovery.excludedCounts.INELIGIBLE_AFTER_VERIFICATION,20);
+ assert.equal(out.usage.dexscreener,1,'all 25 finalists use the same DEX Screener request');
+ assert.equal(out.usage.geckoterminal,4,'no additional GeckoTerminal credits');
+ assert.ok(out.tokens.every(t=>t.fields.priceUsd.status==='CROSS_VERIFIED'));
+});
 test('duplicate representations of one asset on a chain collapse to a single entry',async()=>{
  const specs=[{a:addr(60),s:'DUP',n:'Dup',vol:5e5,liq:6e5,coin:'dup-coin'},{a:addr(61),s:'DUP',n:'Dup',vol:9e5,liq:6e5},{a:addr(62),s:'REAL',vol:4e5,liq:6e5}];
  const out=await run('arc',specs);
