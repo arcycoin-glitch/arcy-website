@@ -96,7 +96,7 @@ const change24hReason=item=>{
   const age=f&&Number(f.poolAgeHours);
   if(code==='POOL_LESS_THAN_24H_OLD'){
    const when=Number.isFinite(age)&&age>=0?'Bu havuz yaklaşık '+(age<10?age.toFixed(1):Math.round(age))+' saatlik':'Bu havuz 24 saatten genç';
-   return when+'. Tam 24 saatlik fiyat değişimi henüz mevcut değil. Kaynağın bildirdiği kısmi dönem değeri varsa Açılıştan beri etiketiyle ayrı gösterilir; doğrulanmış 24s değişimi veya Discovery Score yerine geçmez.';
+   return when+'. '+(f?.sourcesDisagree?'GeckoTerminal ve DEX Screener açılıştan beri değişimde ayrışıyor; iki kaynak değeri ayrı gösterilir. ':'')+'Bu ölçümler tam 24 saatlik değişim değildir ve Discovery Score yerine geçmez.';
   }
   if(code==='SOURCES_DISAGREE')return 'Kaynaklar 24 saatlik değişimde birbirini doğrulamıyor (fark 3 puanı aşıyor); hangisinin doğru olduğu belirlenemediği için gösterilmez.';
   if(code==='SOURCE_24H_CHANGE_UNAVAILABLE')return 'Hiçbir kaynak bu token için 24 saatlik değişim bildirmedi.';
@@ -107,14 +107,20 @@ const change24hReason=item=>{
  // exact-pool source evidence; it is NOT used in ranking or the 24h score.
  const partialSinceLaunch=item=>{
   const f=item?.fields?.change24hPct;
-  if(f?.reasonCode!=='POOL_LESS_THAN_24H_OLD'||f.window!=='PARTIAL_SINCE_POOL_CREATION'||f.sourcesDisagree===true)return null;
+  if(f?.status!=='NOT_VERIFIED'||f.reasonCode!=='POOL_LESS_THAN_24H_OLD'||f.window!=='PARTIAL_SINCE_POOL_CREATION')return null;
   const age=f.poolAgeHours;
   if(typeof age!=='number'||!Number.isFinite(age)||age<0||age>=24||!Array.isArray(f.sources))return null;
-  const gecko=f.sources.find(x=>x?.provider==='GeckoTerminal'&&typeof x.value==='number'&&Number.isFinite(x.value));
-  if(!gecko)return null;
-  const dex=f.sources.find(x=>x?.provider==='DEX Screener'&&typeof x.value==='number'&&Number.isFinite(x.value));
-  if(dex&&Math.abs(gecko.value-dex.value)>3)return null; // Never select a conflicting partial reading.
-  return {value:gecko.value,source:dex?'GeckoTerminal + DEX Screener':'GeckoTerminal'};
+  const src=provider=>f.sources.find(x=>x?.provider===provider&&typeof x.value==='number'&&Number.isFinite(x.value));
+  const gecko=src('GeckoTerminal'),dex=src('DEX Screener');
+  // If both raw provider values disagree, show BOTH explicitly attributed
+  // since-launch observations; never select one or imply that either is
+  // verified 24h price change. The server keeps the original field NULL.
+  if(f.sourcesDisagree===true){
+   if(!gecko||!dex)return null;
+   return {kind:'conflict',gt:gecko.value,ds:dex.value};
+  }
+  if(!gecko||dex&&Math.abs(gecko.value-dex.value)>3)return null;
+  return {kind:'single',value:gecko.value,source:dex?'GeckoTerminal + DEX Screener':'GeckoTerminal'};
  };
  let infoPop=null,infoOwner=null,infoPinned=false;
  const closeInfo=()=>{
@@ -145,7 +151,17 @@ const change24hReason=item=>{
  const withInfo=(cell,item)=>{
   const partial=partialSinceLaunch(item);
   const wrap=el('span','arcy-radar-dash'+(partial?' arcy-radar-partial':''));
-  if(partial){
+  if(partial?.kind==='conflict'){
+   const metric=el('span','arcy-radar-partial-metric arcy-radar-partial-conflict');
+   for(const [label,value] of [['GT',partial.gt],['DS',partial.ds]]){
+    const line=el('span','arcy-radar-partial-source');
+    line.append(el('small','arcy-radar-partial-provider',label),el('strong','arcy-radar-partial-value '+(value>=0?'positive':'negative'),pct(value)));
+    metric.append(line);
+   }
+   metric.append(el('small','arcy-radar-partial-label','Açılıştan beri · uyuşmazlık'));
+   metric.title='GeckoTerminal (GT) ve DEX Screener (DS) açılıştan beri kısmi değerlerde ayrışıyor. Hiçbiri doğrulanmış 24s değişimi değildir.';
+   wrap.append(metric);
+  }else if(partial?.kind==='single'){
    const metric=el('span','arcy-radar-partial-metric');
    const value=el('strong','arcy-radar-partial-value '+(partial.value>=0?'positive':'negative'),pct(partial.value));
    metric.append(value,el('small','arcy-radar-partial-label','Açılıştan beri'));
