@@ -164,6 +164,29 @@ test('Arc rescues legitimate candidates using token-level totals without lowerin
  assert.equal(out.usage.geckoterminal,4,'three existing pages plus one existing tokens/multi call');
  assert.equal(out.usage.dexscreener,0,'no new cross-check when public DEX gate is off');
 });
+test('Arc recovery handles null pool volume and liquidity without a 503, while excluding absent token-level evidence',async()=>{
+ const specs=[
+  {a:addr(750),s:'FROMTOKEN',vol:3000,liq:7000,tvol:22000,tliq:44000,buys:200,sells:180},
+  {a:addr(751),s:'STILLMISSING',vol:3500,liq:5000,tvol:22000,tliq:44000,buys:200,sells:180}
+ ];
+ const pg=page('arc',specs),mt=multi('arc',specs);
+ // Reproduce the real input class behind the post-deployment 503:
+ // a GeckoTerminal pool with null volume/liquidity values.
+ pg.data[0].attributes.volume_usd.h24=null;
+ pg.data[0].attributes.reserve_in_usd=null;
+ pg.data[1].attributes.volume_usd.h24=null;
+ pg.data[1].attributes.reserve_in_usd=null;
+ mt.data[1].attributes.volume_usd.h24=null;
+ mt.data[1].attributes.total_reserve_in_usd=null;
+ const f=router([[/tokens\/multi/,()=>resp(mt)],[/coingecko\.com/,()=>resp(pg)]]);
+ const out=await radar.load('arc',{env:ENV,fetcher:f,now:()=>T0,disableCache:true});
+ assert.deepEqual(out.tokens.map(t=>t.symbol),['FROMTOKEN']);
+ assert.equal(out.tokens[0].volume24hUsd,22000);
+ assert.equal(out.tokens[0].liquidityUsd,44000);
+ assert.equal(out.tokens[0].fields.volume24hUsd.status,'SOURCE_REPORTED');
+ assert.ok((out.discovery.excludedCounts.INELIGIBLE||0)+(out.discovery.excludedCounts.INELIGIBLE_AFTER_VERIFICATION||0)>=1);
+ assert.equal(out.usage.geckoterminal,4,'no extra provider calls');
+});
 test('Arc fills ranks from candidates 21–30 when top 20 fail actual source cross-verification, using one DEX request',async()=>{
  const specs=Array.from({length:25},(_,i)=>({a:addr(800+i),s:'ARC'+i,
   vol:800000-i*1000,liq:500000,price:0.5,age:5,buys:250,sells:240}));
