@@ -207,6 +207,32 @@ test('Arc fills ranks from candidates 21–30 when top 20 fail actual source cro
  assert.equal(out.usage.geckoterminal,4,'no additional GeckoTerminal credits');
  assert.ok(out.tokens.every(t=>t.fields.priceUsd.status==='CROSS_VERIFIED'));
 });
+test('Arc selects verified same-ticker fallback but never promotes an impostor over a curated identity',async()=>{
+ const specs=[
+  {a:addr(910),s:'MENTIONS',vol:950000,liq:300000,price:0.5,age:5},
+  {a:addr(911),s:'MENTIONS',vol:900000,liq:300000,price:0.5,age:5},
+  {a:addr(912),s:'IDENT',coin:'identified-project',vol:500000,liq:300000,price:0.5,age:5},
+  {a:addr(913),s:'IDENT',vol:600000,liq:300000,price:0.5,age:5},
+  {a:addr(914),s:'GOOD',vol:800000,liq:300000,price:0.5,age:5}
+ ];
+ const pairs=specs.map((x,i)=>({
+  chainId:'arc',pairAddress:addr(70000+i),baseToken:{address:x.a},quoteToken:{address:addr(900)},
+  priceUsd:i===0||i===2?'99':'0.5',volume:{h24:x.vol},liquidity:{usd:300000},
+  priceChange:{h24:12},fdv:1000000,pairCreatedAt:T0-5*DAY
+ }));
+ const f=router([[/tokens\/multi/,()=>resp(multi('arc',specs))],
+  [/coingecko\.com/,()=>resp(page('arc',specs))],
+  [/api\.dexscreener\.com/,()=>resp(pairs)]]);
+ const out=await radar.load('arc',{env:{...ENV,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
+ assert.equal(out.tokens.filter(t=>t.symbol==='MENTIONS').length,1);
+ assert.equal(out.tokens.find(t=>t.symbol==='MENTIONS').address,addr(911),'higher-score invalid contract must not delete good same-ticker candidate');
+ assert.ok(out.tokens.some(t=>t.symbol==='GOOD'));
+ assert.ok(!out.tokens.some(t=>t.address===addr(913)),'a curated-ticker conflict never becomes an uncurated fallback');
+ assert.ok(!out.tokens.some(t=>t.address===addr(912)),'curated candidate still needs independent market verification');
+ assert.equal(out.usage.dexscreener,1);
+ assert.equal(out.usage.geckoterminal,4);
+ assert.ok(out.tokens.every(t=>t.fields.priceUsd.status==='CROSS_VERIFIED'));
+});
 test('duplicate representations of one asset on a chain collapse to a single entry',async()=>{
  const specs=[{a:addr(60),s:'DUP',n:'Dup',vol:5e5,liq:6e5,coin:'dup-coin'},{a:addr(61),s:'DUP',n:'Dup',vol:9e5,liq:6e5},{a:addr(62),s:'REAL',vol:4e5,liq:6e5}];
  const out=await run('arc',specs);
