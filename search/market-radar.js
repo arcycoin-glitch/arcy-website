@@ -269,7 +269,11 @@
   }
   for(const [key,data] of overviewData)if(key===id)renderOverview(key,data);
  }
- for(const [id,btn] of buttons)btn.addEventListener('click',()=>selectNetwork(id));
+ for(const [id,btn] of buttons)btn.addEventListener('click',()=>{
+  selectNetwork(id);
+  // Keep the detailed token rows in sync with the selected network.
+  if(active==='radar')void load(id);
+ });
  selectNetwork('robinhood');
  const BADGE={CROSS_VERIFIED:['✓ Cross-checked','verified'],SOURCE_REPORTED:['Source-reported','reported'],NOT_VERIFIED:['NOT VERIFIED','unverified'],ONCHAIN_VERIFIED:['✓ Onchain','verified']};
  const fieldOk=(item,f)=>item.fields&&item.fields[f]&&item.fields[f].status!=='NOT_VERIFIED'&&item[f]!==null&&item[f]!==undefined;
@@ -331,17 +335,13 @@
   credit.replaceChildren();
   status.textContent='Checking sources for '+chains.find(x=>x[0]===network)[1]+'…';
   try{
-   const ctl=new AbortController(),timeout=setTimeout(()=>ctl.abort(),12000);
-   let response,body;
-   try{
-    response=await fetch('/api/search?action=radar&chain='+encodeURIComponent(network),{signal:ctl.signal,cache:'no-store',headers:{accept:'application/json'}});
-    body=await response.json();
-   }finally{clearTimeout(timeout)}
+   // Reuse the already validated overview response rather than requesting
+   // the provider twice when users switch chains.
+   let body=overviewData.get(network);
+   if(!body){await refreshOverview(network);body=overviewData.get(network);}
    if(mine!==sequence)return;
-   if(!response.ok||body?.ok!==true||body.network!==network||
-      !Array.isArray(body.tokens)||body.tokens.length>10||
-      body.chainId!==CHAIN_ID[network]||body.version!==2)
-    throw Error(body?.error==='RADAR_NOT_CONFIGURED'?'Live radar is awaiting an approved data license.':'Verified ranking is currently unavailable.');
+   if(!validOverview(network,body))
+    throw Error('Verified ranking is currently unavailable.');
    items=body.tokens.filter(item=>/^0x[0-9a-f]{40}$/i.test(item?.address)&&typeof item.symbol==='string'&&typeof item.name==='string'&&item.fields&&typeof item.fields==='object');
    loadedNetwork=network;
    const cov=body.coverage||{};
@@ -393,7 +393,11 @@
     const data=await response.json();
     renderOverview(network,data);
     const ready=validOverview(network,data)&&data.tokens.length>0;
-    if(ready){radarBtn.disabled=false;radarBtn.removeAttribute('title');}
+    if(ready){
+     radarBtn.disabled=false;radarBtn.removeAttribute('title');
+     // A manual retry can recover the currently selected detail list too.
+     if(active==='radar'&&selected===network&&loadedNetwork!==network)void load(network);
+    }
     return ready;
    }catch{renderOverview(network,null);return false;}
    finally{clearTimeout(timer);}

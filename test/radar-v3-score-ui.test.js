@@ -26,6 +26,7 @@ class Node{
  append(...xs){for(let x of xs){if(typeof x==='string')x=new Text(x);x.parent=this;this.children.push(x);}}
  prepend(...xs){for(let x of [...xs].reverse()){if(typeof x==='string')x=new Text(x);x.parent=this;this.children.unshift(x);}}
  replaceChildren(...xs){this.children=[];this._text='';this.append(...xs);}
+ getBoundingClientRect(){return {top:0};}
  setAttribute(k,v){this.attrs[k]=String(v);}
  getAttribute(k){return this.attrs[k]||null;}
  removeAttribute(k){delete this.attrs[k];}
@@ -115,6 +116,28 @@ test('network buttons preserve one-card navigation and Pons verified-empty state
  assert.equal(panel(detail,'pons').hidden,true);
  const pons=nav.children.find(c=>c.dataset.network==='pons');pons.click();
  assert.match(panel(detail,'pons').querySelector('.arcy-radar-overview-empty').textContent,/factory ile doğrulanmış/);
+});
+test('Pons network selection syncs detail rows without duplicate API requests',async()=>{
+ const ponsResult=data('pons');
+ ponsResult.tokens[0].symbol='PNST';
+ ponsResult.tokens[0].name='Pons verified token';
+ const {detail,calls}=await mount({overrides:{pons:ponsResult}});
+ const views=detail.querySelectorAll('.arcy-radar-view-button');
+ views[1].click(); // Enter Market Radar while Robinhood is selected.
+ await new Promise(setImmediate);
+ const rows=detail.querySelector('.arcy-radar-rows');
+ assert.match(rows.textContent,/Nova token/);
+ const nav=detail.querySelector('.arcy-radar-networks');
+ nav.children.find(c=>c.dataset.network==='pons').click();
+ await new Promise(setImmediate);
+ assert.match(rows.textContent,/Pons verified token/);
+ assert.doesNotMatch(rows.textContent,/Nova token/);
+ assert.equal(calls.length,4,'switching networks must reuse existing verified data');
+ nav.children.find(c=>c.dataset.network==='robinhood').click();
+ await new Promise(setImmediate);
+ assert.match(rows.textContent,/Nova token/);
+ assert.doesNotMatch(rows.textContent,/Pons verified token/);
+ assert.equal(calls.length,4);
 });
 test('responsive mobile slots and truthful copy are present',()=>{
  assert.match(css,/grid-template-areas:\s*"token token score"\s*"price change volume"\s*"reason reason reason"/);
