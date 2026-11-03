@@ -43,6 +43,7 @@
  function select(index,focus=false){if(index===active){if(focus)buttons[index].focus();return;}const direction=index>active?1:-1;animation?.cancel();active=index;
   panels.forEach((panel,i)=>{panel.inert=i!==index;panel.setAttribute('aria-hidden',String(i!==index));buttons[i].setAttribute('aria-selected',String(i===index));buttons[i].tabIndex=i===index?0:-1;});
   if(focus)buttons[index].focus();if(!reduced.matches)animation=panels[index].animate([{transform:'translateX('+direction*12+'px)',opacity:.7},{transform:'translateX(0)',opacity:1}],{duration:180,easing:'ease-out'});
+  syncControls();
  }
  // Mobile-only horizontal gesture navigation for the existing three chain panels.
  // Keep the existing tab navigation, data loading, and desktop layout untouched.
