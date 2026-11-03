@@ -96,7 +96,7 @@ const change24hReason=item=>{
   const age=f&&Number(f.poolAgeHours);
   if(code==='POOL_LESS_THAN_24H_OLD'){
    const when=Number.isFinite(age)&&age>=0?'Bu havuz yaklaşık '+(age<10?age.toFixed(1):Math.round(age))+' saatlik':'Bu havuz 24 saatten genç';
-   return when+'. '+(f?.sourcesDisagree?'GeckoTerminal ve DEX Screener açılıştan beri değişimde ayrışıyor; iki kaynak değeri ayrı gösterilir. ':'')+'Bu ölçümler tam 24 saatlik değişim değildir ve Discovery Score yerine geçmez.';
+   return when+'. '+(f?.sourcesDisagree?'GeckoTerminal ve DEX Screener açılıştan beri değişimde ayrışıyor; iki kaynak değeri ayrı gösterilir. ':'')+'Bunlar havuz açılışından beri kısmi ölçümlerdir; tam 24 saatlik değişim değildir ve Discovery Score yerine geçmez.';
   }
   if(code==='SOURCES_DISAGREE')return 'Kaynaklar 24 saatlik değişimde birbirini doğrulamıyor (fark 3 puanı aşıyor); hangisinin doğru olduğu belirlenemediği için gösterilmez.';
   if(code==='SOURCE_24H_CHANGE_UNAVAILABLE')return 'Hiçbir kaynak bu token için 24 saatlik değişim bildirmedi.';
