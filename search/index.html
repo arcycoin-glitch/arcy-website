@@ -1346,17 +1346,14 @@ function showCandidates(data,network,version){
   meta.className='candidate-meta';
   const status=item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?' · OFFICIAL CONTRACT MATCHED':
    item.identity?.status==='REGISTRY_MATCHED'?' · ROBINHOOD STOCK TOKEN REGISTRY MATCHED':
-   ' · INDEXED · ISSUER UNCONFIRMED';
+   ' · Identity NOT VERIFIED';
   meta.textContent=NETWORKS[sourceNetwork].label+' · '+item.address.slice(0,8)+'…'+item.address.slice(-6)+' · '+(item.source||'Indexed candidate');
   info.append(title,meta);
   const badge=document.createElement('span');badge.className='candidate-badge';
   badge.textContent=item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'?'✓ Official':
    item.identity?.status==='REGISTRY_MATCHED'?'✓ Registry':
-   'INDEXED';
-  if(!item.identity||item.identity.status==='NOT_VERIFIED'){
-   badge.classList.add('unknown');
-   badge.title='Indexed contract candidate; the issuing project has not been independently confirmed.';
-  }
+   'Unverified';
+  if(!item.identity||item.identity.status==='NOT_VERIFIED')badge.classList.add('unknown');
   info.append(badge);detail.append(art,info);
   const choose=document.createElement('span');choose.textContent='→';choose.className='scan-label';
   option.setAttribute('aria-label',(item.name||item.symbol||'Token')+' · '+NETWORKS[sourceNetwork].label+' · contract '+item.address+' · '+badge.textContent);
@@ -1441,10 +1438,7 @@ function renderDetailMatches(matches,network,version){
   const badge=document.createElement('span');badge.className='detail-match-badge';
   if(item.identity?.status==='OFFICIAL_CONTRACT_MATCHED'){badge.textContent=NETWORKS[item.network].label+' · OFFICIAL CONTRACT';badge.classList.add('verified')}
   else if(item.identity?.status==='REGISTRY_MATCHED'){badge.textContent=NETWORKS[item.network].label+' · REGISTRY MATCH';badge.classList.add('verified')}
-  else {
-   badge.textContent=NETWORKS[item.network].label+' · INDEXED';
-   badge.title='Indexed contract candidate; issuer identity is not independently confirmed.';
-  }
+  else badge.textContent=NETWORKS[item.network].label+' · NOT VERIFIED';
   option.append(avatar,copy,badge);
   option.addEventListener('click',()=>{if(version!==searchVersion)return;activateDetail(item.address,item.network,{identity:item.identity,logoUrl:item.logoUrl})});
   container.append(option);
