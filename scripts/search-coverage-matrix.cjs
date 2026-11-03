@@ -17,5 +17,7 @@ async function get(p){const r=await fetch(BASE+p,{headers:{accept:'application/j
  try{raw.unlock=await get('/api/unlocks');}catch(e){raw.errors.push({section:'unlocks',error:e.message});}
  const totals={};for(const row of raw.samples){const k=row.section+'|'+row.card,t=totals[k]||={slots:0,filled:0,classes:{}};t.slots++;if(row.evidenceClass!=='NOT_VERIFIED')t.filled++;t.classes[row.evidenceClass]=(t.classes[row.evidenceClass]||0)+1;}
  raw.totals=totals;fs.writeFileSync(process.env.COVERAGE_OUTPUT||'/tmp/arcy-search-coverage.json',JSON.stringify(raw,null,2));console.log(JSON.stringify({at:raw.at,totals,unlock:{ok:raw.unlock?.ok,status:raw.unlock?.status,confirmed:raw.unlock?.confirmed?.length,reported:raw.unlock?.reported?.length},errors:raw.errors},null,2));
- if(raw.errors.length||!raw.samples.length||raw.unlock?.success!==true)process.exitCode=1;
+ // /api/unlocks publishes {ok, confirmed, reported}, not the upstream {success, events} edition.
+ const unlockValid=raw.unlock?.ok===true&&Array.isArray(raw.unlock?.confirmed)&&Array.isArray(raw.unlock?.reported);
+ if(raw.errors.length||!raw.samples.length||!unlockValid)process.exitCode=1;
 })().catch(e=>{console.error(e.message);process.exitCode=1;});
