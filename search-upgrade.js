@@ -194,7 +194,10 @@
     status.textContent='OFFICIAL CONTRACT';status.classList.add('official');break;
    case 'REGISTRY_MATCHED':
     status.textContent='REGISTRY MATCH';status.classList.add('registry');break;
-   default:status.textContent='NOT VERIFIED';status.classList.add('unverified');
+   default:
+     status.textContent='INDEXED';
+     status.title='Indexed contract candidate; issuer identity has not been independently confirmed.';
+     status.classList.add('unverified');
   }
   if(id?.status==='OFFICIAL_CONTRACT_MATCHED'&&id.issuer){
    const proof=document.createElement('small');proof.className='home-result-proof';
