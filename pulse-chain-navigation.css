@@ -9,13 +9,53 @@
 #pulse .pulse-chain-empty .pulse-source-placeholder{display:inline-block;margin-top:auto;padding-top:4px;font-size:10px;font-weight:800;color:var(--accent)}
 @media(max-width:580px){#pulse .pulse-chain-selector{gap:7px}#pulse .pulse-chain-selector button{padding:10px 12px;font-size:11px}}
 
-/* Pulse-only mobile swipe controls; desktop remains unchanged. */
-#pulse .pulse-swipe-controls{display:none}
-@media(max-width:580px){
- #pulse .pulse-chain-panels{touch-action:pan-y;overflow:hidden}
- #pulse .pulse-swipe-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
- #pulse .pulse-swipe-controls button{min-height:42px;padding:8px 13px;border:1px solid #27546c;border-radius:12px;background:#0b1e2d;color:#eaf6ff;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
- #pulse .pulse-swipe-controls button:disabled{opacity:.35;cursor:default}
- #pulse .pulse-swipe-controls button:focus-visible{outline:2px solid #ff984b;outline-offset:2px}
- #pulse .pulse-swipe-counter{font-size:12px;color:#9ebdcc;font-variant-numeric:tabular-nums}
+/* Pulse-only: on mobile, research cards form a one-card horizontal carousel.
+   Existing network tabs remain separate, and desktop grid is untouched. */
+#pulse .pulse-card-controls{display:none}
+@media(max-width:760px){
+ #pulse .pulse-grid{
+  display:flex;
+  flex-wrap:nowrap;
+  gap:12px;
+  max-width:100%;
+  min-width:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-snap-type:x mandatory;
+  scroll-padding-inline:0;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+ }
+ #pulse .pulse-grid::-webkit-scrollbar{display:none}
+ #pulse .pulse-grid > .pulse-card{
+  flex:0 0 100%;
+  box-sizing:border-box;
+  min-width:0;
+  max-width:100%;
+  scroll-snap-align:start;
+  scroll-snap-stop:always;
+ }
+ #pulse .pulse-card-controls{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:14px;
+ }
+ #pulse .pulse-card-controls button{
+  min-height:42px;
+  padding:8px 12px;
+  border:1px solid #27546c;
+  border-radius:12px;
+  background:#0b1e2d;
+  color:#eaf6ff;
+  font:inherit;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+ }
+ #pulse .pulse-card-controls button:disabled{opacity:.35;cursor:default}
+ #pulse .pulse-card-controls button:focus-visible{outline:2px solid #ff984b;outline-offset:2px}
+ #pulse .pulse-card-counter{font-size:12px;color:#9ebdcc;font-variant-numeric:tabular-nums}
 }
