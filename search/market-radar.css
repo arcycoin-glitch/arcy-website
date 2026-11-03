@@ -1001,3 +1001,11 @@
 .arcy-radar-partial-value.negative{color:#ff7180}
 .arcy-radar-partial-label{font-size:clamp(7px,.64vw,9px);font-weight:650;letter-spacing:0;color:#abc6d9}
 @media(max-width:520px){.arcy-radar-partial-value{font-size:11px}.arcy-radar-partial-label{font-size:8px}}
+
+/* Conflicting young-pool quotes are two labelled source observations, NOT a 24h change. */
+.arcy-radar-partial-conflict{gap:1px;max-width:100%}
+.arcy-radar-partial-source{display:inline-flex;align-items:baseline;justify-content:center;gap:3px;white-space:nowrap;max-width:100%}
+.arcy-radar-partial-provider{font-size:8px;font-weight:850;color:#a9c6db}
+.arcy-radar-partial-conflict .arcy-radar-partial-value{font-size:clamp(9px,.82vw,12px);line-height:1}
+.arcy-radar-partial-conflict .arcy-radar-partial-label{font-size:clamp(6px,.57vw,8px);letter-spacing:-.015em;text-align:center;white-space:nowrap}
+@media(max-width:520px){.arcy-radar-partial-conflict .arcy-radar-partial-value{font-size:9px}.arcy-radar-partial-conflict .arcy-radar-partial-label{font-size:7px}}
