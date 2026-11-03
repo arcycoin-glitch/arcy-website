@@ -102,6 +102,20 @@ const change24hReason=item=>{
   if(code==='SOURCE_24H_CHANGE_UNAVAILABLE')return 'Hiçbir kaynak bu token için 24 saatlik değişim bildirmedi.';
   return 'Bu token için 24 saatlik değişim doğrulanamadı.';
  };
+ // Keep the actual 24h field unverified for young pools. A separately
+ // labelled since-launch reading can still be displayed from the preserved
+ // exact-pool source evidence; it is NOT used in ranking or the 24h score.
+ const partialSinceLaunch=item=>{
+  const f=item?.fields?.change24hPct;
+  if(f?.reasonCode!=='POOL_LESS_THAN_24H_OLD'||f.window!=='PARTIAL_SINCE_POOL_CREATION'||f.sourcesDisagree===true)return null;
+  const age=f.poolAgeHours;
+  if(typeof age!=='number'||!Number.isFinite(age)||age<0||age>=24||!Array.isArray(f.sources))return null;
+  const gecko=f.sources.find(x=>x?.provider==='GeckoTerminal'&&typeof x.value==='number'&&Number.isFinite(x.value));
+  if(!gecko)return null;
+  const dex=f.sources.find(x=>x?.provider==='DEX Screener'&&typeof x.value==='number'&&Number.isFinite(x.value));
+  if(dex&&Math.abs(gecko.value-dex.value)>3)return null; // Never select a conflicting partial reading.
+  return {value:gecko.value,source:dex?'GeckoTerminal + DEX Screener':'GeckoTerminal'};
+ };
  let infoPop=null,infoOwner=null,infoPinned=false;
  const closeInfo=()=>{
   if(infoOwner){infoOwner.setAttribute('aria-expanded','false');infoOwner.removeAttribute('aria-describedby');}
@@ -129,7 +143,15 @@ const change24hReason=item=>{
   infoPop.style.top=(r.bottom+h+10>window.innerHeight&&r.top>h+10?r.top-h-6:r.bottom+6)+'px';
  };
  const withInfo=(cell,item)=>{
-  const wrap=el('span','arcy-radar-dash',cell.textContent);
+  const partial=partialSinceLaunch(item);
+  const wrap=el('span','arcy-radar-dash'+(partial?' arcy-radar-partial':''));
+  if(partial){
+   const metric=el('span','arcy-radar-partial-metric');
+   const value=el('strong','arcy-radar-partial-value '+(partial.value>=0?'positive':'negative'),pct(partial.value));
+   metric.append(value,el('small','arcy-radar-partial-label','Açılıştan beri'));
+   metric.title=partial.source+' kaynaklı, havuz açılışından beri kısmi değişim. Tam 24 saatlik değişim değildir.';
+   wrap.append(metric);
+  }else wrap.append(el('span','',cell.textContent));
   cell.textContent='';wrap.append(infoIcon(item));cell.append(wrap);
  };
  const infoIcon=item=>{
