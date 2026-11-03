@@ -96,7 +96,7 @@ const change24hReason=item=>{
   const age=f&&Number(f.poolAgeHours);
   if(code==='POOL_LESS_THAN_24H_OLD'){
    const when=Number.isFinite(age)&&age>=0?'Bu havuz yaklaşık '+(age<10?age.toFixed(1):Math.round(age))+' saatlik':'Bu havuz 24 saatten genç';
-   return when+'. Sağlayıcı yalnızca havuz oluşumundan bu yana geçen kısmi değişimi bildirir; bu 24 saatlik değişim olmadığı için gösterilmez.';
+   return when+'. Tam 24 saatlik fiyat değişimi henüz mevcut değil. Kaynağın bildirdiği kısmi dönem değeri varsa Açılıştan beri etiketiyle ayrı gösterilir; doğrulanmış 24s değişimi veya Discovery Score yerine geçmez.';
   }
   if(code==='SOURCES_DISAGREE')return 'Kaynaklar 24 saatlik değişimde birbirini doğrulamıyor (fark 3 puanı aşıyor); hangisinin doğru olduğu belirlenemediği için gösterilmez.';
   if(code==='SOURCE_24H_CHANGE_UNAVAILABLE')return 'Hiçbir kaynak bu token için 24 saatlik değişim bildirmedi.';
