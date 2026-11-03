@@ -90,6 +90,64 @@
  const price=n=>typeof n==='number'&&Number.isFinite(n)?'$'+PRICE.format(n):'—';
  const pct=n=>typeof n==='number'&&Number.isFinite(n)?PCT.format(n)+'%':'—';
  const NV='N/A';
+const change24hReason=item=>{
+  const f=item&&item.fields&&item.fields.change24hPct;
+  const code=f&&f.reasonCode;
+  const age=f&&Number(f.poolAgeHours);
+  if(code==='POOL_LESS_THAN_24H_OLD'){
+   const when=Number.isFinite(age)&&age>=0?'Bu havuz yaklaşık '+(age<10?age.toFixed(1):Math.round(age))+' saatlik':'Bu havuz 24 saatten genç';
+   return when+'. Sağlayıcı yalnızca havuz oluşumundan bu yana geçen kısmi değişimi bildirir; bu 24 saatlik değişim olmadığı için gösterilmez.';
+  }
+  if(code==='SOURCES_DISAGREE')return 'Kaynaklar 24 saatlik değişimde birbirini doğrulamıyor (fark 3 puanı aşıyor); hangisinin doğru olduğu belirlenemediği için gösterilmez.';
+  if(code==='SOURCE_24H_CHANGE_UNAVAILABLE')return 'Hiçbir kaynak bu token için 24 saatlik değişim bildirmedi.';
+  return 'Bu token için 24 saatlik değişim doğrulanamadı.';
+ };
+ let infoPop=null,infoOwner=null,infoPinned=false;
+ const closeInfo=()=>{
+  if(infoOwner){infoOwner.setAttribute('aria-expanded','false');infoOwner.removeAttribute('aria-describedby');}
+  if(infoPop)infoPop.hidden=true;
+  infoOwner=null;infoPinned=false;
+ };
+ let infoGlobals=false;
+ const bindInfoGlobals=()=>{
+  if(infoGlobals)return;infoGlobals=true;
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&infoOwner){const o=infoOwner;closeInfo();o.focus();}});
+  document.addEventListener('click',e=>{if(infoOwner&&!(e.target&&e.target.closest&&e.target.closest('.arcy-radar-info')))closeInfo();});
+  window.addEventListener('scroll',()=>{if(infoOwner)closeInfo();},{passive:true});
+ };
+ const openInfo=(icon,pinned)=>{
+  bindInfoGlobals();
+  if(!infoPop){infoPop=el('div','arcy-radar-info-pop');infoPop.id='arcyRadarInfoPop';infoPop.setAttribute('role','tooltip');infoPop.hidden=true;document.body.append(infoPop);}
+  if(infoOwner&&infoOwner!==icon)closeInfo();
+  infoOwner=icon;infoPinned=!!pinned;
+  infoPop.textContent=icon.dataset.reason;infoPop.hidden=false;
+  icon.setAttribute('aria-expanded','true');icon.setAttribute('aria-describedby',infoPop.id);
+  const r=icon.getBoundingClientRect(),w=Math.min(260,document.documentElement.clientWidth-16);
+  infoPop.style.maxWidth=w+'px';
+  const h=infoPop.offsetHeight;
+  infoPop.style.left=Math.max(8,Math.min(r.left+r.width/2-w/2,document.documentElement.clientWidth-w-8))+'px';
+  infoPop.style.top=(r.bottom+h+10>window.innerHeight&&r.top>h+10?r.top-h-6:r.bottom+6)+'px';
+ };
+ const withInfo=(cell,item)=>{
+  const wrap=el('span','arcy-radar-dash',cell.textContent);
+  cell.textContent='';wrap.append(infoIcon(item));cell.append(wrap);
+ };
+ const infoIcon=item=>{
+  const reason=change24hReason(item);
+  const icon=el('span','arcy-radar-info','i');
+  icon.setAttribute('role','button');icon.tabIndex=0;
+  icon.dataset.reason=reason;
+  icon.setAttribute('aria-label','24 saatlik değişim neden yok: '+reason);
+  icon.setAttribute('aria-expanded','false');
+  const stop=e=>{e.preventDefault();e.stopPropagation();};
+  icon.addEventListener('click',e=>{stop(e);if(infoOwner===icon&&infoPinned)closeInfo();else openInfo(icon,true);});
+  icon.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){stop(e);if(infoOwner===icon&&infoPinned)closeInfo();else openInfo(icon,true);}});
+  icon.addEventListener('mouseenter',()=>{if(!infoPinned)openInfo(icon,false);});
+  icon.addEventListener('mouseleave',()=>{if(!infoPinned&&infoOwner===icon)closeInfo();});
+  icon.addEventListener('focus',()=>{if(!infoPinned)openInfo(icon,false);});
+  icon.addEventListener('blur',()=>{if(infoOwner===icon)closeInfo();});
+  return icon;
+ };
  const networkTheme={arc:'arc',ethereum:'ethereum',robinhood:'robinhood',pons:'pons'};
  const icon={arc:'',ethereum:'',robinhood:'',pons:''};
  const overviewData=new Map();
@@ -167,7 +225,7 @@
    const volume=el('span','arcy-radar-overview-volume',fieldOk(item,'volume24hUsd')?money(item.volume24hUsd):'N/A');
    const priceLabel=el('span','arcy-radar-overview-price',fieldOk(item,'priceUsd')?price(item.priceUsd):'N/A');
    const change=el('span','arcy-radar-overview-change',fieldOk(item,'change24hPct')?pct(item.change24hPct):'—');
-   if(fieldOk(item,'change24hPct'))change.classList.add(item.change24hPct>=0?'positive':'negative');
+   if(fieldOk(item,'change24hPct'))change.classList.add(item.change24hPct>=0?'positive':'negative');else withInfo(change,item);
    const arrow=el('span','arcy-radar-overview-token-arrow',validAddress?'›':'');arrow.setAttribute('aria-hidden','true');
    const rank=el('span','arcy-radar-overview-rank',String(Number.isInteger(item.rank)?item.rank:index+1));
    if(index<3)rank.classList.add('is-top-'+(index+1));
@@ -318,6 +376,7 @@
    for(const w of warn)stats.append(el('span','arcy-radar-warn',w));
    const change=el('span','arcy-radar-change',fieldOk(item,'change24hPct')?pct(item.change24hPct):NV);
    if(fieldOk(item,'change24hPct')&&typeof item.change24hPct==='number')change.classList.add(item.change24hPct>=0?'positive':'negative');
+   if(!fieldOk(item,'change24hPct'))withInfo(change,item);
    link.append(rank,identity,stats,change,el('span','arcy-radar-arrow','›'));
    rows.append(link);
   }
