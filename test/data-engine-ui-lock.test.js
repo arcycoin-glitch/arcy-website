@@ -5,6 +5,7 @@
 // This test MUST NOT be bypassed, skipped, rewritten or rebaselined to make
 // data-only changes pass. If main changes independently, stop/review rather
 // than approving a new skeleton in this data audit.
+// 2026-11-03 owner-requested Radar exception: accessible info icon beside unavailable 24h change (market-radar.js/.css only; reasonCode/poolAgeHours, no policy/score/data change).
 // 2026-10-31 owner-approved UI exception (PR #121): source-rendered single Synthra CTA
 // replaces the duplicate community card with a premium Synthra destination panel and scoped footer/layout CSS.
 // The owner-requested UI redesign changes only index.html; all other protected file hashes remain pinned.
@@ -23,8 +24,8 @@ const BASELINE = Object.freeze({
   "hero-video.js": "40942f382f1650b90d1d7572d0d1874217d4a3c0",
   "search/index.html": "39cedc0b6f962c1e0755818be077ac9060c1f102",
   // 2026-11-01 owner-requested Pons availability exception: truthful source states and controlled manual retry; layout/CSS unchanged.
-  "search/market-radar.js": "10d9d93a8ab79042cd3c8e6bf0752efbe554fd9c",
-  "search/market-radar.css": "b8884da23b11369d2ccc1176989c2508ce3443f7",
+  "search/market-radar.js": "a89b5749ee6720ef7878f7792008bcda0081f48b",
+  "search/market-radar.css": "589a9a063a42d34d695f97cca595eb000b3f8162",
   "search/assets/arc-network-mark.svg": "164d2a27c837cd58e42cf12d5d9a89ad4a546225",
   "search/assets/ethereum-mark.svg": "b92e033331b638dc4e2904aaa96b9f7e20917eb7",
   "search/assets/robinhood-chain-mark.svg": "3cb7faadf2cd29c1b158065283c688f424079a8e"
