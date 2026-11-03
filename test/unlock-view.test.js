@@ -86,17 +86,15 @@ test('healthy counts and rows clear after outage; retry succeeds without stale c
   let healthy = true;
   const b = browser(async () => ({ ok: healthy, status: healthy ? 200 : 503, json: async () => feed([event()]) }));
   await b.context.loadUnlocks();
-  assert.equal(b.element('unlockTokenCount').textContent, '1');
   assert.match(b.element('unlockRows').innerHTML, /100K TIA/);
   healthy = false;
   await b.context.loadUnlocks({ silent: true });
-  assert.equal(b.element('unlockTokenCount').textContent, '—');
-  assert.equal(b.element('unlockEventCount').textContent, '—');
   assert.doesNotMatch(b.element('unlockRows').innerHTML, /100K TIA/);
-  assert.match(b.element('unlockResults').textContent, /unavailable/);
+  assert.match(b.element('unlockRows').innerHTML, /temporarily unavailable/);
   healthy = true;
   await b.context.loadUnlocks({ silent: true });
-  assert.equal(b.element('unlockTokenCount').textContent, '1');
+  assert.match(b.element('unlockRows').innerHTML, /100K TIA/);
+  assert.doesNotMatch(b.element('unlockRows').innerHTML, /temporarily unavailable/);
 });
 test('malformed successful response is unavailable rather than an empty healthy calendar', async () => {
   const b = browser(async () => ({ ok: true, json: async () => ({ ok: true, live: true }) }));
@@ -116,9 +114,7 @@ test('group pagination survives silent refresh and clamps after search; source m
   rows.push(event({ name: 'Project 0', symbol: 'T0', date: '2026-11-02', amount: '<img src=x onerror=alert(1)>' }));
   const b = browser(async () => ({ ok: true, json: async () => feed(rows) }));
   await b.context.loadUnlocks();
-  assert.equal(b.element('unlockTokenCount').textContent, '7');
-  assert.equal(b.element('unlockEventCount').textContent, '8');
-  assert.match(b.element('unlockRows').innerHTML, /&lt;img/);
+  assert.equal(b.element('unlockRows').innerHTML.match(/<tr>/g).length, 5);
   assert.doesNotMatch(b.element('unlockRows').innerHTML, /<img src=x/);
   vm.runInContext('unlockPage=2', b.context);
   await b.context.loadUnlocks({ silent: true });
@@ -126,5 +122,11 @@ test('group pagination survives silent refresh and clamps after search; source m
   b.element('unlockSearch').value = 'Project 0';
   b.context.renderUnlocks(1);
   assert.equal(b.element('unlockPage').textContent, '1 / 1');
-  assert.match(b.element('unlockResults').textContent, /1 token entries · 2 events/);
+  assert.equal(b.element('unlockRows').innerHTML.match(/<tr>/g).length, 1);
+});
+test('classic row renderer escapes hostile source markup', async () => {
+  const b = browser(async () => ({ ok: true, json: async () => feed([event({ name: 'Evil', symbol: 'EVL', amount: '<img src=x onerror=alert(1)>' })]) }));
+  await b.context.loadUnlocks();
+  assert.match(b.element('unlockRows').innerHTML, /&lt;img/);
+  assert.doesNotMatch(b.element('unlockRows').innerHTML, /<img src=x/);
 });

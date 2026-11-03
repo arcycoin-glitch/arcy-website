@@ -543,7 +543,7 @@ async function loadUnlocks({silent=false}={}){
     const note=document.querySelector('#unlocks .note');
     if(note){
       const stamp=j.updatedAt?new Date(j.updatedAt).toLocaleString():'';
-      note.textContent=`Published calendars${stamp?' • Checked: '+stamp:''} • Source: ${j.source||'public calendar'}. Coverage is limited.`;
+      note.textContent=`Published calendars${stamp?' • Checked: '+stamp:''} • Source: ${j.source||'public calendar'}. Coverage is limited.${j.coverage?.independentPublishers===1?' '+(j.coverage.publisherNote||'All listed rows come from one publisher; they are not independent confirmations.'):''}`;
     }
     if(!silent)unlockPage=1;
     renderUnlocks(activeUnlockDays());
