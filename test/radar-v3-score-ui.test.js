@@ -139,6 +139,47 @@ test('Pons network selection syncs detail rows without duplicate API requests',a
  assert.doesNotMatch(rows.textContent,/Pons verified token/);
  assert.equal(calls.length,4);
 });
+test('young-pool partial source reading is labelled since-launch, never verified 24h',async()=>{
+ const young=data('pons');
+ young.tokens[0].change24hPct=null;
+ young.tokens[0].fields.change24hPct={
+  status:'NOT_VERIFIED',value:null,reasonCode:'POOL_LESS_THAN_24H_OLD',poolAgeHours:18,
+  window:'PARTIAL_SINCE_POOL_CREATION',
+  sources:[{provider:'GeckoTerminal',value:264.9},{provider:'DEX Screener',value:261.0}]
+ };
+ // These sources differ by >3 points, so partial readings are not shown either.
+ const {detail}=await mount({overrides:{pons:young}});
+ const p=panel(detail,'pons');
+ assert.equal(p.querySelector('.arcy-radar-partial-value'),null);
+ assert.match(p.querySelector('.arcy-radar-overview-change').textContent,/—/);
+ assert.ok(p.querySelector('.arcy-radar-info'),'missing 24h retains its reason');
+ young.tokens[0].fields.change24hPct.sources[1].value=263.1;
+ // Mount independently: the new source values agree, but do not establish full 24h.
+ const a=await mount({overrides:{pons:young}});
+ const card=panel(a.detail,'pons');
+ assert.equal(card.querySelector('.arcy-radar-partial-value').textContent,'+264.9%');
+ assert.equal(card.querySelector('.arcy-radar-partial-label').textContent,'Açılıştan beri');
+ assert.match(card.querySelector('.arcy-radar-partial-metric').title,/Tam 24 saatlik değişim değildir/);
+ assert.ok(card.querySelector('.arcy-radar-info'),'reason icon remains visible');
+ assert.equal(young.tokens[0].change24hPct,null,'no 24h value is substituted');
+ const nav=a.detail.querySelector('.arcy-radar-networks');
+ a.detail.querySelectorAll('.arcy-radar-view-button')[1].click();
+ nav.children.find(c=>c.dataset.network==='pons').click();
+ await new Promise(setImmediate);
+ const rows=a.detail.querySelector('.arcy-radar-rows');
+ assert.match(rows.textContent,/Açılıştan beri/);
+ assert.match(rows.textContent,/264.9%/);
+});
+test('unverified or conflicting 24h observations are never replaced by partial values',async()=>{
+ const bad=data('pons');
+ bad.tokens[0].change24hPct=null;
+ bad.tokens[0].fields.change24hPct={status:'NOT_VERIFIED',value:null,reasonCode:'SOURCES_DISAGREE',
+  sources:[{provider:'GeckoTerminal',value:155.7},{provider:'DEX Screener',value:189}]};
+ const {detail}=await mount({overrides:{pons:bad}});
+ const cell=panel(detail,'pons').querySelector('.arcy-radar-overview-change');
+ assert.match(cell.textContent,/—/);
+ assert.equal(cell.querySelector('.arcy-radar-partial-metric'),null);
+});
 test('responsive mobile slots and truthful copy are present',()=>{
  assert.match(css,/grid-template-areas:\s*"token token score"\s*"price change volume"\s*"reason reason reason"/);
  assert.match(css,/@media\(max-width:390px\)/);
