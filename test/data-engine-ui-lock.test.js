@@ -26,7 +26,7 @@ const BASELINE = Object.freeze({
   "hero-video.js": "40942f382f1650b90d1d7572d0d1874217d4a3c0",
   "search/index.html": "39cedc0b6f962c1e0755818be077ac9060c1f102",
   // 2026-11-01 owner-requested Pons availability exception: truthful source states and controlled manual retry; layout/CSS unchanged.
-  "search/market-radar.js": "69d20331cf234d9f5a65bff94ca10c96a2589e76",
+  "search/market-radar.js": "893b8b98920683c2d5dabd62a8dc0e6144e201a2",
   "search/market-radar.css": "aad9a68610cfa2e38405bc29e1d23ea412a284fd",
   "search/assets/arc-network-mark.svg": "164d2a27c837cd58e42cf12d5d9a89ad4a546225",
   "search/assets/ethereum-mark.svg": "b92e033331b638dc4e2904aaa96b9f7e20917eb7",
