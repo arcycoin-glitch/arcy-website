@@ -8,3 +8,14 @@
 #pulse .pulse-chain-panel[aria-hidden="true"]{visibility:hidden;pointer-events:none}
 #pulse .pulse-chain-empty .pulse-source-placeholder{display:inline-block;margin-top:auto;padding-top:4px;font-size:10px;font-weight:800;color:var(--accent)}
 @media(max-width:580px){#pulse .pulse-chain-selector{gap:7px}#pulse .pulse-chain-selector button{padding:10px 12px;font-size:11px}}
+
+/* Pulse-only mobile swipe controls; desktop remains unchanged. */
+#pulse .pulse-swipe-controls{display:none}
+@media(max-width:580px){
+ #pulse .pulse-chain-panels{touch-action:pan-y;overflow:hidden}
+ #pulse .pulse-swipe-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
+ #pulse .pulse-swipe-controls button{min-height:42px;padding:8px 13px;border:1px solid #27546c;border-radius:12px;background:#0b1e2d;color:#eaf6ff;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+ #pulse .pulse-swipe-controls button:disabled{opacity:.35;cursor:default}
+ #pulse .pulse-swipe-controls button:focus-visible{outline:2px solid #ff984b;outline-offset:2px}
+ #pulse .pulse-swipe-counter{font-size:12px;color:#9ebdcc;font-variant-numeric:tabular-nums}
+}
