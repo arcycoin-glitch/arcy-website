@@ -140,6 +140,30 @@ test('fewer than 10 qualifying tokens: the list is shorter, never padded',async(
  const out=await run('arc',specs);
  assert.deepEqual(out.tokens.map(t=>t.symbol).sort(),['ONE','TWO']);
 });
+test('Arc rescues legitimate candidates using token-level totals without lowering final verification gates or raising provider calls',async()=>{
+ const specs=[
+  {a:addr(510),s:'EXISTING',vol:90000,liq:85000,buys:100,sells:100},
+  {a:addr(511),s:'RECOVERED',vol:2000,liq:9000,tvol:18500,tliq:48000,buys:200,sells:180},
+  {a:addr(512),s:'TOOLOW',vol:2000,liq:9000,tvol:2500,tliq:11000,buys:200,sells:180},
+  {a:addr(513),s:'TOOFEW',vol:2000,liq:9000,tvol:85000,tliq:90000,buys:2,sells:2},
+  {a:addr(514),s:'WETH',n:'Wrapped Ether',vol:1000,liq:1000,tvol:1e6,tliq:1e6,buys:100,sells:100}
+ ];
+ const out=await run('arc',specs);
+ const syms=out.tokens.map(t=>t.symbol);
+ assert.ok(syms.includes('EXISTING'),'already eligible token must remain in ranking');
+ assert.ok(syms.includes('RECOVERED'),'token aggregate volume/liquidity must be considered before exclusion');
+ assert.ok(!syms.includes('TOOLOW'),'post-verification network floors remain hard limits');
+ assert.ok(!syms.includes('TOOFEW'),'minimum trade count remains enforced');
+ assert.ok(!syms.includes('WETH'),'identity exclusions remain enforced');
+ const recovered=out.tokens.find(t=>t.symbol==='RECOVERED');
+ assert.equal(recovered.fields.volume24hUsd.scope,'TOKEN');
+ assert.equal(recovered.fields.liquidityUsd.scope,'TOKEN');
+ assert.equal(recovered.volume24hUsd,18500);
+ assert.equal(recovered.liquidityUsd,48000);
+ assert.ok(out.discovery.excludedCounts.INELIGIBLE_AFTER_VERIFICATION>=1);
+ assert.equal(out.usage.geckoterminal,4,'three existing pages plus one existing tokens/multi call');
+ assert.equal(out.usage.dexscreener,0,'no new cross-check when public DEX gate is off');
+});
 test('duplicate representations of one asset on a chain collapse to a single entry',async()=>{
  const specs=[{a:addr(60),s:'DUP',n:'Dup',vol:5e5,liq:6e5,coin:'dup-coin'},{a:addr(61),s:'DUP',n:'Dup',vol:9e5,liq:6e5},{a:addr(62),s:'REAL',vol:4e5,liq:6e5}];
  const out=await run('arc',specs);
