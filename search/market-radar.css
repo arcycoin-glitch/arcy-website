@@ -992,3 +992,12 @@
 .arcy-radar-info-pop{position:fixed;z-index:2147483000;box-sizing:border-box;padding:9px 11px;border:1px solid #2a4658;border-radius:10px;background:#07131d;color:#dbe8f2;font:500 12px/1.45 system-ui,sans-serif;text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.45);pointer-events:none}
 .arcy-radar-info-pop[hidden]{display:none}
 .arcy-radar-dash{display:inline-flex;align-items:center;white-space:nowrap}
+
+/* Young-pool context: a source-reported SINCE-LAUNCH value, never a 24h figure. */
+.arcy-radar-partial{gap:3px;max-width:100%;vertical-align:middle}
+.arcy-radar-partial-metric{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;line-height:1.05;white-space:nowrap}
+.arcy-radar-partial-value{font-size:clamp(10px,.95vw,13px);font-weight:850;font-variant-numeric:tabular-nums}
+.arcy-radar-partial-value.positive{color:#43edc0}
+.arcy-radar-partial-value.negative{color:#ff7180}
+.arcy-radar-partial-label{font-size:clamp(7px,.64vw,9px);font-weight:650;letter-spacing:0;color:#abc6d9}
+@media(max-width:520px){.arcy-radar-partial-value{font-size:11px}.arcy-radar-partial-label{font-size:8px}}
