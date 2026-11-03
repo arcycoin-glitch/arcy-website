@@ -170,6 +170,43 @@ test('young-pool partial source reading is labelled since-launch, never verified
  assert.match(rows.textContent,/Açılıştan beri/);
  assert.match(rows.textContent,/264.9%/);
 });
+test('young Robinhood source disagreement shows both attributed since-launch values without a 24h claim',async()=>{
+ const young=data('robinhood');
+ young.tokens[0].symbol='CLAUDE';
+ young.tokens[0].change24hPct=null;
+ young.tokens[0].fields.change24hPct={
+  status:'NOT_VERIFIED',value:null,reasonCode:'POOL_LESS_THAN_24H_OLD',
+  poolAgeHours:19.6,window:'PARTIAL_SINCE_POOL_CREATION',sourcesDisagree:true,
+  sources:[{provider:'GeckoTerminal',value:141.07},{provider:'DEX Screener',value:130}]
+ };
+ const {detail,calls}=await mount({overrides:{robinhood:young}});
+ const card=panel(detail,'robinhood'),cell=card.querySelector('.arcy-radar-overview-change');
+ const lines=cell.querySelectorAll('.arcy-radar-partial-source');
+ assert.equal(lines.length,2,'both independent observations must remain visible');
+ assert.deepEqual(lines.map(n=>n.textContent),['GT+141.1%','DS+130.0%']);
+ assert.match(cell.querySelector('.arcy-radar-partial-label').textContent,/Açılıştan beri.*uyuşmazlık/);
+ assert.match(cell.querySelector('.arcy-radar-info').dataset.reason,/ayrışıyor/);
+ assert.equal(young.tokens[0].change24hPct,null,'24h field must remain null');
+ assert.equal(calls.length,4,'no extra API requests');
+ detail.querySelectorAll('.arcy-radar-view-button')[1].click();
+ await new Promise(setImmediate);
+ const rows=detail.querySelector('.arcy-radar-rows');
+ assert.match(rows.textContent,/GT.*141.1%/);
+ assert.match(rows.textContent,/DS.*130.0%/);
+});
+test('a young conflict with incomplete source evidence remains unavailable, no single quote chosen',async()=>{
+ const young=data('pons');
+ young.tokens[0].change24hPct=null;
+ young.tokens[0].fields.change24hPct={
+  status:'NOT_VERIFIED',value:null,reasonCode:'POOL_LESS_THAN_24H_OLD',
+  poolAgeHours:18,window:'PARTIAL_SINCE_POOL_CREATION',sourcesDisagree:true,
+  sources:[{provider:'GeckoTerminal',value:264.92}]
+ };
+ const {detail}=await mount({overrides:{pons:young}});
+ const cell=panel(detail,'pons').querySelector('.arcy-radar-overview-change');
+ assert.equal(cell.querySelector('.arcy-radar-partial-metric'),null);
+ assert.match(cell.textContent,/—/);
+});
 test('unverified or conflicting 24h observations are never replaced by partial values',async()=>{
  const bad=data('pons');
  bad.tokens[0].change24hPct=null;
