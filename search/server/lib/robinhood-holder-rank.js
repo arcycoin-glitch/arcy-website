@@ -80,16 +80,20 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
   const censusComplete=observed===total;
   if(reconciled.length<10&&!censusComplete)
    return unavailable('BLOCKSCOUT_RANK_BELOW_TEN_ROWS');
-  const largest=percentage(reconciled[0]?.balance,totalSupplyRaw);
-  const top10=percentage(reconciled.slice(0,10).reduce((sum,row)=>sum+row.balance,0n),totalSupplyRaw);
-  const top20=(reconciled.length>=20||censusComplete)?
-   percentage(reconciled.slice(0,20).reduce((sum,row)=>sum+row.balance,0n),totalSupplyRaw):null;
-  if(largest===null||top10===null||((reconciled.length>=20||censusComplete)&&top20===null))
+  // Burn custody (zero/0xdead) is reconciled into supply but never ranked as a wallet (same rule as Arc).
+  const A=require('./holder-attribution'),wallets=reconciled.filter(row=>!A.isBurn(row.address)),excluded=reconciled.filter(row=>A.isBurn(row.address));
+  if(wallets.length<10&&!censusComplete)return unavailable('BLOCKSCOUT_RANK_BELOW_TEN_NON_BURN_ROWS');
+  if(!wallets.length)return unavailable('NO_NON_BURN_HOLDERS');
+  const largest=percentage(wallets[0]?.balance,totalSupplyRaw);
+  const top10=percentage(wallets.slice(0,10).reduce((sum,row)=>sum+row.balance,0n),totalSupplyRaw);
+  const top20=(wallets.length>=20||censusComplete)?
+   percentage(wallets.slice(0,20).reduce((sum,row)=>sum+row.balance,0n),totalSupplyRaw):null;
+  if(largest===null||top10===null||((wallets.length>=20||censusComplete)&&top20===null))
    return unavailable('BLOCKSCOUT_RANK_SUPPLY_RECONCILIATION_FAILED');
   const evidence=[{network:'robinhood',chainId:4663,address:token,sourceUrl,block,
    method:'Blockscout sorted holder candidates + pinned Robinhood RPC balanceOf(wallet) reconciliation',
    matchedWallets:reconciled.length,censusComplete,verifiedPositiveHolderCount:censusComplete?reconciled.length:null,
-   explorerBalanceAtDifferentBlockIgnored:true,sourceRankCompleteness:'SOURCE_REPORTED',
+   explorerBalanceAtDifferentBlockIgnored:true,sourceRankCompleteness:'SOURCE_REPORTED',...A.concentrationScope(excluded),holderCountIncludesBurnAddresses:censusComplete&&excluded.length>0,
    scope:censusComplete?
     'Every positive balance candidate matched RPC and together they account for 100% of totalSupply at the same block. For fewer than 10/20 holders, the respective top percentage includes every wallet. Wallets do not imply distinct beneficial owners.':
     'Blockscout supplied candidate addresses; their balances were read and re-ranked from Robinhood RPC at the pinned block. The sample may OMIT higher-ranked wallets. These are concentration measurements of source-ranked candidates, not independently established chain-wide top 10/20.'}];
