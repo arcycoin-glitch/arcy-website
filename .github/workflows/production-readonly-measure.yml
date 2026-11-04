@@ -6,6 +6,7 @@ on:
       - 'scripts/probe-radar-missing24h.cjs'
       - 'scripts/probe-radar-change24h.cjs'
       - 'scripts/probe-holder-state.cjs'
+      - 'scripts/probe-arc-explorer-discover.cjs'
       - '.github/workflows/production-readonly-measure.yml'
   workflow_dispatch:
 permissions:
@@ -23,6 +24,16 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/probe-radar-missing24h.cjs
+  explorer-discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Arc explorer DISCOVER dependency timings (GET only)
+        run: node scripts/probe-arc-explorer-discover.cjs
   holder-state:
     runs-on: ubuntu-latest
     timeout-minutes: 15
