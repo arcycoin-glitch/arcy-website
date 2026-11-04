@@ -76,6 +76,21 @@ async function requestStaleHolderRefresh(address,completedAt){
  }catch{}
  return false;
 }
+async function requestMissingHolderSnapshot(address){
+ if(!process.env.ARC_HOLDER_QUEUE_URL||!process.env.ARC_HOLDER_QUEUE_TOKEN)return false;
+ const now=Date.now();
+ if((holderRefreshAttempts.get(address)||0)>now)return false;
+ holderRefreshAttempts.set(address,now+10*60000);
+ while(holderRefreshAttempts.size>64)holderRefreshAttempts.delete(holderRefreshAttempts.keys().next().value);
+ try{
+  const result=await Promise.race([
+   require('../../../lib/holder-queue-client').enqueueMissing(address),
+   new Promise(resolve=>setTimeout(()=>resolve({queued:false}),1500))
+  ]);
+  if(result?.queued===true){holderRefreshAttempts.set(address,Date.now()+6*3600000);return true;}
+ }catch{}
+ return false;
+}
 async function holders({address}={}){
  const reportedWork=require('./arc-holder-count').fetchCount(address).catch(()=>null);
 
@@ -108,6 +123,9 @@ async function holders({address}={}){
   }
  }catch{} // Fall through to signed/current-count and explicitly historical evidence.
  const signed=await require('./arc-holder-publication').load(address);
+ // A confirmed-absent publication (HTTP 404) means the durable worker has never been asked for this contract: Search previously
+ // queued only stale snapshots, so such tokens stayed NOT VERIFIED forever. Queue the exact contract once (bounded, throttled).
+ if(signed.fields?.holderCount?.reason===require('./arc-holder-publication').NOT_PUBLISHED)await requestMissingHolderSnapshot(address);
  if(signed.fields?.holderCount?.dataState==='DATA_FOUND'){
   const [currentCount,refreshRequested]=await Promise.all([
    reportedWork,requestStaleHolderRefresh(address,signed.snapshot?.completedAt)
