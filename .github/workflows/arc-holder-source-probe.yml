@@ -1,0 +1,20 @@
+name: Arc Holder discovery source probe (read-only)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/arc-holder-source-probe.yml'
+      - 'scripts/probe-arc-holder-sources.cjs'
+      - 'lib/holder-rpc-discovery.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-arc-holder-sources.cjs
