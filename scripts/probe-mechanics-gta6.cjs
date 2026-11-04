@@ -64,5 +64,18 @@ const compact=o=>JSON.stringify(o);
    sourcify:{ok:sourcify.ok,reason:sourcify.http||sourcify.error||null,
     runtimeExactMatch:sfIdentity,sourceFiles:Object.keys(sf.sources||{}).length,abiPublished:Array.isArray(sf.abi)}};
   console.log('MECHANICS_SOURCE_PROBE',compact(summary));
+  if(cand===list[0]&&sfIdentity){
+   const entries=Object.entries(sf.sources||{});
+   const abi=Array.isArray(sf.abi)?sf.abi.filter(x=>x?.type==='function').map(x=>x.name+'('+x.inputs?.map(a=>a.type).join(',')+')'):[];
+   console.log('PRIMARY_SOURCE_ABI',compact(abi.slice(0,120)));
+   for(const [file,data] of entries.slice(0,2)){
+    const content=typeof data?.content==='string'?data.content:'';
+    console.log('PRIMARY_SOURCE_FILE',compact({file,length:content.length,lastLines:content.split('\\n').length}));
+    // Diagnostics only. Source is publicly verified; emit the contract implementation
+    // tail, not imported library boilerplate, and never cache it in the repository.
+    const tail=content.slice(-24000);
+    for(let i=0;i<tail.length;i+=5000)console.log('PRIMARY_SOURCE_TAIL',String(i/5000+1),JSON.stringify(tail.slice(i,i+5000)));
+   }
+  }
  }
 })().catch(e=>{console.error('PROBE_FATAL',String(e?.message||e));process.exitCode=1;});
