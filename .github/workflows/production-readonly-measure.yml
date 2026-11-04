@@ -51,7 +51,7 @@ jobs:
           console.log('::notice title=coverage-cards::'+JSON.stringify(cards).slice(0,3500));
           const why={};for(const s of r.samples){if(s.evidenceClass!=='NOT_VERIFIED')continue;const k=s.section+'|'+s.card+'|'+(s.provenance&&s.provenance.failureReason||'?');why[k]=(why[k]||0)+1;}
           console.log('::notice title=coverage-reasons::'+JSON.stringify(Object.entries(why).sort((a,b)=>b[1]-a[1]).slice(0,40)).slice(0,3500));
-          const hold={};for(const s of r.samples){if(s.card==='holders'&&s.key==='holderCount')hold[s.section+':'+s.address.slice(0,8)]=s.evidenceClass==='NOT_VERIFIED'?(s.provenance&&s.provenance.failureReason||'?'):s.evidenceClass;}
+          const hold={};for(const s of r.samples){if(s.card==='holders'&&s.key==='holderCount')hold[s.section+':'+s.address.slice(0,8)]=s.evidenceClass==='NOT_VERIFIED'?((s.provenance&&s.provenance.failureReason||'?')+' / '+String(s.provenance&&s.provenance.failureDetail||'').slice(0,70)):s.evidenceClass;}
           console.log('::notice title=coverage-holder-count::'+JSON.stringify(hold).slice(0,3500));
           console.log('::notice title=coverage-errors::'+JSON.stringify(r.errors).slice(0,3000));
           "
