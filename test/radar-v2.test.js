@@ -362,6 +362,55 @@ test('tokens/multi is contract-keyed, strict, and never turns FDV into market ca
  assert.ok(f.calls[0].url.endsWith('/tokens/multi/'+[addr(1),addr(2),addr(3),addr(77)].join(',')));
  await assert.rejects(gecko.fetchMulti({host:'https://x',key:null},'arc',[addr(1)],{fetcher:router([[/./,()=>resp({data:'x'})]]),now:()=>T0}),/INVALID_PROVIDER_RESPONSE|RADAR_/);
 });
+test('tokens/multi exposes exact-contract 24h token change; missing or malformed values stay null',async()=>{
+ const body=geckoBody('ethereum',{count:3}),m=multiBody('ethereum',body);
+ m.data[0].attributes.price_change_percentage={h24:'-12.75'};
+ m.data[1].attributes.price_change_percentage={h24:'n/a'};
+ m.data[2].attributes.price_change_percentage={h24:null};
+ const f=router([[/./,()=>resp(m)]]);
+ const out=await gecko.fetchMulti({host:'https://api.coingecko.com/api/v3/onchain',key:'k',header:'x-cg-demo-api-key'},'ethereum',[addr(1),addr(2),addr(3)],{fetcher:f,now:()=>T0});
+ assert.equal(out.get(addr(1)).change24hPct,-12.75);
+ assert.equal(out.get(addr(2)).change24hPct,null);
+ assert.equal(out.get(addr(3)).change24hPct,null);
+ assert.equal(f.calls.length,1);
+});
+
+test('Ethereum missing pool h24 recovers from existing token lookup at unchanged API cost',async()=>{
+ const body=geckoBody('ethereum',{count:14,created:()=>new Date(T0-9*86400000).toISOString()});
+ body.data.forEach(p=>{p.attributes.price_change_percentage.h24=null;});
+ const multi=multiBody('ethereum',body);
+ multi.data.forEach(x=>{x.attributes.price_change_percentage={h24:'4.25'};});
+ const f=router([[new RegExp('tokens/multi'),()=>resp(multi)],[new RegExp('coingecko[.]com'),()=>resp(body)]]);
+ const out=await radar.load('ethereum',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
+ assert.equal(out.usage.geckoterminal,4,'no additional API call or quota spend');
+ assert.equal(f.calls.length,4);
+ assert.ok(out.tokens.length>0);
+ const t=out.tokens[0];
+ assert.equal(t.change24hPct,4.25);
+ assert.equal(t.fields.change24hPct.scope,'TOKEN');
+ assert.equal(t.fields.change24hPct.status,'SOURCE_REPORTED');
+ assert.equal(t.fields.change24hPct.crossCheck,'TOKEN_ONLY');
+ assert.equal(t.fields.change24hPct.recovery.from,'tokens/multi');
+});
+
+test('token-wide h24 is not falsely disputed by DEX Screener same-pool h24',()=>{
+ const gt={address:addr(1),network:'ethereum',chainId:1,pool:addr(5000),poolCreatedAt:new Date(T0-9*86400000).toISOString(),change24hPct:4.25,change24hScope:'TOKEN'};
+ const ds={state:'MATCHED',values:{change24hPct:-45,poolCreatedAt:gt.poolCreatedAt}};
+ const result=verify.verifyRow(gt,ds,{now:T0});
+ assert.equal(result.fields.change24hPct.value,4.25);
+ assert.equal(result.fields.change24hPct.status,'SOURCE_REPORTED');
+ assert.equal(result.fields.change24hPct.crossCheck,'DIFFERENT_SCOPE');
+ assert.deepEqual(result.fields.change24hPct.sources.map(x=>x.scope),['TOKEN','POOL']);
+});
+
+test('pool younger than 24h still cannot claim a full-day percentage from token recovery',()=>{
+ const gt={address:addr(1),pool:addr(5000),poolCreatedAt:new Date(T0-8*3600000).toISOString(),change24hPct:4.25,change24hScope:'TOKEN'};
+ const result=verify.verifyRow(gt,{state:'DISABLED'},{now:T0});
+ assert.equal(result.fields.change24hPct.status,'NOT_VERIFIED');
+ assert.equal(result.fields.change24hPct.reasonCode,'POOL_LESS_THAN_24H_OLD');
+ assert.equal(result.fields.change24hPct.value,null);
+});
+
 test('ranking uses token-level 24h volume across all pools; each row says which scope it carries',async()=>{
  const body=geckoBody('arc',{count:14,volume:i=>200000-i*1000});
  const m=multiBody('arc',body);m.data.find(d=>d.attributes.address===addr(14)).attributes.volume_usd.h24='900000';   // last candidate has most volume over all its pools
