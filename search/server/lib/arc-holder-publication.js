@@ -64,6 +64,11 @@ function empty(reason='Signed COMPLETE holder snapshot unavailable.'){
   network:cfg.id,chainId:cfg.chainId,evidence:[]}]));
  return {description:'No signed and complete Arc holder publication. No partial or guessed wallet counts.',fields:values};
 }
+// Same methodology metadata as the Ethereum / Robinhood paths, read from the signed snapshot (never recomputed or guessed).
+function methodology(snapshot){
+ const excluded=Array.isArray(snapshot.excluded)?snapshot.excluded.filter(x=>ADDRESS.test(x?.address||'')&&/^\d+$/.test(x?.balanceRaw||'')):[];
+ return require('./holder-attribution').concentrationScope(excluded.map(x=>({address:x.address,balance:BigInt(x.balanceRaw)})));
+}
 function toCard(snapshot,address){
  const observedAt=snapshot.snapshot.completedAt;
  return {description:'Signed COMPLETE reconciled Arc holder snapshot; historical as of '+observedAt+'.',
@@ -77,7 +82,8 @@ function toCard(snapshot,address){
     block:snapshot.block,completedAt:observedAt,
     anchor:snapshot.evidence.find(e=>e.block===snapshot.block&&HASH.test(e.anchor||''))?.anchor,
     method:'Ed25519 signature + original pinned-block reconciliation',
-    scope:'Historical verified publication; not a claim about latest balances.'}]
+    scope:'Historical verified publication; not a claim about latest balances.',
+    ...(k==='holderCount'?{holderCountIncludesBurnAddresses:false}:methodology(snapshot))}]
   }]))};
 }
 async function load(address,{env=process.env,fetcher=fetch,now=Date.now()}={}){

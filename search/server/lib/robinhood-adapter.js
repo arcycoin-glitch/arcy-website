@@ -80,7 +80,7 @@ async function holder({address,base}){
   // Prefer the complete pinned-census count over a live explorer estimate.
   if(ranked.holderCount?.dataState==='DATA_FOUND')fields.holderCount=ranked.holderCount;
   for(const key of ['largestWalletPct','top10Pct','top20Pct'])
-   if(ranked[key]?.dataState==='DATA_FOUND')fields[key]=ranked[key];
+   if(ranked[key]?.dataState==='DATA_FOUND'||(ranked[key]?.reasonCode==='BURN_EXCLUSION_RANK_INCOMPLETE'&&fields[key]?.dataState!=='DATA_FOUND'))fields[key]=ranked[key];
   if(ranked.reasonCode){
    for(const key of ['largestWalletPct','top10Pct','top20Pct'])
     if(fields[key].dataState!=='DATA_FOUND')

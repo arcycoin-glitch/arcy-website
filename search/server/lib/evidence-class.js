@@ -55,6 +55,14 @@ function classify(f,{card='',now=Date.now()}={}){
  if(stale)return {evidenceClass:'STALE',evidenceClassBasis:stale,provenance:{...base,underlyingClass:cls,underlyingBasis:why,failureReason:null}};
  return {evidenceClass:cls,evidenceClassBasis:why,provenance:{...base,failureReason:null}};
 }
+// A licensing gate on a secondary provider is an operator matter; the user needs to know what is (not) established.
+// Only the display sentence changes: reasonCode is kept and the original operator text moves to reasonDetail.
+const PLAIN=Object.freeze({PROVIDER_DISABLED_LICENSE_UNVERIFIED:'Not established from verified source code or on-chain reads; no approved secondary source is enabled.'});
+function plainReason(field){
+ const text=PLAIN[field?.reasonCode];
+ if(!text||field.value!==null&&field.value!==undefined||field.reasonDetail)return field;
+ field.reasonDetail=field.reason||null;field.reason=text;return field;
+}
 function annotate(report,{now=Date.now()}={}){
  if(!report?.cards||typeof report.cards!=='object')return report;
  const summary={},total={};for(const c of CLASSES)total[c]=0;let unlabeled=0,lineageCapped=0;
@@ -62,6 +70,7 @@ function annotate(report,{now=Date.now()}={}){
   const row={};for(const c of CLASSES)row[c]=0;
   for(const [key,field] of Object.entries(body?.fields||{})){
    if(!field||typeof field!=='object')continue;
+   plainReason(field);
    const r=classify(field,{card,now});field.evidenceClass=r.evidenceClass;field.evidenceClassBasis=r.evidenceClassBasis;field.provenance=r.provenance;
    row[r.evidenceClass]++;total[r.evidenceClass]++;if(r.provenance.lineage&&!r.provenance.lineage.onchainOnly)lineageCapped++;if(r.provenance.failureReason==='UNSPECIFIED_NOT_VERIFIED')unlabeled++;
   }
@@ -70,4 +79,4 @@ function annotate(report,{now=Date.now()}={}){
  report.evidenceSummary={classes:CLASSES,byCard:summary,total,unlabeledFailures:unlabeled,lineageCapped,generatedAt:new Date(now).toISOString()};
  return report;
 }
-module.exports={CLASSES,LIMITS,classify,annotate};
+module.exports={CLASSES,LIMITS,classify,annotate,plainReason,PLAIN};
