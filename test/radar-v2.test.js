@@ -380,7 +380,7 @@ test('Ethereum missing pool h24 recovers from existing token lookup at unchanged
  body.data.forEach(p=>{p.attributes.price_change_percentage.h24=null;});
  const multi=multiBody('ethereum',body);
  multi.data.forEach(x=>{x.attributes.price_change_percentage={h24:'4.25'};});
- const f=router([[/tokens\\/multi/,()=>resp(multi)],[/coingecko\\.com/,()=>resp(body)]]);
+ const f=router([[new RegExp('tokens/multi'),()=>resp(multi)],[new RegExp('coingecko[.]com'),()=>resp(body)]]);
  const out=await radar.load('ethereum',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
  assert.equal(out.usage.geckoterminal,4,'no additional API call or quota spend');
  assert.equal(f.calls.length,4);
