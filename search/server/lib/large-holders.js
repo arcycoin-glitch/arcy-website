@@ -47,14 +47,18 @@ function evaluate(page,chainBalances,totalSupply,block,token,count){
   typeof value!=='bigint'||value<=0n||value>totalSupply))return {ok:false,reasonCode:'INVALID_PINNED_CANDIDATE_BALANCE'};
  const rankedRows=page.rows.map((row,i)=>({address:row.address,balance:chainBalances[i]}))
   .sort((a,b)=>a.balance>b.balance?-1:a.balance<b.balance?1:a.address.localeCompare(b.address));
- const ranked=rankedRows.map(row=>row.balance);
+ const A=require('./holder-attribution'),excluded=rankedRows.filter(row=>A.isBurn(row.address));
+ // Burn custody is never ranked as a whale; it stays in the totalSupply() denominator (same rule as Arc).
+ const ranked=rankedRows.filter(row=>!A.isBurn(row.address)).map(row=>row.balance);
  const twenty=ranked.slice(0,20);
  const sum=twenty.reduce((a,b)=>a+b,0n);
  if(sum>totalSupply)return {ok:false,reasonCode:'TOP_BALANCES_EXCEED_SUPPLY'};
+ if(ranked.length<10)return {ok:false,reasonCode:'TOO_FEW_NON_BURN_CANDIDATES'};
  const first=percentage(twenty[0],totalSupply);
  const top10=percentage(twenty.slice(0,10).reduce((a,b)=>a+b,0n),totalSupply);
- const top20=percentage(sum,totalSupply);
- if([first,top10,top20].some(x=>x===null||!Number.isFinite(x)))return {ok:false,reasonCode:'INVALID_CONCENTRATION'};
+ // Fewer than 20 non-burn candidates (burn custody occupied candidate slots): top 20 is withheld, never padded.
+ const top20=ranked.length>=20?percentage(sum,totalSupply):null;
+ if([first,top10].some(x=>x===null||!Number.isFinite(x))||(ranked.length>=20&&(top20===null||!Number.isFinite(top20))))return {ok:false,reasonCode:'INVALID_CONCENTRATION'};
  const proof=[{
    source:'Blockscout candidate addresses + Ethereum RPC',token,block,
    providerCandidates:'Blockscout current balance-ranked holder list, first 21 addresses',
@@ -62,6 +66,7 @@ function evaluate(page,chainBalances,totalSupply,block,token,count){
    rpcBalancesUsedForPublishedMetrics:true,
    rankBoundary:'All 21 candidate addresses had positive pinned balances; the 21st candidate is retained as the boundary observation',
    reportedHolderCount:count,
+   ...A.concentrationScope(excluded),
    limitation:'All balances are pinned RPC values, but candidate membership and holder count are explorer-reported. This is not an exhaustive census and cannot prove an unlisted wallet is absent; beneficiary control and clustered wallets are not proven.'
  }];
  const holderCandidates=rankedRows.slice(0,20).map((row,index)=>({
@@ -73,7 +78,7 @@ function evaluate(page,chainBalances,totalSupply,block,token,count){
  return {ok:true,holderCandidates,fields:{
   largestWalletPct:found(first,'Blockscout candidate addresses + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED'),
   top10Pct:found(top10,'Blockscout candidate addresses + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED'),
-  top20Pct:found(top20,'Blockscout candidate addresses + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED')
+  top20Pct:top20===null?unknown('Burn-address custody occupied candidate slots; fewer than 20 non-burn wallets were available to rank.','BURN_EXCLUSION_RANK_INCOMPLETE'):found(top20,'Blockscout candidate addresses + Ethereum RPC',proof,'SOURCE_REPORTED_RPC_RECONCILED')
  }};
 }
 async function fetchPage(token){

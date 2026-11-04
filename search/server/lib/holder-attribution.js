@@ -24,4 +24,10 @@ function classify({network,chainId,address,proof}={}){
   return {role:'UNKNOWN',verified:false,reason:'Evidence provenance invalid.'};
  return {role:proof.role,verified:true,address:normalized,chainId,sourceType:proof.sourceType,sourceUrl:url.href,scope:'Verified address role only; does not establish ultimate beneficial ownership.'};
 }
-module.exports={classify,ROLES,NETWORKS};
+// Deterministic burn-custody check shared by every concentration calculation (same rule as the Arc holder worker).
+const isBurn=address=>typeof address==='string'&&[ZERO,DEAD].includes(address.toLowerCase());
+// Methodology metadata attached to concentration evidence. Burn custody stays in the totalSupply() denominator.
+function concentrationScope(excluded){return {concentrationDenominator:'totalSupply() at the pinned block; zero/0xdead balances remain in the denominator',
+ excludedFromConcentration:excluded.map(row=>({address:row.address,balanceRaw:row.balance.toString(),role:'BURN_ADDRESS'})),
+ walletClassification:'Only the zero and 0xdead addresses are excluded from largest-wallet / top-10 / top-20 rankings. Liquidity pools, routers, treasury, vesting, exchange and other contract wallets are NOT classified and remain ranked.'};}
+module.exports={classify,isBurn,concentrationScope,ROLES,NETWORKS,ZERO,DEAD};

@@ -34,9 +34,13 @@ function calculate(addresses,balances,supply,count,block,token){
  if(new Set(addresses.map(a=>String(a).toLowerCase())).size!==addresses.length||addresses.some(a=>!ADDRESS.test(a))||balances.some(n=>typeof n!=='bigint'||n<=0n||n>supply))return blank('Invalid, duplicate, or zero-balance holder entries.','HOLDER_RECONCILIATION_FAILED');
  const total=balances.reduce((s,n)=>s+n,0n);
  if(total!==supply)return blank('Pinned holder balances do not sum to the contract total supply.','HOLDER_SUPPLY_RECONCILIATION_FAILED');
- const ranking=balances.slice().sort((a,b)=>a>b?-1:a<b?1:0);
+ const A=require('./holder-attribution'),rows=addresses.map((address,i)=>({address:String(address).toLowerCase(),balance:balances[i]}));
+ const excluded=rows.filter(row=>A.isBurn(row.address));
+ // Burn custody reconciles supply but is never ranked as a wallet (consistent with the Arc holder worker).
+ const ranking=rows.filter(row=>!A.isBurn(row.address)).map(row=>row.balance).sort((a,b)=>a>b?-1:a<b?1:0);
+ if(!ranking.length)return blank('Only burn-address custody holds this token; no wallet concentration exists to rank.','NO_NON_BURN_HOLDERS');
  const sum=n=>ranking.slice(0,n).reduce((s,x)=>s+x,0n);
- const proof=[{source:'Ethereum RPC',token,block,method:'balanceOf()',holderCount:count,coverage:'All explorer-listed holder addresses read at the same block; positive balances sum exactly to totalSupply().' ,note:'Explorer membership is source-reported. Full-supply reconciliation makes missing positive balances detectable for conventional ERC-20s.'}];
+ const proof=[{source:'Ethereum RPC',token,block,method:'balanceOf()',holderCount:count,holderCountIncludesBurnAddresses:excluded.length>0,...A.concentrationScope(excluded),coverage:'All explorer-listed holder addresses read at the same block; positive balances sum exactly to totalSupply().' ,note:'Explorer membership is source-reported. Full-supply reconciliation makes missing positive balances detectable for conventional ERC-20s.'}];
  return card({
    holderCount:found(count,'Blockscout + Ethereum RPC',proof,'RECONCILED_SNAPSHOT'),
    largestWalletPct:found(pct(ranking[0],supply),'Ethereum RPC',proof,'RECONCILED_SNAPSHOT'),
