@@ -30,7 +30,7 @@ test('Pulse display uses dated official Robinhood partner news even if investor 
  assert.equal(value.cards[2].contentType,'SOURCE_GUIDE');
  assert.equal(value.cards[2].url,'https://robinhoodchain.blockscout.com/');
  assert.equal(value.cards[1].publishedAt,null);
- assert.equal(value.audit.sourcesAttempted,4);
+ assert.equal(value.audit.sourcesAttempted,4+pulse.LIVE_PROJECT_SOURCES.robinhood.length);
  assert.equal(pulse.CONFIG.robinhood.sources.length,2);
  assert.equal(value.audit.sourceFailures.length,1);
 });

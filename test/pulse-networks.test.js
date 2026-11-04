@@ -73,3 +73,50 @@ test('missing worker editions fall back to bounded official reviews with explici
   if(oldUrl===undefined)delete process.env.ARC_PULSE_PUBLISHED_URL;else process.env.ARC_PULSE_PUBLISHED_URL=oldUrl;
  }
 });
+
+
+test('live project commits are linked to a verified first-party repo, deduplicated and clearly not deployment claims',()=>{
+ const source=news.LIVE_PROJECT_SOURCES.robinhood[0],sha='a'.repeat(40);
+ const record={sha,html_url:'https://github.com/Uniswap/v4-core/commit/'+sha,commit:{message:'feat: improve hook handling\nextra details',committer:{date:'2026-10-24T12:00:00Z'}}};
+ const items=news.commits([record],source);
+ assert.equal(items.length,1);
+ assert.match(items[0].summary,/not a production deployment/);
+ assert(!items[0].title.includes('extra details'));
+ const spoof={...items[0],url:'https://github.com/fake/v4-core/commit/'+sha};
+ const cycle={...news.windowFor(NOW),start:'2026-10-01T00:00:00.000Z'};
+ const result=news.select([{source,item:items[0]},{source,item:spoof}],cycle,NOW);
+ assert.equal(result.items.length,1);
+ assert.equal(result.items[0].url,items[0].url);
+ const more=news.select([{source,item:items[0]},{source,item:{...items[0],url:'https://github.com/Uniswap/v4-core/commit/'+'b'.repeat(40),publishedAt:'2026-10-23T00:00:00Z'}}],cycle,NOW);
+ assert.equal(more.items.length,1,'one project development per official repository in a live review');
+});
+
+test('a quiet signed edition stays immutable while live project updates replace three generic empty cards',()=>fixture(async()=>{
+ const saved=await news.generate({chain:'ethereum',now:NOW,fetcher:fetcher({quiet:true})});
+ await store.publish(saved);
+ const envelope=await store.envelope('ethereum');
+ const client=require('../lib/pulse-network-client'),before={fetch:global.fetch,generate:news.generate,flag:process.env.ARC_PULSE_DIRECT_FALLBACK,url:process.env.ARC_PULSE_PUBLISHED_URL};
+ process.env.ARC_PULSE_DIRECT_FALLBACK='1';
+ process.env.ARC_PULSE_PUBLISHED_URL='https://quiet-edition-live-project-fixture.example';
+ const source=news.LIVE_PROJECT_SOURCES.ethereum[0],sha='b'.repeat(40);
+ news.generate=async({chain,allowPartial,recentWindow})=>{
+  assert.equal(allowPartial,true);assert.equal(recentWindow,true);
+  const item={kind:'week',owner:source.owner,title:'Aave V3: verified repository change',summary:'Repository code change, not a chain deployment.',
+   url:'https://github.com/aave-dao/aave-v3-origin/commit/'+sha,publishedAt:'2026-10-25T00:00:00Z',contentType:'VERIFIED_DEVELOPMENT'};
+  return {success:true,chain,chainId:news.config(chain).chainId,number:1,publicationWeek:'2026-10-26T00:00:00.000Z',
+   status:'updated',recentWindow:true,cycle:{start:'2026-10-01T00:00:00Z',end:'2026-10-26T00:00:00Z'},
+   cards:[item,...news.discoveryCards(chain,1)],take:'Dated project changes',audit:{sourcesAttempted:3,sourcesSuccessfullyChecked:3}};
+ };
+ global.fetch=async()=>new Response(JSON.stringify({chains:{ethereum:envelope,robinhood:null}}));
+ try{
+  const active=await client.bundle();
+  assert.equal(active.ethereum.publicationAvailability,'DIRECT_OFFICIAL_SOURCES');
+  assert.equal(active.ethereum.cards[0].contentType,'VERIFIED_DEVELOPMENT');
+  assert.equal(active.ethereum.lastSignedEdition.status,'quiet_week');
+  assert.equal((await store.latest('ethereum')).status,'quiet_week','archive is unchanged');
+ }finally{
+  global.fetch=before.fetch;news.generate=before.generate;
+  if(before.flag===undefined)delete process.env.ARC_PULSE_DIRECT_FALLBACK;else process.env.ARC_PULSE_DIRECT_FALLBACK=before.flag;
+  if(before.url===undefined)delete process.env.ARC_PULSE_PUBLISHED_URL;else process.env.ARC_PULSE_PUBLISHED_URL=before.url;
+ }
+}));
