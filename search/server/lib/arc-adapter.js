@@ -84,7 +84,7 @@ async function requestMissingHolderSnapshot(address){
  while(holderRefreshAttempts.size>64)holderRefreshAttempts.delete(holderRefreshAttempts.keys().next().value);
  try{
   const result=await Promise.race([
-   require('../../../lib/holder-queue-client').enqueue(address),
+   require('../../../lib/holder-queue-client').enqueueMissing(address),
    new Promise(resolve=>setTimeout(()=>resolve({queued:false}),1500))
   ]);
   if(result?.queued===true){holderRefreshAttempts.set(address,Date.now()+6*3600000);return true;}
