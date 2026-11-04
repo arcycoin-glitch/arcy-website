@@ -104,7 +104,7 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
    ...(censusComplete?{holderCount:found(reconciled.length,'count of reconciled positive-balance token wallets')}:{}),
    largestWalletPct:found(largest,'largest pinned balance among Blockscout-ranked candidate wallets / totalSupply()'),
    top10Pct:found(top10,'sum of up to 10 pinned balances among source-ranked candidate wallets / totalSupply()'),
-   ...(top20===null?{}:{top20Pct:found(top20,'sum of up to 20 pinned balances among source-ranked candidate wallets / totalSupply()')})
+   ...(top20===null?(excluded.length&&wallets.length<20?{top20Pct:{value:null,status:'NOT_VERIFIED',dataState:'NOT_VERIFIED',source:null,evidence:[],network:'robinhood',chainId:4663,reasonCode:'BURN_EXCLUSION_RANK_INCOMPLETE',reason:'Burn addresses took explorer candidate slots; fewer than 20 real wallets remain to rank.'}}:{}):{top20Pct:found(top20,'sum of up to 20 pinned balances among source-ranked candidate wallets / totalSupply()')})
   };
  }catch{return unavailable('BLOCKSCOUT_HOLDERS_REQUEST_FAILED');}
 }

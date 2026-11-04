@@ -129,7 +129,7 @@ function parseHolders(body,network,rawAddress,{now=Date.now()}={}){
  const scope='GoPlus-reported token holder population and limited ranked wallet snapshot, not independently pinned or fully enumerated. Exchange custody and multiple wallets per owner are not resolved; source publication timestamp may differ from retrieval time.';
  if(validCount)fields.holderCount=found(count,network,address,'holder_count',scope,now);
  if(!validCount||!Array.isArray(record.holders)||record.holders.length<1)return fields;
- const seen=new Set(),shares=[];
+ const seen=new Set(),shares=[],all=[],excluded=[],isBurn=require('./holder-attribution').isBurn;
  for(const row of record.holders.slice(0,10)){
   const wallet=typeof row?.address==='string'?row.address.toLowerCase():'';
   const raw=typeof row?.percent==='string'?row.percent:null;
@@ -137,15 +137,22 @@ function parseHolders(body,network,rawAddress,{now=Date.now()}={}){
     !/^(?:0|1)(?:[.][0-9]{1,30})?$/.test(raw))return fields;
   const fractionNumber=Number(raw);
   if(!Number.isFinite(fractionNumber)||fractionNumber<=0||fractionNumber>1)return fields;
-  seen.add(wallet);shares.push(fractionNumber);
+  seen.add(wallet);all.push(fractionNumber);
+  // Burn custody (zero/0xdead) is never ranked as a wallet (same rule as the Arc worker and the RPC paths).
+  if(isBurn(wallet)){excluded.push(wallet);continue;}
+  shares.push(fractionNumber);
  }
- if(shares.length>count||shares.some((v,i)=>i>0&&shares[i-1]+1e-10<v)||
-    shares.reduce((a,b)=>a+b,0)>1.00001)return fields;
+ if(!shares.length)return fields;
+ const burnNote=excluded.length?' Excluded burn custody from ranking: '+excluded.join(', ')+'.':'';
+ // Source ordering and the share total are validated on every row, burn rows included.
+ if(all.length>count||all.some((v,i)=>i>0&&all[i-1]+1e-10<v)||
+    all.reduce((a,b)=>a+b,0)>1.00001)return fields;
  const percent=v=>Math.round(v*1000000)/10000;
- fields.largestWalletPct=found(percent(shares[0]),network,address,'largest GoPlus holder percent',scope,now);
+ fields.largestWalletPct=found(percent(shares[0]),network,address,'largest GoPlus holder percent'+(excluded.length?' (zero/0xdead excluded)':''),scope+burnNote,now);
  if(shares.length===10)fields.top10Pct=found(
   percent(shares.reduce((a,b)=>a+b,0)),network,address,
-  'sum of ten GoPlus source-ranked holder percentages',scope,now);
+  'sum of ten GoPlus source-ranked holder percentages',scope+burnNote,now);
+ else if(excluded.length)fields.top10Pct=missing('Burn custody occupied a GoPlus top-10 slot; fewer than ten wallets remain to rank.','BURN_EXCLUSION_RANK_INCOMPLETE');
  return fields;
 }
 async function inspectHolders(network,address,{fetcher=global.fetch,now=Date.now()}={}){
