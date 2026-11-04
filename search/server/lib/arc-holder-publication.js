@@ -13,6 +13,8 @@ const KEYS=['holderCount','largestWalletPct','top10Pct','top20Pct'];
 // Only authenticated COMPLETE publications; exact feed/key/contract isolation.
 // Process-local outage protection supplements the existing durable worker.
 const lastVerified=new Map();
+// Exact reason for a confirmed-absent publication (HTTP 404 from the signed feed); never used for outages or invalid documents.
+const NOT_PUBLISHED='No COMPLETE snapshot published yet.';
 function parseConfiguration(env=process.env){
  const raw=env.ARC_HOLDER_PUBLISHED_URL,publicKey=env.ARC_HOLDER_PUBLIC_KEY;
  if(!raw||!publicKey)return null;
@@ -95,7 +97,7 @@ async function load(address,{env=process.env,fetcher=fetch,now=Date.now()}={}){
  try{
   const response=await fetcher(url.href,{signal:AbortSignal.timeout(5500),
    headers:{accept:'application/json'},cache:'no-store'});
-  if(!response.ok)return unavailable(response.status===404?'No COMPLETE snapshot published yet.':
+  if(!response.ok)return unavailable(response.status===404?NOT_PUBLISHED:
    'Arc signed publication source unavailable.');
   const body=await readJson(response,512*1024);
   const snapshot=verifyDocument(body,address,configuration.key,now);
@@ -107,4 +109,4 @@ async function load(address,{env=process.env,fetcher=fetch,now=Date.now()}={}){
   return toCard(structuredClone(selected),address);
  }catch{return unavailable('Arc signed publication request failed or timed out.')}
 }
-module.exports={KEYS,load,empty,toCard,parseConfiguration,verifyDocument};
+module.exports={KEYS,NOT_PUBLISHED,load,empty,toCard,parseConfiguration,verifyDocument};
