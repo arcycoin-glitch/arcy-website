@@ -65,6 +65,20 @@ const compact=o=>JSON.stringify(o);
     runtimeExactMatch:sfIdentity,sourceFiles:Object.keys(sf.sources||{}).length,abiPublished:Array.isArray(sf.abi)}};
   console.log('MECHANICS_SOURCE_PROBE',compact(summary));
   if(cand===list[0]&&sfIdentity){
+   const crypto=require('node:crypto');
+   const ordered=Object.entries(sf.sources||{}).map(([p,v])=>[p,v.content]).sort(([a],[b])=>a.localeCompare(b));
+   const sourceDigest=crypto.createHash('sha256').update(JSON.stringify(ordered)).digest('hex');
+   console.log('SOURCE_IDENTITY_DIGEST',compact({address:addr,sourceDigest,sourceExactRuntime:true}));
+   const creatorInfo=await json('https://eth.blockscout.com/api/v2/addresses/'+addr);
+   const ci=creatorInfo.data||{};
+   const creator=ci.creator_address_hash||ci.creator_address?.hash||null;
+   console.log('CREATOR_META',compact({ok:creatorInfo.ok,creator,creationTx:ci.creation_tx_hash||null,reason:creatorInfo.http||creatorInfo.error||null}));
+   if(typeof creator==='string'&&ADDR.test(creator)){
+    const deployed=await rpc('eth_getCode',[creator,head.value]);
+    const creatorType=deployed.ok&&(deployed.value==='0x'||deployed.value==='0x0')?'EOA_OR_EMPTY':'CONTRACT_OR_UNKNOWN';
+    const balance=await rpc('eth_call',[{to:addr,data:'0x70a08231'+creator.slice(2).padStart(64,'0')},head.value]);
+    console.log('CREATOR_CONTROL_CONTEXT',compact({creatorType,balanceNonzero:balance.ok?/^0x0+$/i.test(balance.value)===false:null,readStatus:balance.ok?'OK':balance.error}));
+   }
    const entries=Object.entries(sf.sources||{});
    const abi=Array.isArray(sf.abi)?sf.abi.filter(x=>x?.type==='function').map(x=>x.name+'('+x.inputs?.map(a=>a.type).join(',')+')'):[];
    console.log('PRIMARY_SOURCE_ABI',compact(abi.slice(0,120)));
