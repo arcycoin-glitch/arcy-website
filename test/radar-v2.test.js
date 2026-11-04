@@ -464,3 +464,17 @@ test('pons: if the include variant fails, token numbers are still obtained with 
  const out=await radar.load('pons',{env:{...DEMO,VERCEL:undefined},fetcher:f,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
  assert.equal(out.tokens.length,1);assert.equal(n,2);assert.notEqual(out.tokens[0].priceUsd,null);
 });
+test('Pons membership RPC outage serves the last verified Pons ranking as bounded STALE instead of HTTP 503',async()=>{
+ const body=geckoBody('robinhood',{count:5});let rpcDown=false;
+ const up=rpcRouter({members:[addr(1)]}),down=rpcRouter({fail:true});
+ const f=router([...CG('robinhood',body),[/dexscreener/,()=>resp([])],[/rpc\.example/,(u,o)=>rpcDown?down(u,o):up(u,o)]]);
+ let now=T0;const options={env:DEMO,fetcher:f,now:()=>now,rpcUrl:'https://rpc.example/'};
+ const fresh=await radar.load('pons',options);assert.equal(fresh.freshness,'FRESH');assert.ok(fresh.tokens.length>0);
+ rpcDown=true;now=T0+81*60000;
+ const stale=await radar.load('pons',options);
+ assert.equal(stale.freshness,'STALE');assert.equal(stale.staleReason,'RADAR_PONS_MEMBERSHIP_UNAVAILABLE');
+ assert.equal(stale.asOf,fresh.asOf,'last verified timestamp is kept, never relabelled as fresh');
+ assert.deepEqual(stale.tokens.map(t=>t.address),fresh.tokens.map(t=>t.address),'no token added or invented');
+ now=T0+4*3600*1000;http._resetCooldowns();
+ await assert.rejects(radar.load('pons',options),{code:'RADAR_PONS_MEMBERSHIP_UNAVAILABLE'},'beyond the 3 h bound the outage is reported, not hidden');
+});
