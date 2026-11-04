@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/probe-radar-missing24h.cjs'
       - 'scripts/probe-radar-change24h.cjs'
+      - 'scripts/probe-holder-state.cjs'
       - '.github/workflows/production-readonly-measure.yml'
   workflow_dispatch:
 permissions:
@@ -22,6 +23,16 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/probe-radar-missing24h.cjs
+  holder-state:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Arc Holder job and publication state (GET only; never queues work)
+        run: node scripts/probe-holder-state.cjs
   coverage-matrix:
     runs-on: ubuntu-latest
     timeout-minutes: 45
