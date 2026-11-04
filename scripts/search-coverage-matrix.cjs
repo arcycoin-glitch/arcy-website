@@ -4,7 +4,8 @@
 const fs=require('node:fs'),schema=require('../search/server/schema'),{classify}=require('../search/server/lib/evidence-class');
 const BASE=process.env.ARCY_BASE||'https://www.arcyusdc.xyz',PER=Math.max(1,Math.min(10,Number(process.env.PER_CHAIN)||10));
 const raw={at:new Date().toISOString(),base:BASE,samples:[],errors:[],unlock:null};
-async function get(p){const r=await fetch(BASE+p,{headers:{accept:'application/json',referer:BASE+'/', 'sec-fetch-site':'same-origin'},signal:AbortSignal.timeout(30000)});const text=await r.text();if(!r.ok)throw Error('HTTP '+r.status+' '+p);try{return JSON.parse(text)}catch{throw Error('non-JSON '+p)}}
+const PACE=Math.max(0,Math.min(10000,Number(process.env.PACE_MS)||0));let lastAt=0;
+async function get(p){if(PACE){const wait=lastAt+PACE-Date.now();if(wait>0)await new Promise(r=>setTimeout(r,wait));lastAt=Date.now();}const r=await fetch(BASE+p,{headers:{accept:'application/json',referer:BASE+'/', 'sec-fetch-site':'same-origin'},signal:AbortSignal.timeout(30000)});const text=await r.text();if(!r.ok)throw Error('HTTP '+r.status+' '+p);try{return JSON.parse(text)}catch{throw Error('non-JSON '+p)}}
 (async()=>{
  for(const section of ['arc','ethereum','robinhood','pons']){
   const chain=section==='pons'?'robinhood':section;let tokens=[];
