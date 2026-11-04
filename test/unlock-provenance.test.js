@@ -40,7 +40,8 @@ test('a project-confirmed event and the same calendar row are ONE event; the cal
  assert.equal(e.verification,'project-confirmed');assert.equal(e.evidenceCategory,'PROJECT_SCHEDULE_CONFIRMED');
  assert.equal(e.independentPublishers,2);assert.deepEqual(e.publishers.sort(),['coinbell.in','docs.example.org']);
  assert.equal(e.amount,'1500000 EXM','primary-source amount is displayed');assert.equal(e.executionStatus,'NOT_CHECKED_ONCHAIN');
- assert.ok(e.evidence.some(x=>x.kind==='corroborating-calendar'));
+ assert.ok(e.evidence.some(x=>x.kind==='possible-calendar-match'&&x.contractIdentityVerified===false));
+ assert.equal(e.calendarMatchContractVerified,false);
 });
 
 test('a calendar amount that differs from the confirmed schedule is recorded as a conflict, never shown as a second event',()=>{
@@ -64,6 +65,28 @@ test('other tokens, other dates and a different-allocation tranche on the same d
  const {events}=cal.mergeEvents([other,later,row('soonest'),tranche,confirmed()]);
  assert.equal(events.length,4,'only the duplicate Team row is merged');
  assert.ok(events.some(e=>e.allocation==='Investors'&&e.verification==='source-published'));
+});
+
+test('different allocation is never swallowed even if amount matches; a sole different-amount tranche is not silently removed',()=>{
+ const sameAmountDifferentAllocation=row('value',{allocation:'Investors',amount:'1.5M EXM'});
+ const differentAmountDifferentAllocation=row('impact',{allocation:'Investors',amount:'1.8M EXM'});
+ const matched=cal.mergeEvents([sameAmountDifferentAllocation,confirmed()]);
+ assert.equal(matched.events.length,2,'a distinct allocation is not a duplicate even if the amount matches');
+ assert.equal(matched.conflicts.length,0);
+ const unmatched=cal.mergeEvents([differentAmountDifferentAllocation,confirmed()]);
+ assert.equal(unmatched.events.length,2,'a distinct tranche with another amount remains visible');
+ assert.equal(unmatched.conflicts.length,0);
+});
+
+test('ambiguous same-date matching confirmed events never swallow calendar evidence',()=>{
+ const {events,conflicts}=cal.mergeEvents([row('soonest'),confirmed(),confirmed({projectId:'other',tokenVersion:'v2',sourceUrl:'https://docs.example.net/unlocks'})]);
+ assert.equal(events.length,3,'without proven contract identity the calendar row remains visible');
+ assert.equal(conflicts.length,0);
+});
+
+test('only calendar display precision determines rounding tolerance',()=>{
+ assert.equal(cal.sameAmount('1500000 EXM','1.5M EXM'),true,'identical amounts');
+ assert.equal(cal.sameAmount('1500000 EXM','1.51M EXM'),false,'do not use the official rounded amount to inflate calendar tolerance');
 });
 
 test('without project-confirmed supplements the output is identical to before',()=>{
