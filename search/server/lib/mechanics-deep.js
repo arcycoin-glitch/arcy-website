@@ -276,6 +276,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
   for(const signature of ['getMinDelay()','getThreshold()'])if(abiFn(s,signature,'uint256')){const v=await word(authority,signature);if(v)details.observations.push({method:signature,authority,value:BigInt(v).toString(),block,sourceDigest:s.digest,sourceUrl:s.url,scope:'Source/ABI getter-reported delay or threshold, not a complete execution/authority audit.'});}
   if(abiFn(s,'getOwners()','address[]')){const owners=decodeArray(await call(authority,'getOwners()'));if(owners)details.observations.push({method:'getOwners()',authority,owners,block,sourceDigest:s.digest,sourceUrl:s.url,scope:'Bounded source/ABI-reported owner set; multisig execution semantics remain separate.'});}
  }
+ require('./mechanics-upgrade-caveat').qualifyUpgradeable(fields,kind,{admin,beacon});
  for(const f of Object.values(fields))f.evidence.push({chainId:cfg.chainId,network,address,block,method:'Mechanics analysis detail',...details});
  return {fields,details};
 }
