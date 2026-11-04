@@ -78,6 +78,22 @@ const compact=o=>JSON.stringify(o);
     const creatorType=deployed.ok&&(deployed.value==='0x'||deployed.value==='0x0')?'EOA_OR_EMPTY':'CONTRACT_OR_UNKNOWN';
     const balance=await rpc('eth_call',[{to:addr,data:'0x70a08231'+creator.slice(2).padStart(64,'0')},head.value]);
     console.log('CREATOR_CONTROL_CONTEXT',compact({creatorType,balanceNonzero:balance.ok?/^0x0+$/i.test(balance.value)===false:null,readStatus:balance.ok?'OK':balance.error}));
+    // eth_call ONLY: no broadcast, no wallet keys, no state transition.
+    // A normal ERC20 transferFrom with zero allowance must revert, including from==spender.
+    // Compare a deployment-origin call with an independent caller at the same pinned block.
+    if(creatorType==='EOA_OR_EMPTY'&&balance.ok&&BigInt(balance.value)>1n){
+      const w=a=>a.toLowerCase().slice(2).padStart(64,'0'),same=creator;
+      const allowance=await rpc('eth_call',[{to:addr,data:'0xdd62ed3e'+w(same)+w(same)},head.value]);
+      const transferData='0x23b872dd'+w(same)+w(same)+(1n).toString(16).padStart(64,'0');
+      const originCall=await rpc('eth_call',[{from:same,to:addr,data:transferData},head.value]);
+      const control='0x1111111111111111111111111111111111111111';
+      const controlCall=await rpc('eth_call',[{from:control,to:addr,data:transferData},head.value]);
+      console.log('ALLOWANCE_CONTROL_READONLY',compact({creatorAllowanceRaw:allowance.ok?allowance.value:null,
+        originCallResult:originCall.ok?originCall.value:originCall.error,
+        controlCallResult:controlCall.ok?controlCall.value:controlCall.error,
+        bypassPossible:allowance.ok&&BigInt(allowance.value)===0n&&originCall.ok&&!controlCall.ok,
+        note:'No transaction was sent; both transferFrom calls were eth_call simulations.'}));
+    }
    }
    const entries=Object.entries(sf.sources||{});
    const abi=Array.isArray(sf.abi)?sf.abi.filter(x=>x?.type==='function').map(x=>x.name+'('+x.inputs?.map(a=>a.type).join(',')+')'):[];
