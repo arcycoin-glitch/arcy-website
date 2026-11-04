@@ -79,3 +79,22 @@ baseInterval, limit, cooldownMs, calls, http429, historyUnavailable), `worker.li
 yielded, cooldownYields, starvation/oldest/smallest picks) and `worker.tokens[]` (phase, cursor, target, remaining blocks/balances/calls,
 width, advancedTotal, slices, yields, lastState/lastReason/lastAdvanced/lastSliceMs, idleMs). Counters are in-process (reset on restart);
 durable truth remains the signed checkpoints.
+
+## RPC Transfer-log discovery fallback (2026-11-04)
+
+**Root cause of the stuck DISCOVER (`0x4c9b47dbd5933aa4574b2c27f82419e4dbbd0222`, cursor 0):** DISCOVER depended on a single
+explorer index. Read-only CI probes (`.github/workflows/arc-holder-source-probe.yml`) measured `arcexplorer.org` answering
+HTTP 522 after ~19.7 s on `/stats`, `/tokens/<a>` and `/holders` for every contract (ARCY included), so no new contract could
+leave DISCOVER. The official Blockscout (`explorer.arc.io`) answers automated clients with a Cloudflare bot challenge (HTTP 403):
+it is not an eligible machine source and is never bypassed.
+
+**Fallback (`lib/holder-rpc-discovery.js`, default on; `ARC_HOLDER_RPC_DISCOVERY=off` restores explorer-only):** the explorer stays
+primary. When its breaker is open (`EXPLORER_COOLDOWN`), the job switches once to RPC discovery: a checkpointed binary search on
+`eth_getCode` finds the deployment block (~25 calls), then the existing CATCHUP phase scans `Transfer` logs from `deployBlock-1` to
+the pinned block with the unchanged log-range reader, pacing, windows and provider failover. Publication still requires exact
+pinned-block `totalSupply` reconciliation; evidence records `candidateDiscovery` (method, fromBlock, toBlock, fallback reason).
+Cost bound: `ARC_HOLDER_RPC_DISCOVERY_MAX_BLOCKS` (default 10,000,000, hard max 50,000,000) — larger spans fail with
+`HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED` before any scan. Two failed reconciliations end with
+`HOLDER_RPC_DISCOVERY_RECONCILIATION_EXHAUSTED` (no partial snapshot). Measured for the stuck contract: deployment block
+21,237,418, ~8.3 M blocks to head (≈8,300 `eth_getLogs` calls at the default 1000-block window, served by the primary Arc RPC
+in 160–260 ms; Blockdaemon answers 4444 pruned and is skipped by the existing history logic).

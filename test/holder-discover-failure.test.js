@@ -47,10 +47,10 @@ test('a budget yield caused by a provider cooldown is not a stall; progress rese
   await refresh.run({addresses:[A],budgetMs:20000});assert.equal(P.get(A).stallStreak,0);
  }finally{[worker.advance,storage.enqueue,storage.setJob]=saved;}
 });
-test('explorer outage opens a shared breaker: one failing /stats call, then DISCOVER yields without any network call; recovery resets it',async()=>{
+test('explorer outage opens a shared breaker: one failing /stats call, then DISCOVER yields without any network call; recovery resets it (RPC discovery fallback disabled)',async()=>{
  const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path'),core=require('../lib/core');
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'arcy-discover-')),before={...process.env};
- process.env.ARC_INDEX_CACHE_DIR=dir;process.env.ARC_HOLDER_STORAGE='local';
+ process.env.ARC_INDEX_CACHE_DIR=dir;process.env.ARC_HOLDER_STORAGE='local';process.env.ARC_HOLDER_RPC_DISCOVERY='off';
  const savedJson=core.json;let calls=[],mode='down';F.explorerOk();
  core.json=async url=>{calls.push(url);if(mode==='down')throw Object.assign(new Error('HTTP 522'),{httpStatus:522});if(url.endsWith('/stats'))return {chainId:5042,latestIndexedBlock:1};throw Object.assign(new Error('HTTP 404'),{httpStatus:404});};
  try{
