@@ -3,7 +3,7 @@ on:
   push:
     branches-ignore: [main]
     paths:
-      - 'scripts/probe-mechanics-phaseb.cjs'
+      - 'scripts/probe-mechanics-phaseb*.cjs'
       - '.github/workflows/mechanics-phaseb-probe.yml'
 permissions:
   contents: read
@@ -16,4 +16,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node scripts/probe-mechanics-phaseb.cjs
+      - run: node scripts/probe-mechanics-phaseb2.cjs
