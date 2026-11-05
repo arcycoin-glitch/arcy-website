@@ -29,7 +29,8 @@ function parse(data,{network,address,code}){
  const abi=typeof data.abi==='string'?(()=>{try{return JSON.parse(data.abi)}catch{return null}})():data.abi;
  if(!Array.isArray(abi)||abi.length>MAX_ABI||!abi.every(f=>f&&typeof f.type==='string'&&(f.type!=='function'||typeof f.name==='string'&&Array.isArray(f.inputs)&&Array.isArray(f.outputs)&&[...f.inputs,...f.outputs].every(p=>typeof p?.type==='string'))))return null;
  if(typeof data.source_code!=='string'||!data.source_code.trim())return null;
- const main=validPath(data.file_path)?data.file_path:'VerifiedContract.sol';
+ if(data.file_path&& !validPath(data.file_path))return null;
+ const main=data.file_path||'VerifiedContract.sol';
  const records=[[main,data.source_code]];
  if(data.additional_sources!==undefined){
   if(!Array.isArray(data.additional_sources)||data.additional_sources.length>=MAX_FILES)return null;
