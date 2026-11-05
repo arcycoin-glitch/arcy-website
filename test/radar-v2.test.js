@@ -174,7 +174,7 @@ test('promoted Radar excludes issuer-branded tokens even with high provider-repo
  const net='robinhood',body=geckoBody(net,{count:14});
  body.included[0].attributes.name='Anthropic';
  body.included[0].attributes.symbol='AI';
- const f=router([...CG(net,body),[/dexscreener\\.com/,()=>resp(dexBody(net,body))]]);
+ const f=router([...CG(net,body),[/dexscreener\.com/,()=>resp(dexBody(net,body))]]);
  const out=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
  assert.equal(out.tokens.length,10,'eligible independent candidates still fill the list');
  assert.ok(!out.tokens.some(t=>t.address===addr(1)));
@@ -184,7 +184,7 @@ test('promoted Radar excludes issuer-branded tokens even with high provider-repo
 });
 test('promoted Radar does not rank pools with incomplete 24h history',async()=>{
  const net='arc',body=geckoBody(net,{count:14,created:i=>i===0?new Date(T0-3600000).toISOString():new Date(T0-2*86400000-i*60000).toISOString()});
- const f=router([...CG(net,body),[/dexscreener\\.com/,()=>resp(dexBody(net,body))]]);
+ const f=router([...CG(net,body),[/dexscreener\.com/,()=>resp(dexBody(net,body))]]);
  const out=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
  assert.equal(out.tokens.length,10);
  assert.ok(!out.tokens.some(t=>t.address===addr(1)));
