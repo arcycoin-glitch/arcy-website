@@ -433,7 +433,7 @@ test('pool younger than 24h still cannot claim a full-day percentage from token 
 });
 
 test('ranking uses token-level 24h volume across all pools; each row says which scope it carries',async()=>{
- const body=geckoBody('arc',{count:14,volume:i=>200000-i*1000});
+ const body=geckoBody('arc',{count:14,volume:i=>20000-i*1000});
  const m=multiBody('arc',body);m.data.find(d=>d.attributes.address===addr(14)).attributes.volume_usd.h24='900000';   // last candidate has most volume over all its pools
  const f=router([[/tokens\/multi/,()=>resp(m)],[/coingecko\.com/,()=>resp(body)]]);
  const out=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
