@@ -60,13 +60,18 @@ function fieldChecks(d){
  for(const [a,symbol,nov4] of COHORT){
   const pub=await get('/api/holders?address='+a);await sleep(3000);
   const st=await get('/api/holders?address='+a+'&action=status');await sleep(3000);
+  // Signed feed only: action=published reads the worker's Ed25519-signed publication (signature verified server-side) first.
+  const signed=await get('/api/holders?address='+a+'&action=published');await sleep(3000);
   const cls=classify(pub),d=pub.d||{},job=st.d?.job||null;
   const row={address:a,symbol,nov4,publication:cls,http:pub.http,lookup:d.publicationLookup||null,reasonCode:d.reasonCode||null,
    block:d.block||null,blockNumber:d.block?Number(BigInt(d.block)):null,completedAt:d.snapshot?.completedAt||null,
    ageHours:d.snapshot?.completedAt?Math.round((Date.now()-Date.parse(d.snapshot.completedAt))/36e5*10)/10:null,
    values:cls==='COMPLETE'?Object.fromEntries(KEYS.map(k=>[k,d[k]])):null,
    job:job?{state:job.state,queued:job.queued,reasonCode:job.reasonCode,retryAt:job.retryAt,attempts:job.attempts,updatedAt:job.updatedAt,hasCompleteSnapshot:job.hasCompleteSnapshot,progress:job.progress}:{unavailable:st.d?.reasonCode||('HTTP '+st.http)}};
+  const sd=signed.d||{};row.signed={class:classify(signed),block:sd.block||null,completedAt:sd.snapshot?.completedAt||null,sameAsDefault:Boolean(sd.block)&&sd.block===d.block};
   if(cls==='COMPLETE'){
+   const ev0=(d.evidence||[]).find(e=>e.block===d.block)||{};
+   row.evidence={balanceOfReads:ev0.balanceOfReads??null,balanceReadMethod:ev0.balanceReadMethod||null,transferTail:ev0.transferTail?{from:ev0.transferTail.fromBlock,to:ev0.transferTail.toBlock}:null,incrementalReconciliation:ev0.incrementalReconciliation?{carriedFromBlock:ev0.incrementalReconciliation.carriedFromBlock,reread:ev0.incrementalReconciliation.rereadAtPinnedBlock,carried:ev0.incrementalReconciliation.carriedUnchanged,lastFullReadAt:ev0.incrementalReconciliation.lastFullReadAt}:null,coverageBasis:(d.coverage?.basis||'').slice(0,60)};
    row.checks=fieldChecks(d);
    try{const ev=(d.evidence||[]).find(e=>e.block===d.block)||{};const b=await rpc('eth_getBlockByNumber',[d.block,false]);row.checks.anchorMatchesChain=Boolean(b?.hash)&&b.hash===ev.anchor;
     if(/^\d+$/.test(ev.totalSupplyRaw||'')){const ts=BigInt(await rpc('eth_call',[{to:a,data:'0x18160ddd'},d.block]));row.checks.totalSupplyAtBlock=ts.toString()===ev.totalSupplyRaw;}
@@ -81,7 +86,10 @@ function fieldChecks(d){
  const summary={at,base:BASE,cohort:rows.length,publication:{COMPLETE:count('COMPLETE'),ABSENT:count('ABSENT'),UNAVAILABLE:count('UNAVAILABLE'),API_ERROR:count('API_ERROR'),REQUEST_FAILED:count('REQUEST_FAILED')},
   holderFieldCoverage:fields+'/'+rows.length*KEYS.length,
   jobStates:Object.fromEntries(['READY','INDEXING','VERIFYING','QUEUED','FAILED','UNSUPPORTED'].map(s=>[s,jobs(s)])),
-  stalePublications:rows.filter(r=>r.ageHours!==null&&r.ageHours>24).length};
+  stalePublications:rows.filter(r=>r.ageHours!==null&&r.ageHours>24).length,
+  incrementalPublications:rows.filter(r=>r.evidence?.incrementalReconciliation).length,
+  signedComplete:rows.filter(r=>r.signed?.class==='COMPLETE').length,
+  onchainChecksAllPass:rows.filter(r=>r.checks&&Object.values(r.checks).every(v=>v===true)).length};
  console.log(JSON.stringify({summary,rows},null,1));
  for(const r of rows)console.log('::notice title=cohort-'+r.symbol+'::'+JSON.stringify(r).slice(0,3800));
  console.log('::notice title=cohort-summary::'+JSON.stringify(summary));
