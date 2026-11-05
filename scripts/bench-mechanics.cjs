@@ -61,6 +61,31 @@ const short=v=>String(v??'').replace(/\s+/g,' ').slice(0,70);
   const ms=Date.now()-t0,d=Object.fromEntries(Object.keys(net).map(k=>[k,net[k]-before[k]]));
   const f={},fails=new Set();for(const k of FIELDS){const x=res?.card?.fields?.[k];for(const q of (x?.analysisDiagnostics?.failures||[]))if(q?.reason)fails.add(q.reason);const c=classify(x||null,{card:'mechanics'});f[k]={ok:x?.dataState==='DATA_FOUND',cls:c.evidenceClass,status:x?.status||null,reason:x?.reasonCode||null,value:short(x?.value).slice(0,70)+(k==='ownerAdmin'&&x?.value?String(x.value).replace(/\s+/g,' ').slice(70,256):''),scope:short(x?.scope)};}
   rows.push({...s,block:res?.block||null,err,ms,net:d,f,fails:[...fails].sort()});
+  // In the existing baseline RECORD pass, pin at most ONE public fallback
+  // response for Ethereum contracts where the primary source failed. The
+  // baseline analyzer does not consume it; the paired replay does, with no
+  // unrecorded provider fetches. Keep separate visibility of extra source cost.
+  const failedSource=[...fails].some(x=>/^(SOURCE_CODE_UNAVAILABLE|SOURCE_API_FAILED|SOURCE_TIMEOUT|SOURCE_CIRCUIT_OPEN)$/.test(x));
+  if(MODE==='record'&&s.chain==='ethereum'&&failedSource){
+   const url='https://eth.blockscout.com/api/v2/smart-contracts/'+s.address.toLowerCase(),key=canon(url,{});
+   if(!store[key]){
+    const t1=Date.now();
+    try{
+     const r=await realFetch(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(3500)});
+     const payload=await r.text();
+     if(Buffer.byteLength(payload)<=4*1024*1024){
+      store[key]=[{status:r.status,type:r.headers.get('content-type'),text:payload}];
+      console.log('BENCH_SOURCE_RECORD '+JSON.stringify({address:s.address.slice(0,10),status:r.status,bytes:Buffer.byteLength(payload),ms:Date.now()-t1}));
+     }else{
+      store[key]=[{status:503,type:'application/json',text:'{"error":"SOURCE_TOO_LARGE"}'}];
+      console.log('BENCH_SOURCE_RECORD '+JSON.stringify({address:s.address.slice(0,10),status:503,reason:'SOURCE_TOO_LARGE'}));
+     }
+    }catch(e){
+     store[key]=[{status:503,type:'application/json',text:'{"error":"SOURCE_PROBE_UNAVAILABLE"}'}];
+     console.log('BENCH_SOURCE_RECORD '+JSON.stringify({address:s.address.slice(0,10),status:503,reason:'SOURCE_PROBE_UNAVAILABLE',ms:Date.now()-t1}));
+    }
+   }
+  }
   await new Promise(r=>setTimeout(r,600));
  }
  const cov={};for(const r of rows){const c=cov[r.chain+(r.group==='pons'?'/pons':'')]||={n:0,err:0,ms:0,rpc:0,src:0,f:Object.fromEntries(FIELDS.map(k=>[k,0]))};c.n++;if(r.err)c.err++;c.ms+=r.ms;c.rpc+=r.net.rpc;c.src+=r.net.sourcify;for(const k of FIELDS)if(r.f[k].ok)c.f[k]++;}
