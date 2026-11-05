@@ -2,7 +2,7 @@
 'use strict';
 // READ-ONLY: are unverified tokens byte-identical (modulo a few 32-byte words) to a verified sibling on the same chain?
 // Also reports Sourcify v2 and Blockscout smart-contract endpoint availability. <= 1 getCode + 2 GETs per address.
-const groups=JSON.parse(process.env.GROUPS||'null')||[
+const groups=JSON.parse(process.env.SIB_GROUPS||'null')||[
  {chain:'robinhood',chainId:4663,rpc:'https://rpc.mainnet.chain.robinhood.com',bs:'https://robinhoodchain.blockscout.com',ref:'0xaa07a0e9',addrs:['0x6511c2330b0d9e37f3a6c9a63e60eebcda1ec0a1','0xaa07a0e9']}
 ];
 async function rpc(url,method,params){const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(15000)});const d=await r.json();if(d.error)throw Error(d.error.message);return d.result;}
