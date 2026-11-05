@@ -103,6 +103,8 @@
   return (n.negative?'-':'')+out.whole+(out.fraction?'.'+out.fraction:'');
  }
  function display(value,key,kind){
+  // Mechanics mint absence from a reviewed source arrives as boolean false (status NOT_DETECTED): same wording as other rows.
+  if(value===false&&key==='mintCapability')return 'NONE DETECTED ✓';
   if(typeof value==='boolean')return value?'TRUE':'FALSE';
   const prefix=label(kind);
   if(key==='dexPairCount'){
@@ -114,6 +116,8 @@
   return prefix+(isUsd(key)?(shown.startsWith('-')?'-$'+shown.slice(1):'$'+shown):shown)+(isPercent(key)?'%':'');
  }
  function full(value,key,kind){
+  // Mechanics mint absence from a reviewed source arrives as boolean false (status NOT_DETECTED): same wording as other rows.
+  if(value===false&&key==='mintCapability')return 'NONE DETECTED ✓';
   if(typeof value==='boolean')return value?'TRUE':'FALSE';
   const prefix=label(kind),numeric=parseNumeric(value);
   if(!numeric)return prefix+String(value);

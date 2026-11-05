@@ -65,7 +65,10 @@ function contract(result,address){
   [taxBuy.value,taxSell.value].every(n=>typeof n==='number'&&n>=0&&n<=100)?
   {value:'Buy '+taxBuy.value+'% · Sell '+taxSell.value+'%'+
    (taxTransfer.dataState==='DATA_FOUND'&&typeof taxTransfer.value==='number'&&taxTransfer.value>=0&&taxTransfer.value<=100?
-    ' · Transfer '+taxTransfer.value+'%':' · Transfer NOT VERIFIED'),status:'SOURCE_REPORTED',
+    ' · Transfer '+taxTransfer.value+'%':' · Transfer NOT VERIFIED'),
+   // Keep the stronger original class when BOTH rates are reviewed on-chain getter reads with units (e.g. the reviewed
+   // ArgusTaxToken currentTaxes()/graduated() path). Anything else keeps the conservative SOURCE_REPORTED label.
+   status:[taxBuy,taxSell].every(f=>f.status==='ON_CHAIN_VERIFIED_UNITS')?'ON_CHAIN_VERIFIED_UNITS':'SOURCE_REPORTED',
    dataState:'DATA_FOUND',source:taxBuy.source===taxSell.source?taxBuy.source:
     taxBuy.source+' / '+taxSell.source,network:NETWORK,chainId:CHAIN,
    evidence:[...taxBuy.evidence,...taxSell.evidence,...(taxTransfer.dataState==='DATA_FOUND'?taxTransfer.evidence:[])],
