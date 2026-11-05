@@ -143,7 +143,7 @@ async function mechanics({address,base}){
    needAdmin:!owner,needImplementation:!implementation
   })}catch{} // Optional fallback never replaces known on-chain evidence.
  }
- return require('./mechanics-deep').enrich({network:'robinhood',address,block:base.block,rpc,card:{description:'On-chain getters and chain-specific GoPlus security observations; not a complete privilege or upgradeability audit.',
+ return require('./mechanics-coverage').enrich({network:'robinhood',address,block:base.block,rpc,card:{description:'On-chain getters and chain-specific GoPlus security observations; not a complete privilege or upgradeability audit.',
   fields:{
    tradingTaxes:observed.tradingTaxes?.dataState==='DATA_FOUND'?observed.tradingTaxes:
     NO('No contract-matched trading-tax report.'),

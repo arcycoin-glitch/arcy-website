@@ -309,7 +309,7 @@ async function mechanics({address,base}){
     detected[key]?.dataState==='DATA_FOUND'?detected[key]:existing
   ]));
  }
- const expanded=await require('./mechanics-deep').enrich({network:'arc',address,block:base.block,rpc:rpcClient.rpc,
+ const expanded=await require('./mechanics-coverage').enrich({network:'arc',address,block:base.block,rpc:rpcClient.rpc,
   card:{description:'Verified Arc contract mechanics with pinned-RPC/source fallback; external detection never overrides stronger first-party evidence.',fields}});
  // Separate reviewed immutable hook-tax evidence from ordinary ERC20 transfers.
  // The direct source re-read must prove the exact chain, token, hook and
