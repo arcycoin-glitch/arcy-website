@@ -149,7 +149,14 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
  const boundTarget=target===address||Boolean(clone)||reviewedLegacy(outer?.digest)&&kind==='Legacy implementation slot'||beaconBinding||reviewedSlotProxy;
  if(kind&&targetCode){
   if(boundTarget)await publishProxy();
-  else details.observations.push({method:'Unbound proxy storage candidate',implementation:target,admin,beacon,block,scope:'Storage/getter observations only. The outer execution path is not reviewed/bound; proxy architecture, upgradeability and admin authority remain unverified.'});
+  else{
+   details.observations.push({method:'Unbound proxy storage candidate',implementation:target,admin,beacon,block,scope:'Storage/getter observations only. The outer execution path is not reviewed/bound; proxy architecture, upgradeability and admin authority remain unverified.'});
+   // Architecture-only proof for an unreviewed outer runtime: differential state-override probe (see delegationProbe()).
+   const slot=kind==='EIP-1967 implementation'?SLOTS.implementation:kind==='Legacy implementation slot'?SLOTS.legacy:null;
+   const proven=slot?await require('./mechanics-proxy-probe').delegationProbe({read,address,slot,block}):null;
+   if(proven)fields.contractArchitecture=fact((kind==='EIP-1967 implementation'?'EIP-1967 proxy':'Legacy OpenZeppelin proxy slot')+' · delegation proven','Pinned implementation slot + deployed target bytecode + eth_call state-override delegation probe',{implementation:target,implementationCodeHash:keccak(Buffer.from(targetCode.slice(2),'hex')),runtimeCodeHash,implementationSlot:slot,...(admin?{adminSlotValue:admin}:{}),probe:proven,scope:'At the pinned block, replacing ONLY this storage slot redirected a non-admin call with an unused selector to replacement code that executed in this contract\'s own address context (DELEGATECALL), while the same call without the override did not. This proves delegation to the address held in the slot. Upgrade authority, admin semantics, routing of other selectors, nested delegation and token mechanics are NOT verified.'});
+   else if(slot)diagnostics.push({reason:'PROXY_DELEGATION_UNPROVEN',slot});
+  }
  }
  const reviewedImplementation=implementationSource&&(Object.hasOwn(PROFILES,implementationSource.digest)||Boolean(implementationSource.template));
  const resolved=boundTarget&&(target===address?nonDelegating(code):targetCode&&(nonDelegating(targetCode)||reviewedImplementation));
