@@ -5,6 +5,8 @@ on:
     paths:
       - 'scripts/probe-radar-missing24h.cjs'
       - 'scripts/probe-radar-change24h.cjs'
+      - 'scripts/probe-holder-state.cjs'
+      - 'scripts/probe-arc-explorer-discover.cjs'
       - '.github/workflows/production-readonly-measure.yml'
   workflow_dispatch:
 permissions:
@@ -22,6 +24,26 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/probe-radar-missing24h.cjs
+  explorer-discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Arc explorer DISCOVER dependency timings (GET only)
+        run: node scripts/probe-arc-explorer-discover.cjs
+  holder-state:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Arc Holder job and publication state (GET only; never queues work)
+        run: node scripts/probe-holder-state.cjs
   coverage-matrix:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -33,6 +55,7 @@ jobs:
       - name: Per-network, per-card field coverage and evidence classes (10 tokens per network)
         env:
           PER_CHAIN: '10'
+          PACE_MS: '2600'
           COVERAGE_OUTPUT: coverage.json
         # Measurement only: the production per-IP limiter (24/min) can answer 429 to a fast sequential run; that is reported, not fatal.
         continue-on-error: true
@@ -48,5 +71,9 @@ jobs:
           for(const k of Object.keys(agg))console.log('::notice title=coverage-'+k+'::'+JSON.stringify({tokens:tokens[k].size,...agg[k]}));
           const cards={};for(const [k,v] of Object.entries(r.totals))cards[k]=v.filled+'/'+v.slots;
           console.log('::notice title=coverage-cards::'+JSON.stringify(cards).slice(0,3500));
+          const why={};for(const s of r.samples){if(s.evidenceClass!=='NOT_VERIFIED')continue;const k=s.section+'|'+s.card+'|'+(s.provenance&&s.provenance.failureReason||'?');why[k]=(why[k]||0)+1;}
+          console.log('::notice title=coverage-reasons::'+JSON.stringify(Object.entries(why).sort((a,b)=>b[1]-a[1]).slice(0,40)).slice(0,3500));
+          const hold={};for(const s of r.samples){if(s.card==='holders'&&s.key==='holderCount')hold[s.section+':'+s.address.slice(0,8)]=s.evidenceClass==='NOT_VERIFIED'?((s.provenance&&s.provenance.failureReason||'?')+' / '+String(s.provenance&&s.provenance.failureDetail||'').slice(0,70)):s.evidenceClass;}
+          console.log('::notice title=coverage-holder-count::'+JSON.stringify(hold).slice(0,3500));
           console.log('::notice title=coverage-errors::'+JSON.stringify(r.errors).slice(0,3000));
           "
