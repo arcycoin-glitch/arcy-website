@@ -118,4 +118,7 @@ the last one is older than `ARC_HOLDER_FULL_REREAD_MS` (default 6 h, 10 min–24
 `lastFullReadAt` take one full re-read first. Evidence records `incrementalReconciliation` (carried-from block, re-read and
 carried counts, last full read) and the coverage basis says so. ARGUS-scale refresh: 133 → 1 balance call
 (`test/holder-incremental-refresh.test.js`). No new provider, no higher limits; checkpoints, `/data` and Redis keys unchanged.
-Rollback: redeploy the previous Railway deployment or set `ARC_HOLDER_INCREMENTAL_REFRESH=off`.
+Rollback safety: the carry is used only when every TAIL range was recorded by incremental-aware code (`touchedThrough` must equal
+the tail end) and READ has not passed the re-read prefix; otherwise the refresh is a full re-read. The previous release loads
+these checkpoints as valid and completes them as full re-reads (verified against `main` ea6c469). Rollback: redeploy the previous
+Railway deployment, revert the PR, or set `ARC_HOLDER_INCREMENTAL_REFRESH=off`.
