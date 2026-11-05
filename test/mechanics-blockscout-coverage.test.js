@@ -17,11 +17,11 @@ test('Blockscout fully verified exact bytecode provides a source/ABI profile wit
  assert.deepEqual(f.abi,abi);
  assert.ok(f.sources['contracts/V.sol'].content.includes('pragma solidity'));
 });
-test('verified source is available to the same strict parser on all three EVM networks',()=>{
+test('fully verified sources only on approved Blockscout network hosts; Arc safely keeps Sourcify',()=>{
  assert.ok(parse(fixture(),{...opts,network:'ethereum'}));
- assert.ok(parse(fixture(),{...opts,network:'arc'}));
+ assert.equal(parse(fixture(),{...opts,network:'arc'}),null);
  assert.ok(parse(fixture(),{...opts,network:'robinhood'}));
- assert.equal(HOSTS.arc,'https://explorer.arc.io');
+ assert.equal(HOSTS.arc,undefined);
  assert.equal(HOSTS.onsource,undefined);
 });
 test('partial, unverified, changed or bytecode-mismatched contracts NEVER pass',()=>{
@@ -67,12 +67,11 @@ test('unverified response never becomes a verified fact and carries specific dia
  assert.equal(diagnostics[0].reason,'SOURCE_VERIFICATION_INSUFFICIENT');
  assert.ok(diagnostics[0].sourceUrl.startsWith('https://robinhoodchain.blockscout.com/'));
 });
-test('Arc uses its official Blockscout URL, never guesses a source; HTTP failures stay not verified',async()=>{
- let count=0,actual=null;
+test('Arc HTTP 403 blocks the optional source path without any extra request or invented evidence',async()=>{
+ let count=0;
  const arc=await retrieve({cfg:{id:'arc',chainId:5042},address:A,code:CODE,
-  reader:{json:async(url)=>{count++;actual=url;return fixture({is_fully_verified:false});}}});
- assert.equal(arc,null);assert.equal(count,1);
- assert.equal(actual,'https://explorer.arc.io/api/v2/smart-contracts/'+A);
+  reader:{json:async()=>{count++;return fixture();}}});
+ assert.equal(arc,null);assert.equal(count,0);
  const diagnostics=[];
  await retrieve({cfg:{id:'ethereum',chainId:1},address:A,code:CODE,
   reader:{json:async()=>{throw Object.assign(Error('down'),{httpStatus:503})}},diagnostics});
