@@ -81,7 +81,9 @@ const pick=f=>f?{v:f.value===null||f.value===undefined?null:String(typeof f.valu
   if(s.error){rows.push(s);continue;}
   const row={...s},t0=Date.now();
   try{const r=await Promise.race([pipeline(s.chain,s.address),new Promise((_,j)=>setTimeout(()=>j(Error('AUDIT_TIMEOUT_75S')),75000))]);
-   row.block=r.block;row.code=Object.fromEntries(FIELDS.map(k=>{const f=r.card?.fields?.[k];let ec=null;try{ec=f?(f.evidenceClass||classify(f,{card:'mechanics'})?.evidenceClass||null):null;}catch{}return [k,{...pick(f),ec:ec||pick(f)?.ec||null}];}));}
+   row.block=r.block;
+   // UI gate: search/mechanics-policy.js decides which DATA_FOUND rows the page counts as complete verified rows.
+   try{const cfg=req('search/server/lib/chains').chain(s.chain);const pol=req('search/mechanics-policy').assess(r.card,{chainId:cfg.chainId,network:s.chain,address:s.address,block:r.block});row.policy={complete:pol.completeRows,rows:Object.fromEntries(FIELDS.map((k,i)=>[k,pol.rows[i]]))};}catch(e){row.policy={error:String(e.message).slice(0,60)};}row.code=Object.fromEntries(FIELDS.map(k=>{const f=r.card?.fields?.[k];let ec=null;try{ec=f?(f.evidenceClass||classify(f,{card:'mechanics'})?.evidenceClass||null):null;}catch{}return [k,{...pick(f),ec:ec||pick(f)?.ec||null}];}));}
   catch(e){row.codeError=String(e.message||e).slice(0,100);}
   row.ms=Date.now()-t0;
   row.facts=await facts(s.chain,s.address);
@@ -92,5 +94,7 @@ const pick=f=>f?{v:f.value===null||f.value===undefined?null:String(typeof f.valu
  }
  fs.writeFileSync('mechanics-audit.json',JSON.stringify({at:new Date().toISOString(),base:BASE,rows},null,1));
  const sum={};for(const r of rows){if(r.error)continue;const n=sum[r.section]||={tokens:0,slots:0,found:0,codeErrors:0,byField:{},reasons:{}};n.tokens++;if(r.codeError){n.codeErrors++;continue;}for(const k of FIELDS){n.slots++;const f=r.code[k];const ok=f?.ds==='DATA_FOUND';if(ok)n.found++;(n.byField[k]||=[0,0])[ok?0:1]++;if(!ok){const c=k+':'+(f?.rc||'NONE');n.reasons[c]=(n.reasons[c]||0)+1;}}}
+ for(const r of rows){if(r.error||r.codeError||!r.policy?.rows)continue;const n=sum[r.section];n.uiComplete=(n.uiComplete||0)+r.policy.complete;for(const k of FIELDS)if(r.policy.rows[k])(n.uiByField||={})[k]=(n.uiByField?.[k]||0)+1;}
  console.log('::notice title=mech-audit-summary::'+JSON.stringify(sum).slice(0,3900));
+ console.log('AUDITSUMMARY '+JSON.stringify(sum));
 })().catch(e=>{console.error(e);process.exitCode=1;});
