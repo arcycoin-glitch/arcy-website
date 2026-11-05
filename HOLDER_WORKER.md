@@ -98,3 +98,24 @@ Cost bound: `ARC_HOLDER_RPC_DISCOVERY_MAX_BLOCKS` (default 10,000,000, hard max 
 `HOLDER_RPC_DISCOVERY_RECONCILIATION_EXHAUSTED` (no partial snapshot). Measured for the stuck contract: deployment block
 21,237,418, ~8.3 M blocks to head (≈8,300 `eth_getLogs` calls at the default 1000-block window, served by the primary Arc RPC
 in 160–260 ms; Blockdaemon answers 4444 pruned and is skipped by the existing history logic).
+
+## Incremental COMPLETE refresh (2026-11-05)
+
+**Root cause (production, read-only measurement 2026-11-05 08:57 UTC, `scripts/measure-arc-holder-cohort.cjs`):** every
+COMPLETE token is due again after 10 minutes, and every refresh re-read **all** candidate balances at the new pinned block
+(ARGUS 26,562 candidates = 133 multicall `eth_call`s, FAZE 14,385 = 72, TOLLY 12,509 = 63, ASTOCK 5,962 = 30). At the 500 ms
+pacing that is minutes of RPC per token per cycle against a provider that already answers 429, so refreshes outlived the
+10-minute freshness window (worker state COMPLETE → STALE) and first-time BUILDING scans (KAIRO, ~10 M-block RPC Transfer-log
+catch-up) were starved of slices.
+
+**Fix (`lib/holder-candidates.js`, default on; `ARC_HOLDER_INCREMENTAL_REFRESH=off` restores the old full re-read):** the TAIL
+phase records every address touched by a Transfer after the previous fully reconciled pin. READ re-reads only those, new
+candidates and burn addresses at the new pinned block; every other candidate carries its exact balance from the previous
+verified COMPLETE index (`storage.completedBalances`, same exact block, re-aggregated before use). Publication still requires
+the exact pinned-block `totalSupply` reconciliation. A mismatch (e.g. a non-standard token whose balances move without Transfer
+events) falls back to a **full re-read at the same pin** — never DISCOVER/rediscovery — and a full re-read is forced whenever
+the last one is older than `ARC_HOLDER_FULL_REREAD_MS` (default 6 h, 10 min–24 h). Legacy checkpoints without
+`lastFullReadAt` take one full re-read first. Evidence records `incrementalReconciliation` (carried-from block, re-read and
+carried counts, last full read) and the coverage basis says so. ARGUS-scale refresh: 133 → 1 balance call
+(`test/holder-incremental-refresh.test.js`). No new provider, no higher limits; checkpoints, `/data` and Redis keys unchanged.
+Rollback: redeploy the previous Railway deployment or set `ARC_HOLDER_INCREMENTAL_REFRESH=off`.
