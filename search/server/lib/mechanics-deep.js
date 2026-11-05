@@ -56,8 +56,9 @@ async function sourceFor(cfg,address,code,diagnostics){
    url,retrievedAt:new Date(reader.observedAt(url)).toISOString()};
  }catch(e){
   const reason=e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':
-   e.code==='SOURCE_TIMEOUT'?'SOURCE_TIMEOUT':e.code==='SOURCE_SCHEMA_INVALID'?'SOURCE_SCHEMA_INVALID':
-   e.code==='SOURCE_IDENTITY_MISMATCH'?'SOURCE_IDENTITY_MISMATCH':'SOURCE_API_FAILED';
+   e.code==='SOURCE_TIMEOUT'?'SOURCE_TIMEOUT':
+   ['SOURCE_BYTECODE_MISMATCH','SOURCE_IDENTITY_MISMATCH','SOURCE_SCHEMA_INVALID'].includes(e.message)?e.message:
+   e.code==='SOURCE_SCHEMA_INVALID'?'SOURCE_SCHEMA_INVALID':'SOURCE_API_FAILED';
   diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason});
   // One bounded no-key fallback; do not bypass source mismatch or rate limits.
   // The baseline and production contract explicitly prohibit additional
