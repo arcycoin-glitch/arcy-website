@@ -1,5 +1,5 @@
 'use strict';
-// Optional, bounded source fallback for Arc, Ethereum and Robinhood Mechanics.
+// Optional, bounded source fallback for Ethereum and Robinhood Mechanics. Arc source API currently replies HTTP 403.
 // Blockscout is accepted ONLY for a fully verified contract whose published
 // deployed bytecode is byte-for-byte identical to eth_getCode at the pinned block.
 // An explorer ABI, partial verification or function name alone is never proof of
@@ -8,7 +8,6 @@ const crypto=require('node:crypto');
 const ADDR=/^0x[0-9a-f]{40}$/i,HEX=/^0x(?:[0-9a-f]{2})+$/i;
 const HOSTS=Object.freeze({
  ethereum:'https://eth.blockscout.com',
- arc:'https://explorer.arc.io',
  robinhood:'https://robinhoodchain.blockscout.com'
 });
 const MAX_FILES=64,MAX_SOURCE_BYTES=3*1024*1024,MAX_ABI=400;
