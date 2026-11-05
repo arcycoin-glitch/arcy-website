@@ -64,7 +64,7 @@ async function build(address){
   if(c.fields?.owner?.dataState!=='DATA_FOUND'||c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'){
    try{extra=await require('./admin-getters').inspect({network:'ethereum',address:t.address,block:t.block,rpc:require('./eth').rpc,needAdmin:c.fields?.owner?.dataState!=='DATA_FOUND',needImplementation:c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'})}catch{}
   }
-  return require('./mechanics-deep').enrich({network:'ethereum',address:t.address,block:t.block,rpc:require('./eth').rpc,card:mechanicsCard(c,sec,extra)});
+  return require('./mechanics-coverage').enrich({network:'ethereum',address:t.address,block:t.block,rpc:require('./eth').rpc,card:mechanicsCard(c,sec,extra)});
  })();
  // Independent verified cards must not wait for a slow holder/market provider.
  mechanicsWork.then(card=>require('./progress').card('ethereum',t,'mechanics',card)).catch(()=>{});
