@@ -1,0 +1,19 @@
+name: Mechanics Phase B evidence probe (read-only)
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'scripts/probe-mechanics-phaseb.cjs'
+      - '.github/workflows/mechanics-phaseb-probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-mechanics-phaseb.cjs

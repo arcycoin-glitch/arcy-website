@@ -1,0 +1,230 @@
+[
+ {
+  "section": "arc",
+  "chain": "arc",
+  "address": "0x4c9b47dbd5933aa4574b2c27f82419e4dbbd0222",
+  "symbol": "ASTOCK"
+ },
+ {
+  "section": "arc",
+  "chain": "arc",
+  "address": "0xece5ca8bf9220718e5727754026757512212cb3c",
+  "symbol": "ARGUS"
+ },
+ {
+  "section": "arc",
+  "chain": "arc",
+  "address": "0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+  "symbol": "TOLLY"
+ },
+ {
+  "section": "arc",
+  "chain": "arc",
+  "address": "0x0dc6b79f3c3854e4d74514fd4d29be6c96beee39",
+  "symbol": "syrupUSDC"
+ },
+ {
+  "section": "arc",
+  "chain": "arc",
+  "address": "0x394d38f807ee0027a182216f5e67a15ae441fa2e",
+  "symbol": "FAZE"
+ },
+ {
+  "section": "arc",
+  "chain": "arc",
+  "address": "0x75d658f8101fbe6dc217fbba7e20a0312af5fa2e",
+  "symbol": "AF"
+ },
+ {
+  "section": "arc",
+  "chain": "arc",
+  "address": "0xa3de1dda14e4b3ce2eee2f8c1e49315effc15be2",
+  "symbol": "ARCLIGHT"
+ },
+ {
+  "section": "arc",
+  "chain": "arc",
+  "address": "0x2164bb17a2d38c1b5170e987b2c0416df1efc752",
+  "symbol": "LONG"
+ },
+ {
+  "section": "arc",
+  "chain": "arc",
+  "address": "0x3ead4e80e9e5bc0e01682d7ee74c4881b040d3ea",
+  "symbol": "KAIRO"
+ },
+ {
+  "section": "arc",
+  "chain": "arc",
+  "address": "0x28f986a61e078795639f239675582a12b4cf7f01",
+  "symbol": "oBrain"
+ },
+ {
+  "section": "ethereum",
+  "chain": "ethereum",
+  "address": "0x0dc4bc369ff564543738ebb04f2f1e6f4343f3b7",
+  "symbol": "DACITY"
+ },
+ {
+  "section": "ethereum",
+  "chain": "ethereum",
+  "address": "0x45804880de22913dafe09f4980848ece6ecbaf78",
+  "symbol": "PAXG"
+ },
+ {
+  "section": "ethereum",
+  "chain": "ethereum",
+  "address": "0x6982508145454ce325ddbe47a25d4ec3d2311933",
+  "symbol": "PEPE"
+ },
+ {
+  "section": "ethereum",
+  "chain": "ethereum",
+  "address": "0x68749665ff8d2d112fa859aa293f07a622782f38",
+  "symbol": "XAUt"
+ },
+ {
+  "section": "ethereum",
+  "chain": "ethereum",
+  "address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+  "symbol": "AAVE"
+ },
+ {
+  "section": "ethereum",
+  "chain": "ethereum",
+  "address": "0x62d0a8458ed7719fdaf978fe5929c6d342b0bfce",
+  "symbol": "BEAM"
+ },
+ {
+  "section": "ethereum",
+  "chain": "ethereum",
+  "address": "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c",
+  "symbol": "SPX"
+ },
+ {
+  "section": "ethereum",
+  "chain": "ethereum",
+  "address": "0xe53ec727dbdeb9e2d5456c3be40cff031ab40a55",
+  "symbol": "SUPER"
+ },
+ {
+  "section": "ethereum",
+  "chain": "ethereum",
+  "address": "0x0b57b7333c43fe900d17a81bddc67c88c825afd6",
+  "symbol": "SDLR"
+ },
+ {
+  "section": "ethereum",
+  "chain": "ethereum",
+  "address": "0xa038a26bf960451b8ce75ec4c92013c6307f8e4e",
+  "symbol": "GDLR"
+ },
+ {
+  "section": "robinhood",
+  "chain": "robinhood",
+  "address": "0x11188aa11daab927b3c1e7318ee9e57b35c1d5e8",
+  "symbol": "Anthropic"
+ },
+ {
+  "section": "robinhood",
+  "chain": "robinhood",
+  "address": "0x0b7c6c138dc75622f4200d157b13fb93e6bd94fa",
+  "symbol": "MOW"
+ },
+ {
+  "section": "robinhood",
+  "chain": "robinhood",
+  "address": "0x39dbed3a2bd333467115de45665cc57f813c4571",
+  "symbol": "PONS"
+ },
+ {
+  "section": "robinhood",
+  "chain": "robinhood",
+  "address": "0xc9675fe679c7d4e1b94416f66d61c96127eb964a",
+  "symbol": "GIGATENEV"
+ },
+ {
+  "section": "robinhood",
+  "chain": "robinhood",
+  "address": "0x98096d17e191b3da1d5f99a6d7b3584351b11e18",
+  "symbol": "BONER"
+ },
+ {
+  "section": "robinhood",
+  "chain": "robinhood",
+  "address": "0x94641b97010608c3827fb058074889f19868ff33",
+  "symbol": "VRAX"
+ },
+ {
+  "section": "robinhood",
+  "chain": "robinhood",
+  "address": "0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111",
+  "symbol": "TORCH"
+ },
+ {
+  "section": "robinhood",
+  "chain": "robinhood",
+  "address": "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec",
+  "symbol": "NVDA"
+ },
+ {
+  "section": "robinhood",
+  "chain": "robinhood",
+  "address": "0x4a0e65a3eccec6dbe60ae065f2e7bb85fae35eea",
+  "symbol": "SPCX"
+ },
+ {
+  "section": "robinhood",
+  "chain": "robinhood",
+  "address": "0x020bfc650a365f8bb26819deaabf3e21291018b4",
+  "symbol": "CASHCAT"
+ },
+ {
+  "section": "pons",
+  "chain": "robinhood",
+  "address": "0x6511c233790ec10f7d673c64dc82c3f941d57828",
+  "symbol": "OAK"
+ },
+ {
+  "section": "pons",
+  "chain": "robinhood",
+  "address": "0x69156ef2ec33d24efb29c1a2fa84967be618ccbf",
+  "symbol": "SIC"
+ },
+ {
+  "section": "pons",
+  "chain": "robinhood",
+  "address": "0xef50274cfe89d3bbddd52544f2f1a0ef15a3259f",
+  "symbol": "Kitsu"
+ },
+ {
+  "section": "pons",
+  "chain": "robinhood",
+  "address": "0xdafaa1ed0b9f5746a0cfa2be80371cf06a986977",
+  "symbol": "UPOCH"
+ },
+ {
+  "section": "pons",
+  "chain": "robinhood",
+  "address": "0xaa07a0e9209e16ac99708c3ec70159c6ef3128a3",
+  "symbol": "ORBIO"
+ },
+ {
+  "section": "pons",
+  "chain": "robinhood",
+  "address": "0x5e948189807ad655dd0d180f2e3df3fa1d03cf05",
+  "symbol": "NOVUS"
+ },
+ {
+  "section": "pons",
+  "chain": "robinhood",
+  "address": "0x4a4fc33a4bf80d7bab0e1bab6d82af1e2942e917",
+  "symbol": "ZHOOK"
+ },
+ {
+  "section": "pons",
+  "chain": "robinhood",
+  "address": "0x63b5c2b1eb93ad62ea06560370f4f317ee1b97d3",
+  "symbol": "LMNI"
+ }
+]
