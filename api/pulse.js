@@ -55,7 +55,7 @@ function response(value,audit,{archive=false}={}){
    const older=recentThree.find(x=>x.url&&!used.has(x.url));
    if(!older)break;used.add(older.url);
    display[i]={...older,kind:display[i].kind,verifiedCurrentWeek:false,contentType:'RECENT_VERIFIED',
-    summary:typeof older.summary==='string'&&older.summary.trim()?older.summary:'Published '+older.publishedAt.slice(0,10)+' · Previous-week source report, not a new announcement this week.'};
+    summary:'Published '+older.publishedAt.slice(0,10)+' · Previous-week official project report. Not a new announcement this week.'};
   }
  }
  const neutralTake=fallback.fallback().take;
