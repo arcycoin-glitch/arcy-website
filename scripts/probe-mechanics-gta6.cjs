@@ -41,6 +41,9 @@ const compact=o=>JSON.stringify(o);
   hasBytecode:typeof obj.deployed_bytecode==='string',hasSource:typeof obj.source_code==='string',
   address:arcAddress}));
 
+ const rh=await json('https://robinhoodchain.blockscout.com/api/v2/stats');
+ console.log('ROBINHOOD_BLOCKSCOUT_API',compact({ok:rh.ok,http:rh.http||null,error:rh.error||null,
+  hasStats:Boolean(rh.data&&typeof rh.data==='object')}));
  if(!list.length)return;
  // One pinned block for all source/code comparisons.
  const endpoint='https://ethereum-rpc.publicnode.com';
