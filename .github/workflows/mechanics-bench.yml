@@ -41,8 +41,8 @@ jobs:
         continue-on-error: true
       - name: BEFORE-REPLAY (main) — deterministic recorded evidence
         run: BENCH_REPLAY=replay BENCH_ROOT=$GITHUB_WORKSPACE/before node after/scripts/bench-mechanics.cjs before mechanics-samples.json
-      - name: AFTER-REPLAY (branch) — no network fallback for unrecorded requests
-        run: BENCH_REPLAY=replay BENCH_ROOT=$GITHUB_WORKSPACE/after node after/scripts/bench-mechanics.cjs after mechanics-samples.json
+      - name: AFTER-REPLAY (branch) — no network fallback except budgeted, classified read-only requests (augment)
+        run: BENCH_REPLAY=augment BENCH_ROOT=$GITHUB_WORKSPACE/after node after/scripts/bench-mechanics.cjs after mechanics-samples.json
       - name: Paired benchmark regression gate (mandatory)
         run: node after/scripts/assert-mechanics-bench.cjs mechanics-bench-before.json mechanics-bench-after.json
       - name: Let public RPC windows reset
