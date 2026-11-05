@@ -60,6 +60,9 @@ async function sourceFor(cfg,address,code,diagnostics){
    ['SOURCE_BYTECODE_MISMATCH','SOURCE_IDENTITY_MISMATCH','SOURCE_SCHEMA_INVALID'].includes(e.message)?e.message:
    e.code==='SOURCE_SCHEMA_INVALID'?'SOURCE_SCHEMA_INVALID':'SOURCE_API_FAILED';
   diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason});
+  // Unpublished source only: a curated, exact-matched sibling reference may be reused (see mechanics-sibling-runtime.js).
+  // The caller still re-reads this token's own immutable getters at the pinned block before any field is published.
+  if(e.httpStatus===404){const sibling=require('./mechanics-sibling-runtime'),hit=sibling.match(code,cfg.chainId);if(hit)return sibling.reference({cfg,code,reader,diagnostics,hit});}
   // One bounded no-key fallback; do not bypass source mismatch or rate limits.
   // The baseline and production contract explicitly prohibit additional
   // source requests. Keep this optional fallback disabled unless an operator
@@ -109,7 +112,11 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
    if(facets){const codes=await Promise.all(facets.map(deployed));if(codes.every(Boolean))details.observations.push({method:'facetAddresses()',facets,block,runtimeCodeHash,scope:'Diamond candidate only. Reported facet bytecode exists; actual selector routing/upgrade authority remains NOT VERIFIED.'});}
   }
  }
- const outer=await sourcePromise;if(outer)details.sources.push({address,digest:outer.digest,url:outer.url,retrievedAt:outer.retrievedAt});
+ let outer=await sourcePromise;
+ // Token-specific state check for a sibling-reference source: this token's OWN getters must return exactly its own
+ // immutable words at the pinned block, and the reference ABI must declare them. Any miss fails closed (no source).
+ if(outer?.siblingReview){const checks=await Promise.all(Object.entries(outer.siblingReview.getters).map(async([name,id])=>abiFn(outer,name+'()','address')&&addressWord(await call(address,name+'()'))===outer.siblingReview.immutables[id]));if(!checks.length||!checks.every(Boolean)){diagnostics.push({reason:'SIBLING_TOKEN_STATE_MISMATCH',family:outer.siblingReview.family});outer=null;}}
+ if(outer)details.sources.push({address,digest:outer.digest,url:outer.url,retrievedAt:outer.retrievedAt});
  if(reviewedLegacy(outer?.digest)&&kind==='Legacy implementation slot'){
   admin=addressWord(await safe('eth_getStorageAt',[address,SLOTS.legacyAdmin,block]));
   if(admin)details.observations.push({method:'Reviewed legacy proxy upgrade authority',admin,block,sourceUrl:outer.url,sourceDigest:outer.digest,status:'VERIFIED_SOURCE_AND_STATE',scope:'Reviewed admin slot gates changeAdmin, upgradeTo and upgradeToAndCall. Token owner and implementation roles are separate; key ownership and complete multisig membership are not inferred.'});
