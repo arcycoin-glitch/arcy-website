@@ -8,7 +8,7 @@ const T0=Date.UTC(2026,9,30,12,0,0);
 beforeEach(()=>{http._resetCooldowns();radar._cache.clear();});
 
 // ── fixtures ──────────────────────────────────────────────────────────────────────────────────────────────
-function geckoBody(net,{count=14,start=1,volume=i=>2000000-i*1000,created=i=>new Date(T0-i*60000).toISOString(),dup=false}={}){
+function geckoBody(net,{count=14,start=1,volume=i=>2000000-i*1000,created=i=>new Date(T0-2*86400000-i*60000).toISOString(),dup=false}={}){
  const id=sources.NETWORKS[net].gecko,included=[],data=[];
  for(let i=0;i<count;i++){
   const a=addr(dup?Math.floor(i/2)+start:i+start),tokenId=id+'_'+a,pool=addr(5000+i);
@@ -168,6 +168,27 @@ test('a token whose providers contradict on price is NOT_VERIFIED, therefore ine
  assert.ok(!out.tokens.some(t=>t.address===bad),'a price the sources contradict is never ranked');
  const ex=out.excluded.find(x=>x.address===bad);assert.equal(ex.reason,'INELIGIBLE_AFTER_VERIFICATION');assert.match(ex.detail,/PRICE_NOT_VERIFIED/);
  assert.ok(out.tokens.length>=9&&out.tokens.every(t=>t.priceUsd!==null),'ranked tokens always carry a verified price');
+});
+
+test('promoted Radar excludes issuer-branded tokens even with high provider-reported volume',async()=>{
+ const net='robinhood',body=geckoBody(net,{count:14});
+ body.included[0].attributes.name='Anthropic';
+ body.included[0].attributes.symbol='AI';
+ const f=router([...CG(net,body),[/dexscreener\.com/,()=>resp(dexBody(net,body))]]);
+ const out=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
+ assert.equal(out.tokens.length,10,'eligible independent candidates still fill the list');
+ assert.ok(!out.tokens.some(t=>t.address===addr(1)));
+ const ex=out.excluded.find(x=>x.address===addr(1));
+ assert.equal(ex.reason,'ISSUER_AFFILIATION_NOT_VERIFIED');
+ assert.equal(out.discovery.excludedCounts.ISSUER_AFFILIATION_NOT_VERIFIED,1);
+});
+test('promoted Radar does not rank pools with incomplete 24h history',async()=>{
+ const net='arc',body=geckoBody(net,{count:14,created:i=>i===0?new Date(T0-3600000).toISOString():new Date(T0-2*86400000-i*60000).toISOString()});
+ const f=router([...CG(net,body),[/dexscreener\.com/,()=>resp(dexBody(net,body))]]);
+ const out=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
+ assert.equal(out.tokens.length,10);
+ assert.ok(!out.tokens.some(t=>t.address===addr(1)));
+ assert.equal(out.excluded.find(x=>x.address===addr(1))?.reason,'POOL_UNDER_24H');
 });
 
 // ── gates, errors, cache, rate limits ─────────────────────────────────────────────────────────────────────
@@ -412,7 +433,7 @@ test('pool younger than 24h still cannot claim a full-day percentage from token 
 });
 
 test('ranking uses token-level 24h volume across all pools; each row says which scope it carries',async()=>{
- const body=geckoBody('arc',{count:14,volume:i=>200000-i*1000});
+ const body=geckoBody('arc',{count:14,volume:i=>20000-i*1000});
  const m=multiBody('arc',body);m.data.find(d=>d.attributes.address===addr(14)).attributes.volume_usd.h24='900000';   // last candidate has most volume over all its pools
  const f=router([[/tokens\/multi/,()=>resp(m)],[/coingecko\.com/,()=>resp(body)]]);
  const out=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
