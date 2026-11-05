@@ -126,8 +126,13 @@ test('Robinhood: wrong pool is never borrowed; exactly 0% is kept as 0; absent s
 });
 test('Robinhood: a pool younger than 24 h keeps its own reason and is never filled from a shorter window',async()=>{
  const top=body('robinhood',Array.from({length:10},(_,k)=>({i:k+1,pool:5000+k+1,change:k===0?undefined:'5',pcp:k===0?{h1:'9',h6:'8'}:undefined,created:k===0?T0-3*3600000:undefined,vol:2000000-k})));
- const t=await loadRow('robinhood',rhRouter('robinhood',{top,multi:multiFor('robinhood',undefined)}));
- assert.equal(t.change24hPct,null);assert.equal(t.fields.change24hPct.reasonCode,'POOL_LESS_THAN_24H_OLD');
+ const provider=rhRouter('robinhood',{top,multi:multiFor('robinhood',undefined)});
+ const out=await radar.load('robinhood',{env:ENV,fetcher:provider,now:()=>T0,disableCache:true});
+ assert.ok(!out.tokens.some(t=>t.address===addr(1)),'partial-window pool is not promoted to the Radar top ten');
+ assert.equal(out.excluded.find(x=>x.address===addr(1))?.reason,'POOL_UNDER_24H');
+ const evidence=verify.verifyRow(row('robinhood',undefined,{created:T0-3*3600000}),{state:'DISABLED'},{now:T0}).fields.change24hPct;
+ assert.equal(evidence.value,null);
+ assert.equal(evidence.reasonCode,'POOL_LESS_THAN_24H_OLD','the young-pool field evidence is still preserved');
 });
 test('request shape: no missing value => plain token lookup (no include) on Robinhood; Arc and Ethereum never request the include',async()=>{
  let f=rhRouter('robinhood',{top:pools10('robinhood','7'),multi:multiFor('robinhood','7')});
