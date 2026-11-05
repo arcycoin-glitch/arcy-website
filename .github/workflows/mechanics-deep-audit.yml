@@ -1,0 +1,31 @@
+name: Mechanics deep audit (read-only)
+# Runs the repository's own Mechanics pipeline in-process + bounded independent on-chain checks for Radar samples.
+# Reads production Radar and (Ethereum/Robinhood/Pons only) production Search reports. Never queues Arc holder work.
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'scripts/audit-mechanics.cjs'
+      - '.github/workflows/mechanics-deep-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mechanics-deep-audit-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/audit-mechanics.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mechanics-audit
+          path: mechanics-audit.json
+          retention-days: 14
