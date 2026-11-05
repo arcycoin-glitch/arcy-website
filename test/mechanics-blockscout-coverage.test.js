@@ -121,3 +121,21 @@ test('already verified Mechanics facts and unrelated fields cannot be rewritten 
  assert.equal(explain('contractArchitecture',unknown(),d).reasonCode,'MINT_CAPABILITY_NOT_VERIFIED');
  assert.equal(explain('mintCapability',unknown(),{}).reasonCode,'MINT_CAPABILITY_NOT_VERIFIED');
 });
+
+test('contract mechanics annotation works across network reports without changing verified values',()=>{
+ const coverage=require('../search/server/lib/mechanics-coverage');
+ for(const network of ['ethereum','arc','robinhood']){
+  const details={sourceVerification:{matched:true,provider:'Sourcify'},interfaceCandidates:[
+   {name:'setFee',stateMutability:'nonpayable'},{name:'grantRole',stateMutability:'nonpayable'}],failures:[]};
+  const verified={value:'NON-PROXY · runtime verified',dataState:'DATA_FOUND',evidence:[{}]};
+  const unknownWithDetails={...unknown(),analysisDiagnostics:details};
+  const card={description:network,fields:{contractArchitecture:verified,tradingTaxes:unknownWithDetails,mintCapability:unknownWithDetails,ownerAdmin:unknownWithDetails}};
+  const out=coverage.annotateCard(card);
+  assert.equal(card.fields.tradingTaxes.reason,'Generic unavailable','original not mutated');
+  assert.equal(out.fields.contractArchitecture,verified,'proved existing value not copied/changed');
+  assert.equal(out.fields.tradingTaxes.value,null);
+  assert.match(out.fields.tradingTaxes.reason,/setFee/);
+  assert.match(out.fields.ownerAdmin.reason,/grantRole/);
+  assert.equal(out.fields.ownerAdmin.dataState,'NOT_VERIFIED');
+ }
+});
