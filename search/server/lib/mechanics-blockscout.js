@@ -1,5 +1,5 @@
 'use strict';
-// Optional, bounded source fallback for Ethereum / Robinhood Mechanics.
+// Optional, bounded source fallback for Arc, Ethereum and Robinhood Mechanics.
 // Blockscout is accepted ONLY for a fully verified contract whose published
 // deployed bytecode is byte-for-byte identical to eth_getCode at the pinned block.
 // An explorer ABI, partial verification or function name alone is never proof of
