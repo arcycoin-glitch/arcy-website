@@ -60,7 +60,11 @@ async function sourceFor(cfg,address,code,diagnostics){
    e.code==='SOURCE_IDENTITY_MISMATCH'?'SOURCE_IDENTITY_MISMATCH':'SOURCE_API_FAILED';
   diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason});
   // One bounded no-key fallback; do not bypass source mismatch or rate limits.
-  if(e.httpStatus===404||e.httpStatus>=500||e.code==='SOURCE_TIMEOUT'||e.code==='SOURCE_CIRCUIT_OPEN'){
+  // The baseline and production contract explicitly prohibit additional
+  // source requests. Keep this optional fallback disabled unless an operator
+  // has independently approved its bounded public API budget.
+  if(process.env.MECHANICS_BLOCKSCOUT_FALLBACK_ENABLED==='true'&&
+    (e.httpStatus===404||e.httpStatus>=500||e.code==='SOURCE_TIMEOUT'||e.code==='SOURCE_CIRCUIT_OPEN')){
    return require('./mechanics-blockscout').retrieve({cfg,address,code,reader,diagnostics});
   }
   return null;
