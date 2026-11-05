@@ -1,0 +1,27 @@
+name: Arc Holder exact-cohort measurement (read-only)
+# Reads public production holder publications/job status for the exact 2026-11-04 cohort.
+# Never queues work (no /api/search reports, no ?action=queue). Manual or when its own files change.
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'scripts/measure-arc-holder-cohort.cjs'
+      - '.github/workflows/arc-holder-cohort-measure.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: arc-holder-cohort-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  cohort:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/measure-arc-holder-cohort.cjs
+        env:
+          COHORT_OUTPUT: cohort.json
