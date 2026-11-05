@@ -15,6 +15,15 @@ function explain(key,field,details){
  if(info.matched){
   reasonCode='MECHANICS_EXECUTION_PATH_UNREVIEWED';
   reason=label.scope+' cannot yet be established from the exact-runtime verified source. '+label.hint;
+  // Only ABI interface HINTS from source that already passed contract/runtime
+  // identity verification. These are not tax rates, permissions or proven mint.
+  const re=key==='tradingTaxes'?/tax|fee|levy|commission/i:
+   key==='mintCapability'?/mint|issu|bridge|supply|cap/i:
+    /owner|admin|role|permission|auth|upgrade|pause|blacklist|masterminter/i;
+  const candidates=(Array.isArray(details?.interfaceCandidates)?details.interfaceCandidates:[])
+   .filter(x=>x&&typeof x.name==='string'&&/^[A-Za-z_][A-Za-z_0-9]{0,60}$/.test(x.name)&&re.test(x.name))
+   .slice(0,4).map(x=>x.name);
+  if(candidates.length)reason+=' Verified ABI exposes interface names: '+candidates.join(', ')+'. Their execution and authority are NOT VERIFIED.';
  }else if(fails.some(f=>f.reason==='IMPLEMENTATION_EXECUTION_UNRESOLVED')){
   reasonCode='MECHANICS_IMPLEMENTATION_UNRESOLVED';
   reason='The executed implementation or delegated control path could not be independently established. '+label.hint;
@@ -31,6 +40,9 @@ function explain(key,field,details){
  return {...field,reasonCode,reason,reasonDetail:field.reasonDetail||field.reason||null,
   verificationGap:{sourceProvider:info.provider,sourceAssurance:info.assurance,
    templateRejection:info.templateRejection,implementationExecutionResolved:info.implementationExecutionResolved,
+   verifiedAbiHints:info.matched?(Array.isArray(details?.interfaceCandidates)?details.interfaceCandidates:[])
+    .filter(x=>x&&typeof x.name==='string'&&/^[A-Za-z_][A-Za-z_0-9]{0,60}$/.test(x.name))
+    .slice(0,16).map(x=>({name:x.name,mutability:x.stateMutability||null})):[],
    cause:reasonCode}};
 }
 module.exports={explain,LABELS};
