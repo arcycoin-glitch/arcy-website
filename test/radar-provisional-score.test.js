@@ -33,3 +33,32 @@ test('score does not classify contract safety or accuse high-volume candidates o
  assert.ok(s.score>=0&&s.score<=100);
  assert.ok(!s.flags.includes('SCAM')&&!s.flags.includes('HONEYPOT'));
 });
+
+const CONTRACT='0x'+'1'.repeat(40);
+test('unverified company and AI brand names are not eligible for promoted discovery on any chain',()=>{
+ for(const network of ['robinhood','arc','ethereum','pons']){
+  const row={address:CONTRACT,name:'AnTHrOpic',symbol:'AI',priceUsd:1};
+  const r=D.classify(row,network);
+  assert.equal(r?.reason,'ISSUER_AFFILIATION_NOT_VERIFIED',network);
+  assert.equal(D.unverifiedIssuerBrand(row)?.reason,'ISSUER_AFFILIATION_NOT_VERIFIED');
+ }
+ const symbolClaim=D.classify({address:CONTRACT,name:'Unrelated',symbol:'OpenAI',priceUsd:1},'robinhood');
+ assert.equal(symbolClaim.reason,'ISSUER_AFFILIATION_NOT_VERIFIED');
+ assert.equal(D.unverifiedIssuerBrand({name:'Anthropic Research',symbol:'ARI'}),null,'unrelated names are not overblocked');
+ assert.equal(D.classify({address:CONTRACT,name:'Independent Research',symbol:'IND',priceUsd:1},'robinhood'),null);
+});
+test('maturity gate is conservative about partial periods, missing evidence, and contradictory timestamps',()=>{
+ assert.equal(D.rankingMaturityIssue(candidate(0.3),NOW)?.reason,'POOL_UNDER_24H');
+ assert.equal(D.rankingMaturityIssue(candidate(0),NOW)?.reason,'POOL_UNDER_24H');
+ assert.equal(D.rankingMaturityIssue(candidate(1.01),NOW),null);
+ assert.equal(D.rankingMaturityIssue({poolCreatedAt:null},NOW)?.reason,'POOL_AGE_NOT_VERIFIED');
+ assert.equal(D.rankingMaturityIssue({...candidate(10),poolAgeBasis:'SOURCES_DISAGREE_OLDER_USED'},NOW,{strict:true})?.reason,'POOL_AGE_SOURCES_DISAGREE');
+});
+test('reported component points use the fixed 100-point denominator',()=>{
+ const s=D.score(candidate(8),'robinhood',NOW);
+ const sum=s.components.reduce((a,b)=>a+b.points,0);
+ assert.ok(Math.abs(sum-s.score)<=0.12,`components=${sum}, score=${s.score}`);
+ const sparse=D.score(candidate(8,{buys24h:null,sells24h:null,crossShare:null,change24hPct:null,scopeVolume:'POOL'}),'robinhood',NOW);
+ const sparseSum=sparse.components.reduce((a,b)=>a+b.points,0);
+ assert.ok(Math.abs(sparseSum-sparse.score)<=0.12,`sparse components=${sparseSum}, score=${sparse.score}`);
+});
