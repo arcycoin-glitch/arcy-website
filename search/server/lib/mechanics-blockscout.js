@@ -59,9 +59,14 @@ async function retrieve({cfg,address,code,reader,diagnostics=[]}){
    return null;
   }
   // Only the same conservative, independently pinned OZ source analysis as Sourcify.
-  let template=null;
-  try{template=require('./oz-template').analyze(result.sources,{lib:require('./oz-library-hashes'),main:result.main})}catch{}
-  return {...result,...(template?{template}:{}),url,retrievedAt:new Date(reader.observedAt(url)||Date.now()).toISOString()};
+  let template=null,templateDiagnostic=null;
+  try{
+   const oz=require('./oz-template'),opts={lib:require('./oz-library-hashes'),main:result.main};
+   template=oz.analyze(result.sources,opts);
+   if(!template)templateDiagnostic=oz.diagnose(result.sources,opts)?.reason||'NOT_CLASSIFIED';
+  }catch{}
+  return {...result,...(template?{template}:{}),templateDiagnostic,
+   url,retrievedAt:new Date(reader.observedAt(url)||Date.now()).toISOString()};
  }catch(e){
   diagnostics.push({source:'Blockscout',address,chainId:cfg.chainId,sourceUrl:url,
    reason:e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':e.code==='SOURCE_TIMEOUT'?'SOURCE_TIMEOUT':'SOURCE_API_FAILED'});
