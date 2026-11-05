@@ -32,6 +32,15 @@ const compact=o=>JSON.stringify(o);
    volume24h:p.volume?.h24??null,price:p.priceUsd??null,pair:p.pairAddress,source:'DEX_SCANNER_CANDIDATE_ONLY'}));
  }
  console.log('GTA6_CANDIDATES_NOT_TOKEN_IDENTITY',compact(list));
+ // Official Arc Blockscout API availability only; no contract safety inference.
+ const arcAddress='0x9d33Ba78389c8772bC114Cba47Dc1985E933e76F';
+ const arc=await json('https://explorer.arc.io/api/v2/smart-contracts/'+arcAddress);
+ const obj=arc.data||{};
+ console.log('ARC_BLOCKSCOUT_SOURCE_API',compact({ok:arc.ok,http:arc.http||null,error:arc.error||null,
+  isVerified:obj.is_verified??null,isFullyVerified:obj.is_fully_verified??null,
+  hasBytecode:typeof obj.deployed_bytecode==='string',hasSource:typeof obj.source_code==='string',
+  address:arcAddress}));
+
  if(!list.length)return;
  // One pinned block for all source/code comparisons.
  const endpoint='https://ethereum-rpc.publicnode.com';
