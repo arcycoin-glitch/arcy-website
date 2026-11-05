@@ -45,8 +45,26 @@ async function sourceFor(cfg,address,code,diagnostics){
  const compiled=require('./mechanics-compiled-runtime').match(code);
  if(compiled)return compiled;
  const url='https://sourcify.dev/server/v2/contract/'+cfg.chainId+'/'+address+'?fields=abi,sources,compilation,runtimeBytecode';
- try{const body=await reader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{validateSource(d,{chainId:cfg.chainId,address,code});return true;}});const checked=validateSource(body,{chainId:cfg.chainId,address,code});let template=null;try{template=require('./oz-template').analyze(body.sources,{lib:require('./oz-library-hashes'),main:typeof body.compilation?.name==='string'?body.compilation.name:undefined});}catch{}return {...checked,...(template?{template}:{}),url,retrievedAt:new Date(reader.observedAt(url)).toISOString()};}
- catch(e){diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason:e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':/SOURCE_/.test(e.message)?e.message:'SOURCE_API_FAILED'});return null;}
+ try{
+  const body=await reader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{validateSource(d,{chainId:cfg.chainId,address,code});return true;}});
+  const checked=validateSource(body,{chainId:cfg.chainId,address,code});
+  const opts={lib:require('./oz-library-hashes'),main:typeof body.compilation?.name==='string'?body.compilation.name:undefined};
+  let template=null,templateDiagnostic=null;
+  try{const oz=require('./oz-template');template=oz.analyze(body.sources,opts);if(!template)templateDiagnostic=oz.diagnose(body.sources,opts)?.reason||'NOT_CLASSIFIED';}catch{}
+  return {...checked,...(template?{template}:{}),templateDiagnostic,
+   sourceProvider:'Sourcify',sourceAssurance:'EXACT_DEPLOYED_BYTECODE_MATCH',
+   url,retrievedAt:new Date(reader.observedAt(url)).toISOString()};
+ }catch(e){
+  const reason=e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':
+   e.code==='SOURCE_TIMEOUT'?'SOURCE_TIMEOUT':e.code==='SOURCE_SCHEMA_INVALID'?'SOURCE_SCHEMA_INVALID':
+   e.code==='SOURCE_IDENTITY_MISMATCH'?'SOURCE_IDENTITY_MISMATCH':'SOURCE_API_FAILED';
+  diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason});
+  // One bounded no-key fallback; do not bypass source mismatch or rate limits.
+  if(e.httpStatus===404||e.httpStatus>=500||e.code==='SOURCE_TIMEOUT'||e.code==='SOURCE_CIRCUIT_OPEN'){
+   return require('./mechanics-blockscout').retrieve({cfg,address,code,reader,diagnostics});
+  }
+  return null;
+ }
 }
 function abiFn(source,signature,type){
  const name=signature.slice(0,signature.indexOf('(')),inputs=signature.slice(signature.indexOf('(')+1,-1).split(',').filter(Boolean);
@@ -132,7 +150,14 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
  const resolved=boundTarget&&(target===address?nonDelegating(code):targetCode&&(nonDelegating(targetCode)||reviewedImplementation));
  const source=resolved?implementationSource:null;
  if(!resolved)diagnostics.push({reason:'IMPLEMENTATION_EXECUTION_UNRESOLVED'});
- const sourceProof=source?{sourceUrl:source.url,sourceDigest:source.digest,sourceRetrievedAt:source.retrievedAt,implementation:target,runtimeMatch:source.runtimeMatch,...(source.runtimeReview?{runtimeReview:source.runtimeReview}:{})}:{};
+ details.sourceVerification={matched:Boolean(source),provider:source?.sourceProvider||null,
+  assurance:source?.sourceAssurance||null,reviewedProfile:source?PROFILES[source.digest]||null:null,
+  templateAccepted:Boolean(source?.template),templateRejection:source?.templateDiagnostic||null,
+  implementationExecutionResolved:resolved};
+ const sourceProof=source?{sourceUrl:source.url,sourceDigest:source.digest,
+  sourceRetrievedAt:source.retrievedAt,sourceProvider:source.sourceProvider||'Pinned runtime',
+  sourceAssurance:source.sourceAssurance||'VERIFIED_RUNTIME',implementation:target,
+  runtimeMatch:source.runtimeMatch,...(source.runtimeReview?{runtimeReview:source.runtimeReview}:{})}:{};
  if(source){
   const getters=['owner','getOwner','admin','getAdmin','authority','masterMinter','pauser','blacklister','pendingOwner'];
   await Promise.all(getters.filter(n=>abiFn(source,n+'()','address')).map(async name=>{const value=addressWord(await call(address,name+'()'));if(value){details.observations.push({method:name+'()',value,...sourceProof,block,scope:name==='pendingOwner'?'Pending address; not active owner.':'ABI-matched getter; permission semantics not implied.'});if(!fields.ownerAdmin&&name!=='pendingOwner')fields.ownerAdmin=fact(name+'(): '+value,'Verified ABI + pinned getter',{...sourceProof,scope:'Observed authority getter; zero owner never establishes complete renouncement.'},'GETTER_REPORTED');}}));
@@ -312,7 +337,13 @@ async function enrich(options){
  if(!result.fields.contractArchitecture&&old.contractArchitecture?.dataState==='DATA_FOUND'&&
   /EIP-1967 implementation|DELEGATECALL opcode|No DELEGATECALL/.test(String(old.contractArchitecture.value)))fields.contractArchitecture={value:null,status:'NOT_VERIFIED',dataState:'NOT_VERIFIED',source:null,evidence:[],reasonCode:'ARCHITECTURE_TARGET_UNRESOLVED',reason:'Proxy target/runtime proof could not be established at the pinned block.'};
  for(const key of Object.keys(fields))if(fields[key]?.dataState==='DATA_FOUND'&&!Object.hasOwn(result.fields,key))fields[key]={...fields[key],evidence:[...(fields[key].evidence||[]),{method:'Additional Mechanics evidence',chainId:chain(options.network).chainId,network:options.network,address:options.address,block:options.block,...result.details}]};
-  for(const [key,field]of Object.entries(fields))if(field?.dataState!=='DATA_FOUND')fields[key]={...field,analysisDiagnostics:result.details,evidence:[...(field?.evidence||[]),{method:'Unresolved Mechanics evidence',chainId:chain(options.network).chainId,network:options.network,address:options.address,block:options.block,...result.details}]};
+  for(const [key,field]of Object.entries(fields))if(field?.dataState!=='DATA_FOUND'){
+   const explained=require('./mechanics-gaps').explain(key,field,result.details);
+   fields[key]={...explained,analysisDiagnostics:result.details,
+    evidence:[...(explained.evidence||[]),{method:'Unresolved Mechanics evidence',
+     chainId:chain(options.network).chainId,network:options.network,address:options.address,
+     block:options.block,...result.details}]};
+  }
  return {...card,fields};
 }
 module.exports={inspect,enrich,validateSource,digest,abiFn,decodeArray,PROFILES,SLOTS,selector};
