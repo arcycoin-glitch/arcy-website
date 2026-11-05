@@ -1,0 +1,49 @@
+'use strict';
+// The paired Mechanics gate replaces the absolute zero-extra-request rule with narrow, evidence-based budgets:
+// <=2 delegation-probe eth_calls per contract whose architecture was NOT verified on main, <=3 sibling getter calls (+<=1
+// cached reference fetch) per Robinhood contract whose tax/mint/owner were NOT verified on main. Everything else unchanged.
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{spawnSync}=require('node:child_process');
+const SCRIPT=path.resolve(__dirname,'../scripts/assert-mechanics-bench.cjs');
+const FIELDS=['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'];
+const field=ok=>({ok,cls:ok?'ON_CHAIN_VERIFIED':'NOT_VERIFIED',status:ok?'ON_CHAIN':'NOT_VERIFIED',value:ok?'x':'',scope:''});
+const netOf=(o={})=>({rpc:10,sourcify:1,goplus:0,explorer:0,other:0,failed:0,replayHit:11,replayMiss:0,augProbe:0,augSibling:0,augReference:0,...o});
+function rows(n=32,mut=()=>{}){return Array.from({length:n},(_,i)=>{const r={chain:i<16?'ethereum':'robinhood',address:'0x'+(i+1).toString(16).padStart(40,'0'),group:'radar',block:'0x10',err:null,net:netOf(),f:Object.fromEntries(FIELDS.map(k=>[k,field(true)]))};mut(r,i);return r;});}
+const total=rs=>rs.reduce((t,r)=>{for(const [k,v] of Object.entries(r.net))t[k]=(t[k]||0)+v;return t;},{});
+function gate(beforeRows,afterRows,afterMode='augment'){
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'arcy-gate-'));
+ try{const b=path.join(dir,'b.json'),a=path.join(dir,'a.json');
+  fs.writeFileSync(b,JSON.stringify({mode:'replay',net:total(beforeRows),rows:beforeRows}));fs.writeFileSync(a,JSON.stringify({mode:afterMode,net:total(afterRows),rows:afterRows}));
+  const r=spawnSync(process.execPath,[SCRIPT,b,a],{encoding:'utf8'});return {ok:r.status===0,out:r.stdout+r.stderr};}
+ finally{fs.rmSync(dir,{recursive:true,force:true});}
+}
+// contract 0: unverified proxy on main; contract 20: unverified Robinhood token on main
+const base=()=>rows(32,(r,i)=>{if(i===0)r.f.contractArchitecture=field(false);if(i===20)for(const k of ['tradingTaxes','mintCapability','ownerAdmin'])r.f[k]=field(false);});
+
+test('identical replays pass; any unbudgeted extra request still fails',()=>{
+ assert.equal(gate(base(),base(),'replay').ok,true);
+ const extra=base();extra[5].net.rpc++;const r=gate(base(),extra);assert.equal(r.ok,false);assert.match(r.out,/New RPC usage/);
+ const src=base();src[5].net.sourcify++;assert.match(gate(base(),src).out,/New Sourcify usage/);
+ const miss=base();miss[5].net.replayMiss++;assert.equal(gate(base(),miss).ok,false);
+});
+
+test('delegation probe: <=2 calls only for a contract whose architecture was unverified on main',()=>{
+ const ok=base();ok[0].net.rpc+=2;ok[0].net.augProbe=2;ok[0].f.contractArchitecture=field(true);
+ const r=gate(base(),ok);assert.equal(r.ok,true,r.out);assert.match(r.out,/"probe":2/);
+ const over=base();over[0].net.rpc+=3;over[0].net.augProbe=3;assert.match(gate(base(),over).out,/probe budget exceeded/);
+ const ineligible=base();ineligible[1].net.rpc+=2;ineligible[1].net.augProbe=2;assert.match(gate(base(),ineligible).out,/already verified architecture/);
+});
+
+test('sibling: <=3 getter calls and <=1 reference fetch, only for an unverified Robinhood contract',()=>{
+ const ok=base();ok[20].net.rpc+=3;ok[20].net.augSibling=3;ok[20].net.sourcify+=1;ok[20].net.augReference=1;
+ assert.equal(gate(base(),ok).ok,true);
+ const over=base();over[20].net.rpc+=4;over[20].net.augSibling=4;assert.match(gate(base(),over).out,/Sibling getter budget exceeded/);
+ const twice=base();twice[20].net.sourcify+=2;twice[20].net.augReference=2;assert.match(gate(base(),twice).out,/reference fetched more than once/);
+ const verified=base();verified[21].net.rpc+=3;verified[21].net.augSibling=3;assert.match(gate(base(),verified).out,/ineligible\/verified/);
+ const eth=rows(32,(r,i)=>{if(i===2)for(const k of ['tradingTaxes','mintCapability','ownerAdmin'])r.f[k]=field(false);});const ethAfter=structuredClone(eth);ethAfter[2].net.rpc+=3;ethAfter[2].net.augSibling=3;assert.match(gate(eth,ethAfter).out,/ineligible\/verified/);
+});
+
+test('correctness gate is unchanged: a verified field can never be lost or silently rewritten',()=>{
+ const lost=base();lost[3].f.mintCapability=field(false);assert.match(gate(base(),lost).out,/Verified field lost/);
+ const changed=base();changed[3].f.mintCapability={...field(true),value:'other'};assert.match(gate(base(),changed).out,/changed without same-owner stronger proof/);
+ const budgetHidesLoss=base();budgetHidesLoss[0].net.rpc+=2;budgetHidesLoss[0].net.augProbe=2;budgetHidesLoss[0].f.ownerAdmin=field(false);assert.match(gate(base(),budgetHidesLoss).out,/Verified field lost/);
+});

@@ -5,12 +5,12 @@ const [beforePath,afterPath]=process.argv.slice(2);
 if(!beforePath||!afterPath)throw Error('Usage: node scripts/assert-mechanics-bench.cjs BEFORE.json AFTER.json');
 const before=JSON.parse(fs.readFileSync(beforePath,'utf8'));
 const after=JSON.parse(fs.readFileSync(afterPath,'utf8'));
-assert.equal(before.mode,'replay');assert.equal(after.mode,'replay');
+assert.equal(before.mode,'replay');assert.ok(['replay','augment'].includes(after.mode),'AFTER must be a replay (augment = replay + budgeted kinds only)');
 assert.equal(before.rows.length,after.rows.length,'Benchmark sample count changed');
 assert.ok(before.rows.length>=30,'Insufficient sample size');
 const FIELDS=['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'];
 const key=r=>r.chain+'|'+r.address.toLowerCase()+'|'+(r.group||'');
-const seen=new Set();const stats=Object.fromEntries(FIELDS.map(f=>[f,{before:0,after:0,gain:0}]));
+const seen=new Set();const PROBE_BUDGET=2,SIBLING_BUDGET=3,budgets={probe:0,sibling:0,reference:0,probeContracts:0,siblingContracts:0};const stats=Object.fromEntries(FIELDS.map(f=>[f,{before:0,after:0,gain:0}]));
 for(let i=0;i<before.rows.length;i++){
  const b=before.rows[i],a=after.rows[i],id=key(b);
  assert.equal(key(a),id,'Sample order/identity changed');
@@ -34,13 +34,25 @@ for(let i=0;i<before.rows.length;i++){
   stats[f].before+=Number(x.ok);stats[f].after+=Number(y.ok);
   if(!x.ok&&y.ok)stats[f].gain++;
  }
- assert.ok(a.net.rpc<=b.net.rpc,'New RPC usage for '+id);
- assert.ok(a.net.sourcify<=b.net.sourcify,'New Sourcify usage for '+id);
+ // Evidence-based request budgets (augment replay). Everything outside a budgeted kind must not grow.
+ const probe=a.net.augProbe||0,siblingCalls=a.net.augSibling||0,reference=a.net.augReference||0;
+ assert.ok(a.net.rpc-probe-siblingCalls<=b.net.rpc,'New RPC usage for '+id);
+ assert.ok(a.net.sourcify-reference<=b.net.sourcify,'New Sourcify usage for '+id);
+ assert.ok(probe<=PROBE_BUDGET,'Proxy delegation probe budget exceeded for '+id+' ('+probe+'>'+PROBE_BUDGET+')');
+ assert.ok(siblingCalls<=SIBLING_BUDGET,'Sibling getter budget exceeded for '+id+' ('+siblingCalls+'>'+SIBLING_BUDGET+')');
+ assert.ok(reference<=1,'Sibling reference fetched more than once for '+id);
+ // Eligibility: no budgeted request for a contract whose relevant field was already verified on main.
+ if(probe)assert.ok(!b.f.contractArchitecture.ok,'Delegation probe spent on an already verified architecture: '+id);
+ if(siblingCalls||reference)assert.ok(b.chain==='robinhood'&&['tradingTaxes','mintCapability','ownerAdmin'].every(f=>!b.f[f].ok),'Sibling budget spent on an ineligible/verified contract: '+id);
+ budgets.probe+=probe;budgets.sibling+=siblingCalls;budgets.reference+=reference;if(probe)budgets.probeContracts++;if(siblingCalls)budgets.siblingContracts++;
  assert.ok(a.net.replayMiss<=b.net.replayMiss,'New unmatched replay request for '+id);
 }
-for(const category of ['rpc','sourcify','goplus','explorer','other','replayMiss']){
+for(const category of ['goplus','explorer','other','replayMiss']){
  assert.ok((after.net[category]||0)<=(before.net[category]||0),'Request/replay regression: '+category);
 }
-const summary={samples:before.rows.length,coverage:stats,requests:{before:before.net,after:after.net},replayComplete:before.net.replayMiss===0&&after.net.replayMiss===0};
+assert.ok(after.net.rpc-(after.net.augProbe||0)-(after.net.augSibling||0)<=before.net.rpc,'Request/replay regression: rpc');
+assert.ok(after.net.sourcify-(after.net.augReference||0)<=before.net.sourcify,'Request/replay regression: sourcify');
+assert.equal(before.net.augProbe||0,0,'BEFORE must not use budgeted requests');assert.equal(before.net.augSibling||0,0);assert.equal(before.net.augReference||0,0);
+const summary={samples:before.rows.length,coverage:stats,budgets,requests:{before:before.net,after:after.net},replayComplete:before.net.replayMiss===0&&after.net.replayMiss===0};
 console.log('PAIRED_MECHANICS_GATE PASS '+JSON.stringify(summary));
 if(!summary.replayComplete)console.warn('WARNING: missing recorded responses were fail-closed; the replay is not complete. No live fallback was used.');
