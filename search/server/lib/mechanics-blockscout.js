@@ -8,6 +8,7 @@ const crypto=require('node:crypto');
 const ADDR=/^0x[0-9a-f]{40}$/i,HEX=/^0x(?:[0-9a-f]{2})+$/i;
 const HOSTS=Object.freeze({
  ethereum:'https://eth.blockscout.com',
+ arc:'https://explorer.arc.io',
  robinhood:'https://robinhoodchain.blockscout.com'
 });
 const MAX_FILES=64,MAX_SOURCE_BYTES=3*1024*1024,MAX_ABI=400;
