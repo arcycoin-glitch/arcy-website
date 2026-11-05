@@ -10,7 +10,7 @@
 // Output: mechanics-audit.json (+ ::notice annotations).
 process.env.VERCEL='1';delete process.env.GOPLUS_PUBLIC_DISPLAY_APPROVED;
 const fs=require('node:fs'),path=require('node:path');
-const root=process.cwd(),req=p=>require(path.join(root,p));
+const root=path.resolve(process.env.AUDIT_ROOT||process.cwd()),req=p=>require(path.join(root,p)); // AUDIT_ROOT = code under test
 const keccak=req('lib/keccak');
 const BASE=process.env.ARCY_BASE||'https://www.arcyusdc.xyz',PER=Math.max(1,Math.min(10,Number(process.env.PER_SECTION)||10));
 const FIELDS=['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'];
@@ -76,7 +76,7 @@ async function facts(chain,a){
 const pick=f=>f?{v:f.value===null||f.value===undefined?null:String(typeof f.value==='object'?JSON.stringify(f.value):f.value).slice(0,180),ds:f.dataState||null,st:f.status||null,rc:f.reasonCode||null,ec:f.evidenceClass||null,src:typeof f.source==='string'?f.source.slice(0,60):null,reason:typeof f.reason==='string'?f.reason.slice(0,160):null,diag:f.analysisDiagnostics?JSON.stringify(f.analysisDiagnostics).slice(0,600):null,gap:f.verificationGap?JSON.stringify(f.verificationGap).slice(0,700):null,ev:Array.isArray(f.evidence)?JSON.stringify(f.evidence.slice(0,2).map(e=>({src:e?.source||e?.provider,method:e?.method,scope:typeof e?.scope==='string'?e.scope.slice(0,140):undefined,impl:e?.implementation,match:e?.match||e?.matchType}))).slice(0,600):null,scope:typeof f.scope==='string'?f.scope.slice(0,160):null}:null;
 (async()=>{
  const {classify}=req('search/server/lib/evidence-class');
- const list=await samples(),rows=[];
+ const list=process.env.COHORT_FILE?JSON.parse(fs.readFileSync(process.env.COHORT_FILE,'utf8')):await samples(),rows=[];
  for(const s of list){
   if(s.error){rows.push(s);continue;}
   const row={...s},t0=Date.now();
@@ -87,7 +87,7 @@ const pick=f=>f?{v:f.value===null||f.value===undefined?null:String(typeof f.valu
   catch(e){row.codeError=String(e.message||e).slice(0,100);}
   row.ms=Date.now()-t0;
   row.facts=await facts(s.chain,s.address);
-  if(s.chain!=='arc'){await sleep(3500);try{const p=await get('/api/search?action=report&chain='+s.chain+'&address='+s.address);row.prodHttp=p.s;const card=p.j?.cards?.mechanics;row.prod=card?Object.fromEntries(FIELDS.map(k=>[k,pick(card.fields?.[k])])):null;}catch(e){row.prodHttp='ERR '+String(e.message).slice(0,40);}}
+  if(s.chain!=='arc'&&process.env.SKIP_PROD!=='1'){await sleep(3500);try{const p=await get('/api/search?action=report&chain='+s.chain+'&address='+s.address);row.prodHttp=p.s;const card=p.j?.cards?.mechanics;row.prod=card?Object.fromEntries(FIELDS.map(k=>[k,pick(card.fields?.[k])])):null;}catch(e){row.prodHttp='ERR '+String(e.message).slice(0,40);}}
   rows.push(row);
   console.log('AUDITROW '+JSON.stringify(row));
   console.log('::notice title=mech-'+s.section+'-'+s.address.slice(2,8)+'::'+JSON.stringify({s:s.symbol,code:row.code&&Object.fromEntries(FIELDS.map(k=>[k,[row.code[k]?.ds,row.code[k]?.rc,row.code[k]?.v?.slice(0,50)]])),prod:row.prod&&Object.fromEntries(FIELDS.map(k=>[k,[row.prod[k]?.ds,row.prod[k]?.rc]])),f:{c:row.facts.clone1167,i:row.facts.impl1967,b:row.facts.beacon1967,o:row.facts.owner,p:row.facts.paused,sel:Object.fromEntries(Object.entries(row.facts.selectors||{}).map(([k,v])=>[k,v.length]))},err:row.codeError}).slice(0,3900));

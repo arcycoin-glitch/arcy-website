@@ -1,0 +1,36 @@
+name: Mechanics Phase B before/after (read-only, fixed cohort)
+# Same 38-contract cohort (scripts/mechanics-audit-cohort-20261105.json), same audit tool, one job per code ref, run concurrently.
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - '.github/workflows/mechanics-phaseb-measure.yml'
+      - 'scripts/mechanics-phaseb-refs.json'
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: [main, fix/mechanics-proxy-delegation-20261105, fix/mechanics-pons-sibling-runtime-20261105, fix/mechanics-argus-presentation-20261105, measure/mechanics-phaseb-combined-20261105]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: tool
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+          path: target
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit fixed cohort against ${{ matrix.ref }}
+        working-directory: tool
+        env:
+          AUDIT_ROOT: ${{ github.workspace }}/target
+          COHORT_FILE: scripts/mechanics-audit-cohort-20261105.json
+          SKIP_PROD: '1'
+        run: echo "AUDITREF ${{ matrix.ref }}" && node scripts/audit-mechanics.cjs
