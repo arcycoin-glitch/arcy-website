@@ -13,15 +13,24 @@ test('mint absence boolean renders with the shared wording; other booleans and k
  assert.equal(fmt.display(false,'ownerAdmin'),'FALSE');assert.equal(fmt.display(false,'tradingTaxes'),'FALSE');
 });
 
+// Production shape (CI probe 2026-11-05): the legacy summary normalises reviewed rates to status VERIFIED + originalStatus.
+const presented=(value,orig,extra={})=>({...rate(value,'VERIFIED'),originalStatus:orig,...extra});
 test('both reviewed on-chain unit rates keep ON_CHAIN_VERIFIED_UNITS; the page now counts the complete row',()=>{
- const f=legacy.contract({contractFields:{buyTax:rate(1,'ON_CHAIN_VERIFIED_UNITS'),sellTax:rate(1,'ON_CHAIN_VERIFIED_UNITS'),transferTax:rate(0,'VERIFIED_SOURCE')}},A).tradingTaxes;
- assert.equal(f.value,'Buy 1% · Sell 1% · Transfer 0%','value unchanged');assert.equal(f.status,'ON_CHAIN_VERIFIED_UNITS');
- const card={fields:{tradingTaxes:f}};
- assert.equal(policy.assess(card,{chainId:5042,network:'arc',address:A,block}).rows[0],true);
+ for(const [b,s] of [[rate(1,'ON_CHAIN_VERIFIED_UNITS'),rate(1,'ON_CHAIN_VERIFIED_UNITS')],[presented(1,'ON_CHAIN_VERIFIED_UNITS'),presented(1,'ON_CHAIN_VERIFIED_UNITS')]]){
+  const f=legacy.contract({contractFields:{buyTax:b,sellTax:s,transferTax:presented(0,'VERIFIED_SOURCE')}},A).tradingTaxes;
+  assert.equal(f.value,'Buy 1% · Sell 1% · Transfer 0%','value unchanged');assert.equal(f.status,'ON_CHAIN_VERIFIED_UNITS');
+  assert.equal(policy.assess({fields:{tradingTaxes:f}},{chainId:5042,network:'arc',address:A,block}).rows[0],true);
+ }
+});
+test('GoPlus or market-reported rates never inherit the on-chain class even if labelled ON_CHAIN_VERIFIED_UNITS',()=>{
+ for(const extra of [{source:'GoPlus'},{verificationStatus:'MARKET_API_VERIFIED'}]){
+  const f=legacy.contract({contractFields:{buyTax:presented(1,'ON_CHAIN_VERIFIED_UNITS',extra),sellTax:presented(1,'ON_CHAIN_VERIFIED_UNITS'),transferTax:presented(0,'VERIFIED_SOURCE')}},A).tradingTaxes;
+  assert.equal(f.status,'SOURCE_REPORTED',JSON.stringify(extra));
+ }
 });
 
 test('any weaker or mixed class keeps the conservative SOURCE_REPORTED label; a missing rate is never filled',()=>{
- for(const [b,s] of [['ON_CHAIN_VERIFIED_UNITS','VERIFIED_SOURCE'],['SOURCE_REPORTED','ON_CHAIN_VERIFIED_UNITS'],['GETTER_REPORTED','GETTER_REPORTED']]){
+ for(const [b,s] of [['ON_CHAIN_VERIFIED_UNITS','VERIFIED_SOURCE'],['SOURCE_REPORTED','ON_CHAIN_VERIFIED_UNITS'],['GETTER_REPORTED','GETTER_REPORTED'],['VERIFIED','VERIFIED']]){
   const f=legacy.contract({contractFields:{buyTax:rate(1,b),sellTax:rate(1,s),transferTax:rate(0,'VERIFIED_SOURCE')}},A).tradingTaxes;
   assert.equal(f.status,'SOURCE_REPORTED',b+'/'+s);
  }
