@@ -57,7 +57,7 @@ const rpcFor=chain=>chain==='ethereum'?req('search/server/lib/eth').rpc:chain===
 async function facts(chain,a){
  const rpc=rpcFor(chain),f={calls:0};const call=async(m,p)=>{f.calls++;return rpc(m,p);};
  try{
-  const code=await call('eth_getCode',[a,'latest']);f.codeBytes=(code.length-2)/2;
+  const code=await call('eth_getCode',[a,'latest']);f.codeBytes=(code.length-2)/2;f.codeHash=code.length>2?keccak(Buffer.from(code.slice(2),'hex')).slice(2,10):null;
   const clone=/^0x363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3$/i.exec(code);
   f.clone1167=clone?'0x'+clone[1].toLowerCase():null;
   for(const [k,slot] of Object.entries(SLOT)){try{f[k]=word2addr(await call('eth_getStorageAt',[a,slot,'latest']));}catch{f[k]='ERR';}}
@@ -65,6 +65,7 @@ async function facts(chain,a){
   let implCode=null;if(target){try{implCode=await call('eth_getCode',[target,'latest']);}catch{}}
   if(f.beacon1967&&f.beacon1967!=='ERR'){try{const r=await call('eth_call',[{to:f.beacon1967,data:'0x5c60da1b'},'latest']);f.beaconImpl=word2addr(r);if(f.beaconImpl)implCode=await call('eth_getCode',[f.beaconImpl,'latest']);}catch{}}
   f.target=f.beaconImpl||target||null;
+  f.implHash=implCode&&implCode.length>2?keccak(Buffer.from(implCode.slice(2),'hex')).slice(2,10):null;
   const s=selectors(code);if(implCode&&implCode.length>2)for(const x of selectors(implCode))s.add(x);
   f.selectors=Object.fromEntries(Object.entries(SEL).map(([k,m])=>[k,[...m.keys()].filter(x=>s.has(x)).map(x=>m.get(x))]));
   if(f.selectors.owner.includes('owner()')){try{f.owner=word2addr(await call('eth_call',[{to:a,data:'0x8da5cb5b'},'latest']))||'0x0';}catch(e){f.owner='REVERT';}}
