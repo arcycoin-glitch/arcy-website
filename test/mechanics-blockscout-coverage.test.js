@@ -17,12 +17,12 @@ test('Blockscout fully verified exact bytecode provides a source/ABI profile wit
  assert.deepEqual(f.abi,abi);
  assert.ok(f.sources['contracts/V.sol'].content.includes('pragma solidity'));
 });
-test('fully verified sources only on approved Blockscout network hosts; Arc safely keeps Sourcify',()=>{
+test('only available approved Blockscout host is used; Arc and Robinhood safely keep Sourcify',()=>{
  assert.ok(parse(fixture(),{...opts,network:'ethereum'}));
  assert.equal(parse(fixture(),{...opts,network:'arc'}),null);
- assert.ok(parse(fixture(),{...opts,network:'robinhood'}));
+ assert.equal(parse(fixture(),{...opts,network:'robinhood'}),null);
  assert.equal(HOSTS.arc,undefined);
- assert.equal(HOSTS.onsource,undefined);
+ assert.equal(HOSTS.robinhood,undefined);
 });
 test('partial, unverified, changed or bytecode-mismatched contracts NEVER pass',()=>{
  for(const mod of [
@@ -59,19 +59,22 @@ test('bounded retrieval handles success and does not request any extra RPC calls
  assert.equal(diagnostics.length,0);
  assert.equal(out.retrievedAt,'2026-11-05T00:00:00.000Z');
 });
-test('unverified response never becomes a verified fact and carries specific diagnostics',async()=>{
+test('unverified Ethereum response never becomes a verified fact and carries specific diagnostics',async()=>{
  const diagnostics=[];
- const out=await retrieve({cfg:{id:'robinhood',chainId:4663},address:A,code:CODE,
+ const out=await retrieve({cfg:{id:'ethereum',chainId:1},address:A,code:CODE,
   reader:{json:async()=>fixture({is_fully_verified:false})},diagnostics});
  assert.equal(out,null);
  assert.equal(diagnostics[0].reason,'SOURCE_VERIFICATION_INSUFFICIENT');
- assert.ok(diagnostics[0].sourceUrl.startsWith('https://robinhoodchain.blockscout.com/'));
+ assert.ok(diagnostics[0].sourceUrl.startsWith('https://eth.blockscout.com/'));
 });
-test('Arc HTTP 403 blocks the optional source path without any extra request or invented evidence',async()=>{
+test('Arc and Robinhood HTTP 403 block fallback hosts without extra requests or invented evidence',async()=>{
  let count=0;
- const arc=await retrieve({cfg:{id:'arc',chainId:5042},address:A,code:CODE,
-  reader:{json:async()=>{count++;return fixture();}}});
- assert.equal(arc,null);assert.equal(count,0);
+ for(const id of ['arc','robinhood']){
+  const out=await retrieve({cfg:{id,chainId:id==='arc'?5042:4663},address:A,code:CODE,
+   reader:{json:async()=>{count++;return fixture();}}});
+  assert.equal(out,null);
+ }
+ assert.equal(count,0);
  const diagnostics=[];
  await retrieve({cfg:{id:'ethereum',chainId:1},address:A,code:CODE,
   reader:{json:async()=>{throw Object.assign(Error('down'),{httpStatus:503})}},diagnostics});
