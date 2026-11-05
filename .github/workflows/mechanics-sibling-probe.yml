@@ -1,0 +1,21 @@
+name: Mechanics sibling-runtime probe (read-only)
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'scripts/probe-mechanics-siblings.cjs'
+      - '.github/workflows/mechanics-sibling-probe.yml'
+      - 'scripts/mechanics-sibling-groups.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: GROUPS="$(cat scripts/mechanics-sibling-groups.json)" node scripts/probe-mechanics-siblings.cjs
