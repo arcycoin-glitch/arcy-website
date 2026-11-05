@@ -88,6 +88,20 @@ test('verified but unreviewed source explains tax/mint/owner limitations, not a 
  }
  assert.match(explain('mintCapability',unknown(),d).reason,/mint\(\)/);
 });
+test('verified ABI shows fee, role and mint interface candidates but does not assert capabilities',()=>{
+ const d={sourceVerification:{matched:true,provider:'Sourcify',templateRejection:'OVERRIDES__transfer'},
+  interfaceCandidates:[{name:'setBuyFee',stateMutability:'nonpayable'},
+   {name:'mint',stateMutability:'nonpayable'},
+   {name:'grantRole',stateMutability:'nonpayable'}],failures:[]};
+ const tax=explain('tradingTaxes',unknown(),d),mint=explain('mintCapability',unknown(),d),owner=explain('ownerAdmin',unknown(),d);
+ assert.match(tax.reason,/setBuyFee/);
+ assert.match(mint.reason,/mint/);
+ assert.match(owner.reason,/grantRole/);
+ assert.equal(tax.dataState,'NOT_VERIFIED');
+ assert.equal(mint.dataState,'NOT_VERIFIED');
+ assert.equal(owner.dataState,'NOT_VERIFIED');
+ assert.equal(mint.verificationGap.templateRejection,'OVERRIDES__transfer');
+});
 test('source mismatch, provider outage and unbound proxy have distinct failure reasons',()=>{
  const base={matched:false,provider:null,templateRejection:null};
  for(const [cause,expected] of [
