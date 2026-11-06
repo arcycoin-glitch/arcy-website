@@ -61,7 +61,7 @@
   const controls=()=>{connect.disabled=busy;preview.disabled=busy||!wallet;execute.disabled=busy||!quote;closeBtn.disabled=busy;amount.disabled=busy;pair.disabled=busy;};
   function open(){overlay.hidden=false;setStatus('Connect an EVM wallet. Nothing is sent without your signature.');connect.focus();}
   function close(){if(busy)return;overlay.hidden=true;launcher.focus();}
-  launcher.addEventListener('click',open);closeBtn.addEventListener('click',close);
+  launcher.disabled=false;launcher.addEventListener('click',open);closeBtn.addEventListener('click',close);
   overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
   doc.addEventListener('keydown',e=>{if(!overlay.hidden&&e.key==='Escape'){e.preventDefault();close();}});
   pair.addEventListener('change',resetQuote);amount.addEventListener('input',resetQuote);
