@@ -1,0 +1,36 @@
+name: Mechanics paired benchmark main vs fix (read-only)
+on:
+  push:
+    branches: ['audit/mechanics-final-20261106']
+    paths:
+      - '.github/workflows/mechanics-final-bench.yml'
+permissions:
+  contents: read
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: 'fix/mechanics-reviewed-token-sources-20261106', path: after}
+      - uses: actions/checkout@v4
+        with: {ref: main, path: before}
+      - uses: actions/checkout@v4
+        with: {path: tool}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Samples = standard bench samples + fixed 38-contract cohort
+        run: |
+          BENCH_SAMPLES_ONLY=1 BENCH_ROOT=$GITHUB_WORKSPACE/after node after/scripts/bench-mechanics.cjs samples
+          node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('mechanics-samples.json'));const c=JSON.parse(fs.readFileSync('tool/scripts/mechanics-audit-cohort-20261105.json'));const k=new Set(s.map(x=>x.chain+x.address.toLowerCase()));for(const x of c)if(!k.has(x.chain+x.address.toLowerCase())){k.add(x.chain+x.address.toLowerCase());s.push({chain:x.chain,address:x.address,group:x.section==='pons'?'pons':'cohort'});}fs.writeFileSync('mechanics-samples.json',JSON.stringify(s));console.log(s.length)"
+      - run: BENCH_REPLAY=record BENCH_ROOT=$GITHUB_WORKSPACE/before node after/scripts/bench-mechanics.cjs beforelive mechanics-samples.json
+        continue-on-error: true
+      - run: BENCH_REPLAY=replay BENCH_ROOT=$GITHUB_WORKSPACE/before node after/scripts/bench-mechanics.cjs before mechanics-samples.json
+      - run: BENCH_REPLAY=augment BENCH_ROOT=$GITHUB_WORKSPACE/after node after/scripts/bench-mechanics.cjs after mechanics-samples.json
+      - name: Paired gate (mandatory)
+        run: node after/scripts/assert-mechanics-bench.cjs mechanics-bench-before.json mechanics-bench-after.json 2>&1 | tee gate.txt; exit ${PIPESTATUS[0]}
+        shell: bash
+      - if: always()
+        run: node -e "const t=require('fs').readFileSync('gate.txt','utf8');console.log('::notice title=gate::'+t.slice(-3500).replace(/%/g,'%25').replace(/\n/g,'%0A'))"
+      - if: always()
+        run: npm test --prefix after 2>&1 | tail -12 | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log('::notice title=suite::'+s.replace(/%/g,'%25').replace(/\n/g,'%0A')))"

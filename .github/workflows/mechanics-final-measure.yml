@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/mechanics-final-measure.yml'
       - 'scripts/mechanics-final-refs.json'
+      - '.github/workflows/mechanics-final-bench.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -31,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: [main]
+        ref: [main, fix/mechanics-reviewed-token-sources-20261106]
     steps:
       - uses: actions/checkout@v4
         with:
