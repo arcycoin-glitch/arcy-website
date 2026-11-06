@@ -47,3 +47,22 @@ test('correctness gate is unchanged: a verified field can never be lost or silen
  const changed=base();changed[3].f.mintCapability={...field(true),value:'other'};assert.match(gate(base(),changed).out,/changed without same-owner stronger proof/);
  const budgetHidesLoss=base();budgetHidesLoss[0].net.rpc+=2;budgetHidesLoss[0].net.augProbe=2;budgetHidesLoss[0].f.ownerAdmin=field(false);assert.match(gate(base(),budgetHidesLoss).out,/Verified field lost/);
 });
+
+test('reviewed-profile reads: <=8 per contract and only where the tax row was unverified on main',()=>{
+ const ok=base();ok[20].net.rpc+=8;ok[20].net.augReviewed=8;ok[20].f.tradingTaxes=field(true);
+ const r=gate(base(),ok);assert.equal(r.ok,true,r.out);assert.match(r.out,/"reviewed":8/);
+ const over=base();over[20].net.rpc+=9;over[20].net.augReviewed=9;assert.match(gate(base(),over).out,/Reviewed-profile read budget exceeded/);
+ const ineligible=base();ineligible[4].net.rpc+=3;ineligible[4].net.augReviewed=3;assert.match(gate(base(),ineligible).out,/already verified tax row/);
+ const hidden=base();hidden[20].net.rpc+=9;hidden[20].net.augReviewed=8;assert.match(gate(base(),hidden).out,/New RPC usage/);
+});
+
+test('an enumerated DEFAULT_ADMIN_ROLE member may only be upgraded to reviewed evidence for the same address',()=>{
+ const A='0x7e9e4c0876b2102f33a1d82117cc73b7fddd0032',B='0x'+'12'.repeat(20);
+ const mk=v=>rows(32,(r,i)=>{if(i===6)r.f.ownerAdmin={ok:true,cls:'SINGLE_SOURCE',status:'GETTER_REPORTED',value:'DEFAULT_ADMIN_ROLE: '+A,scope:''};});
+ const same=mk();same[6].f.ownerAdmin={ok:true,cls:'ON_CHAIN_VERIFIED',status:'VERIFIED_SOURCE_AND_STATE',value:'Role-governed · DEFAULT_ADMIN_ROLE: '+A+' · burner can burn any wallet',scope:''};
+ assert.equal(gate(mk(),same).ok,true);
+ const other=mk();other[6].f.ownerAdmin={...same[6].f.ownerAdmin,value:'Role-governed · DEFAULT_ADMIN_ROLE: '+B};
+ assert.match(gate(mk(),other).out,/changed without same-owner stronger proof/);
+ const weaker=mk();weaker[6].f.ownerAdmin={...same[6].f.ownerAdmin,status:'GETTER_REPORTED',cls:'SINGLE_SOURCE'};
+ assert.match(gate(mk(),weaker).out,/changed without same-owner stronger proof/);
+});
