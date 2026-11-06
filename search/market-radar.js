@@ -281,8 +281,10 @@ const change24hReason=item=>{
    const scope=item.fields?.volume24hUsd?.scope;
    volume.title=scope==='TOKEN'?'Token genelindeki 24 saatlik hacim':scope==='POOL'?'Gözlemlenen havuzun 24 saatlik hacmi':'Sağlayıcının bildirdiği 24 saatlik hacim';
    const d=item.discovery;
-   const scoreOk=data?.engine==='arcy-radar-v3'&&data?.discovery?.scoreVersion==='arcy-discovery-1'&&
-    d?.version==='arcy-discovery-1'&&typeof d.score==='number'&&Number.isFinite(d.score)&&
+   // The server publishes discovery-2. Reject unknown schema versions, but do not
+   // discard real scores merely because the renderer still expects discovery-1.
+   const scoreOk=data?.engine==='arcy-radar-v3'&&data?.discovery?.scoreVersion==='arcy-discovery-2'&&
+    d?.version===data.discovery.scoreVersion&&typeof d.score==='number'&&Number.isFinite(d.score)&&
     d.score>=0&&d.score<=100&&typeof d.weightCoverage==='number'&&
     Number.isFinite(d.weightCoverage)&&d.weightCoverage>0&&d.weightCoverage<=1;
    const scoreCell=el('span','arcy-radar-overview-score');
@@ -293,17 +295,25 @@ const change24hReason=item=>{
     scoreCell.title='ARCY keşif önceliği; güvenlik veya kazanç tahmini değildir. Skora dahil edilen ağırlık: %'+Math.round(d.weightCoverage*100);
     scoreCell.setAttribute('aria-label','ARCY Discovery Score '+d.score.toFixed(1)+' / 100');
    }else{
-    scoreCell.append(el('span','arcy-radar-overview-score-missing','NOT VERIFIED'));
+    // Missing/unknown scores are not rated. Keep a neutral placeholder instead
+    // of repeating an accusatory-looking NOT VERIFIED label on every card.
+    scoreCell.append(el('span','arcy-radar-overview-score-missing','—'));
+    scoreCell.title='Bu token için doğrulanmış bir ARCY Discovery Score şu anda yok.';
     scoreCell.classList.add('is-unverified');
    }
-   const why=scoreOk?explainDiscovery(d.reason):{short:'NOT VERIFIED',full:'NOT VERIFIED'};
+   const hasReason=scoreOk&&typeof d.reason==='string'&&!!d.reason.trim();
+   const why=hasReason?explainDiscovery(d.reason):null;
    const reasonCell=el('span','arcy-radar-overview-reason');
-   reasonCell.append(el('small','arcy-radar-overview-reason-label','NEDEN SEÇİLDİ?'));
-   reasonCell.append(el('span','arcy-radar-overview-reason-text',why.short));
-   reasonCell.title=why.full;
-   reasonCell.setAttribute('aria-label','Neden seçildi: '+why.full);
-   if(scoreOk&&Array.isArray(d.flags)&&d.flags.length)reasonCell.classList.add('has-alert');
-   if(!scoreOk||why.short==='NOT VERIFIED')reasonCell.classList.add('is-unverified');
+   if(why&&why.short!=='NOT VERIFIED'){
+    reasonCell.append(el('small','arcy-radar-overview-reason-label','NEDEN SEÇİLDİ?'));
+    reasonCell.append(el('span','arcy-radar-overview-reason-text',why.short));
+    reasonCell.title=why.full;
+    reasonCell.setAttribute('aria-label','Neden seçildi: '+why.full);
+    if(Array.isArray(d.flags)&&d.flags.length)reasonCell.classList.add('has-alert');
+   }else{
+    // No fabricated explanation and no tall empty "NOT VERIFIED" reason section.
+    reasonCell.style.display='none';
+   }
    row.append(identity,priceLabel,change,volume,scoreCell,reasonCell,arrow);list.append(row);
   }
   if(!tokens.length)list.append(el('p','arcy-radar-overview-empty',loading?'Güncel kaynak yanıtı bekleniyor.':!verified?
