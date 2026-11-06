@@ -123,11 +123,16 @@ for(const [net,chainId] of [['arc',5042],['ethereum',1],['robinhood',4663]]){
   const out=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
   assert.equal(out.chainId,chainId);assert.equal(out.tokens.length,10);assert.equal(out.version,2);
   const gc=f.calls.filter(c=>/coingecko\.com|dexscreener\.com/.test(c.url));
-  assert.equal(gc.length,5,'top + trending + new pages, one token-stats call, one batched cross-check call');
+  assert.equal(gc.length,5,'three pool-list calls, one token-stats call, one batched cross-check call');
   assert.equal(gc[0].opts.headers['x-cg-demo-api-key'],'demo-key-not-real');
   assert.ok(gc[0].url.startsWith('https://api.coingecko.com/api/v3/onchain/networks/'+sources.NETWORKS[net].gecko+'/pools?page=1&sort=h24_volume_usd_desc'));
-  assert.ok(gc[1].url.includes('/trending_pools?page=1&duration=24h'),'trending view');
-  assert.ok(gc[2].url.includes('/new_pools?page=1'),'newest view');
+  if(net==='arc'){
+   assert.ok(gc[1].url.includes('/pools?page=2&sort=h24_volume_usd_desc'),'Arc Demo replaces immature-new-pool scan with second volume page');
+   assert.ok(gc[2].url.includes('/trending_pools?page=1&duration=24h'),'Arc still samples trending');
+  }else{
+   assert.ok(gc[1].url.includes('/trending_pools?page=1&duration=24h'),'trending view');
+   assert.ok(gc[2].url.includes('/new_pools?page=1'),'newest view');
+  }
   assert.ok(gc[3].url.includes('/tokens/multi/'),'token-level stats for the exact candidate contracts');
   assert.ok(gc[4].url.startsWith('https://api.dexscreener.com/tokens/v1/'+sources.NETWORKS[net].dex+'/'));
   assert.equal(out.usage.geckoterminal,4);assert.equal(out.usage.dexscreener,1);
@@ -146,7 +151,7 @@ for(const [net,chainId] of [['arc',5042],['ethereum',1],['robinhood',4663]]){
 test('DEX Screener disabled on Vercel without approval: rows stay SOURCE_REPORTED and DEX Screener is never called',async()=>{
  const body=geckoBody('arc',{count:12});const f=router([...CG('arc',body)]);
  const out=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
- assert.equal(f.calls.length,4,'top + trending + new pages + token stats; DEX Screener is never called');assert.equal(out.coverage.crossCheckProvider,'DISABLED');
+ assert.equal(f.calls.length,4,'three Arc pool-list calls + token stats; DEX Screener is never called');assert.equal(out.coverage.crossCheckProvider,'DISABLED');
  assert.ok(out.tokens.every(t=>t.fields.priceUsd.status==='SOURCE_REPORTED'));
  assert.equal(out.sources.find(s=>s.id==='dexscreener').mode,'disabled-until-approved');assert.ok(!out.attribution.some(a=>/DEX Screener/.test(a.text)));
 });
@@ -203,9 +208,9 @@ test('responses are cached for the tier TTL and concurrent loads coalesce into o
  const body=geckoBody('arc',{count:12});let n=0;const f=router([[/tokens\/multi/,()=>resp(multiBody('arc',body))],[/coingecko\.com/,(u)=>{if(/sort=h24_volume/.test(u))n++;return resp(body);}]]);
  const env={...DEMO};let now=T0;
  const [a,b]=await Promise.all([radar.load('arc',{env,fetcher:f,now:()=>now}),radar.load('arc',{env,fetcher:f,now:()=>now})]);
- assert.equal(n,1);assert.equal(a.tokens.length,b.tokens.length);
- now=T0+79*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,1,'still cached at 79 min (Demo TTL 80)');
- now=T0+81*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,2);
+ assert.equal(n,2,'Arc Demo scans first and second volume pages once per cold refresh');assert.equal(a.tokens.length,b.tokens.length);
+ now=T0+79*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,2,'both pages still cached at 79 min (Demo TTL 80)');
+ now=T0+81*60000;await radar.load('arc',{env,fetcher:f,now:()=>now});assert.equal(n,4,'both pages refresh exactly once after TTL');
 });
 test('Robinhood and Pons share pending provider pages on a cold parallel load',async()=>{
  const body=geckoBody('robinhood',{count:5}),rpc=rpcRouter({members:[addr(1)]});
