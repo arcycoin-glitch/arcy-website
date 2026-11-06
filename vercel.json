@@ -32,6 +32,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/synroute/status",
+      "destination": "/api/market?_arcyRoute=synrouteStatus"
+    },
+    {
       "source": "/api/activity",
       "destination": "/api/market?_arcyRoute=activity"
     },
