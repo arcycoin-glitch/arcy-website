@@ -89,10 +89,12 @@ test('the same original Synthra external CTA remains; new modal only inside #buy
  const start=html.indexOf('<section id="buy">'),end=html.indexOf('</section>',start);
  const part=html.slice(start,end);
  assert.equal((part.match(/data-synthra-open/g)||[]).length,1);
- assert.equal((part.match(/data-synroute-launch/g)||[]).length,1);
+ assert.equal((part.match(/data-synroute-launch/g)||[]).length,0,'protected static HTML remains unchanged');
  assert.match(part,/Open Synthra Swap/);
- assert.match(part,/Swap here with SynRoute/);
- assert.match(html,/src="\/synroute-swap.js" defer/);
+ const redirect=fs.readFileSync('synthra-redirect.js','utf8');
+ const modal=fs.readFileSync('synroute-swap.js','utf8');
+ assert.match(redirect,/loader\.src='\/synroute-swap\.js'/);
+ assert.match(modal,/original\.insertAdjacentElement\('afterend',launcher\)/);
  assert.equal(ui.PAIRS.base_eth_usdc.chainId,8453);
  assert.equal(ui.PAIRS.robinhood_eth_base_usdc.chainId,4663);
 });
