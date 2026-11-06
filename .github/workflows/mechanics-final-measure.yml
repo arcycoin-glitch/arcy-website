@@ -1,0 +1,60 @@
+name: Mechanics final measurement (read-only, fixed cohort)
+# Same 38-contract cohort for every run. Job "production" reads the PUBLIC production API only (Arc rows are guarded
+# against queuing holder work). Job "code" runs the repository's own Mechanics pipeline in-process for each ref.
+on:
+  push:
+    branches: ['audit/mechanics-final-20261106']
+    paths:
+      - '.github/workflows/mechanics-final-measure.yml'
+      - 'scripts/mechanics-final-refs.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/verify-mechanics-production.cjs
+        continue-on-error: true
+      - run: node scripts/emit-audit-notices.cjs prod-rows.json prod prod 0 20
+        env: {ROWS_PER_NOTICE: '3'}
+      - run: node scripts/emit-audit-notices.cjs prod-rows.json prod prod 20 20
+        env: {ROWS_PER_NOTICE: '3'}
+  code:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: [main]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: tool
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+          path: target
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit fixed cohort against ${{ matrix.ref }}
+        working-directory: tool
+        continue-on-error: true
+        env:
+          AUDIT_ROOT: ${{ github.workspace }}/target
+          COHORT_FILE: scripts/mechanics-audit-cohort-20261105.json
+          SKIP_PROD: '1'
+          NO_ROW_NOTICES: '1'
+        run: node scripts/audit-mechanics.cjs
+      - working-directory: tool
+        run: node scripts/emit-audit-notices.cjs mechanics-audit.json audit code 0 20
+        env: {ROWS_PER_NOTICE: '2'}
+      - working-directory: tool
+        run: node scripts/emit-audit-notices.cjs mechanics-audit.json audit code 20 20
+        env: {ROWS_PER_NOTICE: '2'}
