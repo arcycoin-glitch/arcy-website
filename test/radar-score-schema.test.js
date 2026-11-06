@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const ui = fs.readFileSync('search/market-radar.js', 'utf8');
 const server = require('../lib/radar-v2/discovery');
-const overview = ui.slice(ui.indexOf('function renderOverview('), ui.indexOf('for(const [id,name] of chains)', ui.indexOf('function renderOverview(')));
+const overview = ui.split('function renderOverview(')[1].split('for(const [id,name] of chains)')[0];
 
 test('Radar frontend score schema matches the active V3 backend discovery schema', () => {
   assert.equal(server.SCORE_VERSION, 'arcy-discovery-2');
