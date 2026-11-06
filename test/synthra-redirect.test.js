@@ -85,7 +85,7 @@ test('premium Synthra destination panel is scoped, responsive and contains only 
  assert.match(section,/class="syn-heading">Swap on <span>Synthra\.<\/span>/);
  assert.match(section,/class="syn-copy">Access Synthra's independent swap platform/);
  assert.match(section,/class="syn-footnote"/);
- assert.match(section,/Non-custodial · Wallet connects only with your approval/);
+ assert.match(section,/Independent platform · No wallet connection here/);
  assert.equal((section.match(/data-synthra-open/g)||[]).length,1);
  assert.doesNotMatch(section,/class="card swapbox"|<div class="eyebrow">ARCY COMMUNITY|>FOLLOW ON X|>JOIN TELEGRAM/);
  assert.match(html,/<a href="#buy">Swap<\/a>/,'nav uses correct destination name');
