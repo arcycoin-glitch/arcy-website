@@ -23,7 +23,7 @@ test('do not show empty explanations or repeated unverified placeholders', () =>
   assert.match(overview, /reasonCell\.style\.display='none'/);
   assert.doesNotMatch(overview, /score-missing','NOT VERIFIED'/);
 });
-test('Radar's identity, financial metrics, links, 24h source-disagreement warning remain intact', () => {
+test('Radar identity, financial metrics, links and 24h source-disagreement warnings remain intact', () => {
   assert.match(overview, /row\.href='\/search\/token\/'/);
   assert.match(overview, /fieldOk\(item,'volume24hUsd'\)/);
   assert.match(overview, /fieldOk\(item,'priceUsd'\)/);
