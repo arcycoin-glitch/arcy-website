@@ -4,4 +4,5 @@ module.exports=require('../lib/search-request').route(async a=>f.cached('market:
 // Compatible market routes share one Vercel function; original handlers are preserved.
 const circulatingHandler=module.exports,activityHandler=require("../lib/activity-route");
 const synrouteStatus=require('../lib/synroute-status');
-module.exports=(req,res)=>req.query?._arcyRoute==="synrouteStatus"?synrouteStatus(req,res):req.query?._arcyRoute==="activity"?activityHandler(req,res):circulatingHandler(req,res);
+const synrouteTrade=require('../lib/synroute-trade');
+module.exports=(req,res)=>req.query?._arcyRoute==="synrouteTrade"?synrouteTrade(req,res):req.query?._arcyRoute==="synrouteStatus"?synrouteStatus(req,res):req.query?._arcyRoute==="activity"?activityHandler(req,res):circulatingHandler(req,res);
