@@ -50,18 +50,19 @@ function routerFor(net,{top,trending,news}){
  const calls=[];
  const f=async(url)=>{calls.push(url);
   if(/tokens\/multi/.test(url))return resp({data:[]});
+  if(/\/pools\?page=2/.test(url))return resp(news); // Arc uses 2nd highest-volume window instead of newest pools.
   if(/new_pools/.test(url))return resp(news);if(/trending_pools/.test(url))return resp(trending);if(/\/pools\?/.test(url))return resp(top);
   throw new Error('unrouted '+url);};f.calls=calls;return f;
 }
-test('same exact pool listed by another channel supplies a missing h24 (no extra API call); other pools never do',async()=>{
+test('same exact pool listed in Arc volume page 2 supplies missing h24 without another call; other pools never do',async()=>{
  const mk=(chg,vol,pool)=>body('arc',Array.from({length:10},(_,k)=>({i:k+1,pool:k===0?pool:undefined,change:k===0?chg:'5',vol:k===0?vol:1000000-k})));
- // top channel: highest volume row for token 1 omits h24; new channel lists the SAME pool with a value
+ // top page 1 omits token 1 h24; second volume page lists the SAME pool with a value.
  const top=mk(undefined,9e6,7001),news=mk('-12.5',1e6,7001),trending=mk(undefined,1e6,7001);
  const f=routerFor('arc',{top,trending,news});
  const out=await radar.load('arc',{env:ENV,fetcher:f,now:()=>T0,disableCache:true});
  const t=out.tokens.find(x=>x.address===addr(1));
  assert.ok(t,'token present '+JSON.stringify(out.tokens.map(x=>x.address.slice(-2)))+JSON.stringify(out.excluded&&out.excluded.slice(0,3)));assert.equal(t.change24hPct,-12.5);assert.equal(t.fields.change24hPct.status,'SOURCE_REPORTED');
- assert.equal(t.fields.change24hPct.recovery.from,'new');assert.equal(t.fields.change24hPct.recovery.pool,addr(7001));
+ assert.equal(t.fields.change24hPct.recovery.from,'top');assert.equal(t.fields.change24hPct.recovery.pool,addr(7001));
  assert.equal(f.calls.length,4,'3 pool pages + 1 token lookup: recovery costs no extra provider call');
  // different pool in the other channel must NOT be borrowed
  const f2=routerFor('arc',{top,trending,news:mk('-12.5',1e6,7002)});radar._cache.clear();
