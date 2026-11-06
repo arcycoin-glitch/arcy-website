@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { checkSynroute, chainIdsFrom } = require('../api/synroute/status');
+const { checkSynroute, chainIdsFrom } = require('../lib/synroute-status');
 const success = (data) => ({ ok: true, status: 200, json: async () => data });
 const fail = (status) => ({ ok: false, status });
 const chains = { chains: [{chainId: 5042},{chainId: 4663}] };
@@ -39,7 +39,7 @@ test('handles upstream downtime without leaking network details', async () => {
  assert.equal(r.status,502); assert.equal(JSON.stringify(r).includes('private server info'),false);
 });
 test('GET only handler',async()=>{
- const handler=require('../api/synroute/status');const data={};
+ const handler=require('../lib/synroute-status');const data={};
  const res={setHeader:()=>{},status:(v)=>{data.status=v;return res},json:(v)=>{data.body=v}};
  await handler({method:'POST'},res);
  assert.equal(data.status,405);
