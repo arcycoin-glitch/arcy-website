@@ -152,10 +152,6 @@ a{color:inherit;text-decoration:none}.wrap{width:min(1180px,92%);margin:auto}.na
 #buy .syn-open:focus-visible{outline:2px solid #d5baff;outline-offset:4px}
 #buy .syn-open:disabled{cursor:default;opacity:.66}
 #buy .syn-open-arrow{font-size:19px;line-height:1;font-weight:500}
-#buy .synroute-launch{display:block;width:100%;min-height:46px;margin-top:10px;border-radius:12px;border:1px solid rgba(165,134,221,.35);background:#251d3b;color:#ddd0ff;font-weight:800;cursor:pointer}
-#buy .synroute-launch:not(:disabled):hover{background:#3d2c61}
-#buy .synroute-launch:focus-visible{outline:2px solid #cdb2ff;outline-offset:3px}
-#buy .synroute-launch:disabled{opacity:.55;cursor:default}
 #buy .syn-footnote{display:flex;align-items:center;gap:8px;margin-top:19px;color:#8592ae;font-size:11px;line-height:1.55;letter-spacing:.01em}
 #buy .syn-status-dot{flex:none;width:6px;height:6px;border-radius:50%;background:#b99aff;box-shadow:0 0 10px #8d5ac766}
 
@@ -445,8 +441,7 @@ View details →
   <h2 class="syn-heading">Swap on <span>Synthra.</span></h2>
   <p class="syn-copy">Access Synthra's independent swap platform. All transactions take place there, not on ARCY SEARCH.</p>
   <button class="btn syn-open" type="button" data-synthra-open aria-haspopup="dialog" disabled><span>Open Synthra Swap</span><span class="syn-open-arrow" aria-hidden="true">↗</span></button>
-  <button class="btn synroute-launch" data-synroute-launch type="button" aria-haspopup="dialog" disabled>Swap here with SynRoute ↗</button>
-  <div class="syn-footnote"><span class="syn-status-dot" aria-hidden="true"></span>Non-custodial · Wallet connects only with your approval</div>
+  <div class="syn-footnote"><span class="syn-status-dot" aria-hidden="true"></span>Independent platform · No wallet connection here</div>
  </div></div>
 </div></section>
 
@@ -626,7 +621,6 @@ loadPulse();
 <script src="/pulse-chain-navigation.js" defer></script>
 <script src="/hero-welcome.js" defer></script>
 <script src="/v8-premium.js" defer></script>
-<script src="/synroute-swap.js" defer></script>
 <script src="/analytics.js" defer></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body></html>
