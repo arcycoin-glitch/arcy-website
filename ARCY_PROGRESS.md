@@ -222,3 +222,8 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Fixed: scheduled health check asserted 6 cards (health reports 5) - caught by a real run; Arc re-sent contract reverts to the backup (RPC Arc 426 -> 312 in paired replay, fields identical); young-pool disagreement now explained by pool age.
 - Open finding (not applied): GeckoTerminal h24 on pools < 24 h is a partial window; 7 rows displayed as 24h. Needs owner decision (changes values and Discovery Score).
 - Open: Ethereum single RPC; Arc/Robinhood explorer 403 from CI; Railway worker state not observable here.
+
+## Mechanics final pass (2026-11-06, branch fix/mechanics-reviewed-token-sources-20261106)
+- Baseline Production aaabf00 measured on the fixed 38-contract cohort; Pons PR #168 gains confirmed live. Details: docs/MECHANICS_FINAL_20261106.md.
+- Added six digest-keyed reviewed token profiles (PEPE, SPX, SUPER, BEAM, MowCat, TorchToken). Paired gate PASS (62 contracts, +14 fields, +11 budgeted RPC reads, 0 extra source requests); suite 1026/0 fail.
+- Release blocker in this session: GH_TOKEN invalid, so no PR could be opened or merged from here. Branch is pushed; owner must open/merge the PR, then re-run the fixed-cohort production verification.
