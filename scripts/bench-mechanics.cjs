@@ -12,7 +12,7 @@ const REGRESSION=[['arc','0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b'],['arc','0
 const ETH_KNOWN=['0xdAC17F958D2ee523a2206206994597C13D831ec7','0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48','0x6B175474E89094C44Da98b954EedeAC495271d0F','0x514910771AF9Ca656af840dff83E8264EcF986CA','0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984','0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2','0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE','0x6982508145454Ce325dDbE47a25d4ec3d2311933','0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9','0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2','0xB8c77482e45F1F44dE1745F52C74426C631bDD52','0x4Fabb145d64652a948d72533023f6E7A623C7C53'];
 // Outbound request accounting (host-level), no payloads recorded. BENCH_REPLAY=record|replay lets two code versions see IDENTICAL provider
 // evidence (same pinned block, same RPC/Sourcify answers, same failures); replay misses return a controlled error, NEVER a live request; the paired quality gate reports misses explicitly.
-const net={rpc:0,sourcify:0,goplus:0,explorer:0,other:0,failed:0,replayHit:0,replayMiss:0,augProbe:0,augSibling:0,augReference:0};
+const net={rpc:0,sourcify:0,goplus:0,explorer:0,other:0,failed:0,replayHit:0,replayMiss:0,augProbe:0,augSibling:0,augReference:0,augReviewed:0};
 const MODE=process.env.BENCH_REPLAY||'off',RFILE=process.env.BENCH_REPLAY_FILE||'mechanics-replay.json';
 const REPLAYING=MODE==='replay'||MODE==='augment';
 const store=REPLAYING&&fs.existsSync(RFILE)?JSON.parse(fs.readFileSync(RFILE,'utf8')):{};
@@ -23,10 +23,13 @@ const store=REPLAYING&&fs.existsSync(RFILE)?JSON.parse(fs.readFileSync(RFILE,'ut
 //  augProbe     eth_call with the proxy-delegation probe selector (search/server/lib/mechanics-proxy-probe.js)
 //  augSibling   eth_call of a sibling family's token getter (search/server/lib/mechanics-sibling-runtime.js)
 //  augReference GET of a pinned sibling family's Sourcify reference record
+//  augReviewed  eth_call / eth_getStorageAt issued only by a reviewed token-source profile (search/server/lib/mechanics-reviewed-tokens.js)
 const optional=p=>{try{return req(p);}catch{return null;}};
 const probeModule=optional('search/server/lib/mechanics-proxy-probe'),siblingModule=optional('search/server/lib/mechanics-sibling-runtime');
 const keccakSel=s=>req('lib/keccak')(Buffer.from(s)).slice(0,10);
 const siblingSelectors=new Set((siblingModule?.FAMILIES||[]).flatMap(f=>Object.keys(f.getters||{}).map(n=>keccakSel(n+'()'))));
+const reviewedModule=optional('search/server/lib/mechanics-reviewed-tokens');
+const reviewedSelectors=new Set((reviewedModule?.TORCH_GETTERS||[]).map(keccakSel)),reviewedSlots=new Set(Object.values(reviewedModule?.SPX_SLOTS||{}).map(i=>reviewedModule.slotKey(i)));
 const referenceUrls=new Set((siblingModule?.FAMILIES||[]).map(f=>'https://sourcify.dev/server/v2/contract/'+f.chainId+'/'+f.reference+'?fields=abi,sources,compilation,runtimeBytecode'));
 function budgetedKind(url,opts){
  if(MODE!=='augment')return null;
@@ -34,6 +37,7 @@ function budgetedKind(url,opts){
  if((!opts?.method||opts.method==='GET')&&referenceUrls.has(u))return 'augReference';
  if(opts?.method!=='POST'||typeof opts.body!=='string')return null;
  let b;try{b=JSON.parse(opts.body);}catch{return null;}
+ if(!Array.isArray(b)&&b?.method==='eth_getStorageAt'&&Array.isArray(b.params)&&b.params.length===3&&reviewedSlots.has(String(b.params[1]).toLowerCase()))return 'augReviewed';
  if(Array.isArray(b)||b?.method!=='eth_call'||!Array.isArray(b.params))return null;
  const data=String(b.params[0]?.data||'').toLowerCase();
  if(probeModule&&data===probeModule.PROBE_SELECTOR&&b.params.length<=3){
@@ -42,6 +46,7 @@ function budgetedKind(url,opts){
   return 'augProbe';
  }
  if(b.params.length===2&&siblingSelectors.has(data))return 'augSibling';
+ if(b.params.length===2&&reviewedSelectors.has(data))return 'augReviewed';
  return null;
 }
 const cursor={};

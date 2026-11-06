@@ -28,7 +28,8 @@ const PROFILES=Object.freeze({
  // Exact source and pinned runtime verified for Arc LaunchToken.sol (POLL).
  '7efbe9dc6a4a5b3d698f0d876e29844422bc000da755223e04738ff11dd13802':'FIXED_SUPPLY_BURNABLE_LAUNCH',
  'd8d6edfc12f71433b5efe6ab623af4db5b160750902daa4f08fe337865087ceb':'ALLOWANCE_MINTER_TOKEN',
- ...require('./mechanics-reviewed-v4').PROFILES
+ ...require('./mechanics-reviewed-v4').PROFILES,
+ ...require('./mechanics-reviewed-tokens').PROFILES
 });
 const REVIEWED_LEGACY_PROXY='b49bec6077f927208196e052c2a55e5a37fe21fd8e9e1dc8e90f6f1116cf8c7e';
 const reviewedLegacy=digest=>[REVIEWED_LEGACY_PROXY,'316b86e4d73ad7a683188f2ac85162c763fd055d47d44c2be790d54b83a73a49'].includes(digest);
@@ -303,6 +304,8 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
     if(t.burnable)details.observations.push({method:'OpenZeppelin ERC20Burnable library',block,...sourceProof,scope:'Public burn/burnFrom capability exists (holders may burn their own or approved tokens). This is not evidence that any burn or buyback occurred.'});
    }
    await require('./mechanics-reviewed-v4').apply({profile,fields,details,proof,fact,word,call,address,block,keccak,admin,direct:target===address&&nonDelegating(code)});
+   await require('./mechanics-reviewed-tokens').apply({profile,fields,details,proof,fact,word,address,block,direct:target===address&&nonDelegating(code),
+    storage:slot=>safe('eth_getStorageAt',[address,slot,block])});
   }
  }
  // Source/ABI-matched owner getter returning the zero address: recorded as a diagnostic observation ONLY. Project policy (see
