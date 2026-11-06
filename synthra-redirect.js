@@ -60,11 +60,6 @@
   // No DOM replacement, no duplicate community controls, and no inserted footer link.
   const cta=doc.querySelector('#buy [data-synthra-open]');
   if(cta){cta.disabled=false;cta.addEventListener('click',()=>open(cta));}
-  // Load the opt-in SynRoute modal only after the existing external CTA is ready.
-  // The protected homepage HTML/CSS and its original external action stay unchanged.
-  if(cta&&!doc.querySelector('script[src="/synroute-swap.js"]')){
-   const loader=doc.createElement('script');loader.src='/synroute-swap.js';loader.defer=true;doc.head.appendChild(loader);
-  }
  }
  return {SWAP_URL,LABEL,TITLE,TEXT,mount,openExternal,buildModal};
 });
