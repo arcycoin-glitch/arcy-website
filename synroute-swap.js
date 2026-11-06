@@ -23,6 +23,8 @@
  '.sr-dialog button.sr-primary{background:#8b56de;border-color:#a17bec}.sr-dialog button.sr-close{margin-left:auto;background:#151928}.sr-status{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px;color:#c0cce3}',
  '.sr-details[hidden]{display:none}.sr-details{padding:13px;background:#0c1a2e;border:1px solid #465177;border-radius:11px;margin:10px 0}.sr-details p{margin:5px 0;color:#d9e0f2}.sr-address{font-size:11px;word-break:break-all;color:#d2bdff}',
  '.sr-dialog a{color:#d3b8ff;text-decoration:underline}.sr-note{font-size:11px;line-height:1.6;margin-top:12px;color:#9ba6bd}',
+ '#buy .synroute-launch{display:block;width:100%;min-height:46px;margin-top:10px;border-radius:12px;border:1px solid rgba(165,134,221,.35);background:#251d3b;color:#ddd0ff;font-weight:800;cursor:pointer}',
+ '#buy .synroute-launch:hover{background:#3d2c61}#buy .synroute-launch:focus-visible{outline:2px solid #cdb2ff;outline-offset:3px}',
  '@media(max-width:480px){.sr-controls{flex-direction:column}.sr-controls button{width:100%}.sr-dialog button.sr-close{margin-left:0}}'
  ].join('');
  function message(e){return String(e&&e.message||e||'Unavailable').slice(0,200);}
@@ -30,8 +32,14 @@
  function same(a,b){return String(a).toLowerCase()===String(b).toLowerCase();}
  function el(doc,tag,cls,text){const n=doc.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;}
  function mount(doc,win){
-  const launcher=doc.querySelector('#buy [data-synroute-launch]');
-  if(!launcher||doc.querySelector('[data-synroute-modal]'))return;
+  const original=doc.querySelector('#buy [data-synthra-open]');
+  if(!original||doc.querySelector('[data-synroute-modal]'))return;
+  // Mount only inside the existing Synthra card; the protected index.html is immutable.
+  const launcher=el(doc,'button','btn synroute-launch','Swap here with SynRoute ↗');
+  launcher.type='button';launcher.setAttribute('data-synroute-launch','');launcher.setAttribute('aria-haspopup','dialog');
+  original.insertAdjacentElement('afterend',launcher);
+  const note=doc.querySelector('#buy .syn-footnote');
+  if(note?.lastChild?.nodeType===3) note.lastChild.textContent='Non-custodial · Connect a wallet only by choice';
   const style=el(doc,'style');style.textContent=CSS;doc.head.appendChild(style);
   const overlay=el(doc,'div','sr-overlay');overlay.hidden=true;overlay.setAttribute('data-synroute-modal','');
   const modal=el(doc,'section','sr-dialog');modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-labelledby','sr-title');
