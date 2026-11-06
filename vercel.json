@@ -32,6 +32,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/synroute/quote",
+      "destination": "/api/market?_arcyRoute=synrouteTrade"
+    },
+    {
       "source": "/api/synroute/status",
       "destination": "/api/market?_arcyRoute=synrouteStatus"
     },
