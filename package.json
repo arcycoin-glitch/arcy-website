@@ -8,7 +8,8 @@
     "worker:holders": "node scripts/holder-worker.cjs",
     "test:live": "node test/live.cjs",
     "test:browser": "node test/browser-regression.cjs",
-    "test:search-browser": "node test/search-browser-e2e.cjs"
+    "test:search-browser": "node test/search-browser-e2e.cjs",
+    "test:owner-analytics": "node test/owner-analytics-browser.cjs"
   },
   "engines": {
     "node": ">=22"
