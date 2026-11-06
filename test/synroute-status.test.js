@@ -11,7 +11,7 @@ test('fails closed when no key', async () => {
   assert.equal(r.status,503);
 });
 test('fails closed on testnet-only deployment', async () => {
-  const r = await checkSynroute({ key: 'private-key', fetcher: async () => success({chains:[{chainId:46630},{chainId:5042002}]}) });
+  const r = await checkSynroute({ key: 'sk_live_private-key', fetcher: async () => success({chains:[{chainId:46630},{chainId:5042002}]}) });
   assert.equal(r.status,424);
   assert.equal(r.body.auth,'not_checked');
 });
@@ -31,11 +31,11 @@ test('verifies production chain ids and private authentication without exposing 
   assert.equal(JSON.stringify(r).includes('nonpublic'),false);
 });
 test('non-2xx authentication remains unverified', async () => {
- const r=await checkSynroute({key:'private',fetcher:async (url)=>url.endsWith('/v1/chains')?success(chains):fail(401)});
+ const r=await checkSynroute({key:'sk_live_private',fetcher:async (url)=>url.endsWith('/v1/chains')?success(chains):fail(401)});
  assert.equal(r.status,424); assert.equal(r.body.upstreamStatus,401);
 });
 test('handles upstream downtime without leaking network details', async () => {
- const r=await checkSynroute({key:'private',fetcher:async()=>{throw Error('private server info')}});
+ const r=await checkSynroute({key:'sk_live_private',fetcher:async()=>{throw Error('private server info')}});
  assert.equal(r.status,502); assert.equal(JSON.stringify(r).includes('private server info'),false);
 });
 test('GET only handler',async()=>{
@@ -43,4 +43,25 @@ test('GET only handler',async()=>{
  const res={setHeader:()=>{},status:(v)=>{data.status=v;return res},json:(v)=>{data.body=v}};
  await handler({method:'POST'},res);
  assert.equal(data.status,405);
+});
+
+test('production rejects test keys without calling upstream', async () => {
+  const r = await checkSynroute({ key: 'sk_test_fake', fetcher: async () => { throw Error('unexpected network call'); } });
+  assert.equal(r.status, 424);
+  assert.equal(r.body.state, 'KEY_ENVIRONMENT_MISMATCH');
+});
+test('quote scope may pass when separate earnings stats fail', async () => {
+  const r = await checkSynroute({
+    key: 'sk_live_private',
+    fetcher: async (url) => {
+      if (url.endsWith('/v1/chains')) return success(chains);
+      if (url.includes('/v1/pools')) return success({ pools: [] });
+      return fail(401);
+    }
+  });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.auth, 'verified');
+  assert.equal(r.body.state, 'QUOTES_VERIFIED_STATS_UNAVAILABLE');
+  assert.equal(r.body.statsStatus, 401);
+  assert.equal(r.body.swapExecutionEnabled, false);
 });
