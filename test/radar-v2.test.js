@@ -196,6 +196,30 @@ test('promoted Radar does not rank pools with incomplete 24h history',async()=>{
  assert.equal(out.excluded.find(x=>x.address===addr(1))?.reason,'POOL_UNDER_24H');
 });
 
+
+test('Arc Demo finds mature page-2 candidates when page 1 offers only five eligible tokens',async()=>{
+ const top1=geckoBody('arc',{count:20,start:1,
+   created:i=>new Date(T0-(i<5?2*86400000:2*3600000)).toISOString()});
+ const top2=geckoBody('arc',{count:20,start:101,
+   created:i=>new Date(T0-(2*86400000+i*60000)).toISOString()});
+ // Each page must have independently identifiable pools, never duplicated pairs.
+ top2.data.forEach((p,i)=>{const a=addr(15000+i);p.id='arc_'+a;p.attributes.address=a;});
+ const combined={data:[...top1.data,...top2.data],included:[...top1.included,...top2.included]};
+ const f=router([
+  [/tokens\/multi/,()=>resp(multiBody('arc',combined))],
+  [/\/pools\?page=2&sort=h24_volume_usd_desc/,()=>resp(top2)],
+  [/coingecko\.com/,()=>resp(top1)]
+ ]);
+ const out=await radar.load('arc',{env:DEMO,fetcher:f,now:()=>T0,disableCache:true});
+ assert.equal(out.tokens.length,10,'qualified contracts from page 2 fill the ten real token slots');
+ assert.ok(out.tokens.some(t=>BigInt(t.address)>100n),'the list includes newly discovered page-2 contracts');
+ assert.ok(out.tokens.every(t=>t.fields.priceUsd.status!=='NOT_VERIFIED'&&t.fields.volume24hUsd.status!=='NOT_VERIFIED'));
+ assert.ok(out.tokens.every(t=>t.discovery.version==='arcy-discovery-2'));
+ assert.equal(out.usage.geckoterminal,4,'two top pages + one trending page + one token-level lookup');
+ assert.equal(out.discovery.channels.status.new,'SKIPPED_IN_FAVOR_OF_TOP_PAGE_2');
+ assert.match(out.discovery.poolWindow,/pages 1–2/);
+});
+
 // ── gates, errors, cache, rate limits ─────────────────────────────────────────────────────────────────────
 test('no approval or no source key: provider is never contacted',async()=>{
  const f=router([]);
