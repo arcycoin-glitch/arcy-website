@@ -38,8 +38,8 @@
   const launcher=el(doc,'button','btn synroute-launch','Swap here with SynRoute ↗');
   launcher.type='button';launcher.setAttribute('data-synroute-launch','');launcher.setAttribute('aria-haspopup','dialog');
   original.insertAdjacentElement('afterend',launcher);
-  const note=doc.querySelector('#buy .syn-footnote');
-  if(note?.lastChild?.nodeType===3) note.lastChild.textContent='Non-custodial · Connect a wallet only by choice';
+  const footNote=doc.querySelector('#buy .syn-footnote');
+  if(footNote?.lastChild?.nodeType===3) footNote.lastChild.textContent='Non-custodial · Connect a wallet only by choice';
   const style=el(doc,'style');style.textContent=CSS;doc.head.appendChild(style);
   const overlay=el(doc,'div','sr-overlay');overlay.hidden=true;overlay.setAttribute('data-synroute-modal','');
   const modal=el(doc,'section','sr-dialog');modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-labelledby','sr-title');
