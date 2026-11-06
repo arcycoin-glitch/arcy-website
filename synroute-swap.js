@@ -40,6 +40,9 @@
   original.insertAdjacentElement('afterend',launcher);
   const footNote=doc.querySelector('#buy .syn-footnote');
   if(footNote?.lastChild?.nodeType===3) footNote.lastChild.textContent='Non-custodial · Connect a wallet only by choice';
+  // Correct the external-only wording without altering the protected HTML or CSS layout.
+  const description=doc.querySelector('#buy .syn-copy');
+  if(description)description.textContent='Open Synthra directly or trade via SynRoute here. You authorize trades in your wallet; ARCY SEARCH never holds your funds.';
   const style=el(doc,'style');style.textContent=CSS;doc.head.appendChild(style);
   const overlay=el(doc,'div','sr-overlay');overlay.hidden=true;overlay.setAttribute('data-synroute-modal','');
   const modal=el(doc,'section','sr-dialog');modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-labelledby','sr-title');
