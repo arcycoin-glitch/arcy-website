@@ -11,7 +11,7 @@ const css=fs.readFileSync(path.join(__dirname,'../search/market-radar.css'),'utf
 class Node{
  constructor(tag='span'){
   this.tag=tag;this._className='';this.classes=new Set();this.attrs={};this.dataset={};this._text='';
-  this.children=[];this.parent=null;this.hidden=false;this.events={};
+  this.children=[];this.parent=null;this.hidden=false;this.events={};this.style={};
   this.classList={
    add:(...c)=>{for(const x of c)this.classes.add(x);},
    remove:(...c)=>{for(const x of c)this.classes.delete(x);},
@@ -48,14 +48,14 @@ const token=(score=72.5)=>({
  rank:1,address,symbol:'NOVA',name:'Nova token',
  priceUsd:0.045,change24hPct:12.2,volume24hUsd:55000,
  fields:{priceUsd:{status:'SOURCE_REPORTED'},change24hPct:{status:'SOURCE_REPORTED'},volume24hUsd:{status:'SOURCE_REPORTED',scope:'POOL'}},
- discovery:{version:'arcy-discovery-1',score,weightCoverage:.85,
+ discovery:{version:'arcy-discovery-2',score,weightCoverage:.85,
   reason:'new pool (2 d); 24h volume $55k; liquidity $40k; 128 trades; independently cross-verified',
   flags:[]}
 });
 const data=(network,{engine='arcy-radar-v3',score=72.5,empty=false}={})=>({
  ok:true,version:2,network,engine,chainId:{arc:5042,ethereum:1,robinhood:4663,pons:4663}[network],
  asOf:'2026-10-30T11:00:00.000Z',freshness:'FRESH',coverage:{poolsInspected:20},
- discovery:engine==='arcy-radar-v3'?{scoreVersion:'arcy-discovery-1'}:undefined,
+ discovery:engine==='arcy-radar-v3'?{scoreVersion:'arcy-discovery-2'}:undefined,
  tokens:empty?[]:[token(score)],attribution:[]
 });
 async function mount({overrides={},http={},fetcher}={}){
@@ -94,13 +94,14 @@ test('JS parses and V3 score/rationale use the existing verified API, without ex
  assert.equal(row.href,'/search/token/robinhood/'+address);
  assert.equal(rob.querySelector('.arcy-radar-overview-columns').children.length,7);
 });
-test('V2 or invalid V3 data renders NOT VERIFIED, not a fabricated score',async()=>{
+test('V2 or invalid V3 data renders a neutral score placeholder, without fabricating a reason',async()=>{
  const {detail}=await mount();
  const arc=panel(detail,'arc'),eth=panel(detail,'ethereum');
- assert.match(arc.querySelector('.arcy-radar-overview-score').textContent,/NOT VERIFIED/);
+ assert.match(arc.querySelector('.arcy-radar-overview-score').textContent,/—/);
  assert.equal(arc.querySelector('.arcy-radar-discovery-note').hidden,true);
- assert.match(eth.querySelector('.arcy-radar-overview-reason').textContent,/NOT VERIFIED/);
- assert.match(eth.querySelector('.arcy-radar-overview-score').textContent,/NOT VERIFIED/);
+ assert.equal(eth.querySelector('.arcy-radar-overview-reason').textContent,'');
+ assert.equal(eth.querySelector('.arcy-radar-overview-reason').style.display,'none');
+ assert.match(eth.querySelector('.arcy-radar-overview-score').textContent,/—/);
 });
 test('network buttons preserve one-card navigation and Pons verified-empty state',async()=>{
  const {detail}=await mount();
