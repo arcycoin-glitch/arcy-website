@@ -1,0 +1,28 @@
+name: Mechanics source review probe (read-only)
+on:
+  push:
+    branches: ['audit/mechanics-final-20261106']
+    paths:
+      - '.github/workflows/mechanics-source-review.yml'
+      - 'scripts/probe-mechanics-sources.cjs'
+permissions:
+  contents: read
+jobs:
+  src:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        t: ['1 0x6982508145454ce325ddbe47a25d4ec3d2311933 PEPE','1 0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c SPX','1 0xe53ec727dbdeb9e2d5456c3be40cff031ab40a55 SUPER','1 0x62d0a8458ed7719fdaf978fe5929c6d342b0bfce BEAM','4663 0x98096d17e191b3da1d5f99a6d7b3584351b11e18 BONER','4663 0x0b7c6c138dc75622f4200d157b13fb93e6bd94fa MOW','4663 0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111 TORCH']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: set -- ${{ matrix.t }}; node scripts/probe-mechanics-sources.cjs $1 $2
+      - run: node -e "const c=require('./source-chunks.json');for(let i=0;i<Math.min(10,c.length);i++)console.log('::notice title=src-'+i+'::'+c[i].replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
+      - run: node -e "const c=require('./source-chunks.json');for(let i=10;i<Math.min(20,c.length);i++)console.log('::notice title=src-'+i+'::'+c[i].replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
+      - run: node -e "const c=require('./source-chunks.json');for(let i=20;i<Math.min(30,c.length);i++)console.log('::notice title=src-'+i+'::'+c[i].replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
+      - run: node -e "const c=require('./source-chunks.json');for(let i=30;i<Math.min(40,c.length);i++)console.log('::notice title=src-'+i+'::'+c[i].replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
+      - run: node -e "const c=require('./source-chunks.json');for(let i=40;i<Math.min(49,c.length);i++)console.log('::notice title=src-'+i+'::'+c[i].replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
