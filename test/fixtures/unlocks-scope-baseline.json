@@ -1,6 +1,6 @@
 {
   "mainCommit": "0006daadb2f59613537b1d4ae3b875e128c8894d",
-  "homepageOutsideUnlocksSha256": "727d119202301db0828d568932de7ac12edce70ad7bd762f4f721d8bf8a4e415",
+  "homepageOutsideUnlocksSha256": "4c76213c6d4642acacda9731c92f795520404344d7511022e3d7bff67d9ef0a0",
   "unlocksOwlSha256": "e5ba21af81fe5146392227a8d3acf400257b24b350f34b37c58d64c6edbf51ad",
-  "homepageOutsideUnlocksNote": "2026-11-07: refreshed for the reviewed Phase 5 initial-render change (scanner badge text + guarded Pulse failure event) only."
+  "homepageOutsideUnlocksNote": "2026-11-07 PR #186: deliberate homepage performance-only change outside Unlocks; same binary community artwork deferred and hero poster preloaded. Unlocks markup, client, styles and own owl unchanged. Previous 2026-11-07 Phase 5 initial-render exception retained."
 }

@@ -18,7 +18,7 @@
   },
   "current": {
     "files": {
-      "index.html": "f6e9236aed7ca8ac96e1a2293ebb6b1f8cfd708a814ee3ec265a78de27b4b55c",
+      "index.html": "b061eb46ebbd1720697488218cc1c817e63b2ec8eefdbbad37ce6682df5598c5",
       "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
       "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885",
       "api/pulse.js": "71a081d8f1a3b0b84bd706a2f5a1f5727af49c8643be8cfee1bfee4dc7bc4cc0",
@@ -104,6 +104,14 @@
         "scripts/holder-worker.cjs"
       ],
       "reason": "Arc Pulse incident: the durable worker loop calls the bounded lib/pulse-worker-refresh.js catch-up (only when the current cycle has no signed edition, >=7 h after cycle start, >=6 h between attempts, skipped in --once). Holder batch logic, publication and logging fields unchanged; one optional 'pulse' field added to HOLDER_WORKER_BATCH."
+    },
+    {
+      "date": "2026-11-07",
+      "files": [
+        "index.html",
+        "assets/arcy-community-illustration.webp"
+      ],
+      "reason": "PR #186 explicit mobile performance change only: exact 1400x787 WebP moved byte-for-byte from 499 KB inline data URI to a deferred external asset; preload existing hero WebP. Original section order, UI branding, and all CSS/JS/API untouched; separate immutable art test verifies original bytes and behavior. Preview Lighthouse/visual acceptance required before merge."
     }
   ],
   "refreshedAt": "2026-11-07T10:13:27.438Z"
