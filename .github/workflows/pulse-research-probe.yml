@@ -1,0 +1,32 @@
+name: Pulse research real-source probe (read-only)
+# Public first-party sources only; prints before/after Pulse cards as annotations. Never publishes or signs.
+on:
+  pull_request:
+    paths:
+      - 'lib/pulse-networks.js'
+      - 'lib/pulse-claim.js'
+      - 'lib/pulse-edition.js'
+      - 'scripts/probe-pulse-research.cjs'
+      - '.github/workflows/pulse-research-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Base-branch copy of the network Pulse module for comparison
+        run: |
+          mkdir -p /tmp/base/lib && git show origin/main:lib/pulse-networks.js > /tmp/base/lib/pulse-networks.js
+          for f in $(git ls-tree --name-only origin/main lib/); do [ -e /tmp/base/$f ] || git show origin/main:$f > /tmp/base/$f; done
+          mkdir -p /tmp/base/search && cp -r search/server /tmp/base/search/ 2>/dev/null || true
+      - run: node scripts/probe-pulse-research.cjs
+        env:
+          BASE_NETWORKS: /tmp/base/lib/pulse-networks.js
