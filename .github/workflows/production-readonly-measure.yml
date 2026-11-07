@@ -6,6 +6,7 @@ on:
       - 'scripts/probe-radar-missing24h.cjs'
       - 'scripts/probe-radar-change24h.cjs'
       - 'scripts/search-coverage-matrix.cjs'
+      - 'scripts/probe-production-release.cjs'
       - '.github/workflows/production-readonly-measure.yml'
   workflow_dispatch:
 permissions:
@@ -52,3 +53,21 @@ jobs:
           console.log('::notice title=coverage-errors::'+JSON.stringify(r.errors).slice(0,3000));
           console.log('::notice title=coverage-requests::'+JSON.stringify(r.requestStats||null));
           "
+  release-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Production acceptance (render, status, Pulse, Unlocks)
+        run: node scripts/probe-production-release.cjs
+      - name: Mobile lab performance (Lighthouse, 3 runs, median)
+        continue-on-error: true
+        run: |
+          for i in 1 2 3; do npx -y lighthouse@12 https://www.arcyusdc.xyz/ --quiet --only-categories=performance --form-factor=mobile --screenEmulation.mobile --throttling-method=simulate --chrome-flags="--headless=new --no-sandbox" --output=json --output-path=lh$i.json || true; done
+          node -e "
+          const fs=require('fs');const runs=[1,2,3].map(i=>{try{return JSON.parse(fs.readFileSync('lh'+i+'.json'))}catch{return null}}).filter(Boolean);
+          const m=k=>{const v=runs.map(r=>r.audits[k]?.numericValue).filter(Number.isFinite).sort((a,b)=>a-b);return v.length?Math.round(v[Math.floor(v.length/2)]*1000)/1000:null};
+          console.log('::notice title=lighthouse-mobile::'+JSON.stringify({runs:runs.length,score:runs.map(r=>r.categories.performance.score),LCPms:m('largest-contentful-paint'),FCPms:m('first-contentful-paint'),CLS:m('cumulative-layout-shift'),TBTms:m('total-blocking-time'),SIms:m('speed-index'),TTFBms:m('server-response-time'),bytes:m('total-byte-weight')}));"
