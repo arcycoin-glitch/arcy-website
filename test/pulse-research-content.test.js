@@ -67,3 +67,14 @@ test('Pulse research framing never presents a cut-off source excerpt as a comple
  const trimmed=networks.researchCard({title:'Q3',url:'https://investors.robinhood.com/news-releases/news-release-details/q3',owner:'ROBINHOOD MARKETS · OFFICIAL INVESTOR RELATIONS',summary:'Robinhood Chain became a top-five chain by revenue and volume. It generated over $80 billion in DEX volume and over $50 million of chain',whyItMatters:'Company-reported.'});
  assert.match(trimmed.summary,/^Robinhood Chain became a top-five chain by revenue and volume\. Verified: company press release\./,'cut back to the last complete sentence');
 });
+
+test('Arc excerpts decode double-encoded entities and never end on a cut-off fragment with a full stop',()=>{
+ const meta='<meta property="og:description" content="Use the Arc Studio CLI from Claude Code, Codex, Cursor or your terminal. Send onchain tasks, inspect Studio&amp;#x27;s sandbox and pull results into your editor without leaving the workflow you already use every day.">';
+ const x=arc.articleExcerpt(meta);
+ assert.doesNotMatch(x,/&#x27;|&amp;/);
+ assert.match(x,/inspect Studio's sandbox/);
+ const long='<meta name="description" content="Tower Exchange brings wallet swaps, route aggregation, and AI-assisted trade review together for stablecoin markets on Arc, with its founder walking through liquidity sources, cross-chain transfers, routing design and the operational controls behind it">';
+ const y=arc.articleExcerpt(long);assert.ok(y.endsWith('…'),y);assert.doesNotMatch(y,/,…$/);
+ const card=claims.describe({title:'Tower',publishedAt:date,summary:y},{type:'links'});
+ assert.doesNotMatch(card.summary,/…\./);assert.match(card.summary,/… Not proven: /);
+});

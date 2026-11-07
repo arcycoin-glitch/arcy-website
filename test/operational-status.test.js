@@ -20,7 +20,7 @@ test('status: fresh heartbeat, fresh publications => HEALTHY with measured ages 
  assert.equal(r.overall,'HEALTHY');
  const w=r.components.holderWorker;
  assert.equal(w.state,'HEALTHY');assert.equal(w.heartbeat.ageSeconds,20);assert.equal(w.heartbeat.lastInvocationServed,1);
- assert.deepEqual(w.backlog,{tokensTracked:2,inProgress:1,failing:0,stalled:0});
+ assert.deepEqual(w.backlog,{tokensTracked:2,inProgress:1,complete:1,failing:0,stalled:0});
  assert.equal(w.lastCompleteSliceAgeSeconds,90);assert.equal(w.rpc.http429Share,0.01);
  assert.equal(r.components.unlocks.eventCount,41);assert.equal(r.components.pulse.arc.edition,7);
  assert.equal(r.version.match,true);
@@ -101,4 +101,9 @@ test('status endpoint via public router: action=status takes no parameters and r
  const ok=await mk('/api/search?action=status');assert.equal(ok.code,200);assert.equal(ok.v.ok,true);
  const env=process.env.ARC_HOLDER_QUEUE_URL;assert.equal(env,undefined);
  assert.equal(ok.v.components.holderWorker.state,'UNKNOWN');
+});
+
+test('status: a completed token keeps its last checkpoint phase but is not counted as backlog (live 2026-11-07: 52 shown as in progress)',()=>{
+ const w=S.holderWorker(diag({tokens:[{address:ADDR,phase:'READ',lastState:'COMPLETE',lastAdvanced:0,slices:9,idleMs:6000},{address:ADDR,phase:'TAIL',lastState:'BUILDING',lastAdvanced:0,slices:4,idleMs:1}]}),NOW);
+ assert.deepEqual(w.backlog,{tokensTracked:2,inProgress:1,complete:1,failing:0,stalled:1});
 });
