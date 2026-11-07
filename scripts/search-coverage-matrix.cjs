@@ -4,7 +4,14 @@
 const fs=require('node:fs'),schema=require('../search/server/schema'),{classify}=require('../search/server/lib/evidence-class');
 const BASE=process.env.ARCY_BASE||'https://www.arcyusdc.xyz',PER=Math.max(1,Math.min(10,Number(process.env.PER_CHAIN)||10));
 const raw={at:new Date().toISOString(),base:BASE,samples:[],errors:[],unlock:null};
-async function get(p){const r=await fetch(BASE+p,{headers:{accept:'application/json',referer:BASE+'/', 'sec-fetch-site':'same-origin'},signal:AbortSignal.timeout(30000)});const text=await r.text();if(!r.ok)throw Error('HTTP '+r.status+' '+p);try{return JSON.parse(text)}catch{throw Error('non-JSON '+p)}}
+// Paced to stay under the production per-IP limiter (24/min): a 429 is a measurement artefact, not missing data.
+// One bounded retry after the server's Retry-After (max 65 s); a second 429 is still reported as an error.
+const PACE_MS=Math.max(0,Number(process.env.COVERAGE_PACE_MS??2700));let last=0,requests=0,throttled=0;
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function get(p,retried=false){const gap=last+PACE_MS-Date.now();if(gap>0)await wait(gap);last=Date.now();requests++;
+ const r=await fetch(BASE+p,{headers:{accept:'application/json',referer:BASE+'/', 'sec-fetch-site':'same-origin'},signal:AbortSignal.timeout(30000)});const text=await r.text();
+ if(r.status===429&&!retried){throttled++;await wait(Math.min(65000,Math.max(5000,Number(r.headers.get('retry-after'))*1000||30000)));return get(p,true);}
+ if(!r.ok)throw Error('HTTP '+r.status+' '+p);try{return JSON.parse(text)}catch{throw Error('non-JSON '+p)}}
 (async()=>{
  for(const section of ['arc','ethereum','robinhood','pons']){
   const chain=section==='pons'?'robinhood':section;let tokens=[];
@@ -16,7 +23,7 @@ async function get(p){const r=await fetch(BASE+p,{headers:{accept:'application/j
  }
  try{raw.unlock=await get('/api/unlocks');}catch(e){raw.errors.push({section:'unlocks',error:e.message});}
  const totals={};for(const row of raw.samples){const k=row.section+'|'+row.card,t=totals[k]||={slots:0,filled:0,classes:{}};t.slots++;if(row.evidenceClass!=='NOT_VERIFIED')t.filled++;t.classes[row.evidenceClass]=(t.classes[row.evidenceClass]||0)+1;}
- raw.totals=totals;fs.writeFileSync(process.env.COVERAGE_OUTPUT||'/tmp/arcy-search-coverage.json',JSON.stringify(raw,null,2));console.log(JSON.stringify({at:raw.at,totals,unlock:{ok:raw.unlock?.ok,status:raw.unlock?.status,confirmed:raw.unlock?.confirmed?.length,reported:raw.unlock?.reported?.length},errors:raw.errors},null,2));
+ raw.totals=totals;raw.requestStats={requests,throttledRetries:throttled,paceMs:PACE_MS};fs.writeFileSync(process.env.COVERAGE_OUTPUT||'/tmp/arcy-search-coverage.json',JSON.stringify(raw,null,2));console.log(JSON.stringify({at:raw.at,totals,unlock:{ok:raw.unlock?.ok,status:raw.unlock?.status,confirmed:raw.unlock?.confirmed?.length,reported:raw.unlock?.reported?.length},errors:raw.errors},null,2));
  // Public /api/unlocks (root Vercel route) publishes {ok, events, windows};
  // never confuse it with the search/server/lib unlock edition schema.
  const unlockValid=raw.unlock?.ok===true&&Array.isArray(raw.unlock?.events)&&
