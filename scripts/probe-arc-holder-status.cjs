@@ -18,9 +18,9 @@ const word=v=>typeof v==='string'&&/^0x[0-9a-f]{64}$/i.test(v);
  const iter=Number(process.env.STATUS_ITER)||13,interval=(Number(process.env.STATUS_INTERVAL_S)||300)*1000;
  for(let i=0;i<iter;i++){
   const st=await get('/api/search?action=status');await sleep(2000);
-  const row={at:new Date().toISOString(),runtime:st.d?.runtime||null,worker:st.d?.worker?.runtime||st.d?.holder?.runtime||st.d?.components?.holder?.runtime||null,overall:st.d?.overall||null,jobs:{}};
+  const row={at:new Date().toISOString(),runtime:st.d?.runtime||null,worker:st.d?.components?.holderWorker?.runtime||st.d?.worker?.runtime||null,holderWorker:st.d?.components?.holderWorker?{status:st.d.components.holderWorker.status,tokensTracked:st.d.components.holderWorker.tokensTracked,complete:st.d.components.holderWorker.complete,failing:st.d.components.holderWorker.failing}:null,overall:st.d?.overall||null,jobs:{}};
   if(i===0)console.log('::notice title=status-shape::'+JSON.stringify(st.d).slice(0,3500));
-  for(const a of FIVE){const j=await get('/api/holders?address='+a+'&action=status');await sleep(2500);const x=j.d?.job;row.jobs[a.slice(0,8)]=x?[x.state,x.reasonCode,x.updatedAt,x.progress?.phase,x.progress?.candidateAddresses,x.progress?.balancesChecked,x.progress?.block,x.hasCompleteSnapshot]:('HTTP '+j.http);}
+  for(const a of FIVE){const j=await get('/api/holders?address='+a+'&action=status');await sleep(2500);const x=j.d?.job;row.jobs[a.slice(0,8)]=x?[x.state,x.reasonCode,x.updatedAt,x.retryAt,x.progress?.phase,x.progress?.candidateAddresses,x.progress?.balancesChecked,x.progress?.block,x.hasCompleteSnapshot]:('HTTP '+j.http);}
   console.log('::notice title=status-'+i+'::'+JSON.stringify(row));
   if(i<iter-1)await sleep(interval);
  }

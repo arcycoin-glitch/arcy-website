@@ -13,10 +13,16 @@ concurrency:
 jobs:
   watch:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        plan: ['3:120', '36:540']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node scripts/probe-arc-holder-status.cjs
+      - run: STATUS_ITER=${PLAN%%:*} STATUS_INTERVAL_S=${PLAN##*:} node scripts/probe-arc-holder-status.cjs
+        env:
+          PLAN: ${{ matrix.plan }}
