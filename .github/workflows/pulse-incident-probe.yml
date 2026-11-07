@@ -18,7 +18,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: node scripts/probe-pulse-incident.cjs
+        env:
+          CYCLES: '1'
+          GAP_MS: '0'
       - run: node scripts/probe-pulse-incident2.cjs
         env:
-          CYCLES: '3'
+          CYCLES: '2'
           GAP_MS: '240000'
