@@ -1,0 +1,25 @@
+name: Arc Holder publication cross-check (read-only, issue 187)
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'scripts/probe-arc-holder-publication.cjs'
+      - '.github/workflows/arc-holder-publication-probe.yml'
+permissions:
+  contents: read
+concurrency:
+  group: arc-holder-publication-probe-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-arc-holder-publication.cjs
+        env:
+          PROBE_CONTRACT: '0x425ecb63957c78bec278d71cffd49a873dba7777'
+          PROBE_DEPLOY_BLOCK: '29537790'
