@@ -23,3 +23,5 @@ jobs:
         env:
           PROBE_CONTRACT: '0x425ecb63957c78bec278d71cffd49a873dba7777'
           PROBE_DEPLOY_BLOCK: '29537790'
+          VERSION_ITER: '8'
+          SKIP_CROSSCHECK: '1'
