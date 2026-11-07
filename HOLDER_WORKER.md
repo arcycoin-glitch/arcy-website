@@ -98,6 +98,12 @@ Cost bound: `ARC_HOLDER_RPC_DISCOVERY_MAX_BLOCKS` (default 10,000,000, hard max 
 `HOLDER_RPC_DISCOVERY_RECONCILIATION_EXHAUSTED` (no partial snapshot). Measured for the stuck contract: deployment block
 21,237,418, ~8.3 M blocks to head (≈8,300 `eth_getLogs` calls at the default 1000-block window, served by the primary Arc RPC
 in 160–260 ms; Blockdaemon answers 4444 pruned and is skipped by the existing history logic).
+Benchmarked exceptions (issue #187): `BENCHMARKED_SPANS` in `lib/holder-rpc-discovery.js` lets exactly two contracts exceed the
+global bound, each only when the deployment search returns its recorded deployment block and only up to its own explicit
+`maxSpan` (never above the hard max). Both were proven by an independent full scan whose candidate balances summed exactly to
+`totalSupply()` at a pinned block: Syrup USDC `0x0dc6…ee39` (deploy 20,015,775, span 10,008,619, 5,005 windows, 186
+candidates, cap 11,000,000) and GBPA `0xbbe6…df8b` (deploy 11,468,219, span 18,556,172, 9,279 windows, 255 candidates,
+cap 19,500,000). The scan, READ and reconciliation gates are unchanged; every other contract keeps the global bound.
 
 ## Incremental COMPLETE refresh (2026-11-05)
 
