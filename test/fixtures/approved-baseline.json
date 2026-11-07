@@ -18,7 +18,7 @@
   },
   "current": {
     "files": {
-      "index.html": "214c6500a6c74a16fcc00f81d50e90937060b34e01bd78b52c49a19f02a99cd5",
+      "index.html": "f6e9236aed7ca8ac96e1a2293ebb6b1f8cfd708a814ee3ec265a78de27b4b55c",
       "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
       "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885",
       "api/pulse.js": "71a081d8f1a3b0b84bd706a2f5a1f5727af49c8643be8cfee1bfee4dc7bc4cc0",
@@ -90,7 +90,14 @@
         "index.html"
       ],
       "reason": "Owner-directed Unlocks restore to the classic five-row renderer (#133, #134, deployed on main) plus restoring the single-publisher disclosure in the Unlocks note that #134 had dropped; unrelated homepage bytes pinned separately by test/unlock-scope.test.js."
+    },
+    {
+      "date": "2026-11-07",
+      "files": [
+        "index.html"
+      ],
+      "reason": "Phase 5 initial-render honesty: the four static scanner badges said NOT CONNECTED before any scan (crawlers/no-JS/slow loads) although app.js renders NOT SCANNED; text aligned to the actual idle state. Pulse loader also signals a failed network-Pulse request so Ethereum/Robinhood panels show an honest UNAVAILABLE state instead of 'not connected'. No layout, card size, section order or style change."
     }
   ],
-  "refreshedAt": "2026-11-03T09:50:51.106Z"
+  "refreshedAt": "2026-11-07T08:57:35.874Z"
 }

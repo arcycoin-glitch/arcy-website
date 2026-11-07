@@ -20,7 +20,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const BASELINE = Object.freeze({
-  "index.html": "83720f2fdf2c0afe3ab6734bf075a544f83c897f",
+  // 2026-11-07 owner-authorized Phase 5 initial-render honesty: static scanner badges NOT CONNECTED -> NOT SCANNED (the
+  // state app.js already renders) and a guarded Pulse-failure event; no layout/CSS/section change. PR fix/initial-render-states-20261107.
+  "index.html": "1fde2e39165f8857fac181e6b39e8be4fd666c6e",
   "premium.css": "d80f98346802e34afd3aa66ac776e5bbf2c9217e",
   "v8-premium.js": "e51587419fb0d785d76149a2551fb1a3ac7e86f9",
   "hero-video.js": "40942f382f1650b90d1d7572d0d1874217d4a3c0",

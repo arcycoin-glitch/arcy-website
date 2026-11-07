@@ -282,7 +282,7 @@ View details →
 </div>
 
 <div class="badge">
-NOT CONNECTED
+NOT SCANNED
 </div>
 
 <span class="details">
@@ -318,7 +318,7 @@ View details →
 </div>
 
 <div class="badge">
-NOT CONNECTED
+NOT SCANNED
 </div>
 
 <span class="details">
@@ -354,7 +354,7 @@ View details →
 </div>
 
 <div class="badge">
-NOT CONNECTED
+NOT SCANNED
 </div>
 
 <span class="details">
@@ -371,7 +371,7 @@ View details →
 <div class="row"><span>Mint Capability</span><b>—</b></div>
 <div class="row"><span>Owner / Admin</span><b>—</b></div>
 <div class="row"><span>Contract Architecture</span><b>—</b></div>
-<div class="badge">NOT CONNECTED</div>
+<div class="badge">NOT SCANNED</div>
 <span class="details">View details →</span>
 </article>
 
@@ -596,7 +596,7 @@ async function loadPulse(){
     const r=await dataFetch(endpoint,{cache:'no-store'});
     const j=await r.json();
     const title=document.getElementById('pulseTitle');
-    if(j.chains){window.ARCYPulseNetworks=j.chains;dispatchEvent(new CustomEvent('arcy-pulse-networks',{detail:j.chains}));}
+    if(j.chains){window.ARCYPulseNetworks=j.chains;dispatchEvent(new CustomEvent('arcy-pulse-networks',{detail:j.chains}));}else{try{dispatchEvent(new CustomEvent('arcy-pulse-networks-failed'))}catch{}}
     if(title && Number.isSafeInteger(j.number)) title.textContent=`ARCY ARC PULSE #${String(j.number).padStart(3,'0')}${archived?' · ARCHIVE':''} 📡`;
     const grid=document.getElementById('pulseGrid');
     if(Array.isArray(j.cards))renderCards(grid,j.cards);
@@ -606,7 +606,7 @@ async function loadPulse(){
     if(take && j.take) take.textContent=j.take;
     const archive=document.getElementById('pulseArchive');
     if(archive&&Number.isSafeInteger(j.number)&&j.number>1){archive.hidden=false;archive.href=archived?'/?#pulse':`/?pulseEdition=${j.number-1}#pulse`;archive.textContent=archived?'CURRENT EDITION':`PREVIOUS EDITION #${String(j.number-1).padStart(3,'0')}`;}
-  }catch(error){const grid=document.getElementById("pulseGrid");if(grid)renderCards(grid,Array.from({length:5},(_,i)=>({kind:['week','new','watch','reality','unlock'][i],owner:'SOURCE STATUS',title:'Pulse section unavailable',summary:error.message||'A verified update could not be loaded. No headline has been substituted.'})));const take=document.getElementById('pulseTake');if(take)take.textContent='ARCY Take unavailable: the dated source check did not complete. No stale news was presented as current.';}
+  }catch(error){try{dispatchEvent(new CustomEvent('arcy-pulse-networks-failed'))}catch{}const grid=document.getElementById("pulseGrid");if(grid)renderCards(grid,Array.from({length:5},(_,i)=>({kind:['week','new','watch','reality','unlock'][i],owner:'SOURCE STATUS',title:'Pulse section unavailable',summary:error.message||'A verified update could not be loaded. No headline has been substituted.'})));const take=document.getElementById('pulseTake');if(take)take.textContent='ARCY Take unavailable: the dated source check did not complete. No stale news was presented as current.';}
 }
 loadPulse();
 </script>
