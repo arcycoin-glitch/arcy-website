@@ -1,0 +1,29 @@
+name: Arc Holder five-contract bounded diagnostic (read-only)
+on:
+  push:
+    branches:
+      - 'diagnose/arc-holder-five-readonly-20261107'
+    paths:
+      - 'scripts/probe-holder-five-20261107.cjs'
+      - '.github/workflows/arc-holder-five-readonly.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Bounded independent Arc RPC reads, no worker queue access
+        run: node scripts/probe-holder-five-20261107.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: holder-five-readonly-evidence
+          path: arc-holder-five-probe.json
+          retention-days: 7
