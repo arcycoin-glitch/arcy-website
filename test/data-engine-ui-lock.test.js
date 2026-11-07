@@ -20,9 +20,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const BASELINE = Object.freeze({
+  // 2026-11-07 scoped mobile-performance exception (PR #186): exact original 1400x787 below-fold WebP
+  // moved byte-for-byte from data URI to an external lazy-loaded asset; existing hero poster preloaded.
+  // Section order, text, styles, layout, JavaScript, token content, and all other protected files unchanged.
   // 2026-11-07 owner-authorized Phase 5 initial-render honesty: static scanner badges NOT CONNECTED -> NOT SCANNED (the
   // state app.js already renders) and a guarded Pulse-failure event; no layout/CSS/section change. PR fix/initial-render-states-20261107.
-  "index.html": "1fde2e39165f8857fac181e6b39e8be4fd666c6e",
+  "index.html": "c3d1dbba52e893233bd82df41d240ae12e0a4df3",
   "premium.css": "d80f98346802e34afd3aa66ac776e5bbf2c9217e",
   "v8-premium.js": "e51587419fb0d785d76149a2551fb1a3ac7e86f9",
   "hero-video.js": "40942f382f1650b90d1d7572d0d1874217d4a3c0",
