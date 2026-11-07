@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/probe-radar-missing24h.cjs'
       - 'scripts/probe-radar-change24h.cjs'
+      - 'scripts/search-coverage-matrix.cjs'
       - '.github/workflows/production-readonly-measure.yml'
   workflow_dispatch:
 permissions:
@@ -24,7 +25,7 @@ jobs:
       - run: node scripts/probe-radar-missing24h.cjs
   coverage-matrix:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -49,4 +50,5 @@ jobs:
           const cards={};for(const [k,v] of Object.entries(r.totals))cards[k]=v.filled+'/'+v.slots;
           console.log('::notice title=coverage-cards::'+JSON.stringify(cards).slice(0,3500));
           console.log('::notice title=coverage-errors::'+JSON.stringify(r.errors).slice(0,3000));
+          console.log('::notice title=coverage-requests::'+JSON.stringify(r.requestStats||null));
           "
