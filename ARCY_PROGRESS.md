@@ -227,3 +227,13 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Baseline Production aaabf00 measured on the fixed 38-contract cohort; Pons PR #168 gains confirmed live. Details: docs/MECHANICS_FINAL_20261106.md.
 - Added six digest-keyed reviewed token profiles (PEPE, SPX, SUPER, BEAM, MowCat, TorchToken). Paired gate PASS (62 contracts, +14 fields, +11 budgeted RPC reads, 0 extra source requests); suite 1026/0 fail.
 - Release blocker in this session: GH_TOKEN invalid, so no PR could be opened or merged from here. Branch is pushed; owner must open/merge the PR, then re-run the fixed-cohort production verification.
+
+## Production quality pass (2026-11-07) — PRs #179–#184
+- Baseline: main = Production 690c175 (Vercel deployment 7612738978); suite 1047/1047. Production per-IP limiter (24/min) had corrupted the coverage matrix (13× HTTP 429, Pons 0/200 artefact).
+- #179 `/api/search?action=status`: worker heartbeat from the scheduler invocation (not snapshot age), backlog, RPC 429 share, Arc/ETH/Robinhood Pulse + Unlock freshness, versions; 4 cached authenticated GETs, no RPC. Scheduled health fails on UNAVAILABLE, warns on DEGRADED. First live reading: worker HEALTHY (heartbeat 6–39 s), 429 share 0.4 %, Arc signed Pulse PUBLICATION_OVERDUE (edition #5, 291 h).
+- #180 static scanner badges NOT CONNECTED → NOT SCANNED; network Pulse skeleton LOADING → honest UNAVAILABLE on failure. Verified in Production HTML (0 NOT CONNECTED).
+- #181 Pulse what changed / verified / not proven (supersedes #170, closed). Live Robinhood: Morpho comment commit replaced; evidence levels MERGED_CODE / COMPANY_REPORT / PARTNER_ANNOUNCEMENT.
+- #182 signed unlock change detection (worker-side; activates on next Railway deploy). Independent publishers still 1 (DefiLlama unlocks = paid tier and CoinBell's upstream; Tokenomist/CoinGlass need licences).
+- #183 paced coverage matrix + production acceptance probe + Lighthouse. Paced: Arc 114/140, Ethereum 166/180, Robinhood 181/200, Pons 191/200, 0 errors, 41 requests. These are measurement corrections, not product coverage gains.
+- #184 live follow-ups: backlog excluded completed tokens; Arc excerpts entity-decoded and sentence-bounded.
+- Open: Railway worker redeploy (operator) for #179 worker commit, #181 Arc signed edition, #182 changes; Arc Pulse #6 not signed since 2026-10-26; mobile LCP 15 s (Lighthouse simulate, 6.7 MB); Arc Mechanics 10/28 and Holders 20/28 remain the weakest cards.
