@@ -20,7 +20,7 @@ const layout=()=>{const grid=document.getElementById('pulseGrid'),take=document.
   const headings=await page.locator('#pulseGrid .pulse-card > span').allTextContents();const sectionHeight=await page.locator('#pulse').evaluate(e=>e.offsetHeight);
   for(const chain of['ethereum','robinhood','arc']){
    await page.locator('[data-pulse-chain="'+chain+'"]').click();const panel=page.locator('#pulse-panel-'+chain);assert.equal(await panel.getAttribute('aria-hidden'),'false');assert.equal(await panel.locator('.pulse-card').count(),3);assert.deepEqual(await panel.locator('.pulse-card > span').allTextContents(),headings);assert.equal(await panel.locator('.pulse-take').count(),1);
-   if(chain!=='arc'){assert.match(await panel.innerText(),/Verified weekly research has not been connected yet/);assert.equal(await panel.locator('a').count(),0);assert.equal(await panel.locator('[id="pulseTitle"]').count(),0);assert(!/(#\d{3})/.test(await panel.innerText()));}
+   if(chain!=='arc'){assert.match(await panel.innerText(),/Loading verified research|Pulse temporarily unavailable|No news has been substituted/);assert.doesNotMatch(await panel.innerText(),/NOT CONNECTED/);assert.equal(await panel.locator('a').count(),0);assert.equal(await panel.locator('[id="pulseTitle"]').count(),0);assert(!/(#\d{3})/.test(await panel.innerText()));}
    assert.equal(await page.locator('#pulse').evaluate(e=>e.offsetHeight),sectionHeight);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    fs.mkdirSync(path.join(root,'../.runtime/pulse-three-chain-v7'),{recursive:true});await page.locator('#pulse').screenshot({path:path.join(root,'../.runtime/pulse-three-chain-v7/'+width+'-'+chain+'.png')});
   }
