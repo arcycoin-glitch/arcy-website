@@ -150,3 +150,25 @@ test('RPC discovery module ships inside the worker image closure',()=>{
  const docker=require('node:fs').readFileSync(path.join(__dirname,'..','Dockerfile.holder-worker'),'utf8');assert.match(docker,/^COPY lib \.\/lib$/m);
  assert.ok(RD.maxSpan()===RD.DEFAULT_MAX_SPAN&&RD.DEFAULT_MAX_SPAN<=RD.HARD_MAX_SPAN);
 });
+
+test('benchmarked span allowance is identity-bound: exact address AND exact deployment block, never above its own bound',()=>{
+ const syrup='0x0dc6b79f3c3854e4d74514fd4d29be6c96beee39',e=RD.BENCHMARKED_SPANS[syrup];
+ assert.ok(Object.isFrozen(RD.BENCHMARKED_SPANS)&&Object.isFrozen(e));
+ assert.ok(e.maxSpan>RD.DEFAULT_MAX_SPAN&&e.maxSpan<=RD.HARD_MAX_SPAN);
+ assert.equal(RD.allowedSpan(syrup,e.deployBlock),e.maxSpan);
+ assert.equal(RD.allowedSpan(syrup.toUpperCase().replace('0X','0x'),e.deployBlock),e.maxSpan);
+ assert.equal(RD.allowedSpan(syrup,e.deployBlock+1),RD.DEFAULT_MAX_SPAN,'different deployment block: global bound');
+ assert.equal(RD.allowedSpan(A,e.deployBlock),RD.DEFAULT_MAX_SPAN,'different address: global bound');
+ const mk=span=>({deploySearch:{head:e.deployBlock+span-1},deployBlock:e.deployBlock,addresses:[]});
+ const ok=RD.handoff(mk(10008621),[],syrup);
+ assert.equal(ok.phase,'READ');assert.equal(ok.discoveryIndexedBlock,e.deployBlock-1);
+ assert.deepEqual(ok.discoverySpanAllowance,{deployBlock:e.deployBlock,span:10008621,maxSpan:e.maxSpan,basis:'BENCHMARKED_EXACT_RECONCILIATION'});
+ assert.throws(()=>RD.handoff(mk(e.maxSpan+1),[],syrup),x=>x.code==='HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED'&&x.maxSpan===e.maxSpan);
+ assert.throws(()=>RD.handoff(mk(10008621),[],A),x=>x.code==='HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED'&&x.maxSpan===RD.DEFAULT_MAX_SPAN);
+ assert.deepEqual(Object.keys(RD.BENCHMARKED_SPANS).sort(),['0x0dc6b79f3c3854e4d74514fd4d29be6c96beee39','0xbbe6aab0ed76e90aea0d1cd978ec231c8adcdf8b'],'only benchmarked contracts');
+ for(const [k,v] of Object.entries(RD.BENCHMARKED_SPANS)){assert.ok(Object.isFrozen(v)&&v.maxSpan>RD.DEFAULT_MAX_SPAN&&v.maxSpan<=RD.HARD_MAX_SPAN,k);assert.equal(RD.allowedSpan(k,v.deployBlock-1),RD.DEFAULT_MAX_SPAN);}
+ const gbpa='0xbbe6aab0ed76e90aea0d1cd978ec231c8adcdf8b',g=RD.BENCHMARKED_SPANS[gbpa];
+ assert.equal(RD.handoff({deploySearch:{head:g.deployBlock+18556172-1},deployBlock:g.deployBlock,addresses:[]},[],gbpa).phase,'READ');
+ assert.throws(()=>RD.handoff({deploySearch:{head:g.deployBlock+18556172-1},deployBlock:g.deployBlock,addresses:[]},[],syrup),x=>x.code==='HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED','one contract\'s allowance never applies to another');
+ const within=RD.handoff(mk(5000),[],A);assert.equal(within.discoverySpanAllowance,undefined,'normal spans carry no allowance marker');
+});
