@@ -1,0 +1,58 @@
+name: Arc Holder recovery probe (read-only, issue 187)
+# Public production reads + bounded Arc RPC reads only. No worker, queue, Redis, /data or publication writes.
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'scripts/probe-arc-holder-recovery.cjs'
+      - '.github/workflows/arc-holder-recovery-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: arc-holder-recovery-probe-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-arc-holder-recovery.cjs
+        env:
+          PROBE_MODE: meta
+          PROBE_OUTPUT: meta.json
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meta
+          path: meta.json
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        contract:
+          - '0x425ecb63957c78bec278d71cffd49a873dba7777'
+          - '0x0dc6b79f3c3854e4d74514fd4d29be6c96beee39'
+          - '0xbbe6aab0ed76e90aea0d1cd978ec231c8adcdf8b'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-arc-holder-recovery.cjs
+        env:
+          PROBE_MODE: scan
+          PROBE_CONTRACT: ${{ matrix.contract }}
+          PROBE_MAX_LOG_CALLS: '25000'
+          PROBE_OUTPUT: scan.json
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-${{ matrix.contract }}
+          path: scan.json
