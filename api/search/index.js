@@ -1,6 +1,7 @@
 'use strict';
 const handlers=Object.freeze({
  health:require('../../search/server/api/health'),
+ status:require('../../search/server/api/status'),
  discover:require('../../search/server/api/discover'),
  report:require('../../search/server/api/report'),
  progress:require('../../search/server/api/progress'),
@@ -10,6 +11,7 @@ const handlers=Object.freeze({
 });
 const KEYS=Object.freeze({
  health:[],
+ status:[],
  discover:['q','chain'],
  token:['address','chain'],
  report:['address','chain'],

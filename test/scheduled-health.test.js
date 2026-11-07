@@ -13,12 +13,13 @@ function run(handler){
   });
  });
 }
-const healthy=p=>p.get('action')==='health'?{ok:true,expectedCards:5}:p.get('action')==='token'?{ok:true,chainId:IDS[p.get('chain')],address:p.get('address'),block:'0x10',totalSupplyRaw:'1000'}:{ok:true,network:p.get('chain'),chainId:IDS[p.get('chain')],matches:[]};
+const STATUS={ok:true,overall:'HEALTHY',components:{holderWorker:{state:'HEALTHY',heartbeat:{ageSeconds:20}},pulse:{arc:{state:'HEALTHY'},ethereum:{state:'HEALTHY'},robinhood:{state:'HEALTHY'}},unlocks:{state:'HEALTHY'}},version:{match:null}};
+const healthy=p=>p.get('action')==='status'?STATUS:p.get('action')==='health'?{ok:true,expectedCards:5}:p.get('action')==='token'?{ok:true,chainId:IDS[p.get('chain')],address:p.get('address'),block:'0x10',totalSupplyRaw:'1000'}:{ok:true,network:p.get('chain'),chainId:IDS[p.get('chain')],matches:[]};
 test('health check passes with EMPTY discovery results (no dependency on any historical token listing)',async()=>{
  const r=await run(healthy);assert.equal(r.code,0,r.out);
- const s=JSON.parse(r.out.trim().split('\n')[0]);assert.equal(s.checked,7);assert.equal(s.failed,0);
+ const s=JSON.parse(r.out.trim().split('\n')[0]);assert.equal(s.checked,8);assert.equal(s.failed,0);
 });
-test('health check makes only 7 read-only requests and does not depend on the historical ARCY token',()=>{
+test('health check makes only 8 read-only requests and does not depend on the historical ARCY token',()=>{
  const src=fs.readFileSync(SCRIPT,'utf8');
  assert.doesNotMatch(src,/73e5f588d27d6b5ec89c89c82692d1e7fecbd38b/i);
  assert.doesNotMatch(src,/discover-arcy|ARCY not found/);
@@ -39,4 +40,13 @@ test('health check fails when an exact on-chain read is empty, on the wrong chai
 });
 test('health check does not call the Radar (no provider credits are spent by monitoring)',()=>{
  assert.doesNotMatch(fs.readFileSync(SCRIPT,'utf8'),/radar|holders|report/i);
+});
+
+test('pipeline status: UNAVAILABLE worker fails the run; DEGRADED only warns',async()=>{
+ const down=await run(p=>p.get('action')==='status'?{...STATUS,overall:'UNAVAILABLE',components:{...STATUS.components,holderWorker:{state:'UNAVAILABLE',reasonCode:'HEARTBEAT_STALE'}}}:healthy(p));
+ assert.equal(down.code,1);assert.match(down.out,/pipeline-status/);assert.match(down.out,/HEARTBEAT_STALE/);
+ const late=await run(p=>p.get('action')==='status'?{...STATUS,overall:'DEGRADED'}:healthy(p));
+ assert.equal(late.code,0,late.out);assert.match(late.out,/::warning title=ARCY pipeline DEGRADED/);
+ const malformed=await run(p=>p.get('action')==='status'?{ok:true}:healthy(p));
+ assert.equal(malformed.code,1);assert.match(malformed.out,/status payload malformed/);
 });
