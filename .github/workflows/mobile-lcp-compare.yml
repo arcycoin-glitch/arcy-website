@@ -1,0 +1,34 @@
+name: Mobile homepage LCP A/B (read-only)
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'assets/arcy-community-illustration.webp'
+      - 'scripts/benchmark-mobile-preview.cjs'
+      - '.github/workflows/mobile-lcp-compare.yml'
+permissions:
+  contents: read
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Lighthouse median mobile A/B — pinned PR preview vs current production
+        env:
+          PREVIEW_URL: https://arcy-official-iv0ye4xpb-arcy3.vercel.app/
+          MOBILE_RUNS: '3'
+        run: node scripts/benchmark-mobile-preview.cjs
+      - name: Publish measurement evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-lcp-evidence
+          path: |
+            mobile-*.json
+          retention-days: 7
