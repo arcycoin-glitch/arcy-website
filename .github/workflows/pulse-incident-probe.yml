@@ -1,0 +1,24 @@
+name: Arc Pulse incident probe (read-only)
+on:
+  push:
+    branches: ['measure/pulse-incident-*']
+    paths:
+      - 'scripts/probe-pulse-incident.cjs'
+      - '.github/workflows/pulse-incident-probe.yml'
+      - 'scripts/pulse-incident-run.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-pulse-incident.cjs
+        env:
+          CYCLES: '4'
+          GAP_MS: '180000'
