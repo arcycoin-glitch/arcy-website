@@ -21,9 +21,11 @@ async function main(){
   do{
    let results=[];
    const unlocks=await refreshUnlocks();
+   // Bounded Arc Pulse catch-up (lib/pulse-worker-refresh.js). Skipped in --once holder acceptance runs.
+   let pulse=null;if(!once)try{pulse=await require('../lib/pulse-worker-refresh').refreshIfDue();}catch{pulse={state:'FAILED',reasonCode:'PULSE_REFRESH_FAILED'};}
    try{results=await refresh.run({limit:5,budgetMs:40000,incompleteDelayMs:5000});
     for(const result of results)if(process.env.ARC_HOLDER_PUBLISHED_DIR&&['COMPLETE','STALE'].includes(result.state)){try{const snapshot=await storage.snapshot(result.contract+'-candidates');if(snapshot)await require('../lib/holder-publication').publish(result.contract,snapshot);}catch{console.error(JSON.stringify({event:'HOLDER_PUBLICATION_FAILED',contract:result.contract}));}}
-    console.log(JSON.stringify({event:'HOLDER_WORKER_BATCH',results,unlocks}));}
+    console.log(JSON.stringify({event:'HOLDER_WORKER_BATCH',results,unlocks,...(pulse?{pulse}:{})}));}
    catch{console.error(JSON.stringify({event:'HOLDER_WORKER_STORAGE_UNAVAILABLE'}));if(once)throw Error('Holder worker unavailable');}
    if(once||stopped)break;
    try{await sleep(results.length?5000:30000,undefined,{signal:idle.signal});}catch(e){if(e.name!=='AbortError')throw e;}
