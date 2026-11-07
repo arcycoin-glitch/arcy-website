@@ -100,6 +100,43 @@ test('ARC_HOLDER_RPC_DISCOVERY=off keeps the explorer-only behaviour (quiet EXPL
  },{ARC_HOLDER_RPC_DISCOVERY:'off'});
 });
 
+test('stalled primary DISCOVER with no verified page automatically resumes via bounded RPC without lowering trust',async()=>{
+ const sim=chain({a:A,transfers});
+ await harness(sim,async()=>{
+  const old={version:1,address:A,chainId:5042,startedAt:Date.now()-700000,phase:'DISCOVER',offset:0,addresses:[],balances:[],balanceCursor:0};
+  await storage.save(A+'-candidates',old);
+  const r=await worker.advance(A,{budgetMs:5000});
+  assert.equal(sim.calls.json,0,'do not repeat the unavailable explorer after ten minutes of zero progress');
+  assert.ok(r.value&&r.value.coverage.complete===true,'only a fully reconciled snapshot is allowed');
+  assert.equal(r.value.evidence[0].candidateDiscovery.fallbackReason,'EXPLORER_DISCOVER_NO_PROGRESS');
+  assert.equal(r.value.holderCount,3);
+  assert.ok(sim.calls.getLogs.length>0,'Transfer logs are actually scanned');
+  const latest=await storage.snapshot(A+'-candidates');
+  assert.equal(latest?.holderCount,3,'new COMPLETE snapshot is signed/verified through durable storage');
+ });
+});
+test('a fresh primary DISCOVER checkpoint is persisted before an index timeout so age cannot reset',async()=>{
+ const sim=chain({a:A,transfers});
+ await harness(sim,async()=>{
+  await assert.rejects(()=>worker.advance(A,{budgetMs:5000}),e=>F.reasonCode(e)==='DISCOVER_STATS_HTTP_5XX');
+  const s=await storage.load(A+'-candidates');
+  assert.equal(s.phase,'DISCOVER');
+  assert.equal(s.offset,0);
+  assert.ok(Number.isFinite(s.startedAt)&&s.startedAt<=Date.now());
+  assert.equal(sim.calls.json,1);
+ });
+});
+test('a primary index that advanced at least one page never silently switches to RPC solely due to age',async()=>{
+ const sim=chain({a:A,transfers});
+ await harness(sim,async()=>{
+  const old={version:1,address:A,chainId:5042,startedAt:Date.now()-700000,phase:'DISCOVER',offset:1000,addresses:[W1],balances:[],balanceCursor:0};
+  await storage.save(A+'-candidates',old);
+  await assert.rejects(()=>worker.advance(A,{budgetMs:5000}),e=>F.reasonCode(e)==='DISCOVER_STATS_HTTP_5XX');
+  assert.equal(sim.calls.json,1,'preserve valid advancing explorer checkpoint until a distinct failure policy applies');
+  const saved=await storage.load(A+'-candidates');
+  assert.notEqual(saved.discoverySource,'RPC_LOGS');
+ });
+});
 test('checkpoint validation rejects malformed RPC discovery state',()=>{
  const base={version:1,address:A,chainId:5042,startedAt:Date.now()-1,phase:'DISCOVER',offset:0,addresses:[],balances:[],balanceCursor:0};
  assert.equal(storage.validCheckpoint({...base,discoverySource:'RPC_LOGS',deploySearch:{lo:0,hi:10,head:10,steps:1}},A),true);
