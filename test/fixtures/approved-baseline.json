@@ -22,7 +22,7 @@
       "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
       "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885",
       "api/pulse.js": "71a081d8f1a3b0b84bd706a2f5a1f5727af49c8643be8cfee1bfee4dc7bc4cc0",
-      "scripts/holder-worker.cjs": "edd384ae947bd50df061b4eff050f4f4c99771eee3dd754b225245e800672f90"
+      "scripts/holder-worker.cjs": "dd24fcf667f4d9a6a8118779e8071d5f6ca9d5db396c82f7ac8c6db7f4be80d1"
     },
     "searchIndexWithoutScripts": "a095530dae90cdc047b3cf9372f23592e7eacdd1184d44785ad1328e5c955ccb",
     "schema": "8abad7b06f58e3710595ef35823a0f4a4d6288dfdfa343bfd47367953c180633",
@@ -97,7 +97,14 @@
         "index.html"
       ],
       "reason": "Phase 5 initial-render honesty: the four static scanner badges said NOT CONNECTED before any scan (crawlers/no-JS/slow loads) although app.js renders NOT SCANNED; text aligned to the actual idle state. Pulse loader also signals a failed network-Pulse request so Ethereum/Robinhood panels show an honest UNAVAILABLE state instead of 'not connected'. No layout, card size, section order or style change."
+    },
+    {
+      "date": "2026-11-07",
+      "files": [
+        "scripts/holder-worker.cjs"
+      ],
+      "reason": "Arc Pulse incident: the durable worker loop calls the bounded lib/pulse-worker-refresh.js catch-up (only when the current cycle has no signed edition, >=7 h after cycle start, >=6 h between attempts, skipped in --once). Holder batch logic, publication and logging fields unchanged; one optional 'pulse' field added to HOLDER_WORKER_BATCH."
     }
   ],
-  "refreshedAt": "2026-11-07T08:57:35.874Z"
+  "refreshedAt": "2026-11-07T10:13:27.438Z"
 }
