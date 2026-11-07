@@ -15,13 +15,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          path: candidate
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: baseline
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Lighthouse median mobile A/B — pinned PR preview vs current production
+      - name: Lighthouse paired local mobile A/B, three runs per version
+        working-directory: candidate
         env:
-          PREVIEW_URL: https://arcy-official-iv0ye4xpb-arcy3.vercel.app/
           MOBILE_RUNS: '3'
         run: node scripts/benchmark-mobile-preview.cjs
       - name: Publish measurement evidence
@@ -29,6 +35,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mobile-lcp-evidence
-          path: |
-            mobile-*.json
+          path: candidate/mobile-*.json
           retention-days: 7
