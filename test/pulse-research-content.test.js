@@ -60,3 +60,10 @@ test('Pulse research framing: what changed, why (only from change type), verifie
  assert.deepEqual(Object.keys(arcCard.research),['whatChanged','whyItMatters','evidence','notProven']);
  assert.equal(arcCard.research.evidence,'PUBLISHED_ANNOUNCEMENT');assert.match(arcCard.summary,/Not proven: First-party source/);
 });
+
+test('Pulse research framing never presents a cut-off source excerpt as a complete sentence',()=>{
+ const cut=networks.researchCard({title:'Ripple and Robinhood Partner',url:'https://ripple.com/ripple-press/x/',owner:'RIPPLE · OFFICIAL PARTNER DISCLOSURES',summary:'RLUSD is live today on Robinhood Chain and Bitstamp by Robinhood, and is expected to be available later this year in the Robinhood',whyItMatters:'Partner-issued announcement.'});
+ assert.match(cut.summary,/^RLUSD is live today on Robinhood Chain and Bitstamp by Robinhood, and is expected to be available later this year in the Robinhood… Verified: partner-issued announcement\./);
+ const trimmed=networks.researchCard({title:'Q3',url:'https://investors.robinhood.com/news-releases/news-release-details/q3',owner:'ROBINHOOD MARKETS · OFFICIAL INVESTOR RELATIONS',summary:'Robinhood Chain became a top-five chain by revenue and volume. It generated over $80 billion in DEX volume and over $50 million of chain',whyItMatters:'Company-reported.'});
+ assert.match(trimmed.summary,/^Robinhood Chain became a top-five chain by revenue and volume\. Verified: company press release\./,'cut back to the last complete sentence');
+});
