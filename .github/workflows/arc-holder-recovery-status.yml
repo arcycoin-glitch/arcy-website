@@ -1,0 +1,22 @@
+name: Arc Holder recovery status watch (read-only, issue 187)
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'scripts/probe-arc-holder-status.cjs'
+      - '.github/workflows/arc-holder-recovery-status.yml'
+permissions:
+  contents: read
+concurrency:
+  group: arc-holder-recovery-status-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-arc-holder-status.cjs
