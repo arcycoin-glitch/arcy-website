@@ -14,10 +14,14 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: ['main', 'claude/arc-radar-coverage']
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ matrix.ref }}
       - uses: actions/checkout@v4
         with:
           path: probe
@@ -25,3 +29,6 @@ jobs:
         with:
           node-version: '22'
       - run: cp probe/scripts/probe-arc-radar-coverage.cjs scripts/ && node scripts/probe-arc-radar-coverage.cjs
+        env:
+          SKIP_PROD: '1'
+          PROBE_NETWORKS: 'ethereum,robinhood,pons'

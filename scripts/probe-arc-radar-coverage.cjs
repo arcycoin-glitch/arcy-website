@@ -12,7 +12,7 @@ async function prod(chain){
  return {http:r.status,ok:d?.ok,error:d?.error,reasonCode:d?.reasonCode,asOf:d?.asOf,freshness:d?.freshness,staleReason:d?.staleReason,selection:d?.selection,channels:d?.discovery?.channels,uniqueCandidates:d?.discovery?.uniqueCandidates,excludedCounts:d?.discovery?.excludedCounts,creditLedger:d?.discovery?.creditLedger,coverage:d?.coverage,usage:d?.usage,tokens:(d?.tokens||[]).map(pick),excluded:(d?.excluded||[]).map(x=>({s:x.symbol,a:x.address,r:x.reason,d:String(x.detail||'').slice(0,160),v:x.volume24hUsd,e:x.evidence}))};
 }
 (async()=>{
- for(const chain of ['arc','ethereum','robinhood','pons']){try{out('prod-'+chain,await prod(chain));}catch(e){out('prod-'+chain,{error:e.message});}}
+ if(!process.env.SKIP_PROD)for(const chain of ['arc','ethereum','robinhood','pons']){try{out('prod-'+chain,await prod(chain));}catch(e){out('prod-'+chain,{error:e.message});}}
  if(process.env.SKIP_LOCAL)return;
  // Part B: instrumented local run of the same pipeline (keyless => same Arc channel plan as Demo).
  delete process.env.VERCEL;delete process.env.COINGECKO_DEMO_API_KEY;delete process.env.COINGECKO_PRO_API_KEY;
@@ -29,8 +29,9 @@ async function prod(chain){
  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  let rawFetch=global.fetch,calls=[];let last=0;const fetcher=async(u,o)=>{calls.push(String(u).replace(/\?.*/,''));if(/geckoterminal/.test(String(u))){const w=last+13000-Date.now();if(w>0)await new Promise(r=>setTimeout(r,w));last=Date.now();}return rawFetch(u,{...o,signal:AbortSignal.timeout(15000)});};
  try{
+  for(const net of (process.env.PROBE_NETWORKS||'').split(',').filter(Boolean)){try{const x=await radar.load(net,{env:process.env,fetcher,disableCache:true});out('local-'+net+'-summary',{excludedCounts:x.discovery.excludedCounts,unique:x.discovery.uniqueCandidates,coverage:x.coverage,usage:x.usage,tokens:x.tokens.map(pick),fields:x.tokens.map(t=>({a:t.address,f:Object.fromEntries(Object.entries(t.fields).map(([k,v])=>[k,v.status]))}))});}catch(e){out('local-'+net+'-error',{code:e.code,message:e.message});}}
   const d=await radar.load('arc',{env:process.env,fetcher,disableCache:true});
-  out('local-arc-summary',{channels:d.discovery.channels,unique:d.discovery.uniqueCandidates,excludedCounts:d.discovery.excludedCounts,coverage:d.coverage,usage:d.usage,tokens:d.tokens.map(pick),calls});
+  out('local-arc-summary',{channels:d.discovery.channels,unique:d.discovery.uniqueCandidates,excludedCounts:d.discovery.excludedCounts,coverage:d.coverage,usage:d.usage,tokens:d.tokens.map(pick),fields:d.tokens.map(t=>({a:t.address,f:Object.fromEntries(Object.entries(t.fields).map(([k,v])=>[k,v.status]))})),calls});
   const ranked=new Set(d.tokens.map(t=>t.address)),ex=new Map(d.excluded.map(x=>[x.address,x]));
   const rows=[...trace.entries()].filter(([,v])=>v.seen).map(([a,v])=>({a,...v,ranked:ranked.has(a),excluded:ex.get(a)?{r:ex.get(a).reason,d:String(ex.get(a).detail||'').slice(0,200),e:ex.get(a).evidence}:null}));
   for(let i=0;i<rows.length;i+=12)out('local-arc-trace-'+(i/12),rows.slice(i,i+12));
