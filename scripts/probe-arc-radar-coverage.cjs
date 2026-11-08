@@ -25,6 +25,7 @@ async function prod(chain){
  wrap('gates',([c],r)=>note(c.address,c.crossShare===null&&c.scopeVolume==='POOL'?'poolGates':'finalGates',r.length?r.join(','):'OK'));
  const origParse=gecko.parse;gecko.parse=(body,n)=>{const res=origParse(body,n);for(const x of res.rows)note(x.address,'seen',{sym:x.symbol,name:x.name,pool:x.pool,vol:x.volume24hUsd,liq:x.liquidityUsd,price:x.priceUsd,created:x.poolCreatedAt,buys:x.buys24h,sells:x.sells24h,coinId:x.coinId||null});return res;};
  const origMulti=gecko.fetchMulti;gecko.fetchMulti=async(...a)=>{const m=await origMulti(...a);for(const [k,v] of m)note(k,'token',{price:v.priceUsd,vol:v.volume24hUsd,liq:v.liquidityUsd,coinId:v.coinId||null});return m;};
+ const V=require('../lib/radar-v2/verify'),oV=V.verifyRow;V.verifyRow=(gt,ds,o)=>{const r=oV(gt,ds,o);note(gt.address,'poolCreatedAt',{gtPool:gt.pool,dsMatched:ds?.matched?.pair||null,dsBest:ds?.pair?.pair||null,dsPairs:ds?.pairCount,f:r.fields.poolCreatedAt});return r;};
  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  let rawFetch=global.fetch,calls=[];let last=0;const fetcher=async(u,o)=>{calls.push(String(u).replace(/\?.*/,''));if(/geckoterminal/.test(String(u))){const w=last+13000-Date.now();if(w>0)await new Promise(r=>setTimeout(r,w));last=Date.now();}return rawFetch(u,{...o,signal:AbortSignal.timeout(15000)});};
  try{
