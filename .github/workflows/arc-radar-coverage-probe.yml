@@ -1,0 +1,27 @@
+name: Arc Radar coverage probe (read-only)
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'scripts/probe-arc-radar-coverage.cjs'
+      - '.github/workflows/arc-radar-coverage-probe.yml'
+permissions:
+  contents: read
+concurrency:
+  group: arc-radar-coverage-probe-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/checkout@v4
+        with:
+          path: probe
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: cp probe/scripts/probe-arc-radar-coverage.cjs scripts/ && node scripts/probe-arc-radar-coverage.cjs
