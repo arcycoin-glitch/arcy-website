@@ -57,7 +57,7 @@ test('Robinhood ranked candidates: burn custody excluded from concentration; cen
  const balances={[DEAD]:600n,[w(1)]:300n,[w(2)]:100n};
  const fetcher=async()=>new Response(JSON.stringify({items}),{status:200,headers:{'content-type':'application/json'}});
  const rpcCall=async(m,[{data}])=>'0x'+balances['0x'+data.slice(-40)].toString(16).padStart(64,'0');
- const r=await rh.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'1000',fetcher,rpcCall,key:''});
+ const r=await rh.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'1000',reportedHolderCount:3,fetcher,rpcCall,key:''});
  assert.equal(r.reasonCode,undefined,JSON.stringify(r));
  assert.equal(r.largestWalletPct.value,30);assert.equal(r.top10Pct.value,40);
  assert.equal(r.holderCount.value,3,'census holder count unchanged');
