@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {outcome}=require('../scripts/search-coverage-outcome');
+const {outcome}=require('../scripts/search-coverage-outcome.cjs');
 
 test('coverage outcome separates verified, source-only, stale, incomplete and unavailable data',()=>{
  assert.equal(outcome({field:{dataState:'DATA_FOUND'},reportAvailable:true,evidenceClass:'ON_CHAIN_VERIFIED'}),'VERIFIED');
