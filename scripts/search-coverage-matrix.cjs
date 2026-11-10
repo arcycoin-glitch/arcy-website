@@ -20,7 +20,7 @@ async function get(p,retried=false){const gap=last+PACE_MS-Date.now();if(gap>0)a
    let report;try{report=await get('/api/search?action=report&chain='+chain+'&address='+address);}catch(e){raw.errors.push({section,address,error:e.message});}
    for(const card of schema)for(const [key] of card.fields){
     const cardData=report?.cards?.[card.id],field=cardData?.fields?.[key],classified=classify(field,{card:card.id});
-    const outcome=require('./search-coverage-outcome').outcome({field,reportAvailable:Boolean(report),cardStatus:cardData?.status,evidenceClass:classified.evidenceClass});
+    const outcome=require('./search-coverage-outcome.cjs').outcome({field,reportAvailable:Boolean(report),cardStatus:cardData?.status,evidenceClass:classified.evidenceClass});
     raw.samples.push({section,chain,address,card:card.id,key,field:field||null,cardStatus:cardData?.status||null,outcome,...classified});
    }
   }
