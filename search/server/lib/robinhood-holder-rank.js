@@ -129,15 +129,15 @@ async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,fetch
   }}));
   if(ranked.some((row,i)=>i<ranked.length&&(!balances[i]||balances[i].address!==row.address)))
    return unavailable('BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED');
-  const fullCensusBalances=censusRows&&balances.every(Boolean)?balances:null;
-  const censusTotal=fullCensusBalances?.reduce((sum,row)=>sum+row.balance,0n);
-  const censusComplete=Boolean(censusRows&&fullCensusBalances&&censusTotal===BigInt(totalSupplyRaw));
+  const total=BigInt(totalSupplyRaw);
+  const censusTotal=balances.every(Boolean)?balances.reduce((sum,row)=>sum+row.balance,0n):null;
+  const countMatches=!Number.isSafeInteger(reportedHolderCount)||reportedHolderCount===readRows.length;
+  const censusComplete=Boolean(censusTotal===total&&countMatches);
   // If the bounded population does not reconcile exactly, retain the established top-20 sample behavior.
-  let reconciled=censusComplete?fullCensusBalances:balances.slice(0,ranked.length);
+  let reconciled=censusComplete?balances:balances.slice(0,ranked.length);
   // Re-rank the reported candidate set by independently pinned balances.
   // Partial samples do not establish ranks of wallets omitted by the explorer.
   reconciled.sort((a,b)=>a.balance>b.balance?-1:a.balance<b.balance?1:a.address.localeCompare(b.address));
-  const total=BigInt(totalSupplyRaw);
   const observed=reconciled.reduce((sum,row)=>sum+row.balance,0n);
   if(observed>total)return unavailable('BLOCKSCOUT_RANK_SUPPLY_RECONCILIATION_FAILED');
   // A complete census is emitted only when every bounded source address was
