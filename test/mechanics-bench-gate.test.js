@@ -4,7 +4,7 @@
 // cached reference fetch) per Robinhood contract whose tax/mint/owner were NOT verified on main. Everything else unchanged.
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{spawnSync}=require('node:child_process');
 const SCRIPT=path.resolve(__dirname,'../scripts/assert-mechanics-bench.cjs');
-const {isPinnedBlockTag}=require('../scripts/mechanics-bench-budget.cjs');
+const {isPinnedBlockTag,customRoleEvidence}=require('../scripts/mechanics-bench-budget.cjs');
 const FIELDS=['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'];
 const field=ok=>({ok,cls:ok?'ON_CHAIN_VERIFIED':'NOT_VERIFIED',status:ok?'ON_CHAIN':'NOT_VERIFIED',value:ok?'x':'',scope:''});
 const netOf=(o={})=>({rpc:10,sourcify:1,goplus:0,explorer:0,other:0,failed:0,replayHit:11,replayMiss:0,augProbe:0,augSibling:0,augReference:0,augCustomRole:0,...o});
@@ -63,6 +63,12 @@ test('custom-role replay reads require a pinned JSON-RPC quantity and stay withi
  const ok=base();ok[6].net.rpc+=20;ok[6].net.augCustomRole=20;
  const result=gate(base(),ok);assert.equal(result.ok,true,result.out);assert.match(result.out,/"customRole":20/);
  const over=base();over[6].net.rpc+=21;over[6].net.augCustomRole=21;assert.match(gate(base(),over).out,/Custom AccessControl role read budget exceeded/);
+});
+
+test('custom-role evidence measurement deduplicates mirrored fields and keeps pinned source scope',()=>{
+ const member='0x'+'3'.repeat(40),proof={role:'PAUSER_ROLE',method:'hasRole',roleId:'0x'+'a'.repeat(64),member,value:true,block:'0x1234',sourceDigest:'b'.repeat(64),scope:'Confirmed membership for the first indexed member only.'};
+ const card={fields:{ownerAdmin:{evidence:[{observations:[proof]}]},mintCapability:{evidence:[{observations:[proof]}]}}};
+ assert.deepEqual(customRoleEvidence(card),[{role:proof.role,method:proof.method,roleId:proof.roleId,member,count:null,value:true,block:proof.block,sourceDigest:proof.sourceDigest,scope:proof.scope}]);
 });
 
 test('an enumerated DEFAULT_ADMIN_ROLE member may only be upgraded to reviewed evidence for the same address',()=>{

@@ -10,7 +10,7 @@ assert.equal(before.rows.length,after.rows.length,'Benchmark sample count change
 assert.ok(before.rows.length>=30,'Insufficient sample size');
 const FIELDS=['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'];
 const key=r=>r.chain+'|'+r.address.toLowerCase()+'|'+(r.group||'');
-const seen=new Set();const PROBE_BUDGET=2,SIBLING_BUDGET=3,REVIEWED_BUDGET=8,CUSTOM_ROLE_BUDGET=20,budgets={probe:0,sibling:0,reference:0,reviewed:0,customRole:0,probeContracts:0,siblingContracts:0,reviewedContracts:0,customRoleContracts:0};const stats=Object.fromEntries(FIELDS.map(f=>[f,{before:0,after:0,gain:0}]));
+const seen=new Set();const PROBE_BUDGET=2,SIBLING_BUDGET=3,REVIEWED_BUDGET=8,CUSTOM_ROLE_BUDGET=20,budgets={probe:0,sibling:0,reference:0,reviewed:0,customRole:0,probeContracts:0,siblingContracts:0,reviewedContracts:0,customRoleContracts:0};const stats=Object.fromEntries(FIELDS.map(f=>[f,{before:0,after:0,gain:0}]));let customRoleEvidenceBefore=0,customRoleEvidenceAfter=0;
 for(let i=0;i<before.rows.length;i++){
  const b=before.rows[i],a=after.rows[i],id=key(b);
  assert.equal(key(a),id,'Sample order/identity changed');
@@ -35,6 +35,18 @@ for(let i=0;i<before.rows.length;i++){
   stats[f].before+=Number(x.ok);stats[f].after+=Number(y.ok);
   if(!x.ok&&y.ok)stats[f].gain++;
  }
+ const roleKey=x=>[x.role,x.method,x.member||'',x.count??'',x.block||''].join('|');
+ const beforeRoles=Array.isArray(b.customRoleEvidence)?b.customRoleEvidence:[],afterRoles=Array.isArray(a.customRoleEvidence)?a.customRoleEvidence:[];
+ const afterRoleKeys=new Set(afterRoles.map(roleKey));
+ for(const item of beforeRoles)assert.ok(afterRoleKeys.has(roleKey(item)),'Custom role evidence lost: '+id+'/'+roleKey(item));
+ for(const item of afterRoles){
+  assert.ok(['PAUSER_ROLE','BLACKLISTER_ROLE','UPGRADER_ROLE','BURNER_ROLE'].includes(item.role),'Unexpected custom role evidence: '+id);
+  assert.ok(['getRoleAdmin','getRoleMemberCount','hasRole'].includes(item.method),'Unexpected custom role evidence method: '+id);
+  assert.equal(item.block,a.block,'Custom role evidence was not pinned to the benchmark block: '+id);
+  assert.equal(typeof item.scope,'string');assert.ok(item.scope,'Custom role evidence scope missing: '+id);
+  if(item.method==='hasRole'&&item.value===true)assert.match(item.member||'',/^0x[0-9a-f]{40}$/i,'Positive membership lacks an address: '+id);
+ }
+ customRoleEvidenceBefore+=beforeRoles.length;customRoleEvidenceAfter+=afterRoles.length;
  // Evidence-based request budgets (augment replay). Everything outside a budgeted kind must not grow.
  const probe=a.net.augProbe||0,siblingCalls=a.net.augSibling||0,reference=a.net.augReference||0,reviewed=a.net.augReviewed||0,customRole=a.net.augCustomRole||0;
  assert.ok(a.net.rpc-probe-siblingCalls-reviewed-customRole<=b.net.rpc,'New RPC usage for '+id);
@@ -57,6 +69,6 @@ for(const category of ['goplus','explorer','other','replayMiss']){
 assert.ok(after.net.rpc-(after.net.augProbe||0)-(after.net.augSibling||0)-(after.net.augReviewed||0)-(after.net.augCustomRole||0)<=before.net.rpc,'Request/replay regression: rpc');
 assert.ok(after.net.sourcify-(after.net.augReference||0)<=before.net.sourcify,'Request/replay regression: sourcify');
 assert.equal(before.net.augProbe||0,0,'BEFORE must not use budgeted requests');assert.equal(before.net.augSibling||0,0);assert.equal(before.net.augReference||0,0);assert.equal(before.net.augReviewed||0,0);assert.equal(before.net.augCustomRole||0,0);
-const summary={samples:before.rows.length,coverage:stats,budgets,requests:{before:before.net,after:after.net},replayComplete:before.net.replayMiss===0&&after.net.replayMiss===0};
+const summary={samples:before.rows.length,coverage:stats,customRoleEvidence:{before:customRoleEvidenceBefore,after:customRoleEvidenceAfter,gain:customRoleEvidenceAfter-customRoleEvidenceBefore},budgets,requests:{before:before.net,after:after.net},replayComplete:before.net.replayMiss===0&&after.net.replayMiss===0};
 console.log('PAIRED_MECHANICS_GATE PASS '+JSON.stringify(summary));
 if(!summary.replayComplete)console.warn('WARNING: missing recorded responses were fail-closed; the replay is not complete. No live fallback was used.');

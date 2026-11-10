@@ -7,7 +7,7 @@ const fs=require('node:fs'),path=require('node:path');
 const label=process.argv[2]||'run',samplesFile=process.argv[3]||'';
 const root=process.env.BENCH_ROOT||process.cwd();
 const req=p=>require(path.join(root,p));
-const {isPinnedBlockTag}=require('./mechanics-bench-budget.cjs');
+const {isPinnedBlockTag,customRoleEvidence}=require('./mechanics-bench-budget.cjs');
 const FIELDS=['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'];
 const REGRESSION=[['arc','0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b'],['arc','0xf76b1d00bd3d63a37246b5f512074e864010e33d'],['robinhood','0x39dbed3a2bd333467115de45665cc57f813c4571']];
 const ETH_KNOWN=['0xdAC17F958D2ee523a2206206994597C13D831ec7','0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48','0x6B175474E89094C44Da98b954EedeAC495271d0F','0x514910771AF9Ca656af840dff83E8264EcF986CA','0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984','0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2','0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE','0x6982508145454Ce325dDbE47a25d4ec3d2311933','0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9','0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2','0xB8c77482e45F1F44dE1745F52C74426C631bDD52','0x4Fabb145d64652a948d72533023f6E7A623C7C53'];
@@ -101,7 +101,7 @@ const short=v=>String(v??'').replace(/\s+/g,' ').slice(0,70);
   try{res=await Promise.race([mechanics(s.chain,s.address),new Promise((_,r)=>setTimeout(()=>r(Error('BENCH_TIMEOUT_60S')),60000))]);}catch(e){err=String(e.message||e).slice(0,80);}
   const ms=Date.now()-t0,d=Object.fromEntries(Object.keys(net).map(k=>[k,net[k]-before[k]]));
   const f={},fails=new Set();for(const k of FIELDS){const x=res?.card?.fields?.[k];for(const q of (x?.analysisDiagnostics?.failures||[]))if(q?.reason)fails.add(q.reason);const c=classify(x||null,{card:'mechanics'});f[k]={ok:x?.dataState==='DATA_FOUND',cls:c.evidenceClass,status:x?.status||null,reason:x?.reasonCode||null,value:short(x?.value).slice(0,70)+(k==='ownerAdmin'&&x?.value?String(x.value).replace(/\s+/g,' ').slice(70,256):''),scope:short(x?.scope)};}
-  rows.push({...s,block:res?.block||null,err,ms,net:d,f,fails:[...fails].sort()});
+  rows.push({...s,block:res?.block||null,err,ms,net:d,f,fails:[...fails].sort(),customRoleEvidence:customRoleEvidence(res?.card)});
   await new Promise(r=>setTimeout(r,600));
  }
  const cov={};for(const r of rows){const c=cov[r.chain+(r.group==='pons'?'/pons':'')]||={n:0,err:0,ms:0,rpc:0,src:0,f:Object.fromEntries(FIELDS.map(k=>[k,0]))};c.n++;if(r.err)c.err++;c.ms+=r.ms;c.rpc+=r.net.rpc;c.src+=r.net.sourcify;for(const k of FIELDS)if(r.f[k].ok)c.f[k]++;}
