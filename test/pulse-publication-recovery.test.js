@@ -73,6 +73,15 @@ test('no durable volume or no signing key means no retry and no network work',as
  for(const e of [{},{ARC_HOLDER_PUBLISHED_DIR:'/d'},{ARC_HOLDER_SIGNING_KEY:'k'}])assert.equal(await retry.refreshIfDue({now:Date.now(),env:e,storage:memoryStorage(),edition:fakeEdition(gen)}),null);
 });
 
+test('persistent on-chain monitoring is opt-in, isolated from publishing, and worker logs stay summary-only',async()=>{
+ let calls=0;const onchainMonitor={refreshAll:async options=>{calls++;assert.equal(options.env.ARC_PULSE_ONCHAIN_DIR,'/durable');return {arc:{status:'NO_QUALIFYING_EVENTS',complete:true,events:Array(500).fill({headline:'event detail'}),coverage:{startBlock:10,nextBlock:20,lastSuccessfulBlock:19,completeFromGenesis:false,retainedEvents:500},lastAttempt:{at:'2026-11-02T06:06:00.000Z',cost:{rpcCalls:6}}}};}};
+ const env={ARC_PULSE_ONCHAIN_ENABLED:'1',ARC_PULSE_ONCHAIN_DIR:'/durable'};
+ const r=await retry.refreshIfDue({now:MONDAY,env,storage:memoryStorage(),edition:fakeEdition(async()=>{throw Error('not due');}),onchainMonitor});
+ assert.equal(r.state,'ONCHAIN_MONITORED');assert.equal(r.onchain.arc.complete,true);assert.equal(r.onchain.arc.coverage.retainedEvents,500);assert.equal(r.onchain.arc.rpcCalls,6);assert.equal('events' in r.onchain.arc,false);assert.equal(calls,1);
+ assert.equal(await retry.refreshIfDue({now:MONDAY,env:{ARC_PULSE_ONCHAIN_DIR:'/durable'},storage:memoryStorage(),edition:fakeEdition(async()=>{throw Error('must not run');}),onchainMonitor}),null);
+ assert.equal(calls,1);
+});
+
 test('end to end on a real signed volume: edition #6 is signed, verifiable, archived; #5 stays byte-identical',async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'arcy-pulse-recovery-')),saved={...process.env},pair=crypto.generateKeyPairSync('ed25519');
  process.env.ARC_HOLDER_PUBLISHED_DIR=dir;process.env.ARC_HOLDER_SIGNING_KEY=pair.privateKey.export({type:'pkcs8',format:'pem'});delete process.env.ARC_PULSE_EDITION_DIR;delete process.env.ARC_PULSE_SIGNING_KEY;delete process.env.ARC_PULSE_PUBLIC_KEY;delete process.env.ARC_HOLDER_PUBLIC_KEY;

@@ -2,9 +2,10 @@
 // Read-only live probe for the Pulse V2 on-chain engine. Public RPC endpoints only, no credentials, nothing is written
 // or published. Prints, per network:
 //   1. the production-budget scan exactly as /api/pulse?action=onchain would run it (status, window, cost);
-//   2. a wider measurement scan (more windows, same code path) to show real detected events when the live window is quiet;
-//   3. reviewed factory deployments: runtime code present;
-//   4. Ethereum positive control: real USDC mint logs and Uniswap V3 PoolCreated logs decoded by the catalogue.
+//   2. a bounded oldest-first checkpoint-range scan (the Pulse monitor's scan mode);
+//   3. a wider measurement scan (more windows, same code path) to show real detected events when the live window is quiet;
+//   4. reviewed factory deployments: runtime code present;
+//   5. Ethereum positive control: real USDC mint logs and Uniswap V3 PoolCreated logs decoded by the catalogue.
 const engine=require('../lib/pulse-onchain/engine'),watchlist=require('../lib/pulse-onchain/watchlist'),catalog=require('../lib/pulse-onchain/catalog'),transport=require('../lib/pulse-onchain/rpc');
 const notice=(title,data)=>console.log('::notice title='+title+'::'+JSON.stringify(data).slice(0,3800));
 const brief=r=>({status:r.status,complete:r.complete,reasonCode:r.reasonCode||null,window:r.window&&{from:r.window.fromBlock,to:r.window.toBlock,blocks:r.window.blocksCovered,planned:r.window.blocksPlanned,hours:r.window.hoursCovered,narrowed:r.window.spanNarrowed},
@@ -24,6 +25,14 @@ async function raw(url,method,params){
   entry.production={...brief(production),ms:Date.now()-started};
   notice('onchain-'+chain+'-production',entry.production);
   await new Promise(r=>setTimeout(r,chain==='arc'?8000:1500));
+  const confirmedHead=production.confirmation?.confirmedHead;
+  if(Number.isSafeInteger(confirmedHead)){
+   const capacity=cfg.span*cfg.maxWindows,fromBlock=Math.max(0,confirmedHead-capacity+1),rangeStarted=Date.now();
+   const ranged=await engine.scan({chain,deadlineMs:15000,maxEvents:500,range:{fromBlock,toBlock:confirmedHead}});
+   entry.checkpointRange={...brief(ranged),requested:{from:fromBlock,to:confirmedHead,capacity},ms:Date.now()-rangeStarted};
+   notice('onchain-'+chain+'-checkpoint-range',entry.checkpointRange);
+  }else entry.checkpointRange={status:'NOT_RUN',reasonCode:'CONFIRMED_HEAD_UNAVAILABLE'};
+  await new Promise(r=>setTimeout(r,chain==='arc'?8000:1000));
   const wide=await engine.scan({chain,deadlineMs:150000,maxEvents:12,pace:chain==='arc'?450:120,limits:{maxWindows:cfg.maxWindows*8,maxCalls:cfg.maxCalls*8}});
   entry.wide={...brief(wide),events:wide.events.map(eventLine)};
   notice('onchain-'+chain+'-wide',{...brief(wide),sample:wide.events.slice(0,6).map(eventLine)});

@@ -125,6 +125,35 @@ test('a refused block range narrows the window; an exhausted budget reports part
  assert.equal(empty.status,'PARTIAL_COVERAGE');assert.match(empty.emptyState,/not evidence of a quiet network/);
 });
 
+test('checkpoint range scans cover an oldest-first contiguous prefix pinned below the confirmed head',async()=>{
+ const node=ethNode();
+ const first=node.log({address:ETH.ONDO,topics:[T('OWNERSHIP_TRANSFERRED'),sim.addr(sim.A(1)),sim.addr(sim.A(2))],block:HEAD-2200});
+ node.log({address:ETH.AAVE,topics:[T('PAUSED')],data:sim.word(BigInt(sim.A(0x11))),block:HEAD-2000});
+ const from=HEAD-2300,to=HEAD-1900,result=await run(node,{range:{fromBlock:from,toBlock:to}});
+ assert.equal(result.status,'EVENTS_DETECTED');assert.equal(result.complete,true);
+ assert.equal(result.window.fromBlock,from);assert.equal(result.window.toBlock,to);assert.equal(result.window.blocksCovered,to-from+1);
+ assert.match(result.window.toBlockHash,/^0x[0-9a-f]{64}$/);assert.equal(result.head.number,HEAD);
+ assert.ok(result.events.some(e=>e.transactionHash===first.transactionHash));
+ assert.ok(result.events.every(e=>e.blockNumber>=from&&e.blockNumber<=to&&e.confirmation.status==='CONFIRMED'));
+ assert.ok(node.state.requests.every(method=>!['eth_sendTransaction','eth_sendRawTransaction'].includes(method)));
+});
+
+test('checkpoint range budget exhaustion reports only the contiguous prefix as partial',async()=>{
+ const node=ethNode({maxRange:64}),from=HEAD-2300,to=HEAD-1900;
+ const result=await run(node,{range:{fromBlock:from,toBlock:to},limits:{maxCalls:90}});
+ assert.equal(result.complete,false);assert.equal(result.status,'PARTIAL_COVERAGE');
+ assert.ok(result.window.blocksCovered<result.window.blocksPlanned);
+ assert.equal(result.window.fromBlock,from);assert.ok(result.window.toBlock<to);
+});
+
+test('checkpoint scan can retain more events than the stateless card default without truncation',async()=>{
+ const node=ethNode(),from=HEAD-2200,to=HEAD-2000;
+ for(let i=0;i<13;i++)node.log({address:ETH.UNI,topics:[T('OWNERSHIP_TRANSFERRED'),sim.addr(sim.A(i+1)),sim.addr(sim.A(i+101))],data:'0x',block:HEAD-2150+i,tx:sim.h32('pulse-high-volume-'+i)});
+ const capped=await run(node,{range:{fromBlock:from,toBlock:to}}),wide=await run(node,{range:{fromBlock:from,toBlock:to},maxEvents:20});
+ assert.equal(capped.events.length,12);assert.equal(capped.counts.filtered.overflow,1);
+ assert.equal(wide.events.length,13);assert.equal(wide.counts.filtered.overflow,0);assert.equal(wide.complete,true);
+});
+
 test('reorg-aware confirmation: a log whose block hash is no longer canonical is dropped',async()=>{
  const node=ethNode();
  const stale=node.log({address:ETH.UNI,topics:[T('OWNERSHIP_TRANSFERRED'),sim.addr(sim.A(1)),sim.addr(sim.A(2))],block:HEAD-120});
