@@ -63,7 +63,7 @@ test('five states are kept apart: executable, confirmed, detected, revoked, unkn
  assert.equal(mint.authority,OWNER);assert.equal(mint.evidence.length,3);assert.equal(mint.evidence[1].outcome,'REVERTS');assert.equal(mint.evidence[2].outcome,'SUCCEEDS');
  // No transaction method is ever sent and the budget holds.
  assert.ok(live.calls.every(c=>['eth_chainId','eth_blockNumber','eth_getCode','eth_getStorageAt','eth_call'].includes(c.method)));
- assert.ok(result.cost.rpcCalls<=24);
+ assert.ok(result.cost.rpcCalls<=28);
 
  // Renounced ownership: only the zero address passes the gate -> revoked, with the zero owner reported as an authority.
  const renounced=node({codes:{[TOKEN]:runtime(['owner()','mint(address,uint256)','pause()'])},owner:ZERO,gate:(from,sel)=>from===ZERO&&sel===S('mint(address,uint256)')});
@@ -104,6 +104,14 @@ test('proxies are analysed through their implementation and report the upgrade a
  const legacy=node({codes:{[TOKEN]:proxyCode,[IMPL]:logic},storage:{[privilege.LEGACY_IMPLEMENTATION_SLOT]:word(IMPL),[privilege.LEGACY_ADMIN_SLOT]:word(OWNER)},owner:OWNER,gate:from=>from===OWNER});
  const old=await run(legacy);
  assert.equal(old.proxy.kind,'Legacy (zos) proxy');assert.equal(old.authorities.find(a=>a.kind==='PROXY_ADMIN').holderType,'EOA');
+ // EIP-1967 beacon proxy: logic comes from beacon.implementation(); the beacon owner is the upgrade authority.
+ const BEACON=A(0xbeac),beaconNode=node({codes:{[TOKEN]:proxyCode,[IMPL]:logic,[BEACON]:'0x6000'},storage:{[privilege.BEACON_SLOT]:word(BEACON)},owner:OWNER,gate:from=>from===OWNER});
+ const inner=beaconNode.fetcher;
+ beaconNode.fetcher=async(url,init)=>{const r=JSON.parse(init.body);if(r.method==='eth_call'&&r.params[0].to===BEACON&&r.params[0].data===S('implementation()'))return new Response(JSON.stringify({jsonrpc:'2.0',id:r.id,result:word(IMPL)}),{status:200});return inner(url,init);};
+ const viaBeacon=await run(beaconNode);
+ assert.deepEqual(viaBeacon.proxy,{kind:'EIP-1967 beacon proxy',implementation:IMPL,beacon:BEACON});assert.equal(privilege.BEACON_SLOT,deep.beacon);
+ assert.equal(state(viaBeacon,'mint(address,uint256)'),'PRIVILEGE_CURRENTLY_EXECUTABLE');
+ assert.ok(viaBeacon.authorities.some(a=>a.kind==='BEACON_OWNER'&&a.holder===OWNER));
  // EIP-1167 clone.
  const clone=node({codes:{[TOKEN]:'0x363d3d373d3d3d363d73'+IMPL.slice(2)+'5af43d82803e903d91602b57fd5bf3',[IMPL]:logic},owner:OWNER,gate:from=>from===OWNER});
  assert.equal((await run(clone)).proxy.kind,'EIP-1167 minimal proxy');

@@ -28,6 +28,7 @@ const ADMIN_SLOT='0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d
 // Pre-EIP-1967 (zos) proxy slots, identical to the reviewed constants in mechanics-deep.js (asserted by test).
 const LEGACY_IMPLEMENTATION_SLOT='0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3';
 const LEGACY_ADMIN_SLOT='0x10d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b';
+const BEACON_SLOT='0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50';
 const pad=a=>a.slice(2).toLowerCase().padStart(64,'0');
 const uintWord=n=>BigInt(n).toString(16).padStart(64,'0');
 
@@ -81,7 +82,7 @@ function endpoints(network,env=process.env){
  return [rpcUrl('ethereum',env)];
 }
 // Minimal pinned reader. eth_call results are tri-state so a provider failure can never be read as a revert.
-function createReader({url,chainId,fetcher=fetch,maxCalls=24,paceMs=0,timeoutMs=5000,sleep=ms=>new Promise(r=>setTimeout(r,ms))}){
+function createReader({url,chainId,fetcher=fetch,maxCalls=28,paceMs=0,timeoutMs=5000,sleep=ms=>new Promise(r=>setTimeout(r,ms))}){
  const cost={rpcCalls:0};let id=0,last=0;
  async function send(method,params){
   if(!['eth_chainId','eth_blockNumber','eth_getCode','eth_getStorageAt','eth_call'].includes(method))throw Error('PRIVILEGE_METHOD_NOT_ALLOWED');
@@ -129,11 +130,23 @@ async function classify({network,address,fetcher=fetch,env=process.env,url=null,
  if(!clone){
   const modern=await slotAddress(IMPLEMENTATION_SLOT);
   if(modern)candidates.push(['EIP-1967 proxy',modern,ADMIN_SLOT]);
-  else{const legacy=await slotAddress(LEGACY_IMPLEMENTATION_SLOT);if(legacy)candidates.push(['Legacy (zos) proxy',legacy,LEGACY_ADMIN_SLOT]);}
+  else{
+   const legacy=await slotAddress(LEGACY_IMPLEMENTATION_SLOT);
+   if(legacy)candidates.push(['Legacy (zos) proxy',legacy,LEGACY_ADMIN_SLOT]);
+   else{
+    // Beacon proxies: the EIP-1967 beacon slot, or the repository's exact reviewed immutable-beacon runtime template.
+    const template=require('./mechanics-reviewed-v4').immutableBeacon(code.result);
+    const beacon=template?.beacon||await slotAddress(BEACON_SLOT);
+    if(beacon){
+     const target=addressOf((await reader.send('eth_call',[{to:beacon,data:selector('implementation()')},block])).result);
+     if(target&&target!==ZERO)candidates.push([template?'Reviewed immutable-beacon proxy':'EIP-1967 beacon proxy',target,null,beacon]);
+    }
+   }
+  }
  }
- for(const [kind,implementation,adminSlot] of candidates){
+ for(const [kind,implementation,adminSlot,beacon] of candidates){
   const target=await reader.send('eth_getCode',[implementation,block]);
-  if(target.state==='OK'&&CODE.test(target.result)&&target.result!=='0x'){logic=target.result;proxy={kind,implementation,adminSlot};}
+  if(target.state==='OK'&&CODE.test(target.result)&&target.result!=='0x'){logic=target.result;proxy={kind,implementation,adminSlot,beacon:beacon||null};}
  }
  const authorities=[];
  const holder=async(kind,account,method)=>{
@@ -147,7 +160,12 @@ async function classify({network,address,fetcher=fetch,env=process.env,url=null,
   const admin=addressOf((await reader.send('eth_getStorageAt',[address,proxy.adminSlot,block])).result);
   if(admin&&admin!==ZERO)await holder('PROXY_ADMIN',admin,proxy.kind+' admin slot');
  }
- if(proxy)proxy={kind:proxy.kind,implementation:proxy.implementation};
+ // A beacon's owner can repoint every proxy that uses it: report it as the upgrade authority when it is readable.
+ if(proxy?.beacon){
+  const beaconOwner=addressOf((await reader.send('eth_call',[{to:proxy.beacon,data:OWNER_SELECTOR},block])).result);
+  if(beaconOwner!==null)await holder('BEACON_OWNER',beaconOwner,'owner() of beacon '+proxy.beacon);
+ }
+ if(proxy)proxy={kind:proxy.kind,implementation:proxy.implementation,...(proxy.beacon?{beacon:proxy.beacon}:{})};
  const selectors=new Set([...dispatchSelectors(logic),...dispatchSelectors(code.result)]);
  let owner=null,ownerRead='NOT_PRESENT';
  if(selectors.has(OWNER_SELECTOR)){
@@ -204,4 +222,4 @@ async function cached(options){
  }).finally(()=>inflight.delete(key)));
  return inflight.get(key);
 }
-module.exports={classify,cached,dispatchSelectors,createReader,FUNCTIONS,CONTROL,RECIPIENT,selector,MAX_SIMULATED,LEGACY_IMPLEMENTATION_SLOT,LEGACY_ADMIN_SLOT,IMPLEMENTATION_SLOT,ADMIN_SLOT};
+module.exports={classify,cached,dispatchSelectors,createReader,FUNCTIONS,CONTROL,RECIPIENT,selector,MAX_SIMULATED,LEGACY_IMPLEMENTATION_SLOT,LEGACY_ADMIN_SLOT,IMPLEMENTATION_SLOT,ADMIN_SLOT,BEACON_SLOT};
