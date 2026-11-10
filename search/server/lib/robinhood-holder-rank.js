@@ -86,7 +86,7 @@ function percentage(raw,totalRaw){
  const scale=10n**12n;
  return Number((raw*100n*scale+total/2n)/total)/1e12;
 }
-async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,reportedHolderCountPromise,fetcher=fetch,rpcCall=rpc,key=process.env.BLOCKSCOUT_API_KEY}={}){
+async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,reportedHolderCountPromise,fetcher=fetch,rpcCall=rpc,verifyBlock,key=process.env.BLOCKSCOUT_API_KEY}={}){
  if(typeof address!=='string'||!ADDRESS.test(address)||!/^0x[0-9a-f]+$/i.test(block||'')||
   typeof totalSupplyRaw!=='string'||!/^[1-9]\d*$/.test(totalSupplyRaw))return unavailable('HOLDER_RANK_INPUT_INVALID');
  const token=address.toLowerCase();
@@ -118,6 +118,9 @@ async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,repor
   if(Number.isSafeInteger(reportedHolderCount)&&reportedHolderCount<=MAX_CENSUS_HOLDERS){
    try{censusRows=await completeCandidates(firstBody,requestUrl,reportedHolderCount,fetcher);}catch{censusRows=null;}
   }
+  if(typeof verifyBlock==='function'){
+   try{await verifyBlock();}catch{return unavailable('ROBINHOOD_BLOCK_ANCHOR_CHANGED');}
+  }
   const readRows=censusRows||ranked;
   const balances=Array(readRows.length).fill(null);let cursor=0;
   await Promise.all(Array.from({length:Math.min(4,readRows.length)},async()=>{for(;;){
@@ -132,6 +135,9 @@ async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,repor
   }}));
   if(ranked.some((row,i)=>i<ranked.length&&(!balances[i]||balances[i].address!==row.address)))
    return unavailable('BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED');
+  if(typeof verifyBlock==='function'){
+   try{await verifyBlock();}catch{return unavailable('ROBINHOOD_BLOCK_ANCHOR_CHANGED');}
+  }
   const total=BigInt(totalSupplyRaw);
   const censusTotal=balances.every(Boolean)?balances.reduce((sum,row)=>sum+row.balance,0n):null;
   const countMatches=!Number.isSafeInteger(reportedHolderCount)||reportedHolderCount===readRows.length;
