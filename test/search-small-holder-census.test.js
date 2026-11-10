@@ -246,6 +246,20 @@ test('Robinhood incomplete, non-reconciled, or stale small cohorts fail closed',
  const bad=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'1000',...stale});
  assert.equal(bad.reasonCode,'BLOCKSCOUT_RANK_SUPPLY_RECONCILIATION_FAILED'); // Pinned values exceed total supply; fail closed.
 });
+test('Robinhood partial first page cannot become a complete census when the count is unavailable',async()=>{
+ const balances=Array.from({length:10},(_,i)=>BigInt(100-i));
+ const f=source(balances),original=f.fetcher;
+ f.fetcher=async url=>{
+  const body=await (await original(url)).json();
+  return response({...body,next_page_params:{address_hash:wallets(balances.length).at(-1),value:'91',items_count:balances.length}});
+ };
+ const r=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'955',...f});
+ assert.equal(r.holderCount,undefined);
+ assert.equal(r.largestWalletPct.status,'SOURCE_REPORTED_RPC_RECONCILED');
+ assert.equal(r.top10Pct.status,'SOURCE_REPORTED_RPC_RECONCILED');
+ assert.equal(r.top20Pct,undefined);
+ assert.equal(r.top10Pct.evidence[0].censusComplete,false);
+});
 test('Robinhood 10+ indexed candidate wallets preserve partial concentration without asserting complete top 20',async()=>{
  const balances=Array.from({length:10},(_,i)=>BigInt(100-i));
  const f=source(balances);
