@@ -186,9 +186,14 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
   await Promise.all(['buyTax','sellTax','transferTax','buyFee','sellFee','transferFee','feeDenominator','taxDenominator','FEE_DENOMINATOR','cap'].filter(n=>abiFn(source,n+'()','uint256')).map(async n=>{const v=await word(address,n+'()');if(v)details.observations.push({method:n+'()',raw:BigInt(v).toString(),block,...sourceProof,scope:'Raw getter, not a verified tax rate/cap semantics.'});}));
   const candidates=source.abi.filter(f=>f.type==='function'&&/mint|bridge|blacklist|whitelist|pause|fee|tax|upgrade|role|timelock|delay|threshold/i.test(f.name||'')).slice(0,40).map(f=>({name:f.name,stateMutability:f.stateMutability,inputs:f.inputs?.map(x=>x.type),status:'INTERFACE_ONLY'}));
   details.interfaceCandidates=candidates;
+  const rolePriority=['PAUSER_ROLE','BLACKLISTER_ROLE','UPGRADER_ROLE','BURNER_ROLE'];
+  const customRoles=[...new Set(source.abi.filter(f=>f.type==='function'&&/^[A-Z][A-Z0-9_]*_ROLE$/.test(f.name||'')&&['view','pure'].includes(f.stateMutability)&&Array.isArray(f.inputs)&&f.inputs.length===0&&Array.isArray(f.outputs)&&f.outputs.length===1&&f.outputs[0]?.type==='bytes32').map(f=>f.name))]
+   .filter(name=>!['DEFAULT_ADMIN_ROLE','MINTER_ROLE'].includes(name))
+   .sort((a,b)=>{const ai=rolePriority.indexOf(a),bi=rolePriority.indexOf(b);return (ai<0?rolePriority.length:ai)-(bi<0?rolePriority.length:bi)||a.localeCompare(b);}).slice(0,4);
+  const roleNames=['DEFAULT_ADMIN_ROLE','MINTER_ROLE',...customRoles];
   if(abiFn(source,'hasRole(bytes32,address)','bool')){
    const roleAdmin=abiFn(source,'getRoleAdmin(bytes32)','bytes32');
-   for(const name of ['DEFAULT_ADMIN_ROLE','MINTER_ROLE']){
+   for(const name of roleNames){
     const role=name==='DEFAULT_ADMIN_ROLE'?'0x'+'0'.repeat(64):abiFn(source,name+'()','bytes32')?await word(address,name+'()'):null;if(!role)continue;
     if(roleAdmin){const adminRole=await word(address,'getRoleAdmin(bytes32)',role.slice(2));if(adminRole)details.observations.push({method:'getRoleAdmin',role:name,roleId:role,adminRole,block,...sourceProof});}
     const accounts=[...new Set(details.observations.map(x=>x.value).filter(x=>ADDRESS.test(x||'')))].slice(0,3);
@@ -197,11 +202,11 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
   }
   // Exact verified AccessControl interface; enumerate only a bounded sample.
   if(abiFn(source,'getRoleMemberCount(bytes32)','uint256')&&abiFn(source,'getRoleMember(bytes32,uint256)','address')&&abiFn(source,'hasRole(bytes32,address)','bool')){
-   for(const name of ['DEFAULT_ADMIN_ROLE','MINTER_ROLE']){
+   for(const name of roleNames){
     const role=name==='DEFAULT_ADMIN_ROLE'?'0x'+'0'.repeat(64):abiFn(source,name+'()','bytes32')?await word(address,name+'()'):null;if(!role)continue;
     const count=await word(address,'getRoleMemberCount(bytes32)',role.slice(2));if(!count)continue;const n=BigInt(count);details.observations.push({method:'getRoleMemberCount',role:name,roleId:role,count:n.toString(),block,...sourceProof,scope:'Zero members does not prove no alternative mint/admin authority.'});
     if(abiFn(source,'getRoleAdmin(bytes32)','bytes32')){const roleAdmin=await word(address,'getRoleAdmin(bytes32)',role.slice(2));if(roleAdmin)details.observations.push({method:'getRoleAdmin',role:name,roleAdmin,block});}
-    for(let i=0;i<Math.min(Number(n>4n?4n:n),4);i++){const member=addressWord(await call(address,'getRoleMember(bytes32,uint256)',role.slice(2)+BigInt(i).toString(16).padStart(64,'0')));if(!member)continue;const has=await word(address,'hasRole(bytes32,address)',role.slice(2)+member.slice(2).padStart(64,'0'));if(has&&BigInt(has)===1n){details.observations.push({method:'hasRole',role:name,member,value:true,block,...sourceProof});if(!fields.ownerAdmin)fields.ownerAdmin=fact(name+': '+member,'Verified ABI + enumerated role membership',{...sourceProof,role:name,roleId:role,member,scope:'Confirmed membership only. Role execution semantics and other roles not inferred.'},'GETTER_REPORTED');}}
+    for(let i=0;i<Math.min(Number(n>4n?4n:n),4);i++){const member=addressWord(await call(address,'getRoleMember(bytes32,uint256)',role.slice(2)+BigInt(i).toString(16).padStart(64,'0')));if(!member)continue;const has=await word(address,'hasRole(bytes32,address)',role.slice(2)+member.slice(2).padStart(64,'0'));if(has&&BigInt(has)===1n){details.observations.push({method:'hasRole',role:name,member,value:true,block,...sourceProof,scope:'Confirmed membership only. Role execution semantics and other roles not inferred.'});if(!fields.ownerAdmin)fields.ownerAdmin=fact(name+': '+member,'Verified ABI + enumerated role membership',{...sourceProof,role:name,roleId:role,member,scope:'Confirmed membership only. Role execution semantics and other roles not inferred.'},'GETTER_REPORTED');}}
    }
   }
   const profile=PROFILES[source.digest]||(source.template?'OZ_ERC20_TEMPLATE':undefined);details.reviewedProfile=profile||null;
