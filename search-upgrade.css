@@ -538,3 +538,213 @@ html.search-upgraded #search .home-search-form{gap:7px;grid-template-rows:auto a
  .nav .nav-radar{padding:8px;font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){.nav .nav-radar{transition:none}}
+
+
+/*
+ * ARCY SEARCH — restrained editorial / premium visual treatment.
+ * Presentation only. No scripts, API endpoints, data bindings, search logic,
+ * hero animation, Radar, Pulse, Burn or other site sections are changed.
+ *
+ * This stylesheet is deliberately mounted last and scoped to #search.
+ */
+html.search-upgraded #search {
+  background:linear-gradient(180deg,#08111b 0%,#0a1420 45%,#08121c 100%);
+  color:#eaf1f7;
+}
+html.search-upgraded #search .home-search {
+  --search-outline:#2a3d4e;
+  --search-copy:#a9bac8;
+  border:1px solid var(--search-outline);
+  border-radius:18px;
+  background:linear-gradient(155deg,#101e2d 0%,#0d1926 64%,#0b1723 100%);
+  box-shadow:0 18px 46px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.035);
+}
+html.search-upgraded #search .home-search-brand-row {
+  align-items:center;
+  gap:14px;
+  margin-bottom:10px;
+}
+html.search-upgraded #search .home-search-brand {gap:10px}
+html.search-upgraded #search .home-search-brand-icon {
+  color:#8ec8d6;
+  text-shadow:none;
+}
+html.search-upgraded #search .home-search-wordmark {
+  font-weight:760;
+  letter-spacing:-.045em;
+}
+html.search-upgraded #search .home-search-arcy {color:#f2f6f9}
+html.search-upgraded #search .home-search-search {
+  color:#a6d5df;
+  letter-spacing:-.015em;
+  text-shadow:none;
+}
+html.search-upgraded #search .home-search-chain-count {
+  border:1px solid #34495a;
+  border-radius:999px;
+  padding:5px 9px;
+  background:#132434;
+  color:#b5c6d2;
+  font-size:10px;
+  font-weight:650;
+}
+html.search-upgraded #search .home-search-intro {
+  color:var(--search-copy);
+  font-size:13px;
+  line-height:1.6;
+  margin-bottom:17px;
+}
+html.search-upgraded #search .home-search-form {gap:12px}
+html.search-upgraded #search .home-search-input-wrap {
+  height:auto;
+  min-height:52px;
+  max-height:none;
+  border:1px solid #405367;
+  border-radius:11px;
+  background:#0a1622;
+  box-shadow:none;
+  padding-inline:13px;
+  transition:border-color .15s ease,box-shadow .15s ease;
+}
+html.search-upgraded #search .home-search-input-wrap:focus-within {
+  border-color:#89c7d5;
+  box-shadow:0 0 0 3px rgba(137,199,213,.12);
+}
+html.search-upgraded #search .home-search-glass {color:#9bb5c5}
+html.search-upgraded #search .home-search-form input {
+  color:#f2f6f8;
+  font-size:14px;
+  font-weight:450;
+}
+html.search-upgraded #search .home-search-form input::placeholder {color:#95a8b7;opacity:1}
+html.search-upgraded #search .home-network-picker {
+  border:1px solid #293e4f;
+  border-radius:11px;
+  background:#101f2e;
+  padding:7px;
+}
+html.search-upgraded #search .home-network-segments {gap:6px}
+html.search-upgraded #search .home-network-segments .home-network-option {
+  min-height:44px;
+  border:1px solid #344b5e;
+  border-radius:9px;
+  background:#122637;
+  color:#c5d2dc;
+  box-shadow:none;
+  font-weight:640;
+  transition:background-color .15s ease,border-color .15s ease;
+}
+html.search-upgraded #search .home-network-segments .home-network-option:hover {
+  background:#1a3144;
+  border-color:#536b7e;
+}
+html.search-upgraded #search .home-network-segments .home-network-option[aria-pressed=true] {
+  border-color:#7098a8;
+  background:#233d50;
+  color:#f0f5f7;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+html.search-upgraded #search .home-network-segments .home-network-option[data-network=all] {
+  background:transparent;
+  border-color:transparent;
+  color:#c7d8e2;
+}
+html.search-upgraded #search .home-network-segments .home-network-option[data-network=all][aria-pressed=true] {
+  background:#1b3344;
+  border-color:#405c6b;
+}
+html.search-upgraded #search .home-network-segments .home-network-option[data-network=all][aria-pressed=true]::after {
+  border-color:#89bdaf;
+  color:#a6d5c9;
+}
+html.search-upgraded #search .home-search-submit {
+  min-height:50px;
+  border:1px solid #75b4c3;
+  border-radius:10px;
+  background:#77bbcb;
+  color:#0b202d;
+  box-shadow:none;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.035em;
+  transition:background-color .15s ease,border-color .15s ease;
+}
+html.search-upgraded #search .home-search-submit:hover,
+html.search-upgraded #search .home-search-submit:focus-visible {
+  background:#90cbd6;
+  border-color:#a4d9e1;
+  filter:none;
+}
+html.search-upgraded #search .home-search-submit:focus-visible,
+html.search-upgraded #search .home-network-option:focus-visible,
+html.search-upgraded #search .home-search-result:focus-visible,
+html.search-upgraded #search .home-search-notes>summary:focus-visible {
+  outline:2px solid #a3d7e0;
+  outline-offset:3px;
+}
+html.search-upgraded #search .home-search-submit:disabled {opacity:.56}
+html.search-upgraded #search .home-search-results,
+html.search-upgraded #search .home-search-suggest {gap:8px}
+html.search-upgraded #search .home-search-result {
+  border-color:#2c4558;
+  border-radius:10px;
+  background:#122434;
+  color:#e6eff3;
+}
+html.search-upgraded #search .home-search-result:hover {
+  border-color:#729dad;
+  background:#1a3042;
+}
+html.search-upgraded #search .home-search-suggest {
+  border-color:#304b5d;
+  background:#0d1c2a;
+  box-shadow:0 18px 38px rgba(0,0,0,.38);
+}
+html.search-upgraded #search .home-search-suggest-label {color:#a9cbd4}
+html.search-upgraded #search .home-search-state {color:#aec3cf}
+html.search-upgraded #search .home-search-notes {
+  border-top:1px solid #263c4d;
+  margin-top:13px;
+  padding-top:11px;
+  color:#a6bac8;
+}
+html.search-upgraded #search .home-search-notes>summary {
+  font-size:11px;
+  color:#b6cbd7;
+}
+html.search-upgraded #search .home-search-attribution {
+  color:#a9bbc8;
+  font-size:11px;
+  line-height:1.6;
+}
+html.search-upgraded #search .home-search-disclaimer {
+  margin-top:8px;
+  color:#94aaba;
+  font-size:10px;
+  line-height:1.55;
+}
+@media(max-width:560px) {
+  html.search-upgraded #search .app {padding:10px 8px}
+  html.search-upgraded #search .home-search {padding:19px 15px 17px;border-radius:16px}
+  html.search-upgraded #search .home-search-brand-row {margin-bottom:9px;gap:7px}
+  html.search-upgraded #search .home-search-wordmark {font-size:clamp(20px,5.4vw,24px)}
+  html.search-upgraded #search .home-search-intro {font-size:12px;margin-bottom:15px}
+  html.search-upgraded #search .home-search-form {gap:10px}
+  html.search-upgraded #search .home-search-input-wrap {min-height:50px}
+  html.search-upgraded #search .home-network-segments .home-network-option {
+    min-height:44px;font-size:11px;
+  }
+  html.search-upgraded #search .home-search-submit {min-height:49px;font-size:12px}
+  html.search-upgraded #search .home-search-disclaimer {font-size:10px}
+}
+@media(max-width:380px) {
+  html.search-upgraded #search .home-search {padding-inline:12px}
+  html.search-upgraded #search .home-search-wordmark {font-size:19px}
+  html.search-upgraded #search .home-search-chain-count {padding:4px 6px;font-size:9px}
+  html.search-upgraded #search .home-network-segments .home-network-option {font-size:10px}
+}
+@media(prefers-reduced-motion:reduce) {
+  html.search-upgraded #search .home-search-input-wrap,
+  html.search-upgraded #search .home-network-option,
+  html.search-upgraded #search .home-search-submit {transition:none}
+}
