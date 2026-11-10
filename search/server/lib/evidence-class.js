@@ -8,7 +8,7 @@
 //   NOT_VERIFIED       no usable value; `provenance.failureReason` says why (never silent)
 const lineageOf=require('./evidence-lineage').lineage;
 const CLASSES=Object.freeze(['ON_CHAIN_VERIFIED','CROSS_VERIFIED','SINGLE_SOURCE','STALE','NOT_VERIFIED']);
-const ONCHAIN=new Set(['ON_CHAIN','ON_CHAIN_DERIVED','SIGNED_ONCHAIN_SNAPSHOT','VERIFIED_SOURCE_AND_STATE','SOURCE_REPORTED_RPC_RECONCILED']);
+const ONCHAIN=new Set(['ON_CHAIN','ON_CHAIN_DERIVED','SIGNED_ONCHAIN_SNAPSHOT','VERIFIED_SOURCE_AND_STATE']);
 // Freshness limits (documented targets, see docs/audits/quality-targets-*.md). Market data is live-fetched; holder snapshots are pinned.
 const LIMITS=Object.freeze({marketAgeMs:30*60*1000,holderBlockAgeSeconds:24*3600,defaultAgeMs:24*3600*1000});
 const MARKET_CARDS=new Set(['liquidity','activity']);
@@ -29,6 +29,7 @@ function asOf(f){
 }
 function underlying(f,lin){
  if(f.crossCheck?.state==='AGREE')return ['CROSS_VERIFIED','two independent providers agreed ('+(f.crossCheck.providers||[]).join(' + ')+')'];
+ if(f.status==='SOURCE_REPORTED_RPC_RECONCILED')return ['SINGLE_SOURCE','RPC checked the source-ranked candidates at the pinned block; candidate-list completeness and the chain-wide ranking are not verified'];
  if(lin&&!lin.onchainOnly)return ['SINGLE_SOURCE','derived value capped by its weakest essential input: '+lin.reason+'; status '+f.status+' is kept for compatibility but is not an on-chain verification'];
  if(ONCHAIN.has(f.status))return ['ON_CHAIN_VERIFIED','status '+f.status+(lin?' (all essential inputs on-chain)':'')];
  return ['SINGLE_SOURCE','status '+f.status+(f.source?' from '+f.source:'')+'; no independent confirmation recorded'];

@@ -18,6 +18,16 @@ test('five classes: on-chain, cross-verified, single-source, stale, not verified
  assert.equal(c({value:null,status:'NOT_VERIFIED',dataState:'NOT_VERIFIED'}).provenance.failureReason,'UNSPECIFIED_NOT_VERIFIED','unlabelled failures are flagged, not hidden');
  assert.equal(c(undefined).provenance.failureReason,'FIELD_ABSENT');
 });
+
+test('source-ranked RPC candidate metrics are not classified as exhaustive on-chain rankings',()=>{
+ const field={value:6.1444,status:'SOURCE_REPORTED_RPC_RECONCILED',dataState:'DATA_FOUND',
+  source:'Blockscout candidate addresses + Ethereum RPC',
+  evidence:[{block:'0x1929925',method:'balanceOf(address) for 21 candidates',limitation:'Candidate membership is explorer-reported; an unlisted wallet may rank higher.'}]};
+ const result=ec.classify(field,{card:'holders',now:NOW});
+ assert.equal(result.evidenceClass,'SINGLE_SOURCE');
+ assert.match(result.evidenceClassBasis,/candidate-list completeness and the chain-wide ranking are not verified/);
+ assert.equal(field.status,'SOURCE_REPORTED_RPC_RECONCILED','raw API verification status is unchanged');
+});
 test('annotate is additive: values/status untouched; summary counts and unlabeled failures are reported',()=>{
  const report={cards:{holders:{fields:{holderCount:{value:3,status:'SIGNED_ONCHAIN_SNAPSHOT',dataState:'DATA_FOUND'},top10Pct:{value:null,status:'NOT_VERIFIED',dataState:'NOT_VERIFIED'}}}}};
  const before=JSON.stringify(report.cards.holders.fields.holderCount.value);
