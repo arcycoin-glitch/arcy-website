@@ -30,10 +30,13 @@ function holderWorker(diag,now){
  const last=w.scheduler?.lastInvocation,heartbeatAge=ageSeconds(last?.at,now);
  const tokens=Array.isArray(w.tokens)?w.tokens:[];
  // The checkpoint phase is retained after a token completes; the last slice outcome decides whether work remains.
- const open=t=>t&&t.phase&&t.phase!=='COMPLETE'&&t.lastState!=='COMPLETE';
+ // FAILED and UNSUPPORTED jobs are terminal between their scheduled retries, not active work.
+ const terminal=new Set(['COMPLETE','FAILED','UNSUPPORTED']);
+ const open=t=>t&&t.phase&&t.phase!=='COMPLETE'&&!terminal.has(t.lastState);
  const inProgress=tokens.filter(open).length;
- const failing=tokens.filter(t=>t&&(t.lastState==='FAILED')).length;
- // Stalled: work remains, the token was served, and its last slice advanced nothing while not completing.
+ const failing=tokens.filter(t=>t&&t.lastState==='FAILED').length;
+ const unsupported=tokens.filter(t=>t&&t.lastState==='UNSUPPORTED').length;
+ // Stalled: active work remains, the token was served, and its last slice advanced nothing.
  const stalled=tokens.filter(t=>open(t)&&t.lastState&&t.lastAdvanced===0&&finite(t.slices)&&t.slices>=3).length;
  const completeIdle=tokens.filter(t=>t&&t.lastState==='COMPLETE'&&finite(t.idleMs)).map(t=>t.idleMs);
  const m=w.rpc?.metrics||{},requests=finite(m.requests)?m.requests:null,r429=finite(m.http429)?m.http429:null;
@@ -51,7 +54,7 @@ function holderWorker(diag,now){
  const states=last&&last.states&&typeof last.states==='object'?Object.fromEntries(Object.entries(last.states).filter(([k,v])=>code(k)&&finite(v)).slice(0,12)):null;
  return {state,reasonCode,
   heartbeat:{lastInvocationAt:finite(last?.at)?new Date(last.at).toISOString():null,ageSeconds:heartbeatAge,lastInvocationMs:finite(last?.elapsedMs)?Math.round(last.elapsedMs):null,lastInvocationServed:Array.isArray(last?.served)?last.served.length:null,lastInvocationStates:states},
-  backlog:{tokensTracked:tokens.length,inProgress,complete:tokens.filter(t=>t&&t.lastState==='COMPLETE').length,failing,stalled},
+  backlog:{tokensTracked:tokens.length,inProgress,complete:tokens.filter(t=>t&&t.lastState==='COMPLETE').length,failing,unsupported,stalled},
   lastCompleteSliceAgeSeconds:completeIdle.length?Math.round(Math.min(...completeIdle)/1000):null,
   rpc:{requests,http429:r429,http429Share:share===null?null:Math.round(share*1000)/1000,providers:providers.length,providersCooling:cooling},
   scheduler:w.scheduler?.totals&&typeof w.scheduler.totals==='object'?Object.fromEntries(Object.entries(w.scheduler.totals).filter(([,v])=>finite(v))):null,
