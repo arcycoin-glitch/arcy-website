@@ -51,6 +51,7 @@ function holderWorker(diag,now){
  if(state===STATE.HEALTHY&&share!==null&&requests>=LIMITS.rpc429MinRequests&&share>=LIMITS.rpc429DegradedShare){state=STATE.DEGRADED;reasonCode='RPC_429_SHARE_HIGH';}
  if(state===STATE.HEALTHY&&providers.length&&cooling===providers.length){state=STATE.DEGRADED;reasonCode='ALL_RPC_PROVIDERS_COOLING';}
  if(state===STATE.HEALTHY&&inProgress&&stalled===inProgress){state=STATE.DEGRADED;reasonCode='ALL_IN_PROGRESS_WORK_STALLED';}
+ if(state===STATE.HEALTHY&&failing>0){state=STATE.DEGRADED;reasonCode='HOLDER_JOBS_FAILED';}
  const states=last&&last.states&&typeof last.states==='object'?Object.fromEntries(Object.entries(last.states).filter(([k,v])=>code(k)&&finite(v)).slice(0,12)):null;
  return {state,reasonCode,
   heartbeat:{lastInvocationAt:finite(last?.at)?new Date(last.at).toISOString():null,ageSeconds:heartbeatAge,lastInvocationMs:finite(last?.elapsedMs)?Math.round(last.elapsedMs):null,lastInvocationServed:Array.isArray(last?.served)?last.served.length:null,lastInvocationStates:states},
