@@ -748,3 +748,236 @@ html.search-upgraded #search .home-search-disclaimer {
   html.search-upgraded #search .home-network-option,
   html.search-upgraded #search .home-search-submit {transition:none}
 }
+
+
+/* ARCY SEARCH V2 — structural layout (preview only).
+ * Separate the lookup/action strip from the compact network selector.
+ * Strictly scoped to #search; all existing source/results logic stays unchanged.
+ */
+html.search-upgraded #search .home-search {
+  width:100%;
+  max-width:1050px;
+  padding:clamp(22px,3.3vw,36px);
+  border-color:#334b5b;
+  border-radius:20px;
+  background:linear-gradient(150deg,#101f2d 0%,#0b1724 90%);
+  box-shadow:0 22px 58px rgba(0,0,0,.29),inset 0 1px rgba(255,255,255,.04);
+}
+html.search-upgraded #search .home-search-brand-row {
+  margin-bottom:8px;
+  gap:12px;
+}
+html.search-upgraded #search .home-search-intro {
+  margin:0 0 24px;
+  max-width:62ch;
+  color:#acbdc9;
+  line-height:1.58;
+  font-size:13px;
+}
+html.search-upgraded #search .home-search-form {
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  width:100%;
+  grid-template-columns:none;
+  grid-template-rows:none;
+}
+html.search-upgraded #search .home-search-query-label,
+html.search-upgraded #search .home-network-picker>.home-field-label {
+  display:block;
+  margin:0 0 9px;
+  font-family:inherit;
+  color:#93b1bf;
+  font-size:10px;
+  font-weight:750;
+  letter-spacing:.14em;
+  line-height:1.4;
+}
+html.search-upgraded #search .home-search-query-row {
+  position:relative;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 146px;
+  align-items:stretch;
+  gap:9px;
+  width:100%;
+}
+html.search-upgraded #search .home-search-query-row>.home-search-input-wrap {
+  grid-row:auto;
+  grid-column:auto;
+  display:flex;
+  width:100%;
+  min-width:0;
+  height:56px;
+  max-height:none;
+  min-height:56px;
+  padding:0 16px;
+  border:1px solid #415769;
+  border-radius:12px;
+  background:#081522;
+}
+html.search-upgraded #search .home-search-query-row input {
+  min-width:0;
+  font-size:14px;
+}
+html.search-upgraded #search .home-search-query-row>.home-search-submit {
+  grid-row:auto;
+  grid-column:auto;
+  width:100%;
+  min-width:0;
+  min-height:56px;
+  border-radius:12px;
+  font-size:13px;
+  letter-spacing:.018em;
+  white-space:nowrap;
+}
+html.search-upgraded #search .home-network-picker {
+  grid-row:auto;
+  grid-column:auto;
+  display:block;
+  width:100%;
+  margin:21px 0 0;
+  padding:17px 0 0;
+  border:0;
+  border-top:1px solid #293f4f;
+  border-radius:0;
+  background:transparent;
+}
+html.search-upgraded #search .home-network-segments {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  padding:0;
+  margin:0;
+  border:0;
+  background:transparent;
+}
+html.search-upgraded #search .home-network-segments .home-network-option,
+html.search-upgraded #search .home-network-segments .home-network-option[data-network=all] {
+  grid-column:auto;
+  grid-row:auto;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:row;
+  gap:7px;
+  width:100%;
+  min-width:0;
+  min-height:50px;
+  margin:0;
+  padding:9px 10px;
+  border:1px solid #304b5f;
+  border-radius:12px;
+  background:#142739;
+  color:#c7d7df;
+  box-shadow:none;
+  text-align:center;
+  font-size:12px;
+  font-weight:670;
+}
+html.search-upgraded #search .home-network-segments .home-network-option:hover {
+  border-color:#628596;
+  background:#1c3447;
+}
+html.search-upgraded #search .home-network-segments .home-network-option[aria-pressed=true],
+html.search-upgraded #search .home-network-segments .home-network-option[data-network=all][aria-pressed=true] {
+  border-color:#80b5c4;
+  background:#223d4e;
+  color:#f4f9fa;
+  box-shadow:inset 0 0 0 1px rgba(128,181,196,.14);
+}
+html.search-upgraded #search .home-network-segments .home-network-option[data-network=all][aria-pressed=true]::after {
+  display:none;
+  content:none;
+}
+html.search-upgraded #search .home-network-segments .home-network-option-name {
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  line-height:1.2;
+}
+html.search-upgraded #search .home-network-segments .home-network-mark {
+  flex:none;
+  width:21px;
+  height:21px;
+}
+html.search-upgraded #search .home-search-query-row>.home-search-suggest {
+  position:absolute;
+  z-index:30;
+  top:calc(100% + 6px);
+  left:0;
+  right:0;
+  width:100%;
+  max-height:min(320px,46vh);
+  margin:0;
+  border:1px solid #355368;
+  border-radius:12px;
+  background:#0c1a29;
+  box-shadow:0 19px 40px rgba(0,0,0,.40);
+  overflow:auto;
+}
+html.search-upgraded #search .home-search-state {margin-top:11px}
+html.search-upgraded #search .home-search-results {margin-top:12px}
+html.search-upgraded #search .home-search-notes {margin-top:19px}
+html.search-upgraded #search .home-search-disclaimer {
+  margin-top:9px;
+  max-width:90ch;
+}
+@media(max-width:719px) {
+  html.search-upgraded #search .home-search {
+    max-width:560px;
+    padding:22px 17px 20px;
+    border-radius:18px;
+  }
+  html.search-upgraded #search .home-search-intro {
+    margin-bottom:20px;
+    font-size:12px;
+  }
+  html.search-upgraded #search .home-search-query-row {
+    grid-template-columns:minmax(0,1fr) 94px;
+    gap:7px;
+  }
+  html.search-upgraded #search .home-search-query-row>.home-search-input-wrap {
+    height:52px;
+    min-height:52px;
+    padding:0 11px;
+    border-radius:10px;
+  }
+  html.search-upgraded #search .home-search-query-row input {font-size:12px}
+  html.search-upgraded #search .home-search-query-row>.home-search-submit {
+    min-height:52px;
+    padding:8px 5px;
+    font-size:11px;
+    border-radius:10px;
+  }
+  html.search-upgraded #search .home-network-picker {
+    margin-top:17px;
+    padding-top:15px;
+  }
+  html.search-upgraded #search .home-network-segments {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  html.search-upgraded #search .home-network-segments .home-network-option,
+  html.search-upgraded #search .home-network-segments .home-network-option[data-network=all] {
+    min-height:48px;
+    padding:8px 8px;
+    font-size:12px;
+    border-radius:10px;
+  }
+}
+@media(max-width:380px) {
+  html.search-upgraded #search .home-search {padding-inline:12px}
+  html.search-upgraded #search .home-search-query-row {
+    grid-template-columns:minmax(0,1fr) 78px;
+  }
+  html.search-upgraded #search .home-search-query-row>.home-search-submit {font-size:10px}
+  html.search-upgraded #search .home-network-segments .home-network-option,
+  html.search-upgraded #search .home-network-segments .home-network-option[data-network=all] {
+    gap:5px;
+    font-size:11px;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  html.search-upgraded #search .home-network-segments .home-network-option {transition:none}
+}
