@@ -40,12 +40,31 @@ const BASELINE = Object.freeze({
   "search/assets/ethereum-mark.svg": "b92e033331b638dc4e2904aaa96b9f7e20917eb7",
   "search/assets/robinhood-chain-mark.svg": "3cb7faadf2cd29c1b158065283c688f424079a8e"
 });
-function blobSha(buffer) {
+const TEXT_EXTENSIONS = new Set(['.html', '.css', '.js', '.svg']);
+function gitBlobSha(buffer) {
   return crypto.createHash('sha1').update('blob '+buffer.length+'\0').update(buffer).digest('hex');
 }
+function blobSha(buffer, file = '') {
+  if (!TEXT_EXTENSIONS.has(path.extname(file).toLowerCase())) return gitBlobSha(buffer);
+  const text = buffer.toString('utf8');
+  const hasBareLf = /(?<!\r)\n/.test(text);
+  const normalized = hasBareLf ? buffer : Buffer.from(text.replace(/\r\n/g, '\n'));
+  return gitBlobSha(normalized);
+}
+test('scope fingerprints canonicalize Windows newlines like Git', () => {
+  assert.equal(blobSha(Buffer.from('first\nsecond\n'), 'index.html'), blobSha(Buffer.from('first\r\nsecond\r\n'), 'index.html'));
+});
+test('scope fingerprints preserve mixed line endings as Git does', () => {
+  const mixed = Buffer.from('first\r\nsecond\n');
+  assert.notEqual(blobSha(mixed, 'index.html'), blobSha(Buffer.from('first\nsecond\n'), 'index.html'));
+});
+test('scope fingerprints preserve binary asset bytes exactly', () => {
+  const binary = Buffer.from([0x00, 0x0d, 0x0a, 0xff, 0xfe]);
+  assert.equal(blobSha(binary, 'hero.webp'), gitBlobSha(binary));
+});
 test('DATA-ONLY audit: immutable main website, Search and Radar skeleton must be byte-for-byte unchanged', () => {
   for (const [file, expected] of Object.entries(BASELINE)) {
     const content=fs.readFileSync(path.resolve(__dirname,'..',file));
-    assert.equal(blobSha(content),expected,'PROTECTED SKELETON MODIFIED: '+file+'; revert UI change, do NOT refresh fixture');
+    assert.equal(blobSha(content,file),expected,'PROTECTED SKELETON MODIFIED: '+file+'; revert UI change, do NOT refresh fixture');
   }
 });
