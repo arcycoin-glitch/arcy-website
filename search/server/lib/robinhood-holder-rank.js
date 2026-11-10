@@ -26,6 +26,9 @@ function rows(body){
 }
 const MAX_CENSUS_HOLDERS=60;
 const MAX_CENSUS_PAGES=2;
+const RPC_SCAN_BUDGET_MS=25000;
+const RPC_REQUEST_TIMEOUT_MS=4000;
+const RPC_CONCURRENCY=4;
 const CURSOR_KEYS=new Set(['address_hash','value','items_count']);
 function parseCensusPage(body){
  if(!body||!Array.isArray(body.items)||body.items.length>50)return null;
@@ -119,14 +122,16 @@ async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,repor
    try{censusRows=await completeCandidates(firstBody,requestUrl,reportedHolderCount,fetcher);}catch{censusRows=null;}
   }
   if(typeof verifyBlock==='function'){
-   try{await verifyBlock();}catch{return unavailable('ROBINHOOD_BLOCK_ANCHOR_CHANGED');}
+   try{await verifyBlock({timeoutMs:RPC_REQUEST_TIMEOUT_MS});}catch{return unavailable('ROBINHOOD_BLOCK_ANCHOR_CHANGED');}
   }
   const readRows=censusRows||ranked;
-  const balances=Array(readRows.length).fill(null);let cursor=0;
-  await Promise.all(Array.from({length:Math.min(4,readRows.length)},async()=>{for(;;){
-   const i=cursor++;if(i>=readRows.length)return;const row=readRows[i];
+  const balances=Array(readRows.length).fill(null);let cursor=0,rpcRequests=0;
+  const rpcDeadline=Date.now()+RPC_SCAN_BUDGET_MS;
+  await Promise.all(Array.from({length:Math.min(RPC_CONCURRENCY,readRows.length)},async()=>{for(;;){
+   if(Date.now()>=rpcDeadline)return;
+   const i=cursor++;if(i>=readRows.length)return;const row=readRows[i];rpcRequests++;
    try{
-    const word=await rpcCall('eth_call',[{to:token,data:'0x70a08231'+row.address.slice(2).padStart(64,'0')},block]);
+    const word=await rpcCall('eth_call',[{to:token,data:'0x70a08231'+row.address.slice(2).padStart(64,'0')},block],{timeoutMs:RPC_REQUEST_TIMEOUT_MS});
     if(typeof word==='string'&&/^0x[0-9a-f]{64}$/i.test(word)){
      const balance=BigInt(word);
      if(balance>0n)balances[i]={address:row.address,balance};
@@ -136,7 +141,7 @@ async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,repor
   if(ranked.some((row,i)=>i<ranked.length&&(!balances[i]||balances[i].address!==row.address)))
    return unavailable('BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED');
   if(typeof verifyBlock==='function'){
-   try{await verifyBlock();}catch{return unavailable('ROBINHOOD_BLOCK_ANCHOR_CHANGED');}
+   try{await verifyBlock({timeoutMs:RPC_REQUEST_TIMEOUT_MS});}catch{return unavailable('ROBINHOOD_BLOCK_ANCHOR_CHANGED');}
   }
   const total=BigInt(totalSupplyRaw);
   const censusTotal=balances.every(Boolean)?balances.reduce((sum,row)=>sum+row.balance,0n):null;
@@ -166,6 +171,7 @@ async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,repor
   const evidence=[{network:'robinhood',chainId:4663,address:token,sourceUrl,block,
    method:'Blockscout sorted holder candidates + pinned Robinhood RPC balanceOf(wallet) reconciliation',
    matchedWallets:reconciled.length,censusComplete,verifiedPositiveHolderCount:censusComplete?reconciled.length:null,
+   pinnedBalanceRequests:rpcRequests,rpcConcurrencyLimit:RPC_CONCURRENCY,rpcTimeBudgetMs:RPC_SCAN_BUDGET_MS,
    explorerBalanceAtDifferentBlockIgnored:true,sourceRankCompleteness:censusComplete?'ONCHAIN_RECONCILED':'SOURCE_REPORTED',...A.concentrationScope(excluded),holderCountIncludesBurnAddresses:censusComplete&&excluded.length>0,
    scope:censusComplete?
     'Every positive balance candidate matched RPC and together they account for 100% of totalSupply at the same block. For fewer than 10/20 holders, the respective top percentage includes every wallet. Wallets do not imply distinct beneficial owners.':
@@ -181,5 +187,5 @@ async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,repor
   };
  }catch{return unavailable('BLOCKSCOUT_HOLDERS_REQUEST_FAILED');}
 }
-module.exports={rows,percentage,fetchRank,completeCandidates,MAX_CENSUS_HOLDERS};
+module.exports={rows,percentage,fetchRank,completeCandidates,MAX_CENSUS_HOLDERS,RPC_SCAN_BUDGET_MS,RPC_REQUEST_TIMEOUT_MS,RPC_CONCURRENCY};
 
