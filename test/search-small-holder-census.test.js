@@ -104,7 +104,7 @@ test('Robinhood paginates and reconciles a bounded 21-60 holder census at the pi
  assert.equal(pages.length,2,'all explorer pages are fetched');
  assert.equal(result.holderCount.value,25);
  assert.equal(result.holderCount.status,'ONCHAIN_RECONCILED');
- assert.equal(result.top20Pct.value,Number((270000000000000n+162n)/325n)/1e12);
+ assert.equal(result.top20Pct.value,Number((310n*100n*10n**12n+325n/2n)/325n)/1e12);
  assert.equal(result.top20Pct.evidence[0].censusComplete,true);
  assert.equal(result.top20Pct.evidence[0].matchedWallets,25);
  assert.equal(base.calls.filter(x=>x[0]==='pinnedRpc').length,25);
