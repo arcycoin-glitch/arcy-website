@@ -44,7 +44,7 @@ test('dispatcher scan accepts compared selectors only',()=>{
  assert.equal(privilege.dispatchSelectors('0x').size,0);assert.equal(privilege.dispatchSelectors('not-hex').size,0);
 });
 
-test('five states are kept apart: executable, confirmed, detected, revoked, unknown',async()=>{
+test('paired pause state does not overstate the access gate; direct evidence states remain distinct',async()=>{
  const code=runtime(['owner()','mint(address,uint256)','pause()','unpause()','blacklist(address)','transferOwnership(address)','grantRole(bytes32,address)']);
  // Owner may mint and pause; unpause reverts for everyone (not paused); blacklist is gated by someone else.
  const live=node({codes:{[TOKEN]:code},owner:OWNER,gate:(from,sel)=>from===OWNER&&[S('mint(address,uint256)'),S('pause()')].includes(sel)});
@@ -52,24 +52,32 @@ test('five states are kept apart: executable, confirmed, detected, revoked, unkn
  assert.equal(result.status,'ANALYZED');assert.equal(result.block,'0x1312d00');
  assert.equal(state(result,'mint(address,uint256)'),'PRIVILEGE_CURRENTLY_EXECUTABLE');
  assert.equal(state(result,'pause()'),'PRIVILEGE_CURRENTLY_EXECUTABLE');
- assert.equal(state(result,'unpause()'),'PRIVILEGE_CONFIRMED');
+ assert.equal(state(result,'unpause()'),'FUNCTION_DETECTED');
+ assert.match(result.functions.find(f=>f.signature==='unpause()').note,/shared access gate .* not established/);
  assert.equal(state(result,'blacklist(address)'),'FUNCTION_DETECTED');
  // Argument-bearing administrative functions are detected, never simulated.
  assert.equal(state(result,'transferOwnership(address)'),'FUNCTION_DETECTED');assert.equal(state(result,'grantRole(bytes32,address)'),'FUNCTION_DETECTED');
  assert.ok(!live.calls.some(c=>c.method==='eth_call'&&[S('transferOwnership(address)'),S('grantRole(bytes32,address)')].includes(c.params[0].data.slice(0,10))));
  assert.deepEqual(result.authorities,[{kind:'OWNER',holder:OWNER,holderType:'EOA',state:'ACTIVE',method:'owner()',block:'0x1312d00'}]);
- assert.equal(result.summary.currentlyExecutable,2);assert.equal(result.summary.privilegeConfirmed,1);assert.equal(result.summary.functionDetectedOnly,3);
+ assert.equal(result.summary.currentlyExecutable,2);assert.equal(result.summary.privilegeConfirmed,0);assert.equal(result.summary.functionDetectedOnly,4);
+ // The reverse case is equally conservative: an executable unpause() does not prove pause() uses the same gate.
+ const reverse=node({codes:{[TOKEN]:runtime(['owner()','pause()','unpause()'])},owner:OWNER,gate:(from,sel)=>from===OWNER&&sel===S('unpause()')});
+ const reverseResult=await run(reverse);
+ assert.equal(state(reverseResult,'unpause()'),'PRIVILEGE_CURRENTLY_EXECUTABLE');
+ assert.equal(state(reverseResult,'pause()'),'FUNCTION_DETECTED');
+ assert.match(reverseResult.functions.find(f=>f.signature==='pause()').note,/shared access gate .* not established/);
  const mint=result.functions.find(f=>f.signature==='mint(address,uint256)');
  assert.equal(mint.authority,OWNER);assert.equal(mint.evidence.length,3);assert.equal(mint.evidence[1].outcome,'REVERTS');assert.equal(mint.evidence[2].outcome,'SUCCEEDS');
  // No transaction method is ever sent and the budget holds.
  assert.ok(live.calls.every(c=>['eth_chainId','eth_blockNumber','eth_getCode','eth_getStorageAt','eth_call'].includes(c.method)));
  assert.ok(result.cost.rpcCalls<=28);
 
- // Renounced ownership: only the zero address passes the gate -> revoked, with the zero owner reported as an authority.
+ // Renounced ownership: the owner value is zero and the zero-address simulation passes; this does not exclude other authority routes.
  const renounced=node({codes:{[TOKEN]:runtime(['owner()','mint(address,uint256)','pause()'])},owner:ZERO,gate:(from,sel)=>from===ZERO&&sel===S('mint(address,uint256)')});
  const gone=await run(renounced);
  assert.equal(state(gone,'mint(address,uint256)'),'PRIVILEGE_REVOKED');assert.equal(state(gone,'pause()'),'FUNCTION_DETECTED');
  assert.equal(gone.authorities[0].state,'REVOKED');assert.equal(gone.authorities[0].holderType,'ZERO_ADDRESS');
+ assert.match(gone.functions.find(f=>f.signature==='mint(address,uint256)').note,/other authority routes were not tested/);
 
  // A provider error during simulation is UNKNOWN, never a revert and never a privilege claim.
  const flaky=node({codes:{[TOKEN]:runtime(['owner()','mint(address,uint256)'])},owner:OWNER,gate:()=>'provider'});
@@ -128,6 +136,8 @@ test('failures are explicit and never look like an analysed contract',async()=>{
  // Hard call budget.
  const tight=privilege.createReader({url:'https://rpc.example.test',chainId:1,fetcher:node().fetcher,maxCalls:1});
  await tight.send('eth_chainId',[]);assert.equal((await tight.send('eth_chainId',[])).state,'BUDGET');
+ const expired=privilege.createReader({url:'https://rpc.example.test',chainId:1,fetcher:node().fetcher,deadlineAt:Date.now()-1});
+ assert.equal((await expired.send('eth_chainId',[])).state,'DEADLINE');assert.equal(expired.cost.rpcCalls,0);
 });
 
 test('GET /api/search?action=privileges validates input before any read',async()=>{

@@ -8,8 +8,8 @@
 //                                   contract state (e.g. unpause() while not paused).
 //   PRIVILEGE_CURRENTLY_EXECUTABLE  at the pinned block the call succeeds when sent by the live authority AND reverts when
 //                                   sent by an unrelated control address.
-//   PRIVILEGE_REVOKED               owner() is the zero address, the call succeeds ONLY when simulated from the zero
-//                                   address and reverts for the control address: the gate exists, nobody can pass it.
+//   PRIVILEGE_REVOKED               owner() is the zero address; a zero-address simulation succeeds and one unrelated
+//                                   control reverts. This is scoped to owner(): other roles or authorization paths are not excluded.
 //   UNKNOWN                         a read failed or the answer was ambiguous.
 //
 // What is NOT claimed: role-gated functions stay FUNCTION_DETECTED (role holders are not guessed); a successful
@@ -51,7 +51,7 @@ const FUNCTIONS=Object.freeze([
  {category:'TRANSFER_RESTRICTION',signature:'setTradingEnabled(bool)'}
 ].map(f=>Object.freeze({...f,selector:selector(f.signature)})));
 const OWNER_SELECTOR=selector('owner()');
-const MAX_SIMULATED=5;
+const MAX_SIMULATED=5,MAX_ANALYSIS_MS=20000;
 
 // Linear disassembly (PUSH data skipped). A selector counts only when PUSH4 <sel> is compared with EQ directly or after
 // one DUP, the form solc and vyper dispatchers emit. A selector merely embedded as data or used in an external call is ignored.
@@ -82,16 +82,18 @@ function endpoints(network,env=process.env){
  return [rpcUrl('ethereum',env)];
 }
 // Minimal pinned reader. eth_call results are tri-state so a provider failure can never be read as a revert.
-function createReader({url,chainId,fetcher=fetch,maxCalls=28,paceMs=0,timeoutMs=5000,sleep=ms=>new Promise(r=>setTimeout(r,ms))}){
+function createReader({url,chainId,fetcher=fetch,maxCalls=28,paceMs=0,timeoutMs=5000,deadlineAt=Date.now()+MAX_ANALYSIS_MS,sleep=ms=>new Promise(r=>setTimeout(r,ms))}){
  const cost={rpcCalls:0};let id=0,last=0;
  async function send(method,params){
   if(!['eth_chainId','eth_blockNumber','eth_getCode','eth_getStorageAt','eth_call'].includes(method))throw Error('PRIVILEGE_METHOD_NOT_ALLOWED');
   if(cost.rpcCalls>=maxCalls)return {state:'BUDGET'};
-  const wait=last+paceMs-Date.now();if(paceMs>0&&wait>0)await sleep(wait);
+  let remaining=deadlineAt-Date.now();if(remaining<=0)return {state:'DEADLINE'};
+  const wait=last+paceMs-Date.now();if(paceMs>0&&wait>0){if(wait>=remaining)return {state:'DEADLINE'};await sleep(wait);remaining=deadlineAt-Date.now();if(remaining<=0)return {state:'DEADLINE'};}
   last=Date.now();cost.rpcCalls++;
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),Math.min(timeoutMs,remaining));
   try{
    const response=await fetcher(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:++id,method,params}),signal:controller.signal});
+   if(Date.now()>=deadlineAt)return {state:'DEADLINE'};
    if(!response.ok)return {state:'PROVIDER_ERROR',httpStatus:response.status};
    const body=await response.json();
    if(!body||body.jsonrpc!=='2.0'||body.id!==id)return {state:'PROVIDER_ERROR'};
@@ -100,7 +102,7 @@ function createReader({url,chainId,fetcher=fetch,maxCalls=28,paceMs=0,timeoutMs=
     return method==='eth_call'&&(body.error.code===3||REVERT.test(message))?{state:'REVERT'}:{state:'PROVIDER_ERROR',rpcCode:Number.isInteger(body.error.code)?body.error.code:null};
    }
    return typeof body.result==='string'?{state:'OK',result:body.result}:{state:'PROVIDER_ERROR'};
-  }catch{return {state:'PROVIDER_ERROR'};}
+  }catch{return {state:Date.now()>=deadlineAt?'DEADLINE':'PROVIDER_ERROR'};}
   finally{clearTimeout(timer);}
  }
  return {send,cost,chainId};
@@ -110,13 +112,13 @@ async function classify({network,address,fetcher=fetch,env=process.env,url=null,
  const cfg=chainConfig(network);
  if(typeof address!=='string'||!/^0x[0-9a-fA-F]{40}$/.test(address))throw Object.assign(Error('INVALID_ADDRESS'),{code:'INVALID_ADDRESS'});
  address=address.toLowerCase();
- const reader=createReader({url:url||endpoints(network,env)[0],chainId:cfg.chainId,fetcher,paceMs:paceMs??(network==='arc'?280:0)});
+ const reader=createReader({url:url||endpoints(network,env)[0],chainId:cfg.chainId,fetcher,paceMs:paceMs??(network==='arc'?280:0),deadlineAt:Date.now()+MAX_ANALYSIS_MS});
  const base={schemaVersion:1,analysis:'mechanics-privilege-state',network,chainId:cfg.chainId,address,generatedAt:new Date(now()).toISOString()};
  const unavailable=reasonCode=>({...base,status:'PROVIDER_UNAVAILABLE',reasonCode,functions:[],authorities:[],cost:reader.cost});
  const chainId=await reader.send('eth_chainId',[]);
- if(chainId.state!=='OK'||!/^0x[0-9a-f]+$/i.test(chainId.result)||Number(BigInt(chainId.result))!==cfg.chainId)return unavailable(chainId.state==='OK'?'CHAIN_ID_MISMATCH':'RPC_UNAVAILABLE');
+ if(chainId.state!=='OK'||!/^0x[0-9a-f]+$/i.test(chainId.result)||Number(BigInt(chainId.result))!==cfg.chainId)return unavailable(chainId.state==='OK'?'CHAIN_ID_MISMATCH':chainId.state==='DEADLINE'?'ANALYSIS_DEADLINE_EXCEEDED':'RPC_UNAVAILABLE');
  const head=await reader.send('eth_blockNumber',[]);
- if(head.state!=='OK'||!/^0x[0-9a-f]+$/i.test(head.result))return unavailable('HEAD_UNAVAILABLE');
+ if(head.state!=='OK'||!/^0x[0-9a-f]+$/i.test(head.result))return unavailable(head.state==='DEADLINE'?'ANALYSIS_DEADLINE_EXCEEDED':'HEAD_UNAVAILABLE');
  const block=head.result;
  const code=await reader.send('eth_getCode',[address,block]);
  if(code.state!=='OK'||!CODE.test(code.result))return unavailable('CODE_UNAVAILABLE');
@@ -192,17 +194,16 @@ async function classify({network,address,fetcher=fetch,env=process.env,url=null,
   entry.evidence.push({method:'eth_call simulation',caller:owner===ZERO?'zero address (current owner() value)':'current owner() '+owner,outcome:caller.state==='OK'?'SUCCEEDS':'REVERTS',block});
   if(caller.state==='OK'){
    entry.accessRestricted=true;
-   if(owner===ZERO){entry.state='PRIVILEGE_REVOKED';entry.note='Only the zero address passes the gate and owner() is the zero address at this block.';}
+   if(owner===ZERO){entry.state='PRIVILEGE_REVOKED';entry.note='owner() is zero at this block. A zero-address simulation succeeded and one unrelated control reverted; other authority routes were not tested.';}
    else{entry.state='PRIVILEGE_CURRENTLY_EXECUTABLE';entry.authority=owner;entry.note='Succeeds for the current owner and reverts for an unrelated address at this block.';}
   }else entry.note='Reverts for both the owner and an unrelated address: gated by another authority, or not callable in the current state.';
  }
- // Paired pause functions: one side proven executable, the other reverting in the current state.
+ // Paired pause functions can explain state-dependent reverts, but cannot prove both functions share an access gate.
  for(const entry of functions){
   const fn=FUNCTIONS.find(f=>f.signature===entry.signature);
   if(entry.state!=='FUNCTION_DETECTED'||!fn.pair||entry.unrestrictedInSimulation||entry.evidence.length<3)continue;
   const other=functions.find(x=>x.signature===fn.pair);
-  if(other?.state==='PRIVILEGE_CURRENTLY_EXECUTABLE'){entry.state='PRIVILEGE_CONFIRMED';entry.accessRestricted=true;entry.authority=other.authority;
-   entry.note='The paired '+fn.pair+' is executable by the owner and gated against others; this call reverts in the current pause state. The shared gate is inferred from the pair.';}
+  if(other?.state==='PRIVILEGE_CURRENTLY_EXECUTABLE')entry.note='The paired '+fn.pair+' is executable by the current owner, but this call reverted for both tested senders. A shared access gate or the reason for this revert is not established.';
  }
  const count=state=>functions.filter(f=>f.state===state).length;
  return {...base,status:'ANALYZED',block,proxy,authorities,functions,
@@ -222,4 +223,4 @@ async function cached(options){
  }).finally(()=>inflight.delete(key)));
  return inflight.get(key);
 }
-module.exports={classify,cached,dispatchSelectors,createReader,FUNCTIONS,CONTROL,RECIPIENT,selector,MAX_SIMULATED,LEGACY_IMPLEMENTATION_SLOT,LEGACY_ADMIN_SLOT,IMPLEMENTATION_SLOT,ADMIN_SLOT,BEACON_SLOT};
+module.exports={classify,cached,dispatchSelectors,createReader,FUNCTIONS,CONTROL,RECIPIENT,selector,MAX_SIMULATED,MAX_ANALYSIS_MS,LEGACY_IMPLEMENTATION_SLOT,LEGACY_ADMIN_SLOT,IMPLEMENTATION_SLOT,ADMIN_SLOT,BEACON_SLOT};
