@@ -1,0 +1,21 @@
+name: Pulse on-chain real-network probe (read-only)
+# Public RPC endpoints only; prints live scan results as annotations. Never publishes, signs or writes.
+on:
+  pull_request:
+    paths:
+      - 'lib/pulse-onchain/**'
+      - 'scripts/probe-pulse-onchain.cjs'
+      - '.github/workflows/pulse-onchain-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-pulse-onchain.cjs
