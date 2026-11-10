@@ -145,6 +145,28 @@ test('Robinhood 10+ indexed candidate wallets preserve partial concentration wit
  assert.equal(r.top10Pct.status,'SOURCE_REPORTED_RPC_RECONCILED');
  assert.equal(r.top10Pct.evidence[0].censusComplete,false);
 });
+test('Robinhood starts count and ranking concurrently and supplies count evidence to the census reader',async()=>{
+ const count=require('../search/server/lib/robinhood-holder-count');
+ const plus=require('../search/server/lib/goplus-evidence');
+ const saved=[count.fetchCount,plus.inspectHolders,robin.fetchRank];
+ let finishCount,rankStarted=false,receivedCount;
+ try{
+  count.fetchCount=()=>new Promise(resolve=>{finishCount=resolve});
+  plus.inspectHolders=async()=>({});
+  robin.fetchRank=async(_address,options)=>{
+   rankStarted=true;
+   receivedCount=await options.reportedHolderCountPromise;
+   return {};
+  };
+  const pending=adapter.holder({address:TOKEN,base:{block:BLOCK,totalSupplyRaw:'1000'}});
+  assert.equal(rankStarted,true,'rank request starts before count resolves');
+  finishCount({value:42,status:'SOURCE_REPORTED',dataState:'DATA_FOUND'});
+  await pending;
+  assert.equal(receivedCount.value,42);
+ }finally{
+  count.fetchCount=saved[0];plus.inspectHolders=saved[1];robin.fetchRank=saved[2];
+ }
+});
 test('Robinhood adapter gives complete RPC-reconciled holder count priority over a divergent live Blockscout count',async()=>{
  const count=require('../search/server/lib/robinhood-holder-count');
  const plus=require('../search/server/lib/goplus-evidence');
