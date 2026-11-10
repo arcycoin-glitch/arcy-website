@@ -538,3 +538,29 @@ html.search-upgraded #search .home-search-form{gap:7px;grid-template-rows:auto a
  .nav .nav-radar{padding:8px;font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){.nav .nav-radar{transition:none}}
+
+
+/* Mobile/tablet width only: keep the original ARCY SEARCH composition unchanged.
+   Give the existing card a little more horizontal screen space. */
+@media (max-width:1023px) {
+ html.search-upgraded #search>.wrap {
+  box-sizing:border-box;
+  width:calc(100% - 20px);
+  max-width:none;
+  margin-inline:auto;
+ }
+ html.search-upgraded #search>.wrap>.app {
+  box-sizing:border-box;
+  width:100%;
+  max-width:none;
+  padding-left:0;
+  padding-right:0;
+  margin-inline:auto;
+ }
+ html.search-upgraded #search .home-search {
+  box-sizing:border-box;
+  width:100%;
+  max-width:none;
+  margin-inline:auto;
+ }
+}
