@@ -49,7 +49,9 @@ jobs:
           const tokens={};for(const s of r.samples){(tokens[s.section]||=new Set()).add(s.address)}
           for(const k of Object.keys(agg))console.log('::notice title=coverage-'+k+'::'+JSON.stringify({tokens:tokens[k].size,...agg[k]}));
           const cards={};for(const [k,v] of Object.entries(r.totals))cards[k]=v.filled+'/'+v.slots;
+          const outcomes={};for(const s of r.samples)outcomes[s.outcome]=(outcomes[s.outcome]||0)+1;
           console.log('::notice title=coverage-cards::'+JSON.stringify(cards).slice(0,3500));
+          console.log('::notice title=coverage-outcomes::'+JSON.stringify(outcomes));
           console.log('::notice title=coverage-errors::'+JSON.stringify(r.errors).slice(0,3000));
           console.log('::notice title=coverage-requests::'+JSON.stringify(r.requestStats||null));
           "
