@@ -18,12 +18,17 @@ async function get(p,retried=false){const gap=last+PACE_MS-Date.now();if(gap>0)a
   try{const d=await get('/api/search?action=radar&chain='+section);tokens=(d.tokens||[]).slice(0,PER);if(!tokens.length)raw.errors.push({section,error:'NO_RADAR_SAMPLE'});}catch(e){raw.errors.push({section,error:e.message});}
   for(const token of tokens){const address=token.address||token.token;if(!/^0x[0-9a-f]{40}$/i.test(address||''))continue;
    let report;try{report=await get('/api/search?action=report&chain='+chain+'&address='+address);}catch(e){raw.errors.push({section,address,error:e.message});}
-   for(const card of schema)for(const [key] of card.fields){const field=report?.cards?.[card.id]?.fields?.[key];raw.samples.push({section,chain,address,card:card.id,key,field:field||null,...classify(field,{card:card.id})});}
+   for(const card of schema)for(const [key] of card.fields){
+    const cardData=report?.cards?.[card.id],field=cardData?.fields?.[key],classified=classify(field,{card:card.id});
+    const outcome=require('./search-coverage-outcome').outcome({field,reportAvailable:Boolean(report),cardStatus:cardData?.status,evidenceClass:classified.evidenceClass});
+    raw.samples.push({section,chain,address,card:card.id,key,field:field||null,cardStatus:cardData?.status||null,outcome,...classified});
+   }
   }
  }
  try{raw.unlock=await get('/api/unlocks');}catch(e){raw.errors.push({section:'unlocks',error:e.message});}
- const totals={};for(const row of raw.samples){const k=row.section+'|'+row.card,t=totals[k]||={slots:0,filled:0,classes:{}};t.slots++;if(row.evidenceClass!=='NOT_VERIFIED')t.filled++;t.classes[row.evidenceClass]=(t.classes[row.evidenceClass]||0)+1;}
- raw.totals=totals;raw.requestStats={requests,throttledRetries:throttled,paceMs:PACE_MS};fs.writeFileSync(process.env.COVERAGE_OUTPUT||'/tmp/arcy-search-coverage.json',JSON.stringify(raw,null,2));console.log(JSON.stringify({at:raw.at,totals,unlock:{ok:raw.unlock?.ok,status:raw.unlock?.status,confirmed:raw.unlock?.confirmed?.length,reported:raw.unlock?.reported?.length},errors:raw.errors},null,2));
+ const totals={};for(const row of raw.samples){const k=row.section+'|'+row.card,t=totals[k]||={slots:0,filled:0,classes:{},outcomes:{}};t.slots++;if(row.evidenceClass!=='NOT_VERIFIED')t.filled++;t.classes[row.evidenceClass]=(t.classes[row.evidenceClass]||0)+1;t.outcomes[row.outcome]=(t.outcomes[row.outcome]||0)+1;}
+ const outcomeTotals={};for(const row of raw.samples)outcomeTotals[row.outcome]=(outcomeTotals[row.outcome]||0)+1;
+ raw.totals=totals;raw.outcomeTotals=outcomeTotals;raw.requestStats={requests,throttledRetries:throttled,paceMs:PACE_MS};fs.writeFileSync(process.env.COVERAGE_OUTPUT||'/tmp/arcy-search-coverage.json',JSON.stringify(raw,null,2));console.log(JSON.stringify({at:raw.at,totals,outcomeTotals,unlock:{ok:raw.unlock?.ok,status:raw.unlock?.status,confirmed:raw.unlock?.confirmed?.length,reported:raw.unlock?.reported?.length},errors:raw.errors,requestStats:raw.requestStats},null,2));
  // Public /api/unlocks (root Vercel route) publishes {ok, events, windows};
  // never confuse it with the search/server/lib unlock edition schema.
  const unlockValid=raw.unlock?.ok===true&&Array.isArray(raw.unlock?.events)&&
