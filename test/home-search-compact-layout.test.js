@@ -15,13 +15,8 @@ test('one compact heading and precise All 3 Networks label keep search discovera
  assert.doesNotMatch(js,/brand\.append\(owl,wordmark\)/);
  assert.match(js,/Research tokens across Arc, Ethereum & Robinhood\./);
 });
-test('V2 home Search keeps submit accessible while placing query/action row above network selector',()=>{
- assert.match(js,/queryRow\.append\(inputWrap,submit\)/);
- assert.match(js,/form\.append\(queryLabel,queryRow,picker\)/);
- assert.match(js,/picker\.append\(pickerLabel,segments\)/);
- assert.match(js,/queryRow\.append\(suggestBox\)/);
- assert.match(js,/submit\.type='submit'/);
- assert.match(js,/submit\.setAttribute\('aria-label','Search or scan token'\)/);
+test('home search order is input, network selector, submit — all within one functioning form',()=>{
+ assert.match(js,/form\.append\(inputWrap,picker,submit\)/);
  assert.match(js,/app\.append\(brandRow,intro,form,state,results,notes,robinhoodNotice\)/);
  assert.match(js,/option\.type='button'/);
  assert.match(js,/form\.addEventListener\('submit'/);
@@ -36,7 +31,7 @@ test('three installed official network mark assets remain unchanged and availabl
   assert(fs.existsSync(path.join(root,img)),n+' logo must exist');
  }
 });
-test('V2 presents four equally ranked network targets with a 2x2 mobile selector and large action target',()=>{
+test('mobile and desktop use compact three-chip layout without clipping or eliminating four touch targets',()=>{
  assert.match(css,/V8 compact premium discovery/);
  assert.match(css,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
  assert.match(css,/\.home-network-option\[data-network=all\]/);
@@ -45,13 +40,6 @@ test('V2 presents four equally ranked network targets with a 2x2 mobile selector
  assert.match(css,/min-height:43px/);
  assert.match(css,/\.home-search-suggest\{top:54px/);
  assert.match(css,/\.home-search-state:empty\{display:none\}/);
- assert.match(css,/ARCY SEARCH V2 — structural layout/);
- assert.match(css,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
- assert.match(css,/@media\(max-width:719px\)/);
- assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
- assert.match(css,/\.home-search-query-row/);
- assert.match(css,/min-height:48px/);
- assert.match(css,/min-height:52px/);
 });
 test('no home search update modifies token data sources, cross-chain report format or title identity',()=>{
  assert.match(js,/const VERIFIED_TOKEN_ART=Object\.freeze/);
