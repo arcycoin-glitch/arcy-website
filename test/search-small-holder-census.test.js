@@ -4,6 +4,7 @@ const assert=require('node:assert/strict');
 const eth=require('../search/server/lib/holders');
 const robin=require('../search/server/lib/robinhood-holder-rank');
 const adapter=require('../search/server/lib/robinhood-adapter');
+const rhRpc=require('../search/server/lib/robinhood-rpc');
 
 const TOKEN='0x'+'a'.repeat(40), BLOCK='0x1234';
 const wallets=n=>Array.from({length:n},(_,i)=>'0x'+(i+1).toString(16).padStart(40,'0'));
@@ -86,6 +87,47 @@ test('Robinhood small wallet cohort calculates 100% top 10/20 and exact reconcil
   assert.equal(r.top20Pct.evidence[0].censusComplete,true);
   assert.equal(data.calls.filter(x=>x[0]==='pinnedRpc').length,balances.length);
  }
+});
+test('Robinhood pinned reader uses one provider and checks exact chain and block identity',async()=>{
+ const hash='0x'+'1'.repeat(64),calls=[];
+ const read=async(endpoint,method,params)=>{
+  calls.push([endpoint,method]);
+  if(method==='eth_chainId')return '0x1237';
+  if(method==='eth_getBlockByNumber')return {number:BLOCK,hash};
+  if(method==='eth_call')return '0x'+(9n).toString(16).padStart(64,'0');
+  throw Error('Unexpected RPC method');
+ };
+ const pinned=rhRpc.createPinnedReader({endpoint:'primary',block:BLOCK,blockHash:hash,providerList:['primary','backup'],callAt:read});
+ assert.equal(await pinned.read('eth_call',[]),'0x'+(9n).toString(16).padStart(64,'0'));
+ assert.equal(await pinned.verify(),true);
+ assert.ok(calls.filter(x=>x[1]==='eth_call').every(x=>x[0]==='primary'));
+});
+test('Robinhood pinned reader fails over only to a provider serving the same block hash',async()=>{
+ const hash='0x'+'2'.repeat(64),calls=[];let failed=false;
+ const read=async(endpoint,method,params)=>{
+  calls.push([endpoint,method]);
+  if(method==='eth_chainId')return '0x1237';
+  if(method==='eth_getBlockByNumber')return {number:BLOCK,hash};
+  if(method==='eth_call'&&endpoint==='primary'&&!failed){failed=true;throw Object.assign(Error('rate limited'),{retryable:true});}
+  if(method==='eth_call')return '0x'+'0'.repeat(63)+'9';
+  throw Error('Unexpected RPC method');
+ };
+ const pinned=rhRpc.createPinnedReader({endpoint:'primary',block:BLOCK,blockHash:hash,providerList:['primary','backup'],callAt:read});
+ assert.equal(await pinned.read('eth_call',[]),'0x'+'0'.repeat(63)+'9');
+ assert.ok(calls.some(x=>x[0]==='backup'&&x[1]==='eth_call'));
+ assert.ok(calls.filter(x=>x[1]==='eth_call').every(x=>x[0]==='primary'||x[0]==='backup'));
+});
+test('Robinhood pinned reader refuses a fallback provider on a different fork',async()=>{
+ const calls=[],hash='0x'+'3'.repeat(64);
+ const read=async(endpoint,method)=>{
+  calls.push([endpoint,method]);
+  if(method==='eth_chainId')return '0x1237';
+  if(method==='eth_getBlockByNumber')return {number:BLOCK,hash:endpoint==='primary'?hash:'0x'+'4'.repeat(64)};
+  if(method==='eth_call')throw Object.assign(Error('unavailable'),{retryable:true});
+ };
+ const pinned=rhRpc.createPinnedReader({endpoint:'primary',block:BLOCK,blockHash:hash,providerList:['primary','backup'],callAt:read});
+ await assert.rejects(pinned.read('eth_call',[]),/No provider can serve the pinned Robinhood block/);
+ assert.equal(calls.some(x=>x[0]==='backup'&&x[1]==='eth_call'),false);
 });
 test('Robinhood paginates and reconciles a bounded 21-60 holder census at the pinned block',async()=>{
  const balances=Array.from({length:25},(_,i)=>BigInt(25-i));
