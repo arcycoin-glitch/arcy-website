@@ -104,16 +104,13 @@
   });
   options.set(id,option);segments.append(option);
  }
- pickerLabel.textContent='SELECT NETWORK';picker.append(pickerLabel,segments);setNetwork('all');
+ picker.append(segments);setNetwork('all');
 
  const form=document.createElement('form');form.className='home-search-form';form.noValidate=true;
  const inputWrap=document.createElement('label');inputWrap.className='home-search-input-wrap';inputWrap.htmlFor='homeSearchQuery';
  const glass=document.createElement('span');glass.className='home-search-glass';glass.setAttribute('aria-hidden','true');glass.textContent='⌕';
- const input=document.createElement('input');input.id='homeSearchQuery';input.name='q';input.type='search';input.autocomplete='off';input.spellcheck=false;input.maxLength=48;input.placeholder='Token, ticker or 0x address';input.setAttribute('aria-label','Token name, ticker or contract address');inputWrap.append(glass,input);
- const submit=document.createElement('button');submit.type='submit';submit.className='home-search-submit';submit.textContent='SEARCH →';submit.setAttribute('aria-label','Search or scan token');
- const queryLabel=document.createElement('span');queryLabel.className='home-search-query-label';queryLabel.textContent='TOKEN LOOKUP';
- const queryRow=document.createElement('div');queryRow.className='home-search-query-row';queryRow.append(inputWrap,submit);
- form.append(queryLabel,queryRow,picker);
+ const input=document.createElement('input');input.id='homeSearchQuery';input.name='q';input.type='search';input.autocomplete='off';input.spellcheck=false;input.maxLength=48;input.placeholder='Token name, ticker or 0x contract address';input.setAttribute('aria-label','Token name, ticker or contract address');inputWrap.append(glass,input);
+ const submit=document.createElement('button');submit.type='submit';submit.className='home-search-submit';submit.textContent='SEARCH / SCAN  →';form.append(inputWrap,picker,submit);
  const state=document.createElement('p');state.className='home-search-state';state.id='homeSearchState';state.setAttribute('role','status');state.setAttribute('aria-live','polite');state.textContent='';
  const results=document.createElement('div');results.className='home-search-results';results.hidden=true;results.setAttribute('aria-label','Matching tokens');
 
@@ -247,7 +244,7 @@
  suggestBox.className='home-search-suggest';suggestBox.hidden=true;
  suggestBox.setAttribute('role','region');
  suggestBox.setAttribute('aria-label','Suggested token contracts');
- queryRow.append(suggestBox);
+ form.append(suggestBox);
  input.setAttribute('aria-controls',suggestBox.id);
  input.setAttribute('aria-expanded','false');
  let suggestGeneration=0,suggestTimer=null,suggestController=null;
