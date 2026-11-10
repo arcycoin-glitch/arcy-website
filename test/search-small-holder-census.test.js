@@ -87,6 +87,44 @@ test('Robinhood small wallet cohort calculates 100% top 10/20 and exact reconcil
   assert.equal(data.calls.filter(x=>x[0]==='pinnedRpc').length,balances.length);
  }
 });
+test('Robinhood paginates and reconciles a bounded 21-60 holder census at the pinned block',async()=>{
+ const balances=Array.from({length:25},(_,i)=>BigInt(25-i));
+ const base=source(balances);
+ const allRows=wallets(25).map((address,i)=>({address:{hash:address},value:String(balances[i])}));
+ const cursor={address_hash:allRows[19].address.hash,value:allRows[19].value,items_count:20};
+ const pages=[];
+ const fetcher=async url=>{
+  const parsed=new URL(url);
+  pages.push(parsed.href);
+  return parsed.searchParams.has('address_hash')
+   ?response({items:allRows.slice(20)})
+   :response({items:allRows.slice(0,20),next_page_params:cursor});
+ };
+ const result=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'325',reportedHolderCount:25,fetcher,rpcCall:base.rpcCall});
+ assert.equal(pages.length,2,'all explorer pages are fetched');
+ assert.equal(result.holderCount.value,25);
+ assert.equal(result.holderCount.status,'ONCHAIN_RECONCILED');
+ assert.equal(result.top20Pct.value,Number((270000000000000n+162n)/325n)/1e12);
+ assert.equal(result.top20Pct.evidence[0].censusComplete,true);
+ assert.equal(result.top20Pct.evidence[0].matchedWallets,25);
+ assert.equal(base.calls.filter(x=>x[0]==='pinnedRpc').length,25);
+});
+test('Robinhood incomplete bounded pagination falls back to the established source-ranked sample',async()=>{
+ const balances=Array.from({length:25},(_,i)=>BigInt(25-i));
+ const base=source(balances);
+ const allRows=wallets(25).map((address,i)=>({address:{hash:address},value:String(balances[i])}));
+ const fetcher=async url=>{
+  const parsed=new URL(url);
+  return parsed.searchParams.has('address_hash')
+   ?response({items:allRows.slice(20)})
+   :response({items:allRows.slice(0,20),next_page_params:{address_hash:allRows[19].address.hash,value:allRows[19].value,items_count:20}});
+ };
+ const result=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'400',reportedHolderCount:25,fetcher,rpcCall:base.rpcCall});
+ assert.equal(result.holderCount,undefined,'non-reconciled populations are never called complete');
+ assert.equal(result.top10Pct.status,'SOURCE_REPORTED_RPC_RECONCILED');
+ assert.equal(result.top10Pct.evidence[0].censusComplete,false);
+ assert.equal(base.calls.filter(x=>x[0]==='pinnedRpc').length,25,'no duplicate balance reads during sample fallback');
+});
 test('Robinhood incomplete, non-reconciled, or stale small cohorts fail closed',async()=>{
  const incomplete=source([600n,300n,50n]);
  const r=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'1000',...incomplete});
