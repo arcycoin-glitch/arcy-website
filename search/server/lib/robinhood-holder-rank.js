@@ -114,8 +114,12 @@ async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,repor
   const ranked=rows(firstBody);
   if(!ranked)return unavailable('BLOCKSCOUT_HOLDERS_SCHEMA_INVALID');
   if(ranked.length===0)return unavailable('BLOCKSCOUT_HOLDERS_EMPTY');
+  let reportedCountEvidence=null;
   if(reportedHolderCountPromise){
-   try{const result=await reportedHolderCountPromise;reportedHolderCount=result?.value??result;}catch{reportedHolderCount=undefined;}
+   try{const result=await reportedHolderCountPromise;reportedHolderCount=result?.value??result;
+    const item=Array.isArray(result?.evidence)?result.evidence[0]:null;
+    if(item&&typeof item==='object')reportedCountEvidence={source:item.source||null,checkedAt:item.checkedAt||null,sourceUrl:typeof item.sourceUrl==='string'?item.sourceUrl.replace(/[?].*$/,''):null};
+   }catch{reportedHolderCount=undefined;}
   }
   let censusRows=null;
   if(Number.isSafeInteger(reportedHolderCount)&&reportedHolderCount<=MAX_CENSUS_HOLDERS){
@@ -172,6 +176,11 @@ async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,repor
    method:'Blockscout sorted holder candidates + pinned Robinhood RPC balanceOf(wallet) reconciliation',
    matchedWallets:reconciled.length,censusComplete,verifiedPositiveHolderCount:censusComplete?reconciled.length:null,
    pinnedBalanceRequests:rpcRequests,rpcConcurrencyLimit:RPC_CONCURRENCY,rpcTimeBudgetMs:RPC_SCAN_BUDGET_MS,
+   reportedHolderCount:Number.isSafeInteger(reportedHolderCount)?reportedHolderCount:null,
+   reportedHolderCountSource:reportedCountEvidence?.source||null,
+   reportedHolderCountCheckedAt:reportedCountEvidence?.checkedAt||null,
+   reportedHolderCountBlockPinned:false,
+   reportedHolderCountSourceUrl:reportedCountEvidence?.sourceUrl||null,
    explorerBalanceAtDifferentBlockIgnored:true,sourceRankCompleteness:censusComplete?'ONCHAIN_RECONCILED':'SOURCE_REPORTED',...A.concentrationScope(excluded),holderCountIncludesBurnAddresses:censusComplete&&excluded.length>0,
    scope:censusComplete?
     'Every positive balance candidate matched RPC and together they account for 100% of totalSupply at the same block. For fewer than 10/20 holders, the respective top percentage includes every wallet. Wallets do not imply distinct beneficial owners.':
