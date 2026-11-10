@@ -59,4 +59,3 @@ test('DATA-ONLY audit: immutable main website, Search and Radar skeleton must be
     assert.equal(blobSha(content),expected,'PROTECTED SKELETON MODIFIED: '+file+'; revert UI change, do NOT refresh fixture');
   }
 });
-

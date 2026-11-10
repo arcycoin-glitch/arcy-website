@@ -35,4 +35,3 @@ test('Unlocks owl retains the exact original image bytes after extraction from t
   const section = html.slice(html.indexOf('<section id="unlocks">'), html.indexOf('<section id="pulse">'));
   assert.match(section, /src="\/assets\/unlocks-owl.webp"/);
 });
-
