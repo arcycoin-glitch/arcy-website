@@ -47,7 +47,8 @@ function node({chainId,head,finalized=head-10,blockTime=12,genesisTime=179000000
  };
  let seq=0;
  function log({address,topics,data='0x',block,tx}){
-  const entry={address,topics,data,blockNumber:hex(block),blockHash:hashOf(block),transactionHash:tx||h32('tx:'+(++seq)),logIndex:hex(seq%50),removed:false};
+  seq++;
+  const entry={address,topics,data,blockNumber:hex(block),blockHash:hashOf(block),transactionHash:tx||h32('tx:'+seq),logIndex:hex(seq),removed:false};
   state.logs.push(entry);return entry;
  }
  return {state,fetcher,log,hashOf,header};

@@ -80,6 +80,21 @@ test('scan detects ownership, upgrade, role, supply and new-pool events with ful
  assert.equal(result.window.blocksCovered,result.window.blocksPlanned);
 });
 
+test('a mint and burn that net to zero inside one transaction is not a supply change',async()=>{
+ const node=ethNode(),flash=sim.h32('flash-mint-tx'),partial=sim.h32('partial-tx'),supply=10n**18n,big=11n*10n**16n;
+ node.state.calls[ETH.DAI+':'+catalog.SELECTORS.totalSupply]=sim.word(supply);
+ // Flash mint: 11% of supply minted and burned in the same transaction.
+ node.log({address:ETH.DAI,topics:[T('TRANSFER'),catalog.ZERO_TOPIC,sim.addr(sim.A(0x51))],data:sim.word(big),block:HEAD-150,tx:flash});
+ node.log({address:ETH.DAI,topics:[T('TRANSFER'),sim.addr(sim.A(0x51)),catalog.ZERO_TOPIC],data:sim.word(big),block:HEAD-150,tx:flash});
+ // Mint 5% and burn 3% in one transaction: one event for the 2% net mint.
+ node.log({address:ETH.DAI,topics:[T('TRANSFER'),catalog.ZERO_TOPIC,sim.addr(sim.A(0x52))],data:sim.word(5n*10n**16n),block:HEAD-160,tx:partial});
+ node.log({address:ETH.DAI,topics:[T('TRANSFER'),sim.addr(sim.A(0x52)),catalog.ZERO_TOPIC],data:sim.word(3n*10n**16n),block:HEAD-160,tx:partial});
+ const result=await run(node);
+ assert.equal(result.events.length,1);assert.equal(result.counts.filtered.netZeroInTransaction,3);
+ assert.equal(result.events[0].transactionHash,partial);assert.equal(result.events[0].details.direction,'MINT');assert.equal(result.events[0].details.netOfTransaction,true);
+ assert.equal(result.events[0].materiality.shareOfSupplyPpm,20000);
+});
+
 test('a complete scan with no logs is an explicit scoped empty state',async()=>{
  const result=await run(ethNode());
  assert.equal(result.status,'NO_QUALIFYING_EVENTS');assert.equal(result.complete,true);
@@ -192,7 +207,8 @@ test('sparse windows widen the next span up to the reviewed cap; pacing and sequ
  const fetcher=async(url,init)=>{sent.push(Array.isArray(JSON.parse(init.body)));return arcNode.fetcher(url,init);};
  const arc=await engine.scan({chain:'arc',now:(GENESIS+900000+5)*1000,fetcher,urls:URLS,pace:0});
  assert.equal(arc.status,'NO_QUALIFYING_EVENTS');assert.ok(sent.every(isBatch=>isBatch===false));
- assert.equal(engine.queries(watchlist.network('arc'),1,2).length,4);
+ const arcPlan=engine.queries(watchlist.network('arc'),1,2);
+ assert.equal(arcPlan.length,6);assert.ok(arcPlan.every(q=>q.filter.topics[0].length<=2),'Arc topic OR-lists stay within the accepted size');
  // Address lists never exceed the provider's per-filter cap, and no watched contract is dropped by the split.
  const eth=watchlist.network('ethereum'),plan=engine.queries(eth,1,2);
  assert.ok(plan.every(q=>q.filter.address.length<=10));
