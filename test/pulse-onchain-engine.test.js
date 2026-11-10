@@ -10,7 +10,7 @@ const sim=require('./helpers/onchain-sim.cjs');
 
 const T=key=>catalog.EVENTS.find(e=>e.key===key).topic0;
 const ETH=Object.fromEntries(watchlist.network('ethereum').tokens.map(t=>[t.symbol,t.address]));
-const V3='0x1f98431c8ad98523631ae4a59f8d4ef8a16ebbc0';
+const V3=watchlist.NETWORKS.ethereum.factories.find(f=>f.architecture==='v3').address;
 const HEAD=20000000,GENESIS=1790000000;
 const NOW=(GENESIS+HEAD*12+30)*1000;
 const URLS=['https://rpc.example.test'];
@@ -147,7 +147,7 @@ test('logs the provider should not have returned are rejected, and repeated logs
  const outOfRange={...real,blockNumber:sim.hex(HEAD-9000000),transactionHash:sim.h32('old')};
  const fetcher=async(url,init)=>{
   const response=await node.fetcher(url,init),body=await response.json();
-  if(Array.isArray(body)&&Array.isArray(body[0]?.result)&&body[0].result.includes?.call(body[0].result.map(l=>l.transactionHash),real.transactionHash))body[0].result.push(foreign,outOfRange,{...real});
+  for(const item of Array.isArray(body)?body:[body])if(Array.isArray(item?.result)&&item.result.some(l=>l.transactionHash===real.transactionHash))item.result.push(foreign,outOfRange,{...real});
   return new Response(JSON.stringify(body),{status:200});
  };
  const result=await engine.scan({chain:'ethereum',now:NOW,fetcher,urls:URLS});
@@ -178,6 +178,24 @@ test('Arc and Robinhood use their own scope, factories and explorers',async()=>{
  assert.equal(quiet.status,'NO_QUALIFYING_EVENTS');assert.ok(!quiet.scope.categories.includes('NEW_POOL'));
  assert.ok(!rh.state.requests.includes('eth_sendRawTransaction'));
  await assert.rejects(()=>engine.scan({chain:'solana'}),{code:'INVALID_PULSE_CHAIN'});
+});
+
+test('sparse windows widen the next span up to the reviewed cap; pacing and sequential reads are honoured',async()=>{
+ const rh=sim.node({chainId:4663,head:5000000,finalized:4999000,blockTime:1,genesisTime:GENESIS});
+ const result=await engine.scan({chain:'robinhood',now:(GENESIS+5000000+5)*1000,fetcher:rh.fetcher,urls:URLS});
+ // 2000 + 4000 + 8000 + 16000 + 32000 + 32000 blocks in six windows.
+ assert.equal(result.window.windowsRead,6);assert.equal(result.window.blocksCovered,94000);assert.equal(result.complete,true);
+ assert.ok(result.window.blocksCovered>=result.window.blocksPlanned);
+ // Arc: one call per HTTP request, spaced by the configured pace; the pool query is not split per token position.
+ const arcNode=sim.node({chainId:5042,head:900000,finalized:899990,blockTime:1,genesisTime:GENESIS});
+ const sent=[],waits=[];
+ const fetcher=async(url,init)=>{sent.push(Array.isArray(JSON.parse(init.body)));return arcNode.fetcher(url,init);};
+ const arc=await engine.scan({chain:'arc',now:(GENESIS+900000+5)*1000,fetcher,urls:URLS,pace:0});
+ assert.equal(arc.status,'NO_QUALIFYING_EVENTS');assert.ok(sent.every(isBatch=>isBatch===false));
+ assert.equal(engine.queries(watchlist.network('arc'),1,2).length,4);
+ const paced=transport.create({chainId:5042,urls:URLS,fetcher:arcNode.fetcher,paceMs:280,sleep:async ms=>{waits.push(ms);}});
+ await paced.batch([{method:'eth_blockNumber',params:[]},{method:'eth_blockNumber',params:[]}]);
+ assert.ok(waits.length>=1&&waits.every(ms=>ms>0&&ms<=280));
 });
 
 test('transport is read-only, budgeted, and verifies the chain id of every provider it uses',async()=>{
@@ -248,6 +266,8 @@ test('watch scope has repository provenance and consistent configuration',()=>{
   assert.ok(3+perWindow*cfg.maxWindows+engine.MAX_EVENTS+4<=cfg.maxCalls,chain+' budget');
  }
  assert.equal(require('../lib/lp-positions').POOL_MANAGER,watchlist.NETWORKS.arc.factories[0].address);
+ // Canonical Uniswap mainnet deployments (the live probe additionally requires runtime code at each address).
+ assert.deepEqual(watchlist.NETWORKS.ethereum.factories.map(f=>f.address),['0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f','0x1f98431c8ad98523631ae4a59f267346ea31f984','0x000000000004444c5dc75cb358380d2e3de08a90']);
 });
 
 test('GET /api/search?action=onchain is additive, read-only and leaves the protected Pulse API untouched',async()=>{

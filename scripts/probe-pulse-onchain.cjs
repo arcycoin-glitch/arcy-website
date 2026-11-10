@@ -23,13 +23,16 @@ async function raw(url,method,params){
   const production=await engine.scan({chain,deadlineMs:6500});
   entry.production={...brief(production),ms:Date.now()-started};
   notice('onchain-'+chain+'-production',entry.production);
-  const wide=await engine.scan({chain,deadlineMs:90000,maxEvents:25,limits:{maxWindows:cfg.maxWindows*8,maxCalls:cfg.maxCalls*10}});
+  await new Promise(r=>setTimeout(r,chain==='arc'?8000:1500));
+  const wide=await engine.scan({chain,deadlineMs:150000,maxEvents:12,pace:chain==='arc'?450:120,limits:{maxWindows:cfg.maxWindows*8,maxCalls:cfg.maxCalls*8}});
   entry.wide={...brief(wide),events:wide.events.map(eventLine)};
   notice('onchain-'+chain+'-wide',{...brief(wide),sample:wide.events.slice(0,6).map(eventLine)});
   wide.events.slice(0,12).forEach((e,i)=>notice('onchain-'+chain+'-event'+(i+1),eventLine(e)));
+  await new Promise(r=>setTimeout(r,chain==='arc'?8000:1000));
   const url=transport.endpoints(chain)[0];
   entry.factories=[];
   for(const f of cfg.factories){
+   await new Promise(r=>setTimeout(r,600));
    try{const code=await raw(url,'eth_getCode',[f.address,'latest']);entry.factories.push({label:f.label,address:f.address,codeBytes:(code.length-2)/2});if(code==='0x')hardFailure=true;}
    catch(e){entry.factories.push({label:f.label,address:f.address,error:String(e.message).slice(0,120)});}
   }
@@ -42,7 +45,7 @@ async function raw(url,method,params){
   const range={fromBlock:'0x'+(head-1500).toString(16),toBlock:'0x'+head.toString(16)};
   const T=k=>catalog.EVENTS.find(e=>e.key===k).topic0,USDC=watchlist.network('ethereum').tokens.find(t=>t.symbol==='USDC').address;
   const mints=await raw(url,'eth_getLogs',[{address:USDC,topics:[T('TRANSFER'),catalog.ZERO_TOPIC],...range}]);
-  const pools=await raw(url,'eth_getLogs',[{address:'0x1f98431c8ad98523631ae4a59f8d4ef8a16ebbc0',topics:[T('V3_POOL_CREATED')],...range}]);
+  const pools=await raw(url,'eth_getLogs',[{address:watchlist.NETWORKS.ethereum.factories.find(f=>f.architecture==='v3').address,topics:[T('V3_POOL_CREATED')],...range}]);
   const supply=BigInt(await raw(url,'eth_call',[{to:USDC,data:catalog.SELECTORS.totalSupply},'latest']));
   const decodedMints=mints.map(l=>catalog.decode(l)),decodedPools=pools.map(l=>catalog.decode(l));
   const largest=decodedMints.filter(d=>d.details).map(d=>BigInt(d.details.amountRaw)).sort((a,b)=>a<b?1:-1)[0]||0n;
