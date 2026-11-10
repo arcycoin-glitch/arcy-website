@@ -1,0 +1,21 @@
+name: Mechanics privilege-state real-network probe (read-only)
+# Public RPC endpoints only; eth_call simulations and pinned reads, never a transaction. Prints results as annotations.
+on:
+  pull_request:
+    paths:
+      - 'search/server/lib/mechanics-privilege-state.js'
+      - 'scripts/probe-mechanics-privileges.cjs'
+      - '.github/workflows/mechanics-privilege-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-mechanics-privileges.cjs
