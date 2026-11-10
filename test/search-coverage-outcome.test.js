@@ -10,6 +10,7 @@ test('coverage outcome separates verified, source-only, stale, incomplete and un
  assert.equal(outcome({field:{dataState:'DATA_FOUND'},reportAvailable:true,evidenceClass:'STALE'}),'STALE');
  assert.equal(outcome({field:{dataState:'NOT_VERIFIED'},reportAvailable:true,cardStatus:'PARTIAL_EVIDENCE'}),'INCOMPLETE');
  assert.equal(outcome({field:{dataState:'SOURCE_API_FAILED'},reportAvailable:true}),'UNAVAILABLE');
+ assert.equal(outcome({reportAvailable:true,cardStatus:'SOURCE_API_FAILED'}),'UNAVAILABLE');
  assert.equal(outcome({reportAvailable:false}),'UNAVAILABLE');
  assert.equal(outcome({reportAvailable:true,cardStatus:'SOURCE_BACKED'}),'INCOMPLETE');
 });
