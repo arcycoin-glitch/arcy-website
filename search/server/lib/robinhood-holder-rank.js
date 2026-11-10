@@ -34,7 +34,7 @@ function parseCensusPage(body){
   const raw=item?.address?.hash??item?.address_hash??item?.address;
   const address=typeof raw==='string'?raw.toLowerCase():'';
   const value=typeof item?.value==='string'?item.value:null;
-  if(!ADDRESS.test(address)||seen.has(address)||value===null||!/^(?:0|[1-9]\\d*)$/.test(value))return null;
+  if(!ADDRESS.test(address)||seen.has(address)||value===null||!/^(?:0|[1-9]\d*)$/.test(value))return null;
   const amount=BigInt(value);
   if(amount<=0n||(result.length&&result.at(-1).amount<amount))return null;
   seen.add(address);result.push({address,amount});
@@ -62,7 +62,7 @@ async function completeCandidates(firstBody,requestUrl,expected,fetcher){
    if(key==='address_hash'){
     if(typeof value!=='string'||!ADDRESS.test(value))return null;
    }else if(key==='value'){
-    if(typeof value!=='string'||!/^(?:0|[1-9]\\d*)$/.test(value))return null;
+    if(typeof value!=='string'||!/^(?:0|[1-9]\d*)$/.test(value))return null;
    }else if(key==='items_count'&&(!Number.isInteger(value)||value<0||value>MAX_CENSUS_HOLDERS))return null;
    cursor[key]=value;
   }
