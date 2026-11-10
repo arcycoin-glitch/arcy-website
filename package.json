@@ -12,6 +12,6 @@
     "test:owner-analytics": "node test/owner-analytics-browser.cjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22 <25"
   }
 }
