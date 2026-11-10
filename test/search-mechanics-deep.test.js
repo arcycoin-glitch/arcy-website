@@ -36,6 +36,28 @@ test('exact clones require target deployed at same block; no genesis/index calls
  const code='0x363d3d373d3d3d363d73'+B.slice(2)+'5af43d82803e903d91602b57fd5bf3';
  for(const deployed of [false,true]){const x=fixture({code,targets:deployed?{[B]:basic}:{}});const r=await m.inspect(x.options);assert.equal(Boolean(r.fields.contractArchitecture),deployed);if(deployed)assert.equal(r.fields.contractArchitecture.evidence[0].implementation,B);assert.ok(x.seen.every(([n])=>!n.includes('Logs')));}
 });
+test('AccessControl discovers bounded custom role membership from exact ABI at the pinned block',async()=>{
+ const role='0x'+require('../lib/keccak')(Buffer.from('PAUSER_ROLE')).slice(2);
+ const source={digest:'unreviewed',abi:[fn('PAUSER_ROLE',[],'bytes32'),fn('getRoleMemberCount',['bytes32'],'uint256'),fn('getRoleMember',['bytes32','uint256']),fn('hasRole',['bytes32','address'],'bool')]};
+ const x=fixture({source,calls:{
+  [m.selector('PAUSER_ROLE()')]:role,
+  [m.selector('getRoleMemberCount(bytes32)')+role.slice(2)]:word(1),
+  [m.selector('getRoleMember(bytes32,uint256)')+role.slice(2)+'0'.repeat(64)]:addr(C),
+  [m.selector('hasRole(bytes32,address)')+role.slice(2)+C.slice(2).padStart(64,'0')]:word(1)
+ }}),r=await m.inspect(x.options);
+ const evidence=r.details.observations.find(item=>item.method==='hasRole'&&item.role==='PAUSER_ROLE'&&item.member===C&&item.value===true);
+ assert.ok(evidence,'reports only the ABI-enumerated role membership');
+ assert.equal(evidence.block,block);assert.match(evidence.scope,/first indexed member only/);
+ assert.match(r.fields.ownerAdmin.value,/PAUSER_ROLE/);
+ assert.ok(x.seen.filter(([method])=>method==='eth_call').every(([,params])=>params.at(-1)===block),'all role reads use the inspection block');
+});
+test('custom AccessControl role getter discovery stays capped at four roles',async()=>{
+ const names=['PAUSER_ROLE','BLACKLISTER_ROLE','UPGRADER_ROLE','BURNER_ROLE','EXTRA_ROLE'];
+ const source={digest:'unreviewed',abi:[...names.map(name=>fn(name,[],'bytes32')),fn('getRoleMemberCount',['bytes32'],'uint256'),fn('getRoleMember',['bytes32','uint256']),fn('hasRole',['bytes32','address'],'bool')]};
+ const x=fixture({source}),r=await m.inspect(x.options);
+ assert.equal(r.details.observations.filter(item=>item.method==='getRoleMemberCount'&&names.includes(item.role)).length,4);
+ assert.equal(x.seen.some(([method,params])=>method==='eth_call'&&params[0].data===m.selector('EXTRA_ROLE()')),false);
+});
 test('EIP1967 slot must point to real bytecode; high bits/self/empty target rejected',async()=>{
  for(const value of [addr(B),'0x'+'f'.repeat(24)+B.slice(2),addr(A)]){const x=fixture({code:delegate,slots:{[m.SLOTS.implementation]:value},targets:{[B]:basic}});const r=await m.inspect(x.options);assert.equal(r.fields.contractArchitecture,undefined);assert.equal(r.fields.ownerAdmin,undefined);}
 });

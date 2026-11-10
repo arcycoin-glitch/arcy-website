@@ -186,6 +186,11 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
   await Promise.all(['buyTax','sellTax','transferTax','buyFee','sellFee','transferFee','feeDenominator','taxDenominator','FEE_DENOMINATOR','cap'].filter(n=>abiFn(source,n+'()','uint256')).map(async n=>{const v=await word(address,n+'()');if(v)details.observations.push({method:n+'()',raw:BigInt(v).toString(),block,...sourceProof,scope:'Raw getter, not a verified tax rate/cap semantics.'});}));
   const candidates=source.abi.filter(f=>f.type==='function'&&/mint|bridge|blacklist|whitelist|pause|fee|tax|upgrade|role|timelock|delay|threshold/i.test(f.name||'')).slice(0,40).map(f=>({name:f.name,stateMutability:f.stateMutability,inputs:f.inputs?.map(x=>x.type),status:'INTERFACE_ONLY'}));
   details.interfaceCandidates=candidates;
+  const rolePriority=['PAUSER_ROLE','BLACKLISTER_ROLE','UPGRADER_ROLE','BURNER_ROLE'];
+  const customRoles=[...new Set(source.abi.filter(f=>f.type==='function'&&/^[A-Z][A-Z0-9_]*_ROLE$/.test(f.name||'')&&['view','pure'].includes(f.stateMutability)&&Array.isArray(f.inputs)&&f.inputs.length===0&&Array.isArray(f.outputs)&&f.outputs.length===1&&f.outputs[0]?.type==='bytes32').map(f=>f.name))]
+   .filter(name=>rolePriority.includes(name))
+   .sort((a,b)=>{const ai=rolePriority.indexOf(a),bi=rolePriority.indexOf(b);return (ai<0?rolePriority.length:ai)-(bi<0?rolePriority.length:bi)||a.localeCompare(b);}).slice(0,4);
+  const enumerableRoles=abiFn(source,'getRoleMemberCount(bytes32)','uint256')&&abiFn(source,'getRoleMember(bytes32,uint256)','address')&&abiFn(source,'hasRole(bytes32,address)','bool');
   if(abiFn(source,'hasRole(bytes32,address)','bool')){
    const roleAdmin=abiFn(source,'getRoleAdmin(bytes32)','bytes32');
    for(const name of ['DEFAULT_ADMIN_ROLE','MINTER_ROLE']){
@@ -194,14 +199,29 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
     const accounts=[...new Set(details.observations.map(x=>x.value).filter(x=>ADDRESS.test(x||'')))].slice(0,3);
     for(const member of accounts){const has=await word(address,'hasRole(bytes32,address)',role.slice(2)+member.slice(2).padStart(64,'0'));if(has&&BigInt(has)<=1n)details.observations.push({method:'hasRole',role:name,roleId:role,member,value:BigInt(has)===1n,block,...sourceProof,scope:'One observed account, not a complete membership or permission proof.'});}
    }
+   for(const name of customRoles){
+    const role=abiFn(source,name+'()','bytes32')?await word(address,name+'()'):null;if(!role)continue;
+    if(roleAdmin){const adminRole=await word(address,'getRoleAdmin(bytes32)',role.slice(2));if(adminRole)details.observations.push({method:'getRoleAdmin',role:name,roleId:role,adminRole,block,...sourceProof,scope:'Role-admin identifier only; its active members and execution semantics are separate.'});}
+    if(enumerableRoles){
+     const count=await word(address,'getRoleMemberCount(bytes32)',role.slice(2));if(!count)continue;const n=BigInt(count);
+     details.observations.push({method:'getRoleMemberCount',role:name,roleId:role,count:n.toString(),block,...sourceProof,scope:'Count reported by the exact ABI; only the first indexed member is inspected.'});
+     if(n===0n)continue;
+     const member=addressWord(await call(address,'getRoleMember(bytes32,uint256)',role.slice(2)+'0'.repeat(64)));if(!member)continue;
+     const has=await word(address,'hasRole(bytes32,address)',role.slice(2)+member.slice(2).padStart(64,'0'));
+     if(has&&BigInt(has)===1n){const scope='Confirmed membership for the first indexed member only. Other members and role execution semantics are NOT verified.';details.observations.push({method:'hasRole',role:name,roleId:role,member,value:true,block,...sourceProof,scope});if(!fields.ownerAdmin)fields.ownerAdmin=fact(name+': '+member,'Verified ABI + pinned role enumeration',{...sourceProof,role:name,roleId:role,member,scope},'GETTER_REPORTED');}
+    }else{
+     const accounts=[...new Set(details.observations.map(x=>x.value).filter(x=>ADDRESS.test(x||'')))].slice(0,3);
+     for(const member of accounts){const has=await word(address,'hasRole(bytes32,address)',role.slice(2)+member.slice(2).padStart(64,'0'));if(has&&BigInt(has)<=1n)details.observations.push({method:'hasRole',role:name,roleId:role,member,value:BigInt(has)===1n,block,...sourceProof,scope:'One observed account only; membership is not exhaustive and role execution semantics are separate.'});}
+    }
+   }
   }
   // Exact verified AccessControl interface; enumerate only a bounded sample.
-  if(abiFn(source,'getRoleMemberCount(bytes32)','uint256')&&abiFn(source,'getRoleMember(bytes32,uint256)','address')&&abiFn(source,'hasRole(bytes32,address)','bool')){
+  if(enumerableRoles){
    for(const name of ['DEFAULT_ADMIN_ROLE','MINTER_ROLE']){
     const role=name==='DEFAULT_ADMIN_ROLE'?'0x'+'0'.repeat(64):abiFn(source,name+'()','bytes32')?await word(address,name+'()'):null;if(!role)continue;
     const count=await word(address,'getRoleMemberCount(bytes32)',role.slice(2));if(!count)continue;const n=BigInt(count);details.observations.push({method:'getRoleMemberCount',role:name,roleId:role,count:n.toString(),block,...sourceProof,scope:'Zero members does not prove no alternative mint/admin authority.'});
     if(abiFn(source,'getRoleAdmin(bytes32)','bytes32')){const roleAdmin=await word(address,'getRoleAdmin(bytes32)',role.slice(2));if(roleAdmin)details.observations.push({method:'getRoleAdmin',role:name,roleAdmin,block});}
-    for(let i=0;i<Math.min(Number(n>4n?4n:n),4);i++){const member=addressWord(await call(address,'getRoleMember(bytes32,uint256)',role.slice(2)+BigInt(i).toString(16).padStart(64,'0')));if(!member)continue;const has=await word(address,'hasRole(bytes32,address)',role.slice(2)+member.slice(2).padStart(64,'0'));if(has&&BigInt(has)===1n){details.observations.push({method:'hasRole',role:name,member,value:true,block,...sourceProof});if(!fields.ownerAdmin)fields.ownerAdmin=fact(name+': '+member,'Verified ABI + enumerated role membership',{...sourceProof,role:name,roleId:role,member,scope:'Confirmed membership only. Role execution semantics and other roles not inferred.'},'GETTER_REPORTED');}}
+    for(let i=0;i<Math.min(Number(n>4n?4n:n),4);i++){const member=addressWord(await call(address,'getRoleMember(bytes32,uint256)',role.slice(2)+BigInt(i).toString(16).padStart(64,'0')));if(!member)continue;const has=await word(address,'hasRole(bytes32,address)',role.slice(2)+member.slice(2).padStart(64,'0'));if(has&&BigInt(has)===1n){details.observations.push({method:'hasRole',role:name,member,value:true,block,...sourceProof,scope:'Confirmed membership only. Role execution semantics and other roles not inferred.'});if(!fields.ownerAdmin)fields.ownerAdmin=fact(name+': '+member,'Verified ABI + enumerated role membership',{...sourceProof,role:name,roleId:role,member,scope:'Confirmed membership only. Role execution semantics and other roles not inferred.'},'GETTER_REPORTED');}}
    }
   }
   const profile=PROFILES[source.digest]||(source.template?'OZ_ERC20_TEMPLATE':undefined);details.reviewedProfile=profile||null;
