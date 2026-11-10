@@ -41,11 +41,22 @@ const BASELINE = Object.freeze({
   "search/assets/robinhood-chain-mark.svg": "3cb7faadf2cd29c1b158065283c688f424079a8e"
 });
 function blobSha(buffer) {
-  return crypto.createHash('sha1').update('blob '+buffer.length+'\0').update(buffer).digest('hex');
+  const text = buffer.toString('utf8');
+  const hasBareLf = /(?<!\r)\n/.test(text);
+  const normalized = hasBareLf ? buffer : Buffer.from(text.replace(/\r\n/g, '\n'));
+  return crypto.createHash('sha1').update('blob '+normalized.length+'\0').update(normalized).digest('hex');
 }
+test('scope fingerprints canonicalize Windows newlines like Git', () => {
+  assert.equal(blobSha(Buffer.from('first\nsecond\n')), blobSha(Buffer.from('first\r\nsecond\r\n')));
+});
+test('scope fingerprints preserve mixed line endings as Git does', () => {
+  const mixed = Buffer.from('first\r\nsecond\n');
+  assert.notEqual(blobSha(mixed), blobSha(Buffer.from('first\nsecond\n')));
+});
 test('DATA-ONLY audit: immutable main website, Search and Radar skeleton must be byte-for-byte unchanged', () => {
   for (const [file, expected] of Object.entries(BASELINE)) {
     const content=fs.readFileSync(path.resolve(__dirname,'..',file));
     assert.equal(blobSha(content),expected,'PROTECTED SKELETON MODIFIED: '+file+'; revert UI change, do NOT refresh fixture');
   }
 });
+
