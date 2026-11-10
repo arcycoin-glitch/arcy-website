@@ -24,6 +24,61 @@ function rows(body){
  }
  return result;
 }
+const MAX_CENSUS_HOLDERS=60;
+const MAX_CENSUS_PAGES=2;
+const CURSOR_KEYS=new Set(['address_hash','value','items_count']);
+function parseCensusPage(body){
+ if(!body||!Array.isArray(body.items)||body.items.length>50)return null;
+ const result=[],seen=new Set();
+ for(const item of body.items){
+  const raw=item?.address?.hash??item?.address_hash??item?.address;
+  const address=typeof raw==='string'?raw.toLowerCase():'';
+  const value=typeof item?.value==='string'?item.value:null;
+  if(!ADDRESS.test(address)||seen.has(address)||value===null||!/^(?:0|[1-9]\\d*)$/.test(value))return null;
+  const amount=BigInt(value);
+  if(amount<=0n||(result.length&&result.at(-1).amount<amount))return null;
+  seen.add(address);result.push({address,amount});
+ }
+ return result;
+}
+async function completeCandidates(firstBody,requestUrl,expected,fetcher){
+ if(!Number.isSafeInteger(expected)||expected<1||expected>MAX_CENSUS_HOLDERS)return null;
+ const all=[],seen=new Set(),cursors=new Set();
+ let body=firstBody,url=new URL(requestUrl),complete=false;
+ for(let page=0;page<MAX_CENSUS_PAGES;page++){
+  const parsed=parseCensusPage(body);
+  if(!parsed||!parsed.length)return null;
+  for(const row of parsed){
+   if(seen.has(row.address)||(all.length&&all.at(-1).amount<row.amount))return null;
+   seen.add(row.address);all.push(row);
+   if(all.length>expected)return null;
+  }
+  const next=body.next_page_params??null;
+  if(next===null){complete=true;break;}
+  if(!next||typeof next!=='object'||Array.isArray(next))return null;
+  const cursor={};
+  for(const [key,value] of Object.entries(next)){
+   if(!CURSOR_KEYS.has(key))return null;
+   if(key==='address_hash'){
+    if(typeof value!=='string'||!ADDRESS.test(value))return null;
+   }else if(key==='value'){
+    if(typeof value!=='string'||!/^(?:0|[1-9]\\d*)$/.test(value))return null;
+   }else if(key==='items_count'&&(!Number.isInteger(value)||value<0||value>MAX_CENSUS_HOLDERS))return null;
+   cursor[key]=value;
+  }
+  if(!Object.keys(cursor).length)return null;
+  const serial=JSON.stringify(cursor);
+  if(cursors.has(serial))return null;
+  cursors.add(serial);
+  if(page+1>=MAX_CENSUS_PAGES)return null;
+  url=new URL(requestUrl);
+  for(const [key,value] of Object.entries(cursor))url.searchParams.set(key,String(value));
+  const response=await fetcher(url.href,{headers:{accept:'application/json'},signal:AbortSignal.timeout(8000)});
+  if(!response.ok)return null;
+  body=await readJson(response,1024*1024);
+ }
+ return complete&&all.length===expected?all:null;
+}
 function percentage(raw,totalRaw){
  if(typeof totalRaw!=='string'||!/^[1-9]\d*$/.test(totalRaw)||raw<=0n)return null;
  const total=BigInt(totalRaw);
@@ -31,7 +86,7 @@ function percentage(raw,totalRaw){
  const scale=10n**12n;
  return Number((raw*100n*scale+total/2n)/total)/1e12;
 }
-async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc,key=process.env.BLOCKSCOUT_API_KEY}={}){
+async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,fetcher=fetch,rpcCall=rpc,key=process.env.BLOCKSCOUT_API_KEY}={}){
  if(typeof address!=='string'||!ADDRESS.test(address)||!/^0x[0-9a-f]+$/i.test(block||'')||
   typeof totalSupplyRaw!=='string'||!/^[1-9]\d*$/.test(totalSupplyRaw))return unavailable('HOLDER_RANK_INPUT_INVALID');
  const token=address.toLowerCase();
@@ -43,41 +98,50 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
    pro.searchParams.set('apikey',key);
    endpoints.push(pro.href);
   }
-  let response=null,sourceUrl=null,lastStatus=null;
+  let response=null,sourceUrl=null,requestUrl=null,lastStatus=null;
   for(const url of endpoints){
    try{
     const attempt=await fetcher(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(8000)});
     if(!attempt.ok){lastStatus=attempt.status;continue;}
-    response=attempt;sourceUrl=url.replace(/[?].*$/,'');break;
+    response=attempt;requestUrl=url;sourceUrl=url.replace(/[?].*$/,'');break;
    }catch{} // Another approved Blockscout endpoint may remain available.
   }
   if(!response)return unavailable(lastStatus===null?'BLOCKSCOUT_HOLDERS_REQUEST_FAILED':'BLOCKSCOUT_HOLDERS_HTTP_'+lastStatus);
-  const ranked=rows(await readJson(response,1024*1024));
+  const firstBody=await readJson(response,1024*1024);
+  const ranked=rows(firstBody);
   if(!ranked)return unavailable('BLOCKSCOUT_HOLDERS_SCHEMA_INVALID');
   if(ranked.length===0)return unavailable('BLOCKSCOUT_HOLDERS_EMPTY');
-  let reconciled;
-  try{reconciled=Array(ranked.length);let cursor=0;
-   await Promise.all(Array.from({length:Math.min(4,ranked.length)},async()=>{for(;;){
-   const i=cursor++;if(i>=ranked.length)return;const row=ranked[i];
-   const word=await rpcCall('eth_call',[{to:token,data:'0x70a08231'+row.address.slice(2).padStart(64,'0')},block]);
-   if(typeof word!=='string'||!/^0x[0-9a-f]{64}$/i.test(word))throw Error('Invalid pinned balance');
-   const balance=BigInt(word);
-   // The explorer lists candidates at its latest index height, not the pinned
-   // block. A changed balance is expected and is never used in a published
-   // metric; only the block-pinned RPC balance is used.
-   if(balance<=0n)throw Error('Pinned candidate has no positive token balance');
-   reconciled[i]={address:row.address,balance};
-  }}));}catch{return unavailable('BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED')}
-  // Re-rank the reported candidate set by the independently pinned balances.
-  // This does not establish the ranks of wallets omitted by the explorer.
+  let censusRows=null;
+  if(Number.isSafeInteger(reportedHolderCount)&&reportedHolderCount<=MAX_CENSUS_HOLDERS){
+   try{censusRows=await completeCandidates(firstBody,requestUrl,reportedHolderCount,fetcher);}catch{censusRows=null;}
+  }
+  const readRows=censusRows||ranked;
+  const balances=Array(readRows.length).fill(null);let cursor=0;
+  await Promise.all(Array.from({length:Math.min(4,readRows.length)},async()=>{for(;;){
+   const i=cursor++;if(i>=readRows.length)return;const row=readRows[i];
+   try{
+    const word=await rpcCall('eth_call',[{to:token,data:'0x70a08231'+row.address.slice(2).padStart(64,'0')},block]);
+    if(typeof word==='string'&&/^0x[0-9a-f]{64}$/i.test(word)){
+     const balance=BigInt(word);
+     if(balance>0n)balances[i]={address:row.address,balance};
+    }
+   }catch{}
+  }}));
+  if(ranked.some((row,i)=>i<ranked.length&&(!balances[i]||balances[i].address!==row.address)))
+   return unavailable('BLOCKSCOUT_RANK_RPC_RECONCILIATION_FAILED');
+  const fullCensusBalances=censusRows&&balances.every(Boolean)?balances:null;
+  const censusTotal=fullCensusBalances?.reduce((sum,row)=>sum+row.balance,0n);
+  const censusComplete=Boolean(censusRows&&fullCensusBalances&&censusTotal===BigInt(totalSupplyRaw));
+  // If the bounded population does not reconcile exactly, retain the established top-20 sample behavior.
+  let reconciled=censusComplete?fullCensusBalances:balances.slice(0,ranked.length);
+  // Re-rank the reported candidate set by independently pinned balances.
+  // Partial samples do not establish ranks of wallets omitted by the explorer.
   reconciled.sort((a,b)=>a.balance>b.balance?-1:a.balance<b.balance?1:a.address.localeCompare(b.address));
   const total=BigInt(totalSupplyRaw);
   const observed=reconciled.reduce((sum,row)=>sum+row.balance,0n);
   if(observed>total)return unavailable('BLOCKSCOUT_RANK_SUPPLY_RECONCILIATION_FAILED');
-  // With fewer than 20 indexed holders, a complete census can still be
-  // proven when pinned positive balances sum EXACTLY to totalSupply().
-  // An incomplete list must never be padded into a fictitious top 10/20.
-  const censusComplete=observed===total;
+  // A complete census is emitted only when every bounded source address was
+  // pinned-read and their positive balances exactly equal totalSupply().
   if(reconciled.length<10&&!censusComplete)
    return unavailable('BLOCKSCOUT_RANK_BELOW_TEN_ROWS');
   // Burn custody (zero/0xdead) is reconciled into supply but never ranked as a wallet (same rule as Arc).
@@ -93,7 +157,7 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
   const evidence=[{network:'robinhood',chainId:4663,address:token,sourceUrl,block,
    method:'Blockscout sorted holder candidates + pinned Robinhood RPC balanceOf(wallet) reconciliation',
    matchedWallets:reconciled.length,censusComplete,verifiedPositiveHolderCount:censusComplete?reconciled.length:null,
-   explorerBalanceAtDifferentBlockIgnored:true,sourceRankCompleteness:'SOURCE_REPORTED',...A.concentrationScope(excluded),holderCountIncludesBurnAddresses:censusComplete&&excluded.length>0,
+   explorerBalanceAtDifferentBlockIgnored:true,sourceRankCompleteness:censusComplete?'ONCHAIN_RECONCILED':'SOURCE_REPORTED',...A.concentrationScope(excluded),holderCountIncludesBurnAddresses:censusComplete&&excluded.length>0,
    scope:censusComplete?
     'Every positive balance candidate matched RPC and together they account for 100% of totalSupply at the same block. For fewer than 10/20 holders, the respective top percentage includes every wallet. Wallets do not imply distinct beneficial owners.':
     'Blockscout supplied candidate addresses; their balances were read and re-ranked from Robinhood RPC at the pinned block. The sample may OMIT higher-ranked wallets. These are concentration measurements of source-ranked candidates, not independently established chain-wide top 10/20.'}];
@@ -108,5 +172,5 @@ async function fetchRank(address,{block,totalSupplyRaw,fetcher=fetch,rpcCall=rpc
   };
  }catch{return unavailable('BLOCKSCOUT_HOLDERS_REQUEST_FAILED');}
 }
-module.exports={rows,percentage,fetchRank};
+module.exports={rows,percentage,fetchRank,completeCandidates,MAX_CENSUS_HOLDERS};
 
