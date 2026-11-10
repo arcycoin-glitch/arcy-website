@@ -167,6 +167,66 @@ test('Robinhood incomplete bounded pagination falls back to the established sour
  assert.equal(result.top10Pct.evidence[0].censusComplete,false);
  assert.equal(base.calls.filter(x=>x[0]==='pinnedRpc').length,25,'no duplicate balance reads during sample fallback');
 });
+test('Robinhood refuses Blockscout 403 without leaking a count or issuing balance reads',async()=>{
+ let rpcReads=0;
+ const result=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'100',reportedHolderCount:25,key:'',
+  fetcher:async()=>new Response('forbidden',{status:403}),rpcCall:async()=>{rpcReads++;return '0x'+'0'.repeat(64);}});
+ assert.equal(result.reasonCode,'BLOCKSCOUT_HOLDERS_HTTP_403');
+ assert.equal(rpcReads,0);
+});
+test('Robinhood mismatched counts, missing or duplicate pages, and zero extra-wallet balances never become a complete census',async()=>{
+ const balances=Array.from({length:25},(_,i)=>BigInt(25-i));
+ const base=source(balances),allRows=wallets(25).map((address,i)=>({address:{hash:address},value:String(balances[i])}));
+ const cursor={address_hash:allRows[19].address.hash,value:allRows[19].value,items_count:20};
+ const variants=[
+  {reportedHolderCount:26,second:allRows.slice(20)},
+  {reportedHolderCount:25,second:[allRows[0],...allRows.slice(21)]},
+  {reportedHolderCount:25,second:[]}
+ ];
+ for(const variant of variants){
+  const fetcher=async url=>new URL(url).searchParams.has('address_hash')?
+   response({items:variant.second}):response({items:allRows.slice(0,20),next_page_params:cursor});
+  const result=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'325',fetcher,
+   reportedHolderCount:variant.reportedHolderCount,rpcCall:base.rpcCall});
+  assert.equal(result.holderCount,undefined);
+  assert.equal(result.top10Pct.status,'SOURCE_REPORTED_RPC_RECONCILED');
+  assert.equal(result.top10Pct.evidence[0].censusComplete,false);
+ }
+ const zeroRpc=async(method,params)=>{
+  const addr='0x'+String(params[0].data).slice(-40);
+  if(addr===wallets(25)[24])return '0x'+'0'.repeat(64);
+  return base.rpcCall(method,params);
+ };
+ const pageFetcher=async url=>new URL(url).searchParams.has('address_hash')?
+  response({items:allRows.slice(20)}):response({items:allRows.slice(0,20),next_page_params:cursor});
+ const zero=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'325',reportedHolderCount:25,
+  fetcher:pageFetcher,rpcCall:zeroRpc});
+ assert.equal(zero.holderCount,undefined);
+ assert.equal(zero.top10Pct.evidence[0].censusComplete,false);
+});
+test('Robinhood extra-candidate RPC timeout falls back to the existing top-20 sample',async()=>{
+ const balances=Array.from({length:25},(_,i)=>BigInt(25-i)),base=source(balances);
+ const allRows=wallets(25).map((address,i)=>({address:{hash:address},value:String(balances[i])}));
+ const cursor={address_hash:allRows[19].address.hash,value:allRows[19].value,items_count:20};
+ const fetcher=async url=>new URL(url).searchParams.has('address_hash')?
+  response({items:allRows.slice(20)}):response({items:allRows.slice(0,20),next_page_params:cursor});
+ const rpcCall=async(method,params)=>{
+  if(String(params[0].data).endsWith(wallets(25)[24].slice(2)))throw Object.assign(Error('timeout'),{name:'TimeoutError'});
+  return base.rpcCall(method,params);
+ };
+ const result=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'325',reportedHolderCount:25,fetcher,rpcCall});
+ assert.equal(result.holderCount,undefined);
+ assert.equal(result.top20Pct.status,'SOURCE_REPORTED_RPC_RECONCILED');
+ assert.equal(result.top20Pct.evidence[0].censusComplete,false);
+});
+test('Robinhood checks the anchored block again after all holder balance reads',async()=>{
+ const balances=[600n,300n,100n],base=source(balances);let checks=0;
+ const result=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'1000',reportedHolderCount:3,
+  ...base,verifyBlock:async()=>{checks++;if(checks===2)throw Error('reorg');}});
+ assert.equal(checks,2);
+ assert.equal(result.reasonCode,'ROBINHOOD_BLOCK_ANCHOR_CHANGED');
+ assert.equal(result.holderCount,undefined);
+});
 test('Robinhood incomplete, non-reconciled, or stale small cohorts fail closed',async()=>{
  const incomplete=source([600n,300n,50n]);
  const r=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'1000',...incomplete});
