@@ -236,6 +236,24 @@ test('Robinhood checks the anchored block again after all holder balance reads',
  assert.equal(result.reasonCode,'ROBINHOOD_BLOCK_ANCHOR_CHANGED');
  assert.equal(result.holderCount,undefined);
 });
+test('Robinhood complete census retains source count time separately from its RPC block',async()=>{
+ const data=source([600n,300n,100n]);
+ const result=await robin.fetchRank(TOKEN,{
+  block:BLOCK,totalSupplyRaw:'1000',
+  reportedHolderCountPromise:Promise.resolve({value:3,evidence:[{
+   source:'Robinhood Blockscout',checkedAt:'2026-11-10T15:00:00.000Z',
+   sourceUrl:'https://robinhoodchain.blockscout.com/api/v2/tokens/'+TOKEN+'/counters'
+  }]}),
+  ...data
+ });
+ assert.equal(result.holderCount.status,'ONCHAIN_RECONCILED');
+ const proof=result.holderCount.evidence[0];
+ assert.equal(proof.block,BLOCK);
+ assert.equal(proof.reportedHolderCount,3);
+ assert.equal(proof.reportedHolderCountSource,'Robinhood Blockscout');
+ assert.equal(proof.reportedHolderCountCheckedAt,'2026-11-10T15:00:00.000Z');
+ assert.equal(proof.reportedHolderCountBlockPinned,false);
+});
 test('Robinhood incomplete, non-reconciled, or stale small cohorts fail closed',async()=>{
  const incomplete=source([600n,300n,50n]);
  const r=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'1000',...incomplete});
