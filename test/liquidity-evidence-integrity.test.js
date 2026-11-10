@@ -18,6 +18,8 @@ test('Arc liquidity counts identical duplicate pool rows once and excludes confl
  assert.equal(result.pairCount,1);
  assert.equal(result.liquidityUsd,50);
  assert.equal(result.volume24h,3);
+ assert.equal(result.conflictReasonCode,'CONFLICTING_DUPLICATE_POOLS');
+ assert.match(result.conflictReason,/ambiguous pools were excluded/i);
  assert.match(result.methodology,/conflicting duplicate pool observations are excluded/i);
 });
 
@@ -68,6 +70,7 @@ test('integration: conflicting DEX rows stay visible when valid GeckoTerminal po
  assert.equal(result.marketAttempts[0].source,'DexScreener');
  assert.equal(result.marketAttempts[0].conflictingPairCount,1);
  assert.equal(result.marketAttempts[0].reasonCode,'CONFLICTING_DUPLICATE_POOLS');
+ assert.equal(result.marketAttempts[0].conflictReasonCode,'CONFLICTING_DUPLICATE_POOLS');
  assert.equal(result.marketAttempts[1].source,'GeckoTerminal pools');
  assert.equal(result.marketAttempts[1].conflictingPairCount,0);
 }));
