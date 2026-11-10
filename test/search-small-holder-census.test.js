@@ -78,7 +78,7 @@ test('Ethereum retains only the explorer-reported holder count if pinned balance
 test('Robinhood small wallet cohort calculates 100% top 10/20 and exact reconciled count',async()=>{
  for(const balances of [[1000n],[600n,300n,100n],[400n,200n,100n,100n,80n,40n,40n,20n,10n,10n]]){
   const data=source(balances);
-  const r=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'1000',...data});
+  const r=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'1000',reportedHolderCount:balances.length,...data});
   assert.equal(r.holderCount.value,balances.length);
   assert.equal(r.holderCount.status,'ONCHAIN_RECONCILED');
   assert.equal(r.top10Pct.value,100);
