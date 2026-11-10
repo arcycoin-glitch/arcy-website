@@ -61,6 +61,19 @@ test('Pulse research framing: what changed, why (only from change type), verifie
  assert.equal(arcCard.research.evidence,'PUBLISHED_ANNOUNCEMENT');assert.match(arcCard.summary,/Not proven: First-party source/);
 });
 
+test('Pulse does not label audit-report housekeeping commits as security-related',()=>{
+ const src=networks.LIVE_PROJECT_SOURCES.robinhood.find(x=>x.project==='Morpho');
+ const item={title:'Morpho: Remove older duplicate of the OpenZeppelin audit report',
+  url:'https://github.com/morpho-org/morpho-blue/commit/'+'e'.repeat(40),
+  publishedAt:date,summary:'Morpho merged to its default branch: Remove older duplicate of the OpenZeppelin audit report.',
+  owner:src.owner,whyItMatters:'A code commit does not prove that the feature was deployed on this chain.'};
+ const card=networks.researchCard(item);
+ assert.equal(card.research.whyItMatters,null);
+ assert.doesNotMatch(card.summary,/Security-related change/);
+ const security=networks.researchCard({...item,title:'Morpho: Security vulnerability in liquidation accounting'});
+ assert.match(security.summary,/Security-related change/);
+});
+
 test('Pulse research framing never presents a cut-off source excerpt as a complete sentence',()=>{
  const cut=networks.researchCard({title:'Ripple and Robinhood Partner',url:'https://ripple.com/ripple-press/x/',owner:'RIPPLE · OFFICIAL PARTNER DISCLOSURES',summary:'RLUSD is live today on Robinhood Chain and Bitstamp by Robinhood, and is expected to be available later this year in the Robinhood',whyItMatters:'Partner-issued announcement.'});
  assert.match(cut.summary,/^RLUSD is live today on Robinhood Chain and Bitstamp by Robinhood, and is expected to be available later this year in the Robinhood… Verified: partner-issued announcement\./);
