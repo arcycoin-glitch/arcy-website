@@ -7,7 +7,8 @@ const handlers=Object.freeze({
  progress:require('../../search/server/api/progress'),
  token:require('../../search/server/api/token'),
  chart:require('../../search/server/api/chart'),
- radar:(req,res)=>require('../../search/server/api/radar')(req,res)
+ radar:(req,res)=>require('../../search/server/api/radar')(req,res),
+ privileges:(req,res)=>require('../../search/server/api/privileges')(req,res)
 });
 const KEYS=Object.freeze({
  health:[],
@@ -17,7 +18,8 @@ const KEYS=Object.freeze({
  report:['address','chain'],
  progress:['address','chain'],
  chart:['address','chain','interval','range','timeframe','period'],
- radar:['chain']
+ radar:['chain'],
+ privileges:['address','chain']
 });
 function decodeQuery(req){
  const incoming=req.query&&typeof req.query==='object'&&!Array.isArray(req.query)?
