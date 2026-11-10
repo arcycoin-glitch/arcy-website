@@ -145,8 +145,8 @@ async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,repor
   }
   const total=BigInt(totalSupplyRaw);
   const censusTotal=balances.every(Boolean)?balances.reduce((sum,row)=>sum+row.balance,0n):null;
-  const countMatches=!Number.isSafeInteger(reportedHolderCount)||reportedHolderCount===readRows.length;
-  const censusComplete=Boolean(censusTotal===total&&countMatches);
+  const countMatches=Number.isSafeInteger(reportedHolderCount)&&reportedHolderCount===readRows.length;
+  const censusComplete=Boolean(censusRows&&countMatches&&censusTotal===total);
   // If the bounded population does not reconcile exactly, retain the established top-20 sample behavior.
   let reconciled=censusComplete?balances:balances.slice(0,ranked.length);
   // Re-rank the reported candidate set by independently pinned balances.
