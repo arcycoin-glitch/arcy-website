@@ -47,7 +47,7 @@ test('AccessControl discovers bounded custom role membership from exact ABI at t
  }}),r=await m.inspect(x.options);
  const evidence=r.details.observations.find(item=>item.method==='hasRole'&&item.role==='PAUSER_ROLE'&&item.member===C&&item.value===true);
  assert.ok(evidence,'reports only the ABI-enumerated role membership');
- assert.equal(evidence.block,block);assert.match(evidence.scope,/Confirmed membership only/);
+ assert.equal(evidence.block,block);assert.match(evidence.scope,/first indexed member only/);
  assert.match(r.fields.ownerAdmin.value,/PAUSER_ROLE/);
  assert.ok(x.seen.filter(([method])=>method==='eth_call').every(([,params])=>params.at(-1)===block),'all role reads use the inspection block');
 });

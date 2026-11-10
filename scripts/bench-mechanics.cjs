@@ -24,12 +24,15 @@ const store=REPLAYING&&fs.existsSync(RFILE)?JSON.parse(fs.readFileSync(RFILE,'ut
 //  augSibling   eth_call of a sibling family's token getter (search/server/lib/mechanics-sibling-runtime.js)
 //  augReference GET of a pinned sibling family's Sourcify reference record
 //  augReviewed  eth_call / eth_getStorageAt issued only by a reviewed token-source profile (search/server/lib/mechanics-reviewed-tokens.js)
+//  augCustomRole a bounded ABI-declared AccessControl role read (up to four known role getters per contract)
 const optional=p=>{try{return req(p);}catch{return null;}};
 const probeModule=optional('search/server/lib/mechanics-proxy-probe'),siblingModule=optional('search/server/lib/mechanics-sibling-runtime');
 const keccakSel=s=>req('lib/keccak')(Buffer.from(s)).slice(0,10);
 const siblingSelectors=new Set((siblingModule?.FAMILIES||[]).flatMap(f=>Object.keys(f.getters||{}).map(n=>keccakSel(n+'()'))));
 const reviewedModule=optional('search/server/lib/mechanics-reviewed-tokens');
 const reviewedSelectors=new Set((reviewedModule?.TORCH_GETTERS||[]).map(keccakSel)),reviewedSlots=new Set(Object.values(reviewedModule?.SPX_SLOTS||{}).map(i=>reviewedModule.slotKey(i)));
+const customRoleSelectors=new Set(['PAUSER_ROLE()','BLACKLISTER_ROLE()','UPGRADER_ROLE()','BURNER_ROLE()'].map(keccakSel));
+const accessRoleSelectors=new Set(['getRoleAdmin(bytes32)','getRoleMemberCount(bytes32)','getRoleMember(bytes32,uint256)','hasRole(bytes32,address)'].map(keccakSel));
 const referenceUrls=new Set((siblingModule?.FAMILIES||[]).map(f=>'https://sourcify.dev/server/v2/contract/'+f.chainId+'/'+f.reference+'?fields=abi,sources,compilation,runtimeBytecode'));
 function budgetedKind(url,opts){
  if(MODE!=='augment')return null;
@@ -40,6 +43,7 @@ function budgetedKind(url,opts){
  if(!Array.isArray(b)&&b?.method==='eth_getStorageAt'&&Array.isArray(b.params)&&b.params.length===3&&reviewedSlots.has(String(b.params[1]).toLowerCase()))return 'augReviewed';
  if(Array.isArray(b)||b?.method!=='eth_call'||!Array.isArray(b.params))return null;
  const data=String(b.params[0]?.data||'').toLowerCase();
+ if(b.params.length===2&&/^0x[0-9a-f]{64}$/i.test(b.params[1])&&(customRoleSelectors.has(data.slice(0,10))||accessRoleSelectors.has(data.slice(0,10))))return 'augCustomRole';
  if(probeModule&&data===probeModule.PROBE_SELECTOR&&b.params.length<=3){
   if(b.params.length===3){const ov=b.params[2]||{},keys=Object.keys(ov);const proxy=keys.find(k=>k!==probeModule.PROBE_TARGET);
    if(keys.length!==2||!ov[probeModule.PROBE_TARGET]||ov[probeModule.PROBE_TARGET].code!==probeModule.PROBE_CODE||Object.keys(ov[proxy]?.stateDiff||{}).length!==1)return null;}
