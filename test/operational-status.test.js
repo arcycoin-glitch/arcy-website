@@ -20,7 +20,7 @@ test('status: fresh heartbeat, fresh publications => HEALTHY with measured ages 
  assert.equal(r.overall,'HEALTHY');
  const w=r.components.holderWorker;
  assert.equal(w.state,'HEALTHY');assert.equal(w.heartbeat.ageSeconds,20);assert.equal(w.heartbeat.lastInvocationServed,1);
- assert.deepEqual(w.backlog,{tokensTracked:2,inProgress:1,complete:1,failing:0,stalled:0});
+ assert.deepEqual(w.backlog,{tokensTracked:2,inProgress:1,complete:1,failing:0,unsupported:0,stalled:0});
  assert.equal(w.lastCompleteSliceAgeSeconds,90);assert.equal(w.rpc.http429Share,0.01);
  assert.equal(r.components.unlocks.eventCount,41);assert.equal(r.components.pulse.arc.edition,7);
  assert.equal(r.version.match,true);
@@ -103,7 +103,24 @@ test('status endpoint via public router: action=status takes no parameters and r
  assert.equal(ok.v.components.holderWorker.state,'UNKNOWN');
 });
 
+test('status: unsupported jobs waiting for retry are not active or stalled work',()=>{
+ const w=S.holderWorker(diag({tokens:[
+  {address:ADDR,phase:'READ',lastState:'UNSUPPORTED',lastAdvanced:0,slices:9,idleMs:1}
+ ]}),NOW);
+ assert.equal(w.state,'HEALTHY');
+ assert.equal(w.reasonCode,null);
+ assert.deepEqual(w.backlog,{tokensTracked:1,inProgress:0,complete:0,failing:0,unsupported:1,stalled:0});
+ assert.doesNotMatch(JSON.stringify(w),/0x[0-9a-f]{40}/i);
+});
+test('status: a FAILED holder job remains observable and degrades the worker',()=>{
+ const w=S.holderWorker(diag({tokens:[
+  {address:ADDR,phase:'READ',lastState:'FAILED',lastAdvanced:0,slices:9,idleMs:1}
+ ]}),NOW);
+ assert.equal(w.state,'DEGRADED');
+ assert.equal(w.reasonCode,'HOLDER_JOBS_FAILED');
+ assert.deepEqual(w.backlog,{tokensTracked:1,inProgress:0,complete:0,failing:1,unsupported:0,stalled:0});
+});
 test('status: a completed token keeps its last checkpoint phase but is not counted as backlog (live 2026-11-07: 52 shown as in progress)',()=>{
  const w=S.holderWorker(diag({tokens:[{address:ADDR,phase:'READ',lastState:'COMPLETE',lastAdvanced:0,slices:9,idleMs:6000},{address:ADDR,phase:'TAIL',lastState:'BUILDING',lastAdvanced:0,slices:4,idleMs:1}]}),NOW);
- assert.deepEqual(w.backlog,{tokensTracked:2,inProgress:1,complete:1,failing:0,stalled:1});
+ assert.deepEqual(w.backlog,{tokensTracked:2,inProgress:1,complete:1,failing:0,unsupported:0,stalled:1});
 });
