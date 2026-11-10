@@ -142,13 +142,22 @@ test('Robinhood paginates and reconciles a bounded 21-60 holder census at the pi
    ?response({items:allRows.slice(20)})
    :response({items:allRows.slice(0,20),next_page_params:cursor});
  };
- const result=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'325',reportedHolderCount:25,fetcher,rpcCall:base.rpcCall});
+ let active=0,maxActive=0;
+ const rpcCall=async(...args)=>{
+  active++;maxActive=Math.max(maxActive,active);
+  try{await new Promise(resolve=>setTimeout(resolve,1));return await base.rpcCall(...args);}
+  finally{active--;}
+ };
+ const result=await robin.fetchRank(TOKEN,{block:BLOCK,totalSupplyRaw:'325',reportedHolderCount:25,fetcher,rpcCall});
  assert.equal(pages.length,2,'all explorer pages are fetched');
+ assert.ok(maxActive<=4,'pinned RPC fanout stays within the configured limit');
  assert.equal(result.holderCount.value,25);
  assert.equal(result.holderCount.status,'ONCHAIN_RECONCILED');
  assert.equal(result.top20Pct.value,Number((310n*100n*10n**12n+325n/2n)/325n)/1e12);
  assert.equal(result.top20Pct.evidence[0].censusComplete,true);
  assert.equal(result.top20Pct.evidence[0].matchedWallets,25);
+ assert.equal(result.top20Pct.evidence[0].pinnedBalanceRequests,25);
+ assert.equal(result.top20Pct.evidence[0].rpcConcurrencyLimit,4);
  assert.equal(base.calls.filter(x=>x[0]==='pinnedRpc').length,25);
 });
 test('Robinhood incomplete bounded pagination falls back to the established source-ranked sample',async()=>{
