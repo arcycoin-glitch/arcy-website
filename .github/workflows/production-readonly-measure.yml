@@ -55,6 +55,13 @@ jobs:
           console.log('::notice title=coverage-errors::'+JSON.stringify(r.errors).slice(0,3000));
           console.log('::notice title=coverage-requests::'+JSON.stringify(r.requestStats||null));
           "
+      - name: Retain read-only production coverage matrix
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-coverage-matrix
+          path: coverage.json
+          if-no-files-found: warn
   release-verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
