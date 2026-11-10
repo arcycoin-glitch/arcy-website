@@ -67,7 +67,8 @@ async function holder({address,base}){
  };
  const countPromise=require('./robinhood-holder-count').fetchCount(address);
  const rankedPromise=require('./robinhood-holder-rank').fetchRank(address,{
-  block:base.block,totalSupplyRaw:base.totalSupplyRaw,reportedHolderCountPromise:countPromise
+  block:base.block,totalSupplyRaw:base.totalSupplyRaw,reportedHolderCountPromise:countPromise,
+  rpcCall:base.readAtBlock,verifyBlock:base.verifyBlock
  });
  const [count,reported,ranked]=await Promise.all([
   countPromise,
