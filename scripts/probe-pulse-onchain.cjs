@@ -39,6 +39,23 @@ async function raw(url,method,params){
   notice('onchain-'+chain+'-factories',entry.factories);
   out.chains[chain]=entry;
  }
+ // Arc query-shape matrix: which eth_getLogs shapes does the public endpoint accept? (paced, single calls)
+ try{
+  const cfg=watchlist.network('arc'),url=transport.endpoints('arc')[0],T=k=>catalog.EVENTS.find(e=>e.key===k).topic0;
+  await new Promise(r=>setTimeout(r,10000));
+  const head=Number(BigInt(await raw(url,'eth_blockNumber',[]))),ARCY=cfg.tokens[0].address,two=cfg.tokens.slice(0,2).map(t=>t.address),all=cfg.tokens.map(t=>t.address);
+  const range=n=>({fromBlock:'0x'+(head-20-n+1).toString(16),toBlock:'0x'+(head-20).toString(16)});
+  const shapes=[['1addr-1topic-1000',{address:ARCY,topics:[T('TRANSFER')],...range(1000)}],['1addr-1topic-latest-1000',{address:ARCY,topics:[T('TRANSFER')],fromBlock:'0x'+(head-999).toString(16),toBlock:'0x'+head.toString(16)}],
+   ['1addr-2topicOR-1000',{address:ARCY,topics:[[T('OWNERSHIP_TRANSFERRED'),T('UPGRADED')]],...range(1000)}],['1addr-12topicOR-1000',{address:ARCY,topics:[catalog.EVENTS.filter(e=>e.scope==='token').map(e=>e.topic0)],...range(1000)}],
+   ['2addr-1topic-1000',{address:two,topics:[T('OWNERSHIP_TRANSFERRED')],...range(1000)}],['9addr-1topic-1000',{address:all,topics:[T('OWNERSHIP_TRANSFERRED')],...range(1000)}],['9addr-1topic-64',{address:all,topics:[T('OWNERSHIP_TRANSFERRED')],...range(64)}],
+   ['1addr-mint-filter-1000',{address:ARCY,topics:[T('TRANSFER'),catalog.ZERO_TOPIC],...range(1000)}],['1addr-burn-filter-1000',{address:ARCY,topics:[T('TRANSFER'),null,catalog.ZERO_TOPIC],...range(1000)}],
+   ['manager-initialize-1000',{address:cfg.factories[0].address,topics:[T('V4_INITIALIZE')],...range(1000)}],['1addr-1topic-2000',{address:ARCY,topics:[T('TRANSFER')],...range(2000)}],['noaddr-1topic-200',{topics:[T('OWNERSHIP_TRANSFERRED')],...range(200)}],['noaddr-1topic-2000',{topics:[T('OWNERSHIP_TRANSFERRED')],...range(2000)}]];
+  const matrix=[];
+  for(const [name,filter] of shapes){await new Promise(r=>setTimeout(r,900));try{const logs=await raw(url,'eth_getLogs',[filter]);matrix.push({name,ok:true,logs:logs.length});}catch(e){matrix.push({name,ok:false,error:transport.sanitize(e.message)});}}
+  const t0=await raw(url,'eth_getBlockByNumber',['0x'+(head-10000).toString(16),false]);await new Promise(r=>setTimeout(r,900));const t1=await raw(url,'eth_getBlockByNumber',['0x'+head.toString(16),false]);
+  out.arcMatrix={head,secondsPer10000Blocks:Number(BigInt(t1.timestamp)-BigInt(t0.timestamp)),matrix};
+  notice('onchain-arc-query-matrix',out.arcMatrix);
+ }catch(e){notice('onchain-arc-query-matrix',{error:String(e.message).slice(0,200)});}
  // Positive control on real Ethereum logs: the decoder must accept every genuine log of a known shape.
  try{
   const url=transport.endpoints('ethereum')[0],head=Number(BigInt(await raw(url,'eth_blockNumber',[])));

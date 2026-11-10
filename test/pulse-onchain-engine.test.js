@@ -193,6 +193,10 @@ test('sparse windows widen the next span up to the reviewed cap; pacing and sequ
  const arc=await engine.scan({chain:'arc',now:(GENESIS+900000+5)*1000,fetcher,urls:URLS,pace:0});
  assert.equal(arc.status,'NO_QUALIFYING_EVENTS');assert.ok(sent.every(isBatch=>isBatch===false));
  assert.equal(engine.queries(watchlist.network('arc'),1,2).length,4);
+ // Address lists never exceed the provider's per-filter cap, and no watched contract is dropped by the split.
+ const eth=watchlist.network('ethereum'),plan=engine.queries(eth,1,2);
+ assert.ok(plan.every(q=>q.filter.address.length<=10));
+ assert.deepEqual([...new Set(plan.filter(q=>q.kind==='token').flatMap(q=>q.filter.address))].sort(),eth.tokens.map(t=>t.address).sort());
  const paced=transport.create({chainId:5042,urls:URLS,fetcher:arcNode.fetcher,paceMs:280,sleep:async ms=>{waits.push(ms);}});
  await paced.batch([{method:'eth_blockNumber',params:[]},{method:'eth_blockNumber',params:[]}]);
  assert.ok(waits.length>=1&&waits.every(ms=>ms>0&&ms<=280));
