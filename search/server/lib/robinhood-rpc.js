@@ -78,11 +78,11 @@ async function rpc(method,params,opts={}){
 function createPinnedReader({endpoint,block,blockHash,providerList=providers(),callAt=requestAt}={}){
  if(typeof endpoint!=='string'||!/^0x[0-9a-f]+$/i.test(block||'')||!/^0x[0-9a-f]{64}$/i.test(blockHash||''))throw Error('Invalid pinned RPC identity');
  const ready=new Map();let active=endpoint,switching=null;
- async function verifyEndpoint(target){
+ async function verifyEndpoint(target,options={}){
   if(ready.has(target))return ready.get(target);
   const check=(async()=>{
-   verifyChainId('robinhood',await callAt(target,'eth_chainId',[]));
-   const anchor=await callAt(target,'eth_getBlockByNumber',[block,false]);
+   verifyChainId('robinhood',await callAt(target,'eth_chainId',[],options));
+   const anchor=await callAt(target,'eth_getBlockByNumber',[block,false],options);
    if(String(anchor?.number||'').toLowerCase()!==block.toLowerCase()||
       String(anchor?.hash||'').toLowerCase()!==blockHash.toLowerCase())
     throw Object.assign(Error('Provider does not retain the anchored Robinhood block'),{code:'PINNED_BLOCK_CHANGED'});
@@ -91,13 +91,13 @@ function createPinnedReader({endpoint,block,blockHash,providerList=providers(),c
   ready.set(target,check);
   try{return await check}catch(error){ready.delete(target);throw error;}
  }
- async function alternative(exclude){
+ async function alternative(exclude,options={}){
   if(switching)return switching;
   switching=(async()=>{
    let last;
    for(const target of providerList){
     if(target===exclude)continue;
-    try{return await verifyEndpoint(target)}catch(error){last=error;}
+    try{return await verifyEndpoint(target,options)}catch(error){last=error;}
    }
    throw Object.assign(Error('No provider can serve the pinned Robinhood block'),{code:'PINNED_BLOCK_UNAVAILABLE',cause:last});
   })();
@@ -106,15 +106,15 @@ function createPinnedReader({endpoint,block,blockHash,providerList=providers(),c
  async function read(method,params,options={}){
   if(!READ_ONLY.has(method))throw Error('Robinhood RPC method not allowed in read-only lab');
   const target=active;
-  try{await verifyEndpoint(target);return await callAt(target,method,params,options);}
+  try{await verifyEndpoint(target,options);return await callAt(target,method,params,options);}
   catch(error){
    if(!retryable(error)&&error.code!=='PINNED_BLOCK_CHANGED')throw error;
-   active=await alternative(target);
+   active=await alternative(target,options);
    return callAt(active,method,params,options);
   }
  }
- async function verify(){
-  const current=await read('eth_getBlockByNumber',[block,false]);
+ async function verify(options={}){
+  const current=await read('eth_getBlockByNumber',[block,false],options);
   if(String(current?.number||'').toLowerCase()!==block.toLowerCase()||
      String(current?.hash||'').toLowerCase()!==blockHash.toLowerCase())
    throw Object.assign(Error('Robinhood block anchor changed during snapshot'),{code:'PINNED_BLOCK_CHANGED'});
