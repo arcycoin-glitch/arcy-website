@@ -86,7 +86,7 @@ function percentage(raw,totalRaw){
  const scale=10n**12n;
  return Number((raw*100n*scale+total/2n)/total)/1e12;
 }
-async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,fetcher=fetch,rpcCall=rpc,key=process.env.BLOCKSCOUT_API_KEY}={}){
+async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,reportedHolderCountPromise,fetcher=fetch,rpcCall=rpc,key=process.env.BLOCKSCOUT_API_KEY}={}){
  if(typeof address!=='string'||!ADDRESS.test(address)||!/^0x[0-9a-f]+$/i.test(block||'')||
   typeof totalSupplyRaw!=='string'||!/^[1-9]\d*$/.test(totalSupplyRaw))return unavailable('HOLDER_RANK_INPUT_INVALID');
  const token=address.toLowerCase();
@@ -111,6 +111,9 @@ async function fetchRank(address,{block,totalSupplyRaw,reportedHolderCount,fetch
   const ranked=rows(firstBody);
   if(!ranked)return unavailable('BLOCKSCOUT_HOLDERS_SCHEMA_INVALID');
   if(ranked.length===0)return unavailable('BLOCKSCOUT_HOLDERS_EMPTY');
+  if(reportedHolderCountPromise){
+   try{const result=await reportedHolderCountPromise;reportedHolderCount=result?.value??result;}catch{reportedHolderCount=undefined;}
+  }
   let censusRows=null;
   if(Number.isSafeInteger(reportedHolderCount)&&reportedHolderCount<=MAX_CENSUS_HOLDERS){
    try{censusRows=await completeCandidates(firstBody,requestUrl,reportedHolderCount,fetcher);}catch{censusRows=null;}
