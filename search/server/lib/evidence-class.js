@@ -29,8 +29,8 @@ function asOf(f){
 }
 function underlying(f,lin){
  if(f.crossCheck?.state==='AGREE')return ['CROSS_VERIFIED','two independent providers agreed ('+(f.crossCheck.providers||[]).join(' + ')+')'];
- if(lin&&!lin.onchainOnly)return ['SINGLE_SOURCE','derived value capped by its weakest essential input: '+lin.reason+'; status '+f.status+' is kept for compatibility but is not an on-chain verification'];
  if(f.status==='SOURCE_REPORTED_RPC_RECONCILED')return ['SINGLE_SOURCE','RPC checked the source-ranked candidates at the pinned block; candidate-list completeness and the chain-wide ranking are not verified'];
+ if(lin&&!lin.onchainOnly)return ['SINGLE_SOURCE','derived value capped by its weakest essential input: '+lin.reason+'; status '+f.status+' is kept for compatibility but is not an on-chain verification'];
  if(ONCHAIN.has(f.status))return ['ON_CHAIN_VERIFIED','status '+f.status+(lin?' (all essential inputs on-chain)':'')];
  return ['SINGLE_SOURCE','status '+f.status+(f.source?' from '+f.source:'')+'; no independent confirmation recorded'];
 }
