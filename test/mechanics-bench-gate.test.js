@@ -4,9 +4,10 @@
 // cached reference fetch) per Robinhood contract whose tax/mint/owner were NOT verified on main. Everything else unchanged.
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{spawnSync}=require('node:child_process');
 const SCRIPT=path.resolve(__dirname,'../scripts/assert-mechanics-bench.cjs');
+const {isPinnedBlockTag}=require('../scripts/mechanics-bench-budget.cjs');
 const FIELDS=['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'];
 const field=ok=>({ok,cls:ok?'ON_CHAIN_VERIFIED':'NOT_VERIFIED',status:ok?'ON_CHAIN':'NOT_VERIFIED',value:ok?'x':'',scope:''});
-const netOf=(o={})=>({rpc:10,sourcify:1,goplus:0,explorer:0,other:0,failed:0,replayHit:11,replayMiss:0,augProbe:0,augSibling:0,augReference:0,...o});
+const netOf=(o={})=>({rpc:10,sourcify:1,goplus:0,explorer:0,other:0,failed:0,replayHit:11,replayMiss:0,augProbe:0,augSibling:0,augReference:0,augCustomRole:0,...o});
 function rows(n=32,mut=()=>{}){return Array.from({length:n},(_,i)=>{const r={chain:i<16?'ethereum':'robinhood',address:'0x'+(i+1).toString(16).padStart(40,'0'),group:'radar',block:'0x10',err:null,net:netOf(),f:Object.fromEntries(FIELDS.map(k=>[k,field(true)]))};mut(r,i);return r;});}
 const total=rs=>rs.reduce((t,r)=>{for(const [k,v] of Object.entries(r.net))t[k]=(t[k]||0)+v;return t;},{});
 function gate(beforeRows,afterRows,afterMode='augment'){
@@ -54,6 +55,14 @@ test('reviewed-profile reads: <=8 per contract and only where the tax row was un
  const over=base();over[20].net.rpc+=9;over[20].net.augReviewed=9;assert.match(gate(base(),over).out,/Reviewed-profile read budget exceeded/);
  const ineligible=base();ineligible[4].net.rpc+=3;ineligible[4].net.augReviewed=3;assert.match(gate(base(),ineligible).out,/already verified tax row/);
  const hidden=base();hidden[20].net.rpc+=9;hidden[20].net.augReviewed=8;assert.match(gate(base(),hidden).out,/New RPC usage/);
+});
+
+test('custom-role replay reads require a pinned JSON-RPC quantity and stay within the per-contract budget',()=>{
+ for(const block of ['0x0','0x1','0x1d21839','0xABCDEF'])assert.equal(isPinnedBlockTag(block),true,block);
+ for(const block of ['latest','pending','safe','0x','0x01','0x'+'a'.repeat(65),null])assert.equal(isPinnedBlockTag(block),false,String(block));
+ const ok=base();ok[6].net.rpc+=20;ok[6].net.augCustomRole=20;
+ const result=gate(base(),ok);assert.equal(result.ok,true,result.out);assert.match(result.out,/"customRole":20/);
+ const over=base();over[6].net.rpc+=21;over[6].net.augCustomRole=21;assert.match(gate(base(),over).out,/Custom AccessControl role read budget exceeded/);
 });
 
 test('an enumerated DEFAULT_ADMIN_ROLE member may only be upgraded to reviewed evidence for the same address',()=>{

@@ -7,6 +7,7 @@ const fs=require('node:fs'),path=require('node:path');
 const label=process.argv[2]||'run',samplesFile=process.argv[3]||'';
 const root=process.env.BENCH_ROOT||process.cwd();
 const req=p=>require(path.join(root,p));
+const {isPinnedBlockTag}=require('./mechanics-bench-budget.cjs');
 const FIELDS=['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture'];
 const REGRESSION=[['arc','0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b'],['arc','0xf76b1d00bd3d63a37246b5f512074e864010e33d'],['robinhood','0x39dbed3a2bd333467115de45665cc57f813c4571']];
 const ETH_KNOWN=['0xdAC17F958D2ee523a2206206994597C13D831ec7','0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48','0x6B175474E89094C44Da98b954EedeAC495271d0F','0x514910771AF9Ca656af840dff83E8264EcF986CA','0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984','0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2','0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE','0x6982508145454Ce325dDbE47a25d4ec3d2311933','0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9','0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2','0xB8c77482e45F1F44dE1745F52C74426C631bDD52','0x4Fabb145d64652a948d72533023f6E7A623C7C53'];
@@ -43,7 +44,7 @@ function budgetedKind(url,opts){
  if(!Array.isArray(b)&&b?.method==='eth_getStorageAt'&&Array.isArray(b.params)&&b.params.length===3&&reviewedSlots.has(String(b.params[1]).toLowerCase()))return 'augReviewed';
  if(Array.isArray(b)||b?.method!=='eth_call'||!Array.isArray(b.params))return null;
  const data=String(b.params[0]?.data||'').toLowerCase();
- if(b.params.length===2&&/^0x[0-9a-f]{64}$/i.test(b.params[1])&&(customRoleSelectors.has(data.slice(0,10))||accessRoleSelectors.has(data.slice(0,10))))return 'augCustomRole';
+ if(b.params.length===2&&isPinnedBlockTag(b.params[1])&&(customRoleSelectors.has(data.slice(0,10))||accessRoleSelectors.has(data.slice(0,10))))return 'augCustomRole';
  if(probeModule&&data===probeModule.PROBE_SELECTOR&&b.params.length<=3){
   if(b.params.length===3){const ov=b.params[2]||{},keys=Object.keys(ov);const proxy=keys.find(k=>k!==probeModule.PROBE_TARGET);
    if(keys.length!==2||!ov[probeModule.PROBE_TARGET]||ov[probeModule.PROBE_TARGET].code!==probeModule.PROBE_CODE||Object.keys(ov[proxy]?.stateDiff||{}).length!==1)return null;}
