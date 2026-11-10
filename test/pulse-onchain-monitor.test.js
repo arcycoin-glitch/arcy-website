@@ -9,6 +9,7 @@ function result(chain,from,to,events=[],{complete=true,overflow=0,status=events.
 
 test('checkpoint range capacity and retained event cap are bounded independently of sparse widening',()=>{
  for(const chain of Object.keys(watchlist.NETWORKS)){const cfg=watchlist.network(chain);assert.equal(monitor.scanCapacity(cfg),cfg.span*cfg.maxWindows);}
+ assert.equal(monitor.intervalMs('robinhood'),15*60*1000);assert.equal(monitor.intervalMs('ethereum'),30*60*1000);assert.equal(monitor.intervalMs('arc'),30*60*1000);
 });
 
 test('checkpoint advances through complete ranges, deduplicates event ids, and replaces the reorg overlap',()=>fixture(async env=>{
@@ -42,6 +43,13 @@ test('a failed first bootstrap persists retry timing without inventing a coverag
  assert.equal(retry.skipped,true);assert.equal(retry.reasonCode,'RETRY_BACKOFF');assert.equal(calls,1);
  const recovered=await monitor.refreshChain('ethereum',{now:NOW+monitor.RETRY_MS,env,scan:async()=>{calls++;return result('ethereum',100,120);}});
  assert.equal(recovered.complete,true);assert.equal(recovered.coverage.startBlock,100);assert.equal(recovered.coverage.nextBlock,121);assert.equal(calls,2);
+}));
+
+test('Robinhood refresh interval stays below measured live scan capacity',()=>fixture(async env=>{
+ let calls=0;const scan=async options=>{calls++;return options.range?result('robinhood',options.range.fromBlock,options.range.fromBlock+100):result('robinhood',100,200);};
+ const first=await monitor.refreshChain('robinhood',{now:NOW,env,scan});assert.equal(first.complete,true);
+ const early=await monitor.refreshChain('robinhood',{now:NOW+monitor.ROBINHOOD_INTERVAL_MS-1,env,scan});assert.equal(early.skipped,true);assert.equal(calls,1);
+ const due=await monitor.refreshChain('robinhood',{now:NOW+monitor.ROBINHOOD_INTERVAL_MS,env,scan});assert.equal(due.complete,true);assert.equal(calls,2);
 }));
 
 test('refreshes are serialized per chain and source failures stay isolated across networks',()=>fixture(async env=>{
