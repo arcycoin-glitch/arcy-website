@@ -54,23 +54,15 @@ const ready=async()=>{
     const submit=document.querySelector('#search .home-search-submit');
     const options=[...document.querySelectorAll('#search .home-network-option')];
     const labels=options.map(o=>({label:o.textContent.trim(),selected:o.getAttribute('aria-pressed'),
-      x:box(o).x,y:box(o).y,height:box(o).h,contained:box(o).x>=box(picker).x-1&&box(o).right<=box(picker).right+1}));
+      height:box(o).h,contained:box(o).x>=box(picker).x-1&&box(o).right<=box(picker).right+1}));
     const logos=[...document.querySelectorAll('#search .home-network-option[data-network] img')]
      .map(i=>({src:i.getAttribute('src'),loaded:i.complete&&i.naturalWidth>0}));
     return {outer:box(root),input:box(input),picker:box(picker),submit:box(submit),
       labels,logos,width:window.innerWidth,scrollWidth:document.documentElement.scrollWidth};
    });
    assert(state.outer.x>=-1&&state.outer.right<=width+1,'outer card overflow '+width+' '+JSON.stringify(state.outer));
-   assert(Math.abs(state.input.y-state.submit.y)<=1&&Math.abs(state.input.bottom-state.submit.bottom)<=1&&state.input.right<=state.submit.x+1&&state.picker.y>state.input.bottom,
-     'V2 lookup + submit inline; network selector underneath '+width+' '+JSON.stringify(state));
-   const atSameY=(a,b)=>Math.abs(a.y-b.y)<=1;
-   if(width<720){
-    assert(atSameY(state.labels[0],state.labels[1])&&atSameY(state.labels[2],state.labels[3])&&state.labels[2].y>state.labels[0].y,
-      'mobile V2 network controls must be 2x2 '+width+' '+JSON.stringify(state.labels));
-   }else{
-    assert(state.labels.every(x=>atSameY(x,state.labels[0])),
-      'desktop/tablet V2 network controls must be one row '+width+' '+JSON.stringify(state.labels));
-   }
+   assert(state.input.y<state.picker.y&&state.picker.y<state.submit.y,
+     'input -> network -> CTA order '+width+' '+JSON.stringify(state));
    assert(state.labels.length===4,'exactly four accessible choices '+width);
    assert(state.labels.every(x=>x.height>=38&&x.contained),'clipped network buttons '+width+' '+JSON.stringify(state.labels));
    assert(state.labels[0].label.includes('All 3 Networks')&&state.labels[0].selected==='true',
