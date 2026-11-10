@@ -75,11 +75,62 @@ async function rpc(method,params,opts={}){
  }
  throw last;
 }
+function createPinnedReader({endpoint,block,blockHash,providerList=providers(),callAt=requestAt}={}){
+ if(typeof endpoint!=='string'||!/^0x[0-9a-f]+$/i.test(block||'')||!/^0x[0-9a-f]{64}$/i.test(blockHash||''))throw Error('Invalid pinned RPC identity');
+ const ready=new Map();let active=endpoint,switching=null;
+ async function verifyEndpoint(target){
+  if(ready.has(target))return ready.get(target);
+  const check=(async()=>{
+   verifyChainId('robinhood',await callAt(target,'eth_chainId',[]));
+   const anchor=await callAt(target,'eth_getBlockByNumber',[block,false]);
+   if(String(anchor?.number||'').toLowerCase()!==block.toLowerCase()||
+      String(anchor?.hash||'').toLowerCase()!==blockHash.toLowerCase())
+    throw Object.assign(Error('Provider does not retain the anchored Robinhood block'),{code:'PINNED_BLOCK_CHANGED'});
+   return target;
+  })();
+  ready.set(target,check);
+  try{return await check}catch(error){ready.delete(target);throw error;}
+ }
+ async function alternative(exclude){
+  if(switching)return switching;
+  switching=(async()=>{
+   let last;
+   for(const target of providerList){
+    if(target===exclude)continue;
+    try{return await verifyEndpoint(target)}catch(error){last=error;}
+   }
+   throw Object.assign(Error('No provider can serve the pinned Robinhood block'),{code:'PINNED_BLOCK_UNAVAILABLE',cause:last});
+  })();
+  try{return await switching}finally{switching=null;}
+ }
+ async function read(method,params,options={}){
+  if(!READ_ONLY.has(method))throw Error('Robinhood RPC method not allowed in read-only lab');
+  const target=active;
+  try{await verifyEndpoint(target);return await callAt(target,method,params,options);}
+  catch(error){
+   if(!retryable(error)&&error.code!=='PINNED_BLOCK_CHANGED')throw error;
+   active=await alternative(target);
+   return callAt(active,method,params,options);
+  }
+ }
+ async function verify(){
+  const current=await read('eth_getBlockByNumber',[block,false]);
+  if(String(current?.number||'').toLowerCase()!==block.toLowerCase()||
+     String(current?.hash||'').toLowerCase()!==blockHash.toLowerCase())
+   throw Object.assign(Error('Robinhood block anchor changed during snapshot'),{code:'PINNED_BLOCK_CHANGED'});
+  return true;
+ }
+ return {read,verify};
+}
 async function inspectAt(endpoint,address){
  const callRpc=(method,params)=>requestAt(endpoint,method,params);
  verifyChainId('robinhood',await callRpc('eth_chainId',[]));
  const block=await callRpc('eth_blockNumber',[]);
  if(!/^0x[0-9a-f]+$/i.test(block))throw Error('Malformed Robinhood block');
+ const anchor=await callRpc('eth_getBlockByNumber',[block,false]);
+ if(String(anchor?.number||'').toLowerCase()!==block.toLowerCase()||!/^0x[0-9a-f]{64}$/i.test(anchor?.hash||''))
+  throw Object.assign(Error('Robinhood block anchor unavailable'),{retryable:true});
+ const pinned=createPinnedReader({endpoint,block,blockHash:anchor.hash});
  const bytecode=await callRpc('eth_getCode',[address,block]);
  if(!/^0x[0-9a-f]+$/i.test(bytecode||'')||bytecode==='0x')
   throw Error('No verified token contract');
@@ -99,7 +150,8 @@ async function inspectAt(endpoint,address){
  const symbol=names[1].status==='fulfilled'?abiString(names[1].value):null;
  const raw=names.slice(2).every(x=>x.status==='fulfilled')?
   names.slice(2).reduce((a,x)=>a+uint(x.value),0n):null;
- return {chainId:cfg.chainId,network:cfg.id,address,block,token:{name,symbol,decimals},
+ return {chainId:cfg.chainId,network:cfg.id,address,block,blockHash:anchor.hash,
+  readAtBlock:pinned.read,verifyBlock:pinned.verify,token:{name,symbol,decimals},
   totalSupplyRaw:totalSupplyRaw.toString(),totalSupply:units(totalSupplyRaw,decimals),
   proxyImplementation,runtimeDelegatecallDetected,
   burnAddressRaw:raw?.toString()??null,
@@ -139,5 +191,5 @@ async function inspectToken({address}){
  }
  throw last;
 }
-module.exports={rpc,inspectToken,providers,retryable,requestAt,inspectAt,minimalProxyImplementation,containsOpcode};
+module.exports={rpc,inspectToken,providers,retryable,requestAt,inspectAt,createPinnedReader,minimalProxyImplementation,containsOpcode};
 
