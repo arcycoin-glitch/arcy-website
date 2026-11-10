@@ -9,7 +9,7 @@ const engine=require('../lib/pulse-onchain/engine'),watchlist=require('../lib/pu
 const notice=(title,data)=>console.log('::notice title='+title+'::'+JSON.stringify(data).slice(0,3800));
 const brief=r=>({status:r.status,complete:r.complete,reasonCode:r.reasonCode||null,window:r.window&&{from:r.window.fromBlock,to:r.window.toBlock,blocks:r.window.blocksCovered,planned:r.window.blocksPlanned,hours:r.window.hoursCovered,narrowed:r.window.spanNarrowed},
  headAgeSeconds:r.head?.ageSeconds??null,confirmation:r.confirmation&&{policy:r.confirmation.policy,lag:r.head?r.head.number-r.confirmation.confirmedHead:null},
- events:(r.events||[]).length,counts:r.counts,cost:r.cost&&{rpcCalls:r.cost.rpcCalls,http:r.cost.httpRequests,failovers:r.cost.failovers,providerErrors:r.cost.providerErrors}});
+ events:(r.events||[]).length,counts:r.counts,diagnostics:r.diagnostics,cost:r.cost&&{rpcCalls:r.cost.rpcCalls,http:r.cost.httpRequests,failovers:r.cost.failovers,providerErrors:r.cost.providerErrors}});
 const eventLine=e=>({category:e.category,type:e.type,subject:e.subject.label,at:e.eventTimestamp,tx:e.transactionHash,verification:e.verification,materiality:e.materiality.level,share:e.materiality.shareOfSupplyPpm??null,state:e.stateCheck?.result||null,headline:e.headline});
 async function raw(url,method,params){
  const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(15000)});
