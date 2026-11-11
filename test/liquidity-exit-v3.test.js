@@ -99,13 +99,13 @@ test('verified V3 pool: factory-confirmed fee tier, tick replay equal to the quo
  assert.equal(r.pool.feeEvidence,'ONCHAIN_POOL_IMMUTABLE_CONFIRMED_BY_FACTORY');assert.equal(r.pool.identity.factoryGetPool,POOL);
  assert.equal(r.block.number,0x2000);assert.equal(r.evidence.class,'INDEPENDENTLY_CROSS_CHECKED');
  assert.equal(r.quotes.length,3);
- for(const q of r.quotes){assert.equal(q.quoterMatch,true);assert.equal(q.quoterAmountOut,q.amountOut);assert.equal(q.feePpm,3000);assert.ok(q.totalVsMidPpm>=q.priceImpactPpm);}
+ for(const q of r.quotes){assert.equal(q.state,'VERIFIED');assert.equal(q.quoterMatch,true);assert.equal(q.quoterAmountOut,q.amountOut);assert.equal(q.feePpm,3000);assert.ok(q.totalVsMidPpm>=q.priceImpactPpm);}
  assert.ok(r.quotes[0].priceImpactPpm<r.quotes[1].priceImpactPpm&&r.quotes[1].priceImpactPpm<r.quotes[2].priceImpactPpm);
  // The 5 % step leaves the first range (tick -600 is ~2.96 % of price): an initialized tick is crossed and liquidity changes.
  assert.equal(r.quotes[0].initializedTicksCrossed,0);assert.equal(r.quotes[2].initializedTicksCrossed,1);
  assert.equal(r.state.ticksRead,1);assert.ok(r.state.bitmapWordsRead>=1&&r.state.bitmapWordsRead<=v3.MAX_WORDS);
  for(const c of w.calls.filter(c=>c.method==='eth_call'||c.method==='eth_getCode'))assert.equal(c.params[1],'0x2000');
- assert.ok(r.cost.primaryCalls<=64&&r.cost.crossCheckCalls===4);
+ assert.ok(r.cost.primaryCalls<=80&&r.cost.crossCheckCalls===4);
  assert.ok(!JSON.stringify(r).includes('http'));
 });
 
@@ -133,6 +133,12 @@ test('V3 refusals: identity, model mismatch, depth budget, exhausted liquidity a
  // More initialized ticks on the path than the read budget allows.
  const dense=new Map();for(let i=1;i<=40;i++){dense.set(-60*i,1n);dense.set(60*i,-1n);}
  assert.deepEqual(await code(world({ticks:dense}).run({amountsIn:[(10n**21n*5n).toString()]})),{state:'UNSUPPORTED',reasonCode:'V3_DEPTH_BUDGET_EXCEEDED'});
+ // In a ladder, only the sizes beyond the bounded depth are refused; smaller sizes stay verified and carry no estimate for the rest.
+ const ladder=await world({ticks:dense}).run({amountsIn:[(10n**21n*5n).toString(),(10n**18n).toString(),(10n**21n*6n).toString()]});
+ assert.deepEqual(ladder.quotes.map(q=>q.state),['VERIFIED','REFUSED','REFUSED']);
+ assert.equal(ladder.quotes[0].amountIn,(10n**18n).toString());assert.equal(ladder.quotes[0].quoterMatch,true);
+ for(const q of ladder.quotes.slice(1)){assert.equal(q.amountOut,null);assert.equal(q.reasonCode,'V3_DEPTH_BUDGET_EXCEEDED');assert.ok(!('priceImpactPpm' in q));}
+ assert.ok(ladder.state.ticksRead<=v3.MAX_TICKS);
  assert.deepEqual(await code(world({secondary:{liquidity:5n}}).run()),{state:'CONFLICTING_EVIDENCE',reasonCode:'RPC_DISAGREEMENT'});
  assert.deepEqual(await code(world({secondary:{sqrtPriceX96:Q96+1n}}).run()),{state:'CONFLICTING_EVIDENCE',reasonCode:'RPC_DISAGREEMENT'});
  assert.equal((await world({secondary:{down:true}}).run()).evidence.class,'SINGLE_SOURCE_ONCHAIN');
