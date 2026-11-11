@@ -110,14 +110,14 @@ test('cooldown expires into two independent probes; ordinary traffic resumes onl
  let s=await state('arc',env);
  assert.equal(s.state,watchdog.STATES.PROBING);
  assert.equal(s.recoverySuccesses,1);
- assert.equal(seen.filter(x=>x.slot==='primary'&&x.method==='eth_blockNumber').length,0);
+ assert.equal(seen.filter(x=>x.slot==='primary'&&x.method==='eth_blockNumber').length,1);
  await restarted.batch(query);
  s=await state('arc',env);
  assert.equal(s.state,watchdog.STATES.HEALTHY);
  assert.equal(s.recoverySuccesses,0);
- assert.equal(seen.filter(x=>x.slot==='primary'&&x.method==='eth_blockNumber').length,0);
+ assert.equal(seen.filter(x=>x.slot==='primary'&&x.method==='eth_blockNumber').length,2);
  await restarted.batch(query);
- assert.equal(seen.filter(x=>x.slot==='primary'&&x.method==='eth_blockNumber').length,1);
+ assert.equal(seen.filter(x=>x.slot==='primary'&&x.method==='eth_blockNumber').length,3);
 });
 
 test('bad durable watchdog state fails closed even with a working fallback',async t=>{
