@@ -4,6 +4,7 @@ on:
     paths:
       - 'Dockerfile.holder-worker'
       - 'lib/**'
+      - 'search/server/lib/**'
       - 'scripts/holder-worker.cjs'
       - 'scripts/export-holder-snapshots.cjs'
       - 'scripts/docker-smoke.cjs'

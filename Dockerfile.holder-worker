@@ -3,6 +3,9 @@ RUN apk add --no-cache su-exec
 WORKDIR /app
 COPY package.json ./
 COPY lib ./lib
+# lib/pulse-onchain (durable Pulse monitor) reads the shared chain configuration and RPC helpers.
+# test/docker-image-closure.test.js fails if any require reachable from the worker is missing from this image.
+COPY search/server/lib ./search/server/lib
 COPY scripts/holder-worker.cjs ./scripts/holder-worker.cjs
 COPY scripts/export-holder-snapshots.cjs ./scripts/export-holder-snapshots.cjs
 CMD ["sh", "-c", "test \"$ARC_HOLDER_STORAGE\" = local && test -n \"$ARC_INDEX_CACHE_DIR\" && test -n \"$ARC_HOLDER_PUBLISHED_DIR\" && mkdir -p \"$ARC_INDEX_CACHE_DIR\" \"$ARC_HOLDER_PUBLISHED_DIR\" && chown -R node:node \"$ARC_INDEX_CACHE_DIR\" \"$ARC_HOLDER_PUBLISHED_DIR\" && exec su-exec node sh -c 'node scripts/export-holder-snapshots.cjs \"$ARC_INDEX_CACHE_DIR\" && exec node scripts/holder-worker.cjs'"]
