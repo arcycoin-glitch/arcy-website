@@ -12,8 +12,6 @@ function world(o={}){
  const key={currency0:A,currency1:B,fee:3000,tickSpacing:60,hooks:ZERO,...o.key};
  const poolId=v4.poolIdForKey(key),calls=[];
  const state={sqrtPriceX96:Q96,tick:0,protocolFee:0,lpFee:key.fee===0x800000?500:key.fee,liquidity:10n**24n,...o.state};
- const log={address:ARC.poolManager,removed:false,topics:[v4.INIT_TOPIC,poolId,topic(key.currency0),topic(key.currency1)],
-  data:raw(word(key.fee),word(key.tickSpacing),addr(key.hooks),word(Q96),word(0)),blockNumber:'0x180',transactionHash:'0x'+'cd'.repeat(32)};
  const reply=(q,result)=>new Response(JSON.stringify({jsonrpc:'2.0',id:q.id,result}));
  const error=(q,code,message)=>new Response(JSON.stringify({jsonrpc:'2.0',id:q.id,error:{code,message}}));
  const fetcher=async(url,init)=>{
@@ -22,12 +20,11 @@ function world(o={}){
   if(q.method==='eth_chainId')return reply(q,'0x13b2');
   if(q.method==='eth_blockNumber')return reply(q,'0x2002');
   if(q.method==='eth_getBlockByNumber')return reply(q,{number:q.params[0],hash:HASH,timestamp:'0x6b49d200'});
-  if(q.method==='eth_getCode')return reply(q,q.params[0]===ARC.poolManager&&q.params[1]==='0xff'?'0x':'0x60006000');
-  if(q.method==='eth_getTransactionReceipt')return reply(q,{contractAddress:ARC.poolManager,blockNumber:'0x100',status:'0x1'});
-  if(q.method==='eth_getLogs')return reply(q,o.noLog?[]:[{...log,...(o.log||{})}]);
+  if(q.method==='eth_getCode')return reply(q,'0x60006000');
   if(q.method==='eth_call'){
    const {to,data}=q.params[0];
-   if((to===ARC.stateView||to===ARC.quoter)&&data===v4.SELECTORS.poolManager)return reply(q,raw(addr(ARC.poolManager)));
+   if((to===ARC.positionManager||to===ARC.stateView||to===ARC.quoter)&&data===v4.SELECTORS.poolManager)return reply(q,raw(addr(ARC.poolManager)));
+   if(to===ARC.positionManager&&data.startsWith(v4.SELECTORS.poolKeys))return reply(q,o.noKey?raw(word(0),word(0),word(0),word(0),word(0)):raw(addr(key.currency0),addr(key.currency1),word(key.fee),word(key.tickSpacing),addr(key.hooks)));
    if(to===ARC.stateView&&data.startsWith(v4.SELECTORS.getSlot0))return reply(q,raw(word(state.sqrtPriceX96),word(state.tick),word(state.protocolFee),word(state.lpFee)));
    if(to===ARC.stateView&&data.startsWith(v4.SELECTORS.getLiquidity))return reply(q,raw(word(state.liquidity)));
    if(to===ARC.quoter&&data.startsWith(v4.SELECTORS.quoteExactInputSingle)){
@@ -45,11 +42,12 @@ function world(o={}){
 }
 const failure=async p=>{try{await p;}catch(e){return v2.classifyFailure(e);}throw Error('expected failure');};
 
-test('PoolId uses the full five-word PoolKey and Initialize round-trips to the same identity',()=>{
- const w=world(),log={address:ARC.poolManager,removed:false,topics:[v4.INIT_TOPIC,w.poolId,topic(w.key.currency0),topic(w.key.currency1)],
-  data:raw(word(w.key.fee),word(w.key.tickSpacing),addr(w.key.hooks),word(Q96),word(0)),blockNumber:'0x180',transactionHash:'0x'+'ef'.repeat(32)};
- const parsed=v4.parseInitialize(log,w.poolId);
- assert.deepEqual(parsed.key,w.key);assert.equal(v4.poolIdForKey(parsed.key),w.poolId);
+test('PoolId uses the full five-word PoolKey and PositionManager mapping round-trips to the same identity',()=>{
+ const w=world(),encoded=raw(addr(w.key.currency0),addr(w.key.currency1),word(w.key.fee),word(w.key.tickSpacing),addr(w.key.hooks));
+ const parsed=v4.decodePoolKey(encoded,w.poolId);
+ assert.deepEqual(parsed,w.key);assert.equal(v4.poolIdForKey(parsed),w.poolId);
+ assert.equal(v4.poolKeyData(w.poolId).length,10+64);
+ assert.equal(v4.poolKeyData(w.poolId).slice(10,60),w.poolId.slice(2,52));
  const changed={...w.key,fee:500};assert.notEqual(v4.poolIdForKey(changed),w.poolId);
 });
 
@@ -61,12 +59,13 @@ test('Arc V4 quote verifies reviewed deployment, PoolKey identity, StateView, Qu
  assert.equal(r.evidence.class,'INDEPENDENTLY_CROSS_CHECKED');assert.equal(r.evidence.crossCheck.state,'AGREED');
  assert.equal(r.quotes.length,1);assert.equal(r.quotes[0].state,'VERIFIED');assert.equal(r.quotes[0].amountOut,'997000000000000000');
  assert.equal(r.quotes[0].feePpm,3000);assert.equal(r.fee.effectiveFeePpm,3000);
- assert.ok(w.calls.some(x=>x.method==='eth_getLogs'));assert.ok(w.calls.some(x=>x.method==='eth_getTransactionReceipt'));
+ assert.ok(w.calls.some(x=>x.method==='eth_call'&&x.params[0].to===ARC.positionManager&&x.params[0].data.startsWith(v4.SELECTORS.poolKeys)));
+ assert.ok(!w.calls.some(x=>x.method==='eth_getLogs'||x.method==='eth_getTransactionReceipt'));
  assert.ok(w.calls.filter(x=>x.method==='eth_call').every(x=>x.params[1]==='0x2000'));
 });
 
-test('V4 fails closed on missing Initialize evidence and refuses a hook quote revert',async()=>{
- assert.deepEqual(await failure(world({noLog:true}).run()),{state:'UNSUPPORTED',reasonCode:'V4_POOL_NOT_INITIALIZED'});
+test('V4 fails closed on missing PositionManager PoolKey evidence and refuses a hook quote revert',async()=>{
+ assert.deepEqual(await failure(world({noKey:true}).run()),{state:'UNSUPPORTED',reasonCode:'V4_POOL_KEY_UNAVAILABLE'});
  const w=world({quoteRevert:true});
  assert.deepEqual(await failure(w.run({amountsIn:['1000000']})),{state:'UNSUPPORTED',reasonCode:'V4_QUOTE_REVERTED'});
 });
