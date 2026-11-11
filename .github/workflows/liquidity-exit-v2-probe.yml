@@ -1,0 +1,22 @@
+name: Liquidity & Exit V2 real-network probe (read-only)
+# Public RPC endpoints only; prints live verification results as annotations. Never signs, sends or writes.
+on:
+  pull_request:
+    paths:
+      - 'lib/liquidity-exit-v2.js'
+      - 'lib/liquidity-v2-reserves.js'
+      - 'scripts/probe-liquidity-exit-v2.cjs'
+      - '.github/workflows/liquidity-exit-v2-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-liquidity-exit-v2.cjs
