@@ -20,7 +20,7 @@ function classify(error){
  if(http===429||RATE_CODES.has(error?.rpcCode))return watchdog.FAILURE_KINDS.RATE_LIMIT;
  if(error?.code==='SEARCH_PROVIDER_WRONG_CHAIN'||error?.message==='RPC chain ID mismatch')
   return watchdog.FAILURE_KINDS.WRONG_CHAIN;
- if(error?.code==='SEARCH_PROVIDER_MALFORMED'||/^(Malformed (Arc|Robinhood) block|(Arc|Robinhood) RPC invalid response)$/.test(error?.message||'')&&error?.rpcCode===undefined)
+ if(error?.code==='SEARCH_PROVIDER_MALFORMED'||/^(Malformed (Arc|Robinhood) block|(Arc|Robinhood) RPC invalid response|Upstream returned malformed JSON|Upstream JSON response exceeds size limit|Upstream response body unavailable)$/.test(error?.message||'')&&error?.rpcCode===undefined)
   return watchdog.FAILURE_KINDS.MALFORMED;
  if(error?.name==='TimeoutError'||error?.name==='AbortError'||error?.timeout===true)
   return watchdog.FAILURE_KINDS.TIMEOUT;
