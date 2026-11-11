@@ -40,6 +40,13 @@ async function rawRequestAt(endpoint,method,params,{timeoutMs=11000}={}){
   if(!response.ok){
    const error=new Error('Arc RPC HTTP '+response.status);
    error.httpStatus=response.status;
+   if(response.status===429){
+    const value=response.headers?.get?.('retry-after');
+    if(typeof value==='string'&&value.length<=80){
+     const seconds=Number(value),ms=Number.isFinite(seconds)?seconds*1000:Date.parse(value)-Date.now();
+     if(Number.isFinite(ms)&&ms>0)error.retryAfterMs=Math.min(1800000,Math.ceil(ms));
+    }
+   }
    error.retryable=response.status===403||response.status===429||response.status>=500;
    throw error;
   }
@@ -138,7 +145,8 @@ async function inspectToken({address}){
  const endpoints=providers();
  if(require('./search-provider-watchdog').enabled())return require('./search-provider-watchdog').route({
   network:'arc',endpoints,inspect:endpoint=>inspectAt(endpoint,normalized),
-  read:(endpoint,method,params)=>requestAt(endpoint,method,params)
+  // Never reuse analysis-scoped cached responses as independent recovery proofs.
+  read:(endpoint,method,params)=>rawRequestAt(endpoint,method,params)
  });
  let last;
  for(const endpoint of endpoints){
