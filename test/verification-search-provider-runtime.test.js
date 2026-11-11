@@ -225,3 +225,107 @@ test('real Arc and Robinhood inspectToken entrypoints keep all snapshot reads pi
   Object.assign(process.env,saved);
  }
 });
+
+test('provider-side JSON-RPC rate limit with no HTTP 429 is still quarantined safely',async t=>{
+ const env=await fixture(t);
+ const output=await routeFor({env,inspect:async endpoint=>{
+  if(endpoint===PRIMARY)throw fault('Arc RPC invalid response',{rpcCode:-32005});
+  return {endpoint};
+ }});
+ assert.equal(output.endpoint,BACKUP);
+ const row=await record('arc',PRIMARY,0,env);
+ assert.equal(row.state.state,watchdog.STATES.COOLDOWN);
+ assert.equal(row.state.http429,1);
+});
+
+test('flag OFF preserves original Arc and Robinhood fallback without durable storage',async()=>{
+ const before=global.fetch,saved={...process.env};
+ const word=value=>'0x'+BigInt(value).toString(16).padStart(64,'0');
+ try{
+  delete process.env.ARC_AUTONOMY_WATCHDOG_SEARCH_ENABLED;
+  delete process.env.ARC_VERIFICATION_LEDGER_DIR;
+  for(const network of ['arc','robinhood']){
+   process.env[network==='arc'?'ARC_RPC_URL':'ROBINHOOD_RPC_URL']=PRIMARY;
+   process.env[network==='arc'?'ARC_RPC_FALLBACK_URL':'ROBINHOOD_RPC_FALLBACK_URL']=BACKUP;
+   const calls=[];
+   global.fetch=async(endpoint,init)=>{
+    const p=JSON.parse(init.body);
+    calls.push([endpoint,p.method]);
+    if(endpoint===PRIMARY)return new Response('{}',{status:429});
+    const data=p.params?.[0]?.data;
+    const result=p.method==='eth_chainId'?CHAIN[network]:
+     p.method==='eth_blockNumber'?'0xabc':
+     p.method==='eth_getCode'?'0x6001600055':
+     p.method==='eth_call'?(data==='0x18160ddd'?word(1000):data==='0x313ce567'?word(18):word(0)):'0xabc';
+    return new Response(JSON.stringify({jsonrpc:'2.0',id:p.id,result}),{status:200});
+   };
+   const client=require('../search/server/lib/'+(network==='arc'?'arc-rpc':'robinhood-rpc'));
+   const output=await client.inspectToken({address:ADDRESS});
+   assert.equal(output.block,'0xabc');
+   assert.equal(output.totalSupplyRaw,'1000');
+   assert.equal(calls.filter(x=>x[0]===PRIMARY).length,1);
+   assert.ok(calls.filter(x=>x[0]===BACKUP).length>=5);
+  }
+ }finally{
+  global.fetch=before;
+  for(const k of Object.keys(process.env))if(!(k in saved))delete process.env[k];
+  Object.assign(process.env,saved);
+ }
+});
+
+test('real Arc pinned-block corruption or wrong chain quarantines primary and never mixes token reads',async t=>{
+ const word=v=>'0x'+BigInt(v).toString(16).padStart(64,'0');
+ for(const mode of ['wrong-chain','malformed-block']){
+  const env=await fixture(t);
+  const before=global.fetch,saved={...process.env};
+  try{
+   Object.assign(process.env,env,{ARC_RPC_URL:PRIMARY,ARC_RPC_FALLBACK_URL:BACKUP});
+   const calls=[];
+   global.fetch=async(endpoint,init)=>{
+    const p=JSON.parse(init.body);
+    calls.push([endpoint,p.method]);
+    const primary=endpoint===PRIMARY;
+    const data=p.params?.[0]?.data;
+    const result=p.method==='eth_chainId'?primary&&mode==='wrong-chain'?'0x1':CHAIN.arc:
+     p.method==='eth_blockNumber'?primary&&mode==='malformed-block'?'oops':'0xabc':
+     p.method==='eth_getCode'?'0x6001600055':
+     p.method==='eth_call'?(data==='0x18160ddd'?word(1000):data==='0x313ce567'?word(18):word(0)):'0xabc';
+    return new Response(JSON.stringify({jsonrpc:'2.0',id:p.id,result}),{status:200});
+   };
+   const result=await require('../search/server/lib/arc-rpc').inspectToken({address:ADDRESS});
+   assert.equal(result.block,'0xabc');
+   assert.equal(result.totalSupplyRaw,'1000');
+   assert.equal(calls.some(([endpoint,method])=>endpoint===PRIMARY&&method==='eth_call'),false);
+   assert.equal((await record('arc',PRIMARY,0,env)).state.state,watchdog.STATES.UNAVAILABLE);
+  }finally{
+   global.fetch=before;
+   for(const k of Object.keys(process.env))if(!(k in saved))delete process.env[k];
+   Object.assign(process.env,saved);
+  }
+ }
+});
+
+test('actual Search HTTP Retry-After is bounded and preserved in provider cooldown',async t=>{
+ const env=await fixture(t),before=global.fetch,saved={...process.env};
+ const word=v=>'0x'+BigInt(v).toString(16).padStart(64,'0');
+ try{
+  Object.assign(process.env,env,{ARC_RPC_URL:PRIMARY,ARC_RPC_FALLBACK_URL:BACKUP});
+  global.fetch=async(endpoint,init)=>{
+   if(endpoint===PRIMARY)return new Response('{}',{status:429,headers:{'Retry-After':'720'}});
+   const p=JSON.parse(init.body),data=p.params?.[0]?.data;
+   const result=p.method==='eth_chainId'?CHAIN.arc:
+    p.method==='eth_blockNumber'?'0xabc':
+    p.method==='eth_getCode'?'0x6001600055':
+    p.method==='eth_call'?(data==='0x18160ddd'?word(1000):data==='0x313ce567'?word(18):word(0)):'0xabc';
+   return new Response(JSON.stringify({jsonrpc:'2.0',id:p.id,result}),{status:200});
+  };
+  const output=await require('../search/server/lib/arc-rpc').inspectToken({address:ADDRESS});
+  assert.equal(output.block,'0xabc');
+  const row=await record('arc',PRIMARY,0,env);
+  assert.equal(Date.parse(row.state.cooldownUntil)-Date.parse(row.state.lastFailureAt),720000);
+ }finally{
+  global.fetch=before;
+  for(const k of Object.keys(process.env))if(!(k in saved))delete process.env[k];
+  Object.assign(process.env,saved);
+ }
+});
