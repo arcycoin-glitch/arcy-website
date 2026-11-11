@@ -142,3 +142,33 @@ test('single-provider exhaustion does not produce a synthetic successful result'
  const client=create({env,clock,urls:[PRIMARY],fetcher:responder({primaryFault:'429'})});
  await assert.rejects(client.batch(query),{code:'ONCHAIN_PROVIDER_UNAVAILABLE'});
 });
+
+test('concurrent stale success cannot overwrite a newer cooldown event',async t=>{
+ const env=await fixture(t),id=transport.providerId(PRIMARY,0);
+ await ledger.transition('arc',id,{kind:'RATE_LIMIT',httpStatus:429,at:BASE},{env});
+ await assert.rejects(
+  ledger.transition('arc',id,{kind:'SUCCESS',at:BASE+1,latencyMs:10,expectedRevision:0},{env}),
+  {code:'PROVIDER_WATCHDOG_LEDGER_STALE_OBSERVATION'});
+ assert.equal((await state('arc',env)).state,watchdog.STATES.COOLDOWN);
+});
+
+test('a failed second recovery probe restarts quarantine instead of accepting unverified traffic',async t=>{
+ const env=await fixture(t),clock={value:BASE};
+ let fault='429',chainCalls=0;
+ const fetcher=async(url,options)=>{
+  if(url===PRIMARY&&JSON.parse(options.body).method==='eth_chainId'){
+   chainCalls++;
+   if(chainCalls===3)throw Object.assign(Error('offline'),{name:'TypeError'});
+  }
+  return responder({primaryFault:fault})(url,options);
+ };
+ await create({env,clock,fetcher}).batch(query);
+ clock.value=Date.parse((await state('arc',env)).cooldownUntil)+1;fault=null;
+ const restarted=create({env,clock,fetcher});
+ await restarted.batch(query);
+ assert.equal((await state('arc',env)).state,watchdog.STATES.PROBING);
+ await restarted.batch(query);
+ const quarantined=await state('arc',env);
+ assert.equal(quarantined.state,watchdog.STATES.UNAVAILABLE);
+ assert.equal(watchdog.eligibility(quarantined,clock.value+1000).trafficAllowed,false);
+});
