@@ -9,7 +9,8 @@ const handlers=Object.freeze({
  chart:require('../../search/server/api/chart'),
  radar:(req,res)=>require('../../search/server/api/radar')(req,res),
  privileges:(req,res)=>require('../../search/server/api/privileges')(req,res),
- onchain:(req,res)=>require('../../search/server/api/onchain')(req,res)
+ onchain:(req,res)=>require('../../search/server/api/onchain')(req,res),
+ exitquote:(req,res)=>require('../../search/server/api/exitquote')(req,res)
 });
 const KEYS=Object.freeze({
  health:[],
@@ -21,7 +22,8 @@ const KEYS=Object.freeze({
  chart:['address','chain','interval','range','timeframe','period'],
  radar:['chain'],
  privileges:['address','chain'],
- onchain:['chain']
+ onchain:['chain'],
+ exitquote:['chain','pool','token','amount']
 });
 function decodeQuery(req){
  const incoming=req.query&&typeof req.query==='object'&&!Array.isArray(req.query)?
