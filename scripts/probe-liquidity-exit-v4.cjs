@@ -9,6 +9,16 @@ const TOKENS={
  arc:['0xf76b1d00bd3d63a37246b5f512074e864010e33d','0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'],
  robinhood:['0x39dbed3a2bd333467115de45665cc57f813c4571']
 };
+// Discovery seeds are only addresses to attempt. They are NOT trusted as identity evidence.
+// Every seed must still prove itself from PoolManager.Initialize, PoolId recomputation, StateView and V4Quoter.
+// These Arc pool IDs were independently observed in public Arc pool listings when DexScreener did not expose a bytes32 PoolId.
+const SEEDS={
+ arc:[
+  {token:'0x66927743a8a841ca09575a4ccdcd090c761adcec',pair:'0xa857a22b0869f0371b451019bc1b0ebb369a2d782fb0af42595976157c8d1f0e',source:'DISCOVERY_SEED'},
+  {token:'0x29316db42ff99f640fd4d1bb169635b6318cd430',pair:'0xd71e15a5c45a204f5228d68165925741efa79995d2671a9e291e6e5cffcc89fc',source:'DISCOVERY_SEED'}
+ ],
+ robinhood:[]
+};
 const notice=(title,data)=>console.log('::notice title='+title+'::'+JSON.stringify(data).slice(0,3800));
 const pct=(a,p)=>a[Math.min(a.length-1,Math.ceil(a.length*p)-1)];
 (async()=>{
@@ -23,6 +33,7 @@ const pct=(a,p)=>a[Math.min(a.length-1,Math.ceil(a.length*p)-1)];
    }catch(e){rows.push({token,error:e.code||e.message});}
    await sleep(400);
   }
+  for(const seed of SEEDS[network]||[])rows.push({...seed,liquidityUsd:null,dexId:null});
   const unique=[...new Map(rows.filter(x=>x.pair).map(x=>[x.pair,x])).values()].sort((a,b)=>(b.liquidityUsd||0)-(a.liquidityUsd||0));
   const results=[];
   for(const candidate of unique.slice(0,3)){
