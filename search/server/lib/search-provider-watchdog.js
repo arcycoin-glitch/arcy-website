@@ -78,7 +78,7 @@ async function route({network,endpoints,inspect,read,env=process.env,now=Date.no
    if(kind===null)throw error; // Contract revert/invalid token is not a provider outage.
    // A stale concurrent writer or corrupt ledger must NEVER be silently bypassed.
    await ledger.transition(network,providerId,{
-    kind,httpStatus:kind===watchdog.FAILURE_KINDS.RATE_LIMIT?429:null,
+    kind,httpStatus:statusCode(error)===429?429:null,
     at:now(),expectedRevision:prior.revision
    },{env});
    lastFailure=error;
