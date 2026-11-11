@@ -3,7 +3,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const v3=require('../lib/liquidity-exit-v3'),v2=require('../lib/liquidity-exit-v2'),router=require('../lib/liquidity-exit');
 const {math}=v3;
-const UNI=v3.PROTOCOLS.ethereum[0],UNI2=v2.PROTOCOLS.ethereum[0];
+const UNI=v3.PROTOCOLS.ethereum[0],ROBIN=v3.PROTOCOLS.robinhood[0],UNI2=v2.PROTOCOLS.ethereum[0];
 const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40),POOL='0x'+'c'.repeat(40),OTHER='0x'+'d'.repeat(40);
 const word=v=>(v<0n?(1n<<256n)+v:BigInt(v)).toString(16).padStart(64,'0');
 const PRIMARY='ethereum-rpc.publicnode.com',SECONDARY='eth.drpc.org',HASH='0x'+'11'.repeat(32);
@@ -142,7 +142,9 @@ test('V3 refusals: identity, model mismatch, depth budget, exhausted liquidity a
  assert.deepEqual(await code(world({secondary:{liquidity:5n}}).run()),{state:'CONFLICTING_EVIDENCE',reasonCode:'RPC_DISAGREEMENT'});
  assert.deepEqual(await code(world({secondary:{sqrtPriceX96:Q96+1n}}).run()),{state:'CONFLICTING_EVIDENCE',reasonCode:'RPC_DISAGREEMENT'});
  assert.equal((await world({secondary:{down:true}}).run()).evidence.class,'SINGLE_SOURCE_ONCHAIN');
- for(const network of ['arc','robinhood']){const w=world();assert.equal((await code(w.run({network}))).reasonCode,'NO_REVIEWED_PROTOCOL');assert.equal(w.calls.length,0);}
+ {const w=world();assert.equal((await code(w.run({network:'arc'}))).reasonCode,'NO_REVIEWED_PROTOCOL');assert.equal(w.calls.length,0);}
+ assert.equal(ROBIN.factory,'0x1f7d7550b1b028f7571e69a784071f0205fd2efa');
+ assert.equal(ROBIN.quoter,'0x33e885ed0ec9bf04ecfb19341582aadcb4c8a9e7');
 });
 
 test('dispatcher routes by reviewed factory and still refuses an unknown one',async()=>{
@@ -152,6 +154,6 @@ test('dispatcher routes by reviewed factory and still refuses an unknown one',as
  // A pool that claims the V2 factory is sent to the V2 engine, whose own checks then reject this V3-shaped contract.
  assert.equal((await code(world({poolFactory:UNI2.factory}).route())).reasonCode,'NOT_V2_COMPATIBLE_POOL');
  assert.deepEqual(router.supported('ethereum'),{v2:['uniswap-v2','sushiswap-v2'],v3:['uniswap-v3']});
- assert.deepEqual(router.supported('robinhood'),{v2:[],v3:[]});
+ assert.deepEqual(router.supported('robinhood'),{v2:[],v3:['uniswap-v3']});
  const none=world();assert.equal((await code(none.route({network:'arc'}))).reasonCode,'NO_REVIEWED_PROTOCOL');assert.equal(none.calls.length,0);
 });
