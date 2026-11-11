@@ -22,7 +22,7 @@ function world(o={}){
   if(q.method==='eth_chainId')return reply(q,'0x13b2');
   if(q.method==='eth_blockNumber')return reply(q,'0x2002');
   if(q.method==='eth_getBlockByNumber')return reply(q,{number:q.params[0],hash:HASH,timestamp:'0x6b49d200'});
-  if(q.method==='eth_getCode')return reply(q,'0x60006000');
+  if(q.method==='eth_getCode')return reply(q,q.params[0]===ARC.poolManager&&q.params[1]==='0xff'?'0x':'0x60006000');
   if(q.method==='eth_getTransactionReceipt')return reply(q,{contractAddress:ARC.poolManager,blockNumber:'0x100',status:'0x1'});
   if(q.method==='eth_getLogs')return reply(q,o.noLog?[]:[{...log,...(o.log||{})}]);
   if(q.method==='eth_call'){
