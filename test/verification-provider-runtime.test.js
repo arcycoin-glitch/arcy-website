@@ -183,3 +183,34 @@ test('Ethereum fallback is explicit and flag-gated; legacy endpoint selection is
  assert.deepEqual(transport.endpoints('ethereum',{...env,ARC_AUTONOMY_WATCHDOG_RPC_ENABLED:'1',ETH_RPC_FALLBACK_URL:env.ETH_RPC_URL}),
   ['https://ethereum-primary.test/']);
 });
+
+test('a failed FIRST recovery probe returns to quarantine; no normal primary traffic resumes',async t=>{
+ const env=await fixture(t),clock={value:BASE},calls=[];
+ let fault='429';
+ const fetcher=async(url,init)=>responder({primaryFault:fault,seen:calls})(url,init);
+ const client=create({env,clock,fetcher});
+ assert.deepEqual(await client.batch(query),[{ok:true,result:'0x10'}]);
+ const prior=await state('arc',env);
+ clock.value=Date.parse(prior.cooldownUntil)+1;
+ fault='offline';
+ await client.batch(query); // Probe fails; independently verified fallback remains eligible.
+ const after=await state('arc',env);
+ assert.equal(after.state,watchdog.STATES.UNAVAILABLE);
+ assert.equal(watchdog.eligibility(after,clock.value+1000).trafficAllowed,false);
+ const count=calls.filter(x=>x.slot==='primary').length;
+ fault=null;
+ await client.batch(query);
+ assert.equal(calls.filter(x=>x.slot==='primary').length,count);
+});
+
+test('HTTP 429 Retry-After increases bounded persisted cooldown without leaking header values',async t=>{
+ const env=await fixture(t),clock={value:BASE};
+ const fetcher=async(url,init)=>url===PRIMARY?
+  new Response('{}',{status:429,headers:{'Retry-After':'720'}}):
+  responder({})(url,init);
+ assert.deepEqual(await create({env,clock,fetcher}).batch(query),[{ok:true,result:'0x10'}]);
+ const s=await state('arc',env);
+ assert.equal(s.state,watchdog.STATES.COOLDOWN);
+ assert.equal(Date.parse(s.cooldownUntil)-BASE,12*60*1000);
+ assert.ok(!JSON.stringify(await ledger.read('arc',transport.providerId(PRIMARY,0),{env})).includes('Retry-After'));
+});
