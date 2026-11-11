@@ -1,5 +1,5 @@
 'use strict';
-// Liquidity & Exit V2 — verified single-pool exit model, mounted as an action under the EXISTING /api/search
+// Liquidity & Exit V2 — verified single-pool exit model (reviewed V2 and V3 pools), mounted as an action under the EXISTING /api/search
 // function (Vercel Hobby limit: 12 functions; api/liquidity.js and the Liquidity card payload are not modified).
 //   GET /api/search?action=exitquote&chain=<arc|ethereum|robinhood>&pool=0x...&token=0x...[&amount=<raw integer>]
 // Default OFF: answers EXIT_QUOTE_NOT_ENABLED unless LIQUIDITY_EXIT_QUOTE_ENABLED=1 is set by the operator.
@@ -8,7 +8,7 @@
 // ever rendered as a quote, a zero or "no liquidity".
 const {ADDRESS}=require('../lib/eth');
 const {enforce}=require('../lib/rate-limit');
-const exit=require('../../../lib/liquidity-exit-v2');
+const exit=require('../../../lib/liquidity-exit');
 const CHAINS=['arc','ethereum','robinhood'];
 module.exports=async function(req,res){
  res.setHeader('Content-Type','application/json; charset=utf-8');
