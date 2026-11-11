@@ -4,9 +4,9 @@
 //   1. reviewed Uniswap V3 pools verify: factory.getPool identity, pinned block, second-provider agreement, and the
 //      off-chain tick replay equals QuoterV2 (amount out AND post-swap price) for small and tick-crossing sizes;
 //   2. reproducibility: a second run at the SAME recorded block returns identical state and quotes;
-//   3. refusals: a V2 pool given to the V3 engine, Arc/Robinhood, and sizes beyond the bounded depth budget;
-//   4. cost: RPC calls and latency per analysis;
-//   5. measurement only: identity facts of the unreviewed Robinhood V3-style factories (nothing is registered).
+//   3. Robinhood's reviewed Uniswap V3 deployment verifies against the official factory + QuoterV2;
+//   4. refusals: a V2 pool given to the V3 engine, Arc, unreviewed factories, and sizes beyond the bounded depth budget;
+//   5. cost: RPC calls and latency per analysis.
 const router=require('../lib/liquidity-exit'),v3=require('../lib/liquidity-exit-v3'),v2=require('../lib/liquidity-exit-v2');
 const {rpcUrl}=require('../search/server/lib/chains');
 const notice=(title,data)=>console.log('::notice title='+title+'::'+JSON.stringify(data).slice(0,3800));
@@ -66,7 +66,14 @@ async function raw(url,method,params){
  await refusal('V2 pool given to the V3 engine',()=>v3.analyze({network:'ethereum',pool:COHORT[7].pool,tokenIn:WETH,deadlineMs:20000,timeoutMs:8000}),['NOT_V3_COMPATIBLE_POOL']);
  await refusal('V3 pool given to the V2 engine',()=>v2.analyze({network:'ethereum',pool:COHORT[0].pool,tokenIn:WETH,deadlineMs:20000,timeoutMs:8000}),['NOT_V2_COMPATIBLE_POOL']);
  await refusal('size beyond bounded depth (5,000,000 WETH)',()=>router.analyze({network:'ethereum',pool:COHORT[0].pool,tokenIn:WETH,amountsIn:[(5000000n*E18).toString()],deadlineMs:30000,timeoutMs:8000}),['V3_DEPTH_BUDGET_EXCEEDED','V3_INSUFFICIENT_LIQUIDITY']);
- await refusal('Robinhood: no reviewed protocol',()=>router.analyze({network:'robinhood',pool:'0x10cc6bd38112cac182db90b6a71d8bb5939526ba',tokenIn:'0x39dbed3a2bd333467115de45665cc57f813c4571'}),['NO_REVIEWED_PROTOCOL']);
+ const robinhood={name:'Robinhood Uniswap V3 reviewed deployment',pool:'0x10cc6bd38112cac182db90b6a71d8bb5939526ba',tokenIn:'0x39dbed3a2bd333467115de45665cc57f813c4571'};
+ try{
+  const r=await router.analyze({network:'robinhood',pool:robinhood.pool,tokenIn:robinhood.tokenIn,deadlineMs:30000,timeoutMs:8000});
+  const row={name:robinhood.name,ok:r.status==='VERIFIED_POOL_MODEL'&&r.pool.factory==='0x1f7d7550b1b028f7571e69a784071f0205fd2efa'&&r.pool.quoter==='0x33e885ed0ec9bf04ecfb19341582aadcb4c8a9e7',
+   model:r.model,protocol:r.pool.protocol,feeBps:r.pool.feeBps,block:r.block.number,evidenceClass:r.evidence.class,crossCheck:r.evidence.crossCheck.state,
+   verifiedQuotes:r.quotes.filter(q=>q.state==='VERIFIED').length+'/'+r.quotes.length,rpcCalls:r.cost.rpcCalls,ms:r.cost.ms};
+  out.verified.push(row);notice('exit-v3-robinhood-reviewed',row);if(!row.ok)hardFailure=true;
+ }catch(e){const row={name:robinhood.name,ok:false,...router.classifyFailure(e)};out.verified.push(row);notice('exit-v3-robinhood-reviewed',row);hardFailure=true;}
  await refusal('Arc: no reviewed protocol',()=>router.analyze({network:'arc',pool:COHORT[0].pool,tokenIn:WETH}),['NO_REVIEWED_PROTOCOL']);
  notice('exit-v3-refusals',out.refusals);
  const sorted=[...latencies].sort((a,b)=>a-b);
@@ -74,8 +81,7 @@ async function raw(url,method,params){
   rpcCallsMin:calls.length?Math.min(...calls):null,rpcCallsMax:calls.length?Math.max(...calls):null};
  notice('exit-v3-cost',out.cost);
 
- // Measurement only (Robinhood): do the provider-listed V3-style pools resolve through the factory they name?
- // This is evidence for a later owner review of those factories; it does not make them reviewed.
+ // Robinhood evidence inventory: the official Uniswap factory is now reviewed; any other observed factory remains measurement-only.
  const S=v3.SELECTORS,pad=a=>a.slice(2).toLowerCase().padStart(64,'0'),url=rpcUrl('robinhood');
  for(const pool of ['0x10cc6bd38112cac182db90b6a71d8bb5939526ba','0xf2a0be59ab76b96f957bd5e5b967f2b75e8db269']){
   const row={};
