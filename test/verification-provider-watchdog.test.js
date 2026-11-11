@@ -85,3 +85,15 @@ test('a failed recovery probe never permits ordinary traffic before another two 
  assert.equal(s.state,w.STATES.UNAVAILABLE);
  assert.equal(w.eligibility(s,due+101).mode,'SKIP');
 });
+
+test('failed first probe from cooldown or unavailable stays quarantined',()=>{
+ for(const first of [w.FAILURE_KINDS.RATE_LIMIT,w.FAILURE_KINDS.WRONG_CHAIN]){
+  let s=w.recordFailure(w.create('arc-primary','arc'),{kind:first,httpStatus:first===w.FAILURE_KINDS.RATE_LIMIT?429:null,at:T});
+  const due=Date.parse(s.cooldownUntil);
+  assert.equal(w.eligibility(s,due).mode,'PROBE');
+  s=w.recordFailure(s,{kind:w.FAILURE_KINDS.TRANSPORT,at:due+1});
+  assert.equal(s.state,w.STATES.UNAVAILABLE);
+  assert.equal(w.eligibility(s,due+2).trafficAllowed,false);
+  assert.equal(w.eligibility(s,Date.parse(s.cooldownUntil)).mode,'PROBE');
+ }
+});
