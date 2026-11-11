@@ -172,3 +172,14 @@ test('a failed second recovery probe restarts quarantine instead of accepting un
  assert.equal(quarantined.state,watchdog.STATES.UNAVAILABLE);
  assert.equal(watchdog.eligibility(quarantined,clock.value+1000).trafficAllowed,false);
 });
+
+test('Ethereum fallback is explicit and flag-gated; legacy endpoint selection is unchanged',()=>{
+ const env={ETH_RPC_URL:'https://ethereum-primary.test',ETH_RPC_FALLBACK_URL:'https://ethereum-fallback.test'};
+ assert.deepEqual(transport.endpoints('ethereum',env),['https://ethereum-primary.test/']);
+ assert.deepEqual(transport.endpoints('ethereum',{...env,ARC_AUTONOMY_WATCHDOG_RPC_ENABLED:'1'}),
+  ['https://ethereum-primary.test/','https://ethereum-fallback.test/']);
+ assert.deepEqual(transport.endpoints('ethereum',{...env,ARC_AUTONOMY_WATCHDOG_RPC_ENABLED:'1',ETH_RPC_FALLBACK_URL:'disabled'}),
+  ['https://ethereum-primary.test/']);
+ assert.deepEqual(transport.endpoints('ethereum',{...env,ARC_AUTONOMY_WATCHDOG_RPC_ENABLED:'1',ETH_RPC_FALLBACK_URL:env.ETH_RPC_URL}),
+  ['https://ethereum-primary.test/']);
+});
