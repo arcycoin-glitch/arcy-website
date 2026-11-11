@@ -136,6 +136,10 @@ async function inspectToken({address}){
  if(!ADDRESS.test(address))throw Error('Invalid contract address');
  const normalized=address.toLowerCase();
  const endpoints=providers();
+ if(require('./search-provider-watchdog').enabled())return require('./search-provider-watchdog').route({
+  network:'arc',endpoints,inspect:endpoint=>inspectAt(endpoint,normalized),
+  read:(endpoint,method,params)=>requestAt(endpoint,method,params)
+ });
  let last;
  for(const endpoint of endpoints){
   try{return await inspectAt(endpoint,normalized)}
