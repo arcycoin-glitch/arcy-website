@@ -1,0 +1,24 @@
+name: Liquidity & Exit V4 real-network probe (read-only)
+on:
+  pull_request:
+    paths:
+      - 'lib/liquidity-exit-v4.js'
+      - 'lib/liquidity-exit-v2.js'
+      - 'lib/liquidity-exit.js'
+      - 'search/server/api/exitquote.js'
+      - 'scripts/probe-liquidity-exit-v4.cjs'
+      - 'test/liquidity-exit-v4.test.js'
+      - '.github/workflows/liquidity-exit-v4-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-liquidity-exit-v4.cjs

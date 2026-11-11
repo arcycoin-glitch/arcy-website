@@ -200,7 +200,7 @@ test('GET /api/search?action=exitquote is default-off, validated and additive',a
   // Unsupported network: explicit state, HTTP 200, no quote, no RPC needed.
   const arc=await call(q.replace('ethereum','arc'));
   assert.equal(arc.code,200);
-  assert.deepEqual(arc.body,{ok:false,readOnly:true,quotes:null,state:'UNSUPPORTED',reasonCode:'NO_REVIEWED_PROTOCOL'});
+  assert.deepEqual(arc.body,{ok:false,readOnly:true,quotes:null,state:'UNSUPPORTED',reasonCode:'FACTORY_NOT_REVIEWED'});
   assert.equal(arc.headers['Cache-Control'],'no-store');
  }finally{if(before===undefined)delete process.env.LIQUIDITY_EXIT_QUOTE_ENABLED;else process.env.LIQUIDITY_EXIT_QUOTE_ENABLED=before;require('../lib/liquidity-exit')._reset();}
 });

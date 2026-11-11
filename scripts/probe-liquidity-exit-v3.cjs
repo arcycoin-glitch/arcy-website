@@ -74,7 +74,7 @@ async function raw(url,method,params){
    verifiedQuotes:r.quotes.filter(q=>q.state==='VERIFIED').length+'/'+r.quotes.length,rpcCalls:r.cost.rpcCalls,ms:r.cost.ms};
   out.verified.push(row);notice('exit-v3-robinhood-reviewed',row);if(!row.ok)hardFailure=true;
  }catch(e){const row={name:robinhood.name,ok:false,...router.classifyFailure(e)};out.verified.push(row);notice('exit-v3-robinhood-reviewed',row);hardFailure=true;}
- await refusal('Arc: no reviewed protocol',()=>router.analyze({network:'arc',pool:COHORT[0].pool,tokenIn:WETH}),['NO_REVIEWED_PROTOCOL']);
+ await refusal('Arc: 20-byte V3/V2-style address is not a reviewed Arc protocol',()=>router.analyze({network:'arc',pool:COHORT[0].pool,tokenIn:WETH}),['FACTORY_NOT_REVIEWED']);
  notice('exit-v3-refusals',out.refusals);
  const sorted=[...latencies].sort((a,b)=>a-b);
  out.cost={analyses:latencies.length,p50Ms:sorted.length?pct(sorted,0.5):null,p95Ms:sorted.length?pct(sorted,0.95):null,maxMs:sorted.at(-1)??null,
