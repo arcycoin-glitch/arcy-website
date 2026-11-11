@@ -46,6 +46,19 @@ async function raw(url,method,params){
    catch(e){entry.factories.push({label:f.label,address:f.address,error:String(e.message).slice(0,120)});}
   }
   notice('onchain-'+chain+'-factories',entry.factories);
+  // Throughput: real block production versus the monitor's fixed capacity per refresh (measurement only).
+  try{
+   const monitor=require('../lib/pulse-onchain/monitor'),turl=transport.endpoints(chain)[0];
+   const headNow=Number(BigInt(await raw(turl,'eth_blockNumber',[]))),sample=Math.min(headNow,cfg.span*cfg.maxWindows);
+   const top=await raw(turl,'eth_getBlockByNumber',['0x'+headNow.toString(16),false]),bottom=await raw(turl,'eth_getBlockByNumber',['0x'+(headNow-sample).toString(16),false]);
+   const seconds=Number(BigInt(top.timestamp))-Number(BigInt(bottom.timestamp)),rate=seconds>0?sample/seconds:null;
+   const capacity=monitor.lagOf(chain,null).capacityBlocksPerRun,interval=monitor.intervalMs(chain)/1000,produced=rate===null?null:Math.round(rate*interval);
+   entry.throughput={sampleBlocks:sample,sampleSeconds:seconds,blocksPerSecond:rate===null?null:Number(rate.toFixed(3)),refreshIntervalSeconds:interval,
+    blocksProducedPerInterval:produced,capacityBlocksPerRun:capacity,headroomPct:produced?Number(((capacity/produced-1)*100).toFixed(1)):null,
+    keepsUpAtNormalCadence:produced===null?null:capacity>=produced,
+    capacityAtCatchUpCadence:rate===null?null:Math.round(capacity/(monitor.RETRY_MS/1000)/rate*100)/100};
+   notice('onchain-'+chain+'-throughput',entry.throughput);
+  }catch(e){entry.throughput={error:String(e.message).slice(0,120)};notice('onchain-'+chain+'-throughput',entry.throughput);}
   out.chains[chain]=entry;
  }
  // Arc query-shape matrix: which eth_getLogs shapes does the public endpoint accept? (paced, single calls)
