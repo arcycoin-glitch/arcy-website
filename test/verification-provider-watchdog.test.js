@@ -49,7 +49,10 @@ test('latency history is bounded and summary exposes only secret-free operationa
  assert.equal(s.latencyMs.length,w.MAX_LATENCY_SAMPLES);assert.deepEqual(s.latencyMs,[...Array(32)].map((_,i)=>i+9));
  const out=w.summary(s);
  assert.equal(out.latency.samples,32);assert.equal(out.latency.p50Ms,24);assert.equal(out.latency.p95Ms,39);assert.equal(out.latency.maxMs,40);
- const json=JSON.stringify(out);assert.equal(json.includes('http'),false);assert.equal(json.includes('url'),false);assert.equal(json.includes('error'),false);
+ const forbidden=new Set(['url','headers','authorization','secret','message','error']);
+ const walk=value=>{if(!value||typeof value!=='object')return;for(const [key,child] of Object.entries(value)){assert.equal(forbidden.has(key),false,'forbidden watchdog key: '+key);walk(child);}};
+ walk(out);
+ assert.equal(out.http429,0);
 });
 
 test('cooldown reuses the repository deterministic backoff and honors bounded Retry-After',()=>{
