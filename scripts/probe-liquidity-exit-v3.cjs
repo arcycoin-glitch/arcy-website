@@ -39,11 +39,12 @@ async function raw(url,method,params){
    const again=await router.analyze({...args,pinnedBlock:first.block.number});
    const stateOf=r=>JSON.stringify(r.state||r.reserves);
    const reproducible=again.block.hash===first.block.hash&&stateOf(again)===stateOf(first)&&JSON.stringify(again.quotes)===JSON.stringify(first.quotes);
-   Object.assign(entry,{ok:reproducible,model:first.model,protocol:first.pool.protocol,feeBps:first.pool.feeBps,block:first.block.number,blockHash:first.block.hash.slice(0,18),
+   const verifiedCount=first.quotes.filter(q=>q.state!=='REFUSED').length;
+   Object.assign(entry,{ok:reproducible&&verifiedCount>0,verifiedQuotes:verifiedCount+'/'+first.quotes.length,model:first.model,protocol:first.pool.protocol,feeBps:first.pool.feeBps,block:first.block.number,blockHash:first.block.hash.slice(0,18),
     evidenceClass:first.evidence.class,crossCheck:first.evidence.crossCheck.state,crossCheckReason:first.evidence.crossCheck.reasonCode,
     state:first.state?{tick:first.state.tick,L:first.state.activeLiquidity,words:first.state.bitmapWordsRead,ticks:first.state.ticksRead}:undefined,
-    quotes:first.quotes.map(q=>({in:q.amountIn,out:q.amountOut,impactPpm:q.priceImpactPpm,totalPpm:q.totalVsMidPpm,crossed:q.initializedTicksCrossed,
-     quoterCrossed:q.quoterTicksCrossed,match:q.quoterMatch??q.routerMatch})),
+    quotes:first.quotes.map(q=>q.state==='REFUSED'?{in:q.amountIn,refused:q.reasonCode}:({in:q.amountIn,out:q.amountOut,impactPpm:q.priceImpactPpm,totalPpm:q.totalVsMidPpm,crossed:q.initializedTicksCrossed,
+     match:q.quoterMatch??q.routerMatch})),
     reproducible,rpcCalls:first.cost.rpcCalls,ms:first.cost.ms});
   }catch(e){
    const f=router.classifyFailure(e);
