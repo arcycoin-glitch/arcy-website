@@ -329,3 +329,32 @@ test('actual Search HTTP Retry-After is bounded and preserved in provider cooldo
   Object.assign(process.env,saved);
  }
 });
+
+test('malformed JSON from a real Arc RPC is quarantined and a complete pinned fallback is used',async t=>{
+ const env=await fixture(t),priorFetch=global.fetch,priorEnv={...process.env};
+ const word=value=>'0x'+BigInt(value).toString(16).padStart(64,'0');
+ try{
+  Object.assign(process.env,env,{ARC_RPC_URL:PRIMARY,ARC_RPC_FALLBACK_URL:BACKUP});
+  const used=[];
+  global.fetch=async(endpoint,init)=>{
+   const p=JSON.parse(init.body);
+   used.push([endpoint,p.method]);
+   if(endpoint===PRIMARY)return new Response('{this is not JSON',{status:200});
+   const selector=p.params?.[0]?.data;
+   const result=p.method==='eth_chainId'?CHAIN.arc:
+    p.method==='eth_blockNumber'?'0xabc':
+    p.method==='eth_getCode'?'0x6001600055':
+    p.method==='eth_call'?(selector==='0x18160ddd'?word(1000):selector==='0x313ce567'?word(18):word(0)):'0xabc';
+   return new Response(JSON.stringify({jsonrpc:'2.0',id:p.id,result}),{status:200});
+  };
+  const result=await require('../search/server/lib/arc-rpc').inspectToken({address:ADDRESS});
+  assert.equal(result.totalSupplyRaw,'1000');
+  assert.equal(result.block,'0xabc');
+  assert.equal(used.filter(([endpoint])=>endpoint===PRIMARY).length,1);
+  assert.equal((await record('arc',PRIMARY,0,env)).state.state,watchdog.STATES.UNAVAILABLE);
+ }finally{
+  global.fetch=priorFetch;
+  for(const k of Object.keys(process.env))if(!(k in priorEnv))delete process.env[k];
+  Object.assign(process.env,priorEnv);
+ }
+});
