@@ -358,3 +358,39 @@ test('malformed JSON from a real Arc RPC is quarantined and a complete pinned fa
   Object.assign(process.env,priorEnv);
  }
 });
+
+test('real Search recovery probes bypass report-scoped RPC response memoization',async t=>{
+ const env=await fixture(t),priorEnv={...process.env},priorFetch=global.fetch;
+ const word=v=>'0x'+BigInt(v).toString(16).padStart(64,'0');
+ try{
+  Object.assign(process.env,env,{ARC_RPC_URL:PRIMARY,ARC_RPC_FALLBACK_URL:BACKUP});
+  const primaryId=router.slug(PRIMARY,0);
+  await ledger.transition('arc',primaryId,{
+   kind:'RATE_LIMIT',httpStatus:429,at:Date.now()-60*60*1000
+  },{env});
+  assert.equal(watchdog.eligibility((await record('arc',PRIMARY,0,env)).state).mode,'PROBE');
+  const requests=[];
+  global.fetch=async(endpoint,init)=>{
+   const r=JSON.parse(init.body),data=r.params?.[0]?.data;
+   requests.push([endpoint,r.method]);
+   const result=r.method==='eth_chainId'?CHAIN.arc:
+    r.method==='eth_blockNumber'?'0xabc':
+    r.method==='eth_getCode'?'0x6001600055':
+    r.method==='eth_call'?(data==='0x18160ddd'?word(1000):data==='0x313ce567'?word(18):word(0)):'0xabc';
+   return new Response(JSON.stringify({jsonrpc:'2.0',id:r.id,result}),{status:200});
+  };
+  const client=require('../search/server/lib/arc-rpc');
+  const scope=require('../search/server/lib/analysis-scope');
+  await scope.run(async()=>{
+   assert.equal((await client.inspectToken({address:ADDRESS})).totalSupplyRaw,'1000');
+   assert.equal((await client.inspectToken({address:ADDRESS})).totalSupplyRaw,'1000');
+  });
+  const primaryRequests=requests.filter(([endpoint])=>endpoint===PRIMARY).map(x=>x[1]);
+  assert.deepEqual(primaryRequests,['eth_chainId','eth_blockNumber','eth_chainId','eth_blockNumber']);
+  assert.equal((await record('arc',PRIMARY,0,env)).state.state,watchdog.STATES.HEALTHY);
+ }finally{
+  global.fetch=priorFetch;
+  for(const k of Object.keys(process.env))if(!(k in priorEnv))delete process.env[k];
+  Object.assign(process.env,priorEnv);
+ }
+});
