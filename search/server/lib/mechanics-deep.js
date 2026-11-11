@@ -327,6 +327,8 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
    await require('./mechanics-reviewed-tokens').apply({profile,fields,details,proof,fact,word,address,block,direct:target===address&&nonDelegating(code),
     storage:slot=>safe('eth_getStorageAt',[address,slot,block])});
   }
+  // Exact source + deployed runtime matched; this detector is scoped to one reviewed implementation.
+  require('./mechanics-exact-gta6').apply({network,address,source,fields,details,fact});
  }
  // Source/ABI-matched owner getter returning the zero address: recorded as a diagnostic observation ONLY. Project policy (see
  // 'ABI zero owner cannot establish absence of all privileges') is that it never becomes the displayed owner/admin fact.
