@@ -5,7 +5,17 @@ Connects the Autonomous Risk Engine V1 (#224) to the Verification Runtime (#225)
 - Flag: `ARC_AUTONOMY_RISK_ENGINE_ENABLED=1`, **default OFF**. OFF: no producer runs, no request is made.
 - ON: shadow mode only. The result is persisted to the Evidence Ledger (when durable storage exists) and logged as one `RISK_SHADOW` line. **It is never attached to a Search response**; the 20 metrics, cards, statuses and every API stay unchanged. No new Vercel function, route or response field.
 
-## Reviewed producer: `arcy-risk-authority-producer` v1 (`lib/risk-engine/producers/authority.js`)
+## Security review fix (v2)
+
+Review of #227 ([comment](https://github.com/arcycoin-glitch/arcy-website/pull/227#issuecomment-6836358243)): an accepted privileged `eth_call` proves **access to that calldata**, not the operation. An admin-only fallback or an owner-only no-op (even with an inert `PUSH4 40c10f19` in its bytecode) produces the same differential without writing the EIP-1967 slot or increasing supply.
+
+Since producer **v2**:
+- A positive record also requires that `keccak256` of the runtime code handling the call (the proxy for upgrade calls; the implementation, or the token itself, for mint) is in `REVIEWED_CODE[network]` with the matching capability (`upgrade: true` / `mint: true`) and a reference to reviewed, bytecode-matched source. The registry is per network and frozen.
+- **The registry ships empty.** Every case is therefore `NOT_VERIFIED / OPERATION_SEMANTICS_UNREVIEWED` (engine `UNKNOWN`); the access observation and the code hash are kept for diagnostics.
+- The gate requires `minVersion: 2`, so v1 records (access differential only) are rejected as `PRODUCER_NOT_REVIEWED`.
+- Execution traces (`debug_traceCall`) are not used: the public endpoints in use do not offer them, and a trace-based proof would itself need review.
+
+## Reviewed producer: `arcy-risk-authority-producer` v2 (`lib/risk-engine/producers/authority.js`)
 
 Registered in `lib/risk-engine/rules.js` for two rules, **positive values only** (`values: [true]`).
 
@@ -28,8 +38,8 @@ Limits of the claim: a successful `eth_call` shows the authorization check passe
 
 | Rule | Producer | Arc | Ethereum | Robinhood | Why |
 |---|---|---|---|---|---|
-| `admin-upgrade-authority` | authority v1 (positive only) | Circle + QuickNode | Allnodes + dRPC | official + dRPC | see above; negative needs a complete upgrade-path audit that no producer performs |
-| `privileged-minting` | authority v1 (positive only) | same | same | same | negative needs a complete supply-increase audit |
+| `admin-upgrade-authority` | authority v2 (positive only; needs a reviewed code hash — none yet) | Circle + QuickNode | Allnodes + dRPC | official + dRPC | see above; negative needs a complete upgrade-path audit that no producer performs |
+| `privileged-minting` | authority v2 (positive only; needs a reviewed code hash — none yet) | same | same | same | negative needs a complete supply-increase audit |
 | `high-exit-impact` | **none (rule design blocker)** | — | — | — | The rule probes 1 % of input-side active reserves. For a constant-product pool that yields ≈ 0.99 % impact regardless of pool size (measured: 9 872 ppm on every V2 pool in the #209 probe), so the rule would return `NOT_CONFIRMED` ("low impact") even for a $100 pool. Technically bounded, but misleading. Needs a fixed-size probe (e.g. USD amount with a reviewed oracle) before any producer |
 | `low-pool-liquidity` | none | — | — | — | Needs reserves valued by a reviewed on-chain oracle at the same anchor. Market-reported liquidity is not that. No reviewed oracle path on Arc or Robinhood; Ethereum would need Chainlink-per-quote-asset review |
 | `sell-transfer-tax` | none | — | — | — | Needs a replay isolating the token-side deduction from pool fees (balance deltas across a transfer). Not observable with plain `eth_call` without state overrides |
