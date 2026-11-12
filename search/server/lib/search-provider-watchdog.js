@@ -2,6 +2,8 @@
 // Feature-flagged Search baseline token inspection routing. All data from a single
 // token snapshot must stay on ONE chain-checked provider; never interleave RPCs.
 // This module records provider HEALTH, never "verified" token data.
+// Release gate: ARC_AUTONOMY_WATCHDOG_SEARCH_ENABLED stays OFF by default;
+// turn it on only after durable storage, RPC budgets and recovery are accepted.
 const crypto=require('node:crypto');
 const watchdog=require('../../../lib/verification/provider-watchdog');
 const ledger=require('../../../lib/verification/provider-watchdog-ledger');
