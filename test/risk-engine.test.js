@@ -3,8 +3,13 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { performance } = require('node:perf_hooks');
-const { evaluateRisk, MAX_RECORDS, STATUSES } = require('../lib/risk-engine');
-const { RULES } = require('../lib/risk-engine/rules');
+const { MAX_RECORDS, STATUSES } = require('../lib/risk-engine');
+const engine = require('../lib/risk-engine/engine');
+const { RULES: REVIEWED_V1 } = require('../lib/risk-engine/rules');
+// Rule-logic tests: the same frozen rules with ONE reviewed fixture producer. The public evaluateRisk keeps the V1
+// empty producer list and is tested separately in test/risk-engine-review.test.js.
+const RULES = REVIEWED_V1.map(rule => ({ ...rule, producers: [{ id: 'synthetic-fixture', minVersion: 1 }] }));
+const evaluateRisk = input => engine.evaluate(input, RULES);
 const { NETWORKS, parseMetricEvidence } = require('../lib/verification/metric-evidence');
 
 const now = Date.parse('2026-11-12T20:00:00.000Z');
