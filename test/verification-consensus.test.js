@@ -95,3 +95,14 @@ test('empty, invalid and duplicate evidence fail deterministically',()=>{
  assert.throws(()=>consensus.evaluate([row('bad source','100')],p),e=>e.code==='CONSENSUS_INVALID_SOURCE');
  assert.throws(()=>consensus.evaluate(new Array(9).fill(0).map((_,i)=>row('s'+i,'100')),p),e=>e.code==='CONSENSUS_TOO_MANY_OBSERVATIONS');
 });
+
+test('exact on-chain disagreement at the same block is CONFLICTING; only differing value types are NOT_COMPARABLE',()=>{
+ const p=consensus.PRESETS.EXACT_ONCHAIN,anchor={number:'100',hash:'0x'+'11'.repeat(32)};
+ const at='2026-11-12T11:59:00.000Z',r=(id,operator,value)=>({source:{id,operator},value,unit:'raw-token',scope:null,observedAt:at,block:anchor});
+ const out=consensus.evaluate([r('rpc-a','op-a','1000'),r('rpc-b','op-b','999')],p);
+ assert.equal(out.state,'CONFLICTING');assert.equal(out.reasonCode,'VALUES_DISAGREE');assert.equal(out.selectedValue,null);
+ // Existing EXACT semantics compare String(value), so '1000' and 1000 agree; a boolean against a number does not.
+ const types=consensus.evaluate([r('rpc-a','op-a','1000'),r('rpc-b','op-b',true)],p);
+ assert.equal(types.state,'NOT_COMPARABLE');assert.equal(types.reasonCode,'VALUE_TYPE_MISMATCH');
+ assert.equal(consensus.evaluate([r('rpc-a','op-a','1000'),r('rpc-b','op-b','1000')],p).state,'AGREED');
+});
