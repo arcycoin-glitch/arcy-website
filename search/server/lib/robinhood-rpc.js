@@ -40,6 +40,13 @@ async function rawRequestAt(endpoint,method,params,{timeoutMs=11000}={}){
   if(!response.ok){
    const error=new Error('Robinhood RPC HTTP '+response.status);
    error.httpStatus=response.status;
+   if(response.status===429){
+    const value=response.headers?.get?.('retry-after');
+    if(typeof value==='string'&&value.length<=80){
+     const seconds=Number(value),ms=Number.isFinite(seconds)?seconds*1000:Date.parse(value)-Date.now();
+     if(Number.isFinite(ms)&&ms>0)error.retryAfterMs=Math.min(1800000,Math.ceil(ms));
+    }
+   }
    error.retryable=response.status===403||response.status===429||response.status>=500;
    throw error;
   }
@@ -127,6 +134,11 @@ async function inspectToken({address}){
  if(!ADDRESS.test(address))throw Error('Invalid contract address');
  const normalized=address.toLowerCase();
  const endpoints=providers();
+ if(require('./search-provider-watchdog').enabled())return require('./search-provider-watchdog').route({
+  network:'robinhood',endpoints,inspect:endpoint=>inspectAt(endpoint,normalized),
+  // Never reuse analysis-scoped cached responses as independent recovery proofs.
+  read:(endpoint,method,params)=>rawRequestAt(endpoint,method,params)
+ });
  let last;
  for(const endpoint of endpoints){
   try{return await inspectAt(endpoint,normalized)}
