@@ -53,6 +53,9 @@ async function buildReport({network='ethereum',address}){
  // Opt-in verification view (ARC_AUTONOMY_VERIFICATION_RUNTIME_ENABLED=1). OFF: nothing is added. ON: one additive
  // `verification` object; cards are never modified, and a runtime failure becomes an explicit FAILED sidecar.
  await require('../../../lib/verification/runtime').annotateIfEnabled(result,{network});
+ // Shadow risk evaluation (ARC_AUTONOMY_RISK_ENGINE_ENABLED=1, default OFF). Its result is logged and persisted
+ // only; it is never attached to this report, so the response is identical with the flag ON or OFF.
+ await require('../../../lib/risk-engine/shadow').runIfEnabled(result,{network});
  return result;
 }
 function report({network='ethereum',address,onProgress}){

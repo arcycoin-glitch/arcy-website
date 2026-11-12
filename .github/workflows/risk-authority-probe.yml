@@ -1,0 +1,25 @@
+name: Risk authority producer real-network probe (read-only)
+# eth_call simulations against public endpoints only; nothing is signed, sent or stored. Production flags untouched.
+on:
+  pull_request:
+    paths:
+      - 'lib/risk-engine/**'
+      - 'lib/verification/onchain-observer.js'
+      - 'search/server/lib/multichain-service.js'
+      - 'scripts/probe-risk-authority.cjs'
+      - '.github/workflows/risk-authority-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-risk-authority.cjs
