@@ -50,12 +50,15 @@ async function buildReport({network='ethereum',address}){
  // Additive evidence taxonomy + provenance (never alters value/status/dataState).
  try{await require('./block-age').enrich(result,{network});}catch{}
  try{require('./evidence-class').annotate(result);}catch{}
+ // Opt-in verification view (ARC_AUTONOMY_VERIFICATION_RUNTIME_ENABLED=1). OFF: nothing is added. ON: one additive
+ // `verification` object; cards are never modified, and a runtime failure becomes an explicit FAILED sidecar.
+ await require('../../../lib/verification/runtime').annotateIfEnabled(result,{network});
  return result;
 }
 function report({network='ethereum',address,onProgress}){
  chains.chain(network);
  if(typeof address!=='string'||!/^0x[0-9a-f]{40}$/i.test(address))return Promise.reject(Error('Invalid token address'));
- const policy=['VERCEL','DEXSCREENER_PUBLIC_DISPLAY_APPROVED','GOPLUS_PUBLIC_DISPLAY_APPROVED','ETH_RPC_URL','ARC_RPC_URL','ARC_RPC_FALLBACK_URL','ROBINHOOD_RPC_URL','ROBINHOOD_RPC_FALLBACK_URL'].map(k=>process.env[k]||'');
+ const policy=['VERCEL','DEXSCREENER_PUBLIC_DISPLAY_APPROVED','GOPLUS_PUBLIC_DISPLAY_APPROVED','ETH_RPC_URL','ARC_RPC_URL','ARC_RPC_FALLBACK_URL','ROBINHOOD_RPC_URL','ROBINHOOD_RPC_FALLBACK_URL','ARC_AUTONOMY_VERIFICATION_RUNTIME_ENABLED'].map(k=>process.env[k]||'');
  const key=JSON.stringify([network,address.toLowerCase(),policy]);
  return require('./analysis-scope').report(key,()=>require('./progress').run(async()=>{
   const start=Date.now(),d=require('./diagnostics');try{const result=await buildReport({network,address});d.record('report',network,'ok',Date.now()-start,Object.values(result.cards).flatMap(c=>Object.values(c.fields)).filter(f=>f.dataState==='DATA_FOUND').length);return result}catch(error){d.record('report',network,d.category(error),Date.now()-start);throw error}

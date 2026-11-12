@@ -1,0 +1,25 @@
+name: Verification runtime real-network probe (read-only)
+# Builds real Search reports with ARC_AUTONOMY_VERIFICATION_RUNTIME_ENABLED set only inside the probe process.
+# Public endpoints, no secrets, no storage: nothing is written, signed or sent. Production flags are not touched.
+on:
+  pull_request:
+    paths:
+      - 'lib/verification/**'
+      - 'search/server/lib/multichain-service.js'
+      - 'scripts/probe-verification-runtime.cjs'
+      - '.github/workflows/verification-runtime-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-verification-runtime.cjs
