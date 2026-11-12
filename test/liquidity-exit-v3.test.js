@@ -142,7 +142,7 @@ test('V3 refusals: identity, model mismatch, depth budget, exhausted liquidity a
  assert.deepEqual(await code(world({secondary:{liquidity:5n}}).run()),{state:'CONFLICTING_EVIDENCE',reasonCode:'RPC_DISAGREEMENT'});
  assert.deepEqual(await code(world({secondary:{sqrtPriceX96:Q96+1n}}).run()),{state:'CONFLICTING_EVIDENCE',reasonCode:'RPC_DISAGREEMENT'});
  assert.equal((await world({secondary:{down:true}}).run()).evidence.class,'SINGLE_SOURCE_ONCHAIN');
- for(const network of ['arc','robinhood']){const w=world();assert.equal((await code(w.run({network}))).reasonCode,'NO_REVIEWED_PROTOCOL');assert.equal(w.calls.length,0);}
+ for(const network of ['arc']){const w=world();assert.equal((await code(w.run({network}))).reasonCode,'NO_REVIEWED_PROTOCOL');assert.equal(w.calls.length,0);}
 });
 
 test('dispatcher routes by reviewed factory and still refuses an unknown one',async()=>{
@@ -151,7 +151,9 @@ test('dispatcher routes by reviewed factory and still refuses an unknown one',as
  assert.deepEqual(await code(world({poolFactory:OTHER}).route()),{state:'UNSUPPORTED',reasonCode:'FACTORY_NOT_REVIEWED',observedFactory:OTHER});
  // A pool that claims the V2 factory is sent to the V2 engine, whose own checks then reject this V3-shaped contract.
  assert.equal((await code(world({poolFactory:UNI2.factory}).route())).reasonCode,'NOT_V2_COMPATIBLE_POOL');
- assert.deepEqual(router.supported('ethereum'),{v2:['uniswap-v2','sushiswap-v2'],v3:['uniswap-v3']});
- assert.deepEqual(router.supported('robinhood'),{v2:[],v3:[]});
- const none=world();assert.equal((await code(none.route({network:'arc'}))).reasonCode,'NO_REVIEWED_PROTOCOL');assert.equal(none.calls.length,0);
+ assert.deepEqual(router.supported('ethereum'),{v2:['uniswap-v2','sushiswap-v2'],v3:['uniswap-v3'],v4:[]});
+ assert.deepEqual(router.supported('robinhood'),{v2:['uniswap-v2'],v3:['uniswap-v3'],v4:['uniswap-v4']});
+ assert.deepEqual(router.supported('arc'),{v2:[],v3:[],v4:['uniswap-v4']});
+ // Arc has no address-based (V2/V3) protocol: a 20-byte pool is refused as an unreviewed factory, never quoted.
+ const none=world({poolFactory:OTHER});assert.equal((await code(none.route({network:'arc'}))).state,'UNSUPPORTED');
 });

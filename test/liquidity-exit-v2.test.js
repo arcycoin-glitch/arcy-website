@@ -145,8 +145,8 @@ test('unsupported shapes fail closed with distinct reasons and no quote',async()
  assert.equal((await code(world({chainId:'0x89'}).run())).reasonCode,'RPC_CHAIN_ID_MISMATCH');
 });
 
-test('Arc and Robinhood have no reviewed V2 protocol: refused before any network read',async()=>{
- for(const network of ['arc','robinhood']){
+test('Arc has no reviewed V2 protocol: refused before any network read',async()=>{
+ for(const network of ['arc']){
   const w=world();
   assert.deepEqual(await code(w.run({network})),{state:'UNSUPPORTED',reasonCode:'NO_REVIEWED_V2_PROTOCOL'});
   assert.equal(w.calls.length,0);

@@ -17,7 +17,8 @@ module.exports=async function(req,res){
  if(process.env.LIQUIDITY_EXIT_QUOTE_ENABLED!=='1')return res.status(404).json({ok:false,error:'EXIT_QUOTE_NOT_ENABLED'});
  const p=req.query||{};
  if(!CHAINS.includes(p.chain))return res.status(400).json({ok:false,error:'UNSUPPORTED_CHAIN'});
- if(typeof p.pool!=='string'||!ADDRESS.test(p.pool.trim()))return res.status(400).json({ok:false,error:'VALID_POOL_REQUIRED'});
+ // A pool is a contract address (V2/V3) or a 32-byte v4 PoolId.
+ if(typeof p.pool!=='string'||!(ADDRESS.test(p.pool.trim())||/^0x[0-9a-fA-F]{64}$/.test(p.pool.trim())))return res.status(400).json({ok:false,error:'VALID_POOL_REQUIRED'});
  if(typeof p.token!=='string'||!ADDRESS.test(p.token.trim()))return res.status(400).json({ok:false,error:'VALID_TOKEN_REQUIRED'});
  if(p.amount!==undefined&&(!/^[1-9][0-9]{0,77}$/.test(p.amount)))return res.status(400).json({ok:false,error:'VALID_AMOUNT_REQUIRED'});
  if(!enforce(req,res))return;
