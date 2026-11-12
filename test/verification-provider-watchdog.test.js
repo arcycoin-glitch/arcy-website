@@ -73,3 +73,27 @@ test('invalid identities, failures, latency and serialized state fail closed',()
  assert.equal(w.validState({...base,requests:1}),false);
  assert.throws(()=>w.summary({...base,requests:1}),e=>e.code==='WATCHDOG_CORRUPT_STATE');
 });
+
+
+test('a failed recovery probe never permits ordinary traffic before another two successes',()=>{
+ let s=w.create('arc-primary','arc');
+ s=w.recordFailure(s,{kind:w.FAILURE_KINDS.RATE_LIMIT,httpStatus:429,at:T});
+ const due=Date.parse(s.cooldownUntil);
+ s=w.recordSuccess(s,{at:due,latencyMs:20});
+ assert.equal(s.state,w.STATES.PROBING);
+ s=w.recordFailure(s,{kind:w.FAILURE_KINDS.TRANSPORT,at:due+100});
+ assert.equal(s.state,w.STATES.UNAVAILABLE);
+ assert.equal(w.eligibility(s,due+101).mode,'SKIP');
+});
+
+test('failed first probe from cooldown or unavailable stays quarantined',()=>{
+ for(const first of [w.FAILURE_KINDS.RATE_LIMIT,w.FAILURE_KINDS.WRONG_CHAIN]){
+  let s=w.recordFailure(w.create('arc-primary','arc'),{kind:first,httpStatus:first===w.FAILURE_KINDS.RATE_LIMIT?429:null,at:T});
+  const due=Date.parse(s.cooldownUntil);
+  assert.equal(w.eligibility(s,due).mode,'PROBE');
+  s=w.recordFailure(s,{kind:w.FAILURE_KINDS.TRANSPORT,at:due+1});
+  assert.equal(s.state,w.STATES.UNAVAILABLE);
+  assert.equal(w.eligibility(s,due+2).trafficAllowed,false);
+  assert.equal(w.eligibility(s,Date.parse(s.cooldownUntil)).mode,'PROBE');
+ }
+});
