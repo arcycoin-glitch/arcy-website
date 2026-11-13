@@ -12,6 +12,20 @@
 /* Pulse-only: on mobile, research cards form a one-card horizontal carousel.
    Existing network tabs remain separate, and desktop grid is untouched. */
 #pulse .pulse-card-controls{display:none}
+#pulse .pulse-project-card{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+#pulse .pulse-achieved{--accent:#efb25b}
+#pulse .pulse-upcoming{--accent:#40aefa}
+#pulse .pulse-risk-alert{--accent:#a37bf2}
+#pulse .pulse-project-card .pulse-owner{margin-top:0;font-size:11px;color:#a2c3d3}
+#pulse .pulse-project-card h4{font-size:22px}
+#pulse .pulse-project-purpose{color:#c3d7e1}
+#pulse .pulse-project-details{display:grid;gap:4px;margin:16px 0;color:#abc2ce}
+#pulse .pulse-project-details dt{color:var(--accent);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+#pulse .pulse-project-details dd{margin:0 0 8px;font-size:14px;line-height:1.5}
+#pulse .pulse-project-source{display:grid;gap:4px;margin-top:auto;font-size:12px;color:#b9cfdc}
+#pulse .pulse-project-source a{width:fit-content;color:var(--accent);padding:8px 0;font-weight:800;font-size:12px}
+#pulse .pulse-project-source a:focus-visible{outline:2px solid #ff984b;outline-offset:3px}
+@media(min-width:761px){#pulse .pulse-grid:has(> .pulse-project-card){grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){
  #pulse .pulse-grid{
   display:flex;

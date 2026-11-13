@@ -137,6 +137,14 @@ async function handler(req,res){
 module.exports=async(req,res)=>{
  const networks=require('../lib/pulse-network-client'),chain=req.query?.chain;
  if(chain!==undefined&&!['arc','ethereum','robinhood'].includes(chain)){res.setHeader('Cache-Control','no-store');return res.status(400).json({ok:false,error:'INVALID_PULSE_CHAIN'});}
+ if(req.query?.view==='projects'&&!req.query?.action&&!cronRequest(req)){
+  res.setHeader('Cache-Control','no-store');
+  if(req.method!=='GET'||!chain)return res.status(400).json({ok:false,error:'PULSE_PROJECT_CHAIN_REQUIRED'});
+  try{
+   const value=await require('../lib/pulse-news-storage').latestNews(chain);
+   return res.status(200).json(value);
+  }catch{return res.status(200).json(require('../lib/pulse-projects').emptyView(chain));}
+ }
  if(chain&&chain!=='arc'){
   if(req.method!=='GET'||req.query?.action==='refresh')return res.status(405).json({ok:false,error:'USE_AUTHENTICATED_COMBINED_REFRESH'});
   const n=Number(req.query?.number);if(req.query?.action==='edition'&&(!Number.isSafeInteger(n)||n<1||n>9999))return res.status(400).json({ok:false,error:'INVALID_EDITION'});
