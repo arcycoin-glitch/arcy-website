@@ -78,7 +78,7 @@ async function head(network){
  notice('risk-cost',{analyses:ms.length,p50Ms:pct(ms,.5),p95Ms:pct(ms,.95),maxMs:ms.length?Math.max(...ms):null,rpcCallsMin:calls.length?Math.min(...calls):null,rpcCallsMax:calls.length?Math.max(...calls):null});
  // Shadow mode through the real Search report path: identical response keys, shadow evaluation recorded.
  const service=require('../search/server/lib/multichain-service'),shadow=require('../lib/risk-engine/shadow');
- for(const t of [COHORT[0],COHORT[6],COHORT[9]]){
+ for(const t of ['AAVE','ARCY','TSLA'].map(n=>COHORT.find(c=>c.name===n))){
   const row={network:t.network,name:t.name};
   try{
    delete process.env.ARC_AUTONOMY_RISK_ENGINE_ENABLED;
