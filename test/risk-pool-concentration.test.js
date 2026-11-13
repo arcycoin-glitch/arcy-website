@@ -57,7 +57,8 @@ function poolChain(over={}){
  };
  return {fetcher,calls};
 }
-const run=(sim,extra={})=>pool.produce({network:'ethereum',token:TOKEN,block:BLOCK,env:{},fetcher:sim.fetcher,now:()=>NOW,...extra});
+const FAST={ARC_RISK_RPC_MIN_INTERVAL_MS:'0'};
+const run=(sim,extra={})=>pool.produce({network:'ethereum',token:TOKEN,block:BLOCK,env:FAST,fetcher:sim.fetcher,now:()=>NOW,...extra});
 const rec=(r,id)=>r.records.find(x=>x.metricId===id);
 const findingFor=(r,rule,{now=NOW,scope=r.pool}={})=>evaluateRisk({network:'ethereum',chainId:1,token:TOKEN,scope,evidence:r.records,now}).findings.find(f=>f.ruleId===rule);
 
@@ -87,6 +88,11 @@ test('pool producer: a thin pool is CONFIRMED low liquidity and a $1,000 sale wi
  assert.ok(rec(tiny,'risk.exit-impact').value>9000&&rec(tiny,'risk.exit-impact').value<=10000);
 });
 
+test('pool producer: every reviewed constant is a well-formed address',()=>{
+ for(const a of Object.values(pool.ANCHORS).flat()){assert.match(a.token,/^0x[0-9a-f]{40}$/);assert.match(a.feed,/^0x[0-9a-f]{40}$/);}
+ assert.equal(pool.ANCHORS.ethereum.find(a=>a.asset==='WETH').token,'0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2');
+});
+
 test('pool producer: invalid USD anchors, wrong identity, unreviewed factories and model mismatches never produce a verdict',async()=>{
  const none=r=>{assert.equal(r.records.length,0,JSON.stringify(r.reasonCode));};
  // Feed identity / decimals / stale / non-positive / incomplete round: the quote asset is removed, no default price.
@@ -109,7 +115,7 @@ test('pool producer: invalid USD anchors, wrong identity, unreviewed factories a
  assert.equal(rec(skew,'risk.exit-impact').state,'NOT_VERIFIED');assert.equal(rec(skew,'risk.exit-impact').reasonCode,'QUOTE_MODEL_MISMATCH');
  assert.equal(rec(skew,'risk.pool-liquidity').state,'VERIFIED_ONCHAIN');
  // Arc and Robinhood: no reviewed USD anchor => no request at all.
- for(const network of ['arc','robinhood']){const sim=poolChain();const r=await pool.produce({network,token:TOKEN,block:BLOCK,env:{},fetcher:sim.fetcher,now:()=>NOW});
+ for(const network of ['arc','robinhood']){const sim=poolChain();const r=await pool.produce({network,token:TOKEN,block:BLOCK,env:FAST,fetcher:sim.fetcher,now:()=>NOW});
   assert.equal(r.reasonCode,'PRICE_ANCHOR_NOT_REVIEWED');assert.equal(sim.calls.length,0);assert.equal(r.records.length,0);}
 });
 
@@ -159,7 +165,7 @@ function concChain(over={}){
  return {fetcher,calls};
 }
 const LIST=[CONTRACT,...Array.from({length:12},(_,i)=>EOA(i))];
-const crun=(sim,extra={})=>conc.produce({network:'ethereum',token:TOKEN,block:BLOCK,env:{},fetcher:sim.fetcher,now:()=>NOW,candidateList:LIST,...extra});
+const crun=(sim,extra={})=>conc.produce({network:'ethereum',token:TOKEN,block:BLOCK,env:FAST,fetcher:sim.fetcher,now:()=>NOW,candidateList:LIST,...extra});
 const cfind=(r,now=NOW)=>evaluateRisk({network:'ethereum',chainId:1,token:TOKEN,scope:null,evidence:r.records,now}).findings.find(f=>f.ruleId==='top-ten-holder-concentration');
 
 test('concentration: ten verified EOAs holding >= 50% of non-burned supply is CONFIRMED; contracts and burns are excluded',async()=>{
@@ -194,9 +200,9 @@ test('concentration: supply inconsistencies, disagreements, 429 and missing cand
  observer._resetHealth();
  const ok=await crun(concChain());assert.equal(cfind(ok,NOW+25*3600000).status,'STALE');
  // Explorer unreachable / empty: no record, no RPC.
- const sim=concChain(),none=await conc.produce({network:'ethereum',token:TOKEN,block:BLOCK,env:{},now:()=>NOW,fetcher:async url=>{if(url.includes('blockscout'))return new Response('{}',{status:503});return sim.fetcher(url);}});
+ const sim=concChain(),none=await conc.produce({network:'ethereum',token:TOKEN,block:BLOCK,env:FAST,now:()=>NOW,fetcher:async url=>{if(url.includes('blockscout'))return new Response('{}',{status:503});return sim.fetcher(url);}});
  assert.equal(none.reasonCode,'CANDIDATE_SOURCE_HTTP_503');assert.equal(none.records.length,0);
  // The explorer list is used for addresses only; burns are dropped and the list is bounded.
  const listed=await conc.candidates('ethereum',TOKEN,{fetcher:async()=>new Response(JSON.stringify({items:[{address:{hash:DEAD}},...Array.from({length:60},(_,i)=>({address:{hash:'0x'+i.toString(16).padStart(40,'0')},value:'999999999'}))]}))});
- assert.equal(listed.addresses.length,32);assert.ok(!listed.addresses.includes(DEAD));assert.ok(!listed.addresses.includes('0x'+'0'.repeat(40)));
+ assert.equal(listed.addresses.length,20);assert.ok(!listed.addresses.includes(DEAD));assert.ok(!listed.addresses.includes('0x'+'0'.repeat(40)));
 });
