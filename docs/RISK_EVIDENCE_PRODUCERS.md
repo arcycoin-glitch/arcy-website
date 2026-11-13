@@ -92,3 +92,4 @@ The Evidence Ledger needs `ARC_VERIFICATION_LEDGER_DIR` or `ARC_HOLDER_PUBLISHED
 2. Live probe results on the current head (appended to the PR).
 3. Shadow mode on a preview or the worker with durable storage, comparing producer records against the ledger over time.
 4. Only then: a reviewed, backward-compatible, opt-in diagnostic API field — not part of this change.
+
