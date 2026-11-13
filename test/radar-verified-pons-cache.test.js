@@ -92,3 +92,30 @@ test('source quota cooldown returns the 90-minute-old remote result only as STAL
  assert.equal(data.freshness,'STALE');assert.equal(data.staleReason,'RADAR_PROVIDER_RATE_LIMITED');
  assert.equal(data.staleAgeSeconds,5400);assert.equal(reads,1);assert.equal(reservations,1);
 });
+
+test('public Radar API never edge-caches STALE data and does not extend an old verified Pons edition',async()=>{
+ const handler=require('../search/server/api/radar');
+ const original=radar.load;
+ const oldKey=process.env.COINGECKO_DEMO_API_KEY;
+ process.env.COINGECKO_DEMO_API_KEY='test';
+ const invoke=async data=>{
+  radar.load=async()=>data;
+  const res={headers:{},statusCode:200,setHeader(k,v){this.headers[k]=v;},
+   status(code){this.statusCode=code;return this;},json(v){this.body=v;return this;}};
+  await handler({method:'GET',query:{chain:'pons'},headers:{'sec-fetch-site':'same-origin'}},res);
+  return res;
+ };
+ try{
+  const stale=await invoke({...verified(),freshness:'STALE',staleAgeSeconds:5400,staleReason:'RADAR_PROVIDER_RATE_LIMITED'});
+  assert.equal(stale.statusCode,200);
+  assert.equal(stale.headers['Cache-Control'],'no-store');
+  const oldFresh=verified(75*60*1000);
+  oldFresh.asOf=new Date(Date.now()-75*60*1000).toISOString();
+  const success=await invoke(oldFresh);
+  const ttl=Number(/s-maxage=(\\d+)/.exec(success.headers['Cache-Control'])?.[1]);
+  assert.ok(ttl>=270&&ttl<=300,'75-minute-old verified result must expire at the 80-minute Demo source TTL');
+ }finally{
+  radar.load=original;
+  if(oldKey===undefined)delete process.env.COINGECKO_DEMO_API_KEY;else process.env.COINGECKO_DEMO_API_KEY=oldKey;
+ }
+});
