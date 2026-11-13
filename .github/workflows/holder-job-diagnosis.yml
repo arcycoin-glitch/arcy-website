@@ -1,0 +1,25 @@
+name: Arc Holder job diagnosis (read-only)
+# Reads public token lists and production job status only (GET /api/holders?action=status). Never queues work.
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'scripts/diagnose-holder-jobs.cjs'
+      - '.github/workflows/holder-job-diagnosis.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/diagnose-holder-jobs.cjs
+        env:
+          DIAG_EXTRA: '0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b,0x171a4217b86a807a64eb94757db6849fb4bdbaa0,0x1ed9306725b8b4ca1a1a56d32970e49e64c51dde,0x394d38f807ee0027a182216f5e67a15ae441fa2e,0xece5ca8bf9220718e5727754026757512212cb3c,0x4c9b47dbd5933aa4574b2c27f82419e4dbbd0222,0xadd104a903dfed7700547c0dba11b265a8027777,0x150268ed0859645d720aa58fe59e7a7eaddb5777,0x75d658f8101fbe6dc217fbba7e20a0312af5fa2e,0x493cd970c73eb6e0b2346ce728b1a8d664f8e777,0xa99a1c762ba23b67c6bdeb7c43b053401f874777,0xbc43ce8dec648ea298c4275559b81d6261c90b67,0x3ead4e80e9e5bc0e01682d7ee74c4881b040d3ea'
