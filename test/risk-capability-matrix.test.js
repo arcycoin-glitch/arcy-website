@@ -14,7 +14,9 @@ test('matrix covers exactly the six rules on the three networks and never disagr
   if(rule.producers.length){
    // A producer exists: positive-only, and with an empty reviewed-code registry there is no route it can confirm.
    assert.equal(row.producer,rule.producers[0].id);assert.equal(row.minVersion,rule.producers[0].minVersion);assert.deepEqual([...rule.producers[0].values],[true]);assert.equal(row.polarity,'CONFIRM_ONLY');
-   for(const n of NETWORKS)assert.deepEqual({...row.networks[n]},{state:'POSITIVE_ONLY',reviewedRoutes:0,reasonCode:'NO_REVIEWED_EXECUTION_ROUTE'});
+   // Reviewed routes exist only for Ethereum upgrades (four entries: two proxy codes x two selectors); none for mint anywhere.
+   for(const n of NETWORKS){const routes=n==='ethereum'&&rule.id==='admin-upgrade-authority'?4:0;
+    assert.deepEqual({...row.networks[n]},{state:'POSITIVE_ONLY',reviewedRoutes:routes,reasonCode:routes?null:'NO_REVIEWED_EXECUTION_ROUTE'});}
   }else{
    assert.equal(row.producer,null);assert.equal(row.polarity,'NONE');
    for(const n of NETWORKS){assert.equal(row.networks[n].state,'BLOCKED');assert.match(row.networks[n].reasonCode,/^[A-Z_]{8,}$/);}
@@ -38,7 +40,7 @@ test('with no evidence every rule is UNKNOWN on every network, and docs carry ev
   assert.equal(r.findings.length,6);assert.ok(r.findings.every(f=>f.status==='UNKNOWN'),network);
  }
  const doc=fs.readFileSync(path.join(__dirname,'..','docs','RISK_EVIDENCE_PRODUCERS.md'),'utf8');
- for(const row of Object.values(MATRIX))for(const n of NETWORKS)assert.ok(doc.includes(row.networks[n].reasonCode),row.networks[n].reasonCode);
+ for(const row of Object.values(MATRIX))for(const n of NETWORKS)if(row.networks[n].reasonCode)assert.ok(doc.includes(row.networks[n].reasonCode),row.networks[n].reasonCode);
 });
 
 test('shadow output names the real evidence gap for each UNKNOWN rule',async()=>{

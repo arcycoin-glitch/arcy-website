@@ -28,7 +28,16 @@ Since producer **v3**:
 - Operators must agree on the whole identity at one block hash: outcome, reason, actor role, actor, selector, calldata hash, review id, proxy code hash, implementation **address**, implementation code hash, admin and beacon. Same outcome with a different identity → `NOT_VERIFIED / EXECUTION_IDENTITY_MISMATCH`. Different outcome → `CONFLICTING / AUTHORITY_OUTCOME_MISMATCH`.
 - A set EIP-1967 beacon slot → `BEACON_PROXY_UNSUPPORTED`. The pinned header is re-read after all reads; a changed hash fails that operator (`PINNED_BLOCK_CHANGED`).
 - The gate requires `minVersion: 3`; v1 and v2 records are `PRODUCER_NOT_REVIEWED`.
-- **The registry ships empty**, so every live result is `UNKNOWN`. `scripts/review-code-evidence.cjs` (workflow `reviewed-code-evidence`) collects the machine-checkable half of a review; an entry is added only by a reviewed pull request that includes the artifact.
+- **Reviewed routes (Ethereum, upgrade only).** Collected by `scripts/review-code-evidence.cjs` (workflow `reviewed-code-evidence`), reviewed from the exact-match sources, artifacts in `lib/risk-engine/reviewed-code/*.json`:
+
+  | Proxy runtime code hash | Verified contract | Selectors | Seen on |
+  |---|---|---|---|
+  | `0x98a3150c…cb601001` | Aave `InitializableAdminUpgradeabilityProxy` (solc 0.6.10), Sourcify creation + runtime `exact_match`, no transformations | `upgradeTo`, `upgradeToAndCall` | AAVE `0x7fc6…dae9` |
+  | `0xa23b20d4…10fc1387` | Ondo `TokenProxy` = OpenZeppelin `TransparentUpgradeableProxy` (solc 0.8.16), creation + runtime `exact_match`, no transformations | `upgradeTo`, `upgradeToAndCall` | USDY `0x96f6…985c`, OUSG `0x1b19…ee92` |
+
+  Reviewed in both: `ifAdmin` runs the body only for the address in the EIP-1967 admin slot; `upgradeTo*` → `_upgradeTo` → `_setImplementation` stores the new address in the EIP-1967 implementation slot (slot constants checked in the source). Any proxy with one of these exact runtime codes is covered; nothing else is.
+- Not added (exact missing evidence): USDon and PYUSD proxies are Sourcify `match`, not `exact_match` (metadata hash differs); Robinhood stock tokens are beacon proxies (route unsupported); Arc ARCY is not on Sourcify (404). **No mint route is reviewed on any network** (AAVE has no `mint(address,uint256)`; Ondo tokens mint through roles, not `owner()`).
+- Proof limits: source↔bytecode identity is Sourcify's exact match, not a local recompilation; the review was done by an AI assistant from those sources and is not an independent human audit; it says nothing about who controls the admin (multisig / governance / timelock).
 - Not used: `debug_traceCall` / state overrides (not offered by the public endpoints in use), `PUSH4` presence as proof, `upgradeTo(currentImplementation)` success as proof.
 
 ## Reviewed producer: `arcy-risk-authority-producer` v3 (`lib/risk-engine/producers/authority.js`)
@@ -53,7 +62,7 @@ Shadow output carries `evidenceGaps`: for every `UNKNOWN` rule, the producer's o
 
 | Rule | Producer | Arc 5042 | Ethereum 1 | Robinhood 4663 | Missing evidence |
 |---|---|---|---|---|---|
-| `admin-upgrade-authority` | authority v3, confirm-only | `NO_REVIEWED_EXECUTION_ROUTE` | `NO_REVIEWED_EXECUTION_ROUTE` | `NO_REVIEWED_EXECUTION_ROUTE` | a reviewed route artifact; a negative needs a complete upgrade-path audit |
+| `admin-upgrade-authority` | authority v3, confirm-only | `NO_REVIEWED_EXECUTION_ROUTE` | 2 reviewed proxy codes; others `OPERATION_SEMANTICS_UNREVIEWED` | `NO_REVIEWED_EXECUTION_ROUTE` | a reviewed route artifact per proxy code; a negative needs a complete upgrade-path audit |
 | `privileged-minting` | authority v3, confirm-only | `NO_REVIEWED_EXECUTION_ROUTE` | `NO_REVIEWED_EXECUTION_ROUTE` | `NO_REVIEWED_EXECUTION_ROUTE` | a reviewed route artifact; a negative needs a complete supply-increase audit |
 | `high-exit-impact` (rule v2) | none | `PRICE_ANCHOR_NOT_REVIEWED` | `PRICE_ANCHOR_NOT_REVIEWED` | `PRICE_ANCHOR_NOT_REVIEWED` | Rule v1 probed 1 % of reserves, which gives ≈ 0.99 % impact on every constant-product pool whatever its size. v2 defines a fixed $1,000 probe (`pinned-fixed-usd-1000-exit-replay`); it needs a reviewed same-block USD anchor for the quote asset from two operators. None is reviewed on any network |
 | `low-pool-liquidity` | none | `RESERVE_VALUATION_NOT_REVIEWED` | `RESERVE_VALUATION_NOT_REVIEWED` | `RESERVE_VALUATION_NOT_REVIEWED` | two-operator reserves plus a reviewed USD valuation of both assets; market-reported liquidity is not proof |

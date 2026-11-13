@@ -90,8 +90,8 @@ test('reviewed route + full two-operator identity agreement: the PUBLIC engine c
  assert.equal(rec(direct,'risk.upgrade-authority').reasonCode,'NO_EIP1967_IMPLEMENTATION');assert.equal(finding(direct.records,'privileged-minting').status,'CONFIRMED');
 });
 
-test('the shipped registry reviews nothing: privileged no-op upgrade, owner-only fallback and no-op mint stay UNKNOWN',async()=>{
- assert.equal(reviewed.REGISTRY.entries.length,0);assert.ok(Object.isFrozen(reviewed.REGISTRY.entries));
+test('the shipped registry knows no fixture code: privileged no-op upgrade, owner-only fallback and no-op mint stay UNKNOWN',async()=>{
+ assert.ok(Object.isFrozen(reviewed.REGISTRY.entries));assert.ok(!reviewed.REGISTRY.entries.some(e=>[h(PROXY_CODE),h(IMPL_CODE),h(NOOP_CODE)].includes(e.proxyCodeHash)));
  for(const r of [await shipped(chainSim()),await shipped(chainSim({implCode:NOOP_CODE})),await produce(chainSim({proxyCode:'0x60806040523373'+'ad'.repeat(20)+'145b00',implCode:NOOP_CODE}))]){
   for(const id of ['risk.upgrade-authority','risk.mint-authority']){const x=rec(r,id);assert.equal(x.state,'NOT_VERIFIED');assert.equal(x.reasonCode,'OPERATION_SEMANTICS_UNREVIEWED');assert.equal(x.value,null);}
   never(r);
@@ -266,4 +266,28 @@ test('the report builder runs shadow mode after the verification runtime and add
  const text=require('node:fs').readFileSync(path.join(__dirname,'..','search','server','lib','multichain-service.js'),'utf8');
  const a=text.indexOf("lib/verification/runtime').annotateIfEnabled(result,{network})"),b=text.indexOf("lib/risk-engine/shadow').runIfEnabled(result,{network})");
  assert.ok(a>0&&b>a);assert.ok(!/result\.risk|result\.riskShadow/.test(text));
+});
+
+test('shipped registry: only the two reviewed Ethereum transparent-proxy upgrade routes, each with a valid artifact',()=>{
+ const R=reviewed.REGISTRY,dir=path.join(__dirname,'..','lib','risk-engine','reviewed-code');
+ assert.equal(R.rejected,0);
+ assert.deepEqual(R.entries.map(e=>e.id).sort(),['eth-aave-upgradeto','eth-aave-upgradetoandcall','eth-ondo-tokenproxy-upgradeto','eth-ondo-tokenproxy-upgradetoandcall']);
+ const AAVE='0x98a3150c9759d754a4b31f6fb3f4828371c60c2c07fb0754cfa2b230cb601001',ONDO='0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387';
+ for(const e of R.entries){
+  assert.deepEqual({n:e.network,c:e.capability,a:e.architecture,r:e.actorRole,i:e.implementationCodeHash},{n:'ethereum',c:'upgrade',a:'eip1967-transparent-proxy',r:'eip1967-admin',i:null});
+  assert.ok([AAVE,ONDO].includes(e.proxyCodeHash));
+  const art=JSON.parse(require('node:fs').readFileSync(path.join(dir,e.id+'.json'),'utf8')),proof=art.codeProofs[0];
+  assert.ok(reviewed.validEntry({...e,artifact:art}));
+  assert.equal(proof.sourceMatch,'exact_match');assert.equal(proof.verifiedRuntimeCodeHash,e.proxyCodeHash);assert.deepEqual(proof.onchain.map(o=>o.operator),['allnodes','drpc']);
+  assert.ok(proof.sources.length>=9);assert.equal(art.reviewedFunctions[0].name,e.selector);assert.ok(art.reviewedFunctions[0].source.includes('ifAdmin'));
+  assert.deepEqual(art.storageSlots.map(x=>x.value),[authority.SLOTS.implementation,authority.SLOTS.admin]);assert.ok(art.limits.length>=3&&/not an independent human audit/.test(art.review.reviewer));
+  // Any edit to the pinned facts invalidates the entry.
+  for(const mutate of [x=>{x.codeProofs[0].sourceMatch='match';},x=>{x.proxyCodeHash='0x'+'00'.repeat(32);},x=>{x.codeProofs[0].onchain.pop();},x=>{x.selector='mint';},x=>{x.network='arc';}]){
+   const bad=structuredClone(art);mutate(bad);assert.equal(reviewed.validEntry({...e,artifact:bad}),false);}
+ }
+ const route=o=>R.match({network:'ethereum',capability:'upgrade',isProxy:true,proxyCodeHash:AAVE,implementationCodeHash:'0x'+'12'.repeat(32),actorRole:'eip1967-admin',selector:'upgradeTo',...o});
+ assert.equal(route({}).id,'eth-aave-upgradeto');
+ // The same code is not reviewed for mint, for owner(), on another network, or when it is not acting as a proxy.
+ for(const o of [{capability:'mint',selector:'mint'},{actorRole:'owner'},{network:'robinhood'},{network:'arc'},{isProxy:false},{proxyCodeHash:'0x'+'98'.repeat(32)}])assert.equal(route(o),null,JSON.stringify(o));
+ assert.ok(!R.entries.some(e=>e.capability==='mint'));
 });

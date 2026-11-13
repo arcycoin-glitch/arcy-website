@@ -5,10 +5,12 @@
 //
 // Hard failures (exit 1):
 //  * the public engine returns NOT_CONFIRMED for any rule (no reviewed negative producer exists)
+//  * a CONFIRMED finding outside the reviewed routes (Ethereum upgrade, registry review id on every operator)
 //  * a CONFIRMED finding whose record is not VERIFIED_ONCHAIN from >= 2 registered operators at one block hash
 //  * any producer record fails the strict MetricEvidence contract
 //  * a shadow-mode Search report differs in its keys from the flag-OFF report, or shadow mode did not run
 const authority=require('../lib/risk-engine/producers/authority');
+const reviewed=require('../lib/risk-engine/reviewed-code');
 const {evaluateRisk}=require('../lib/risk-engine');
 const evidence=require('../lib/verification/metric-evidence');
 const observer=require('../lib/verification/onchain-observer');
@@ -20,6 +22,9 @@ const COHORT=[
  {network:'ethereum',name:'PYUSD',address:'0x6c3ea9036406852006290770bedfcaba0e23a0e8'},
  {network:'ethereum',name:'ONDO',address:'0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3'},
  {network:'ethereum',name:'UNI',address:'0x1f9840a85d5af5bf1d1762f925bdaddc4201f984'},
+ {network:'ethereum',name:'USDY',address:'0x96f6ef951840721adbf46ac996b59e0235cb985c'},
+ {network:'ethereum',name:'OUSG',address:'0x1b19c19393e2d034d8ff31ff34c81252fcbbee92'},
+ {network:'ethereum',name:'USDon',address:'0xace8e719899f6e91831b18ae746c9a965c2119f1'},
  {network:'arc',name:'ARCY',address:'0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'},
  {network:'arc',name:'snapshot-171a',address:'0x171a4217b86a807a64eb94757db6849fb4bdbaa0'},
  {network:'arc',name:'snapshot-1ed9',address:'0x1ed9306725b8b4ca1a1a56d32970e49e64c51dde'},
@@ -48,6 +53,10 @@ async function head(network){
    for(const f of risk.findings){
     if(f.status==='NOT_CONFIRMED')hard.push(t.name+' '+f.ruleId+' NOT_CONFIRMED without a reviewed negative producer');
     if(f.status==='CONFIRMED'){
+     // Reviewed routes exist only for Ethereum upgrades; a confirmation anywhere else, or without a registry review id
+     // shared by every operator, is a defect.
+     const ids=new Set(r.operators.map(o=>o.outcome?.[f.ruleId==='privileged-minting'?'mint':'upgrade']?.reviewId||''));
+     if(t.network!=='ethereum'||f.ruleId!=='admin-upgrade-authority'||ids.size!==1||!reviewed.REGISTRY.entries.some(e=>ids.has(e.id)))hard.push(t.name+' '+f.ruleId+' CONFIRMED outside the reviewed routes');
      const x=r.records.find(y=>y.metricId===(f.ruleId==='privileged-minting'?'risk.mint-authority':'risk.upgrade-authority'));
      if(!x||x.state!=='VERIFIED_ONCHAIN'||new Set(x.observations.map(o=>o.source.operator)).size<2||new Set(x.observations.map(o=>o.block.hash)).size!==1)hard.push(t.name+' '+f.ruleId+' CONFIRMED without two-operator anchor');
     }
