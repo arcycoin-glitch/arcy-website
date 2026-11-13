@@ -32,7 +32,7 @@ function poolChain(over={}){
   const revert=()=>new Response(JSON.stringify({jsonrpc:'2.0',id:q.id,error:{code:3,message:'execution reverted'}}));
   if(b.http)return new Response('x',{status:b.http});
   if(q.method==='eth_chainId')return ok(b.chainId);
-  if(q.method==='eth_getBlockByNumber')return ok({number:q.params[0],hash:b.hash,timestamp:'0x'+b.ts.toString(16)});
+  if(q.method==='eth_getBlockByNumber'){const n=calls.filter(c=>c.host===host&&c.method==='eth_getBlockByNumber').length;return ok({number:q.params[0],hash:b.reorg&&n>1?'0x'+'99'.repeat(32):b.hash,timestamp:'0x'+b.ts.toString(16)});}
   if(q.method!=='eth_call')return revert();
   const {to,data}=q.params[0],s=data.slice(0,10);
   const feed=A.find(x=>x.feed===to);
@@ -229,4 +229,22 @@ test('pool producer: a tiny V2 pool next to a deeper Uniswap V3 pool never yield
  // A malformed answer from one candidate contract drops that candidate only.
  const malformed=await run(poolChain({badToken0:true}));
  assert.equal(malformed.operators[0].state,'OK');assert.equal(malformed.operators[0].outcome.candidates[0].reason,'NOT_V2_COMPATIBLE_POOL');assert.equal(malformed.records.length,0);
+});
+
+test('harness: a reorg during the reads fails that operator; equal values with a different identity are not agreement; no independence, no trust',async()=>{
+ const reorg=await run(poolChain({hosts:{'eth.drpc.org':{reorg:true}}}));
+ assert.equal(reorg.operators[1].reasonCode,'PINNED_BLOCK_CHANGED');assert.equal(rec(reorg,'risk.pool-liquidity').state,'SINGLE_SOURCE');
+ observer._resetHealth();
+ // Same share on both operators, but a different top-ten set (one operator sees code at EOA(0)).
+ const bal={[CONTRACT]:390000n,[DEAD]:50000n,...Object.fromEntries(Array.from({length:12},(_,i)=>[EOA(i),i<11?50000n:1000n]))};
+ const same=await crun(concChain({balances:bal,hosts:{'eth.drpc.org':{contracts:[CONTRACT,EOA(0)]}}}));
+ assert.equal(same.operators[0].outcome.shareBps,same.operators[1].outcome.shareBps);
+ assert.equal(same.records[0].state,'NOT_VERIFIED');assert.equal(same.records[0].reasonCode,'EXECUTION_IDENTITY_MISMATCH');
+ // Two rows from different operators are still not trusted when the endpoints are not independent.
+ const {buildRecord}=require('../lib/risk-engine/producers/operators');
+ const row=op=>({state:'OK',operator:op,anchor:{hash:HASH,timestamp:TS},outcome:{v:7}});
+ const r=buildRecord({metricId:'risk.top-ten-concentration',unit:'bps',method:'pinned-verified-top-ten-eoa-share',reference:TOKEN,network:'ethereum',token:TOKEN,scope:null,
+  generatedAt:new Date(NOW).toISOString(),blockNumber:'100',rows:[row('allnodes'),row('drpc')],independence:{independent:false,reasonCode:'SAME_OPERATOR'},engine:conc.PRODUCER,
+  pick:o=>({value:o.v*1000}),signature:o=>JSON.stringify(o)});
+ assert.equal(r.state,'SINGLE_SOURCE');assert.equal(r.observations.length,1);
 });
