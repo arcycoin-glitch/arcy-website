@@ -81,10 +81,12 @@ function check(t,r,hard){
     findings:Object.fromEntries(r.findings.map(f=>[f.ruleId,f.status+'|'+f.reasonCode])),
     values:Object.fromEntries(r.records.map(x=>[x.metricId,x.state+'|'+(x.value??'')+'|'+x.reasonCode])),
     authority:auth.map(o=>o.operator+':'+o.state+':'+[o.outcome?.upgrade?.reviewId||o.outcome?.upgrade?.reasonCode||'',o.outcome?.mint?.reviewId||o.outcome?.mint?.reasonCode||''].join('/')),
+    pool:(r.operators.pool||[]).map(o=>o.operator+':'+o.state+':'+(o.reasonCode||'')+(o.failedAt?'@'+o.failedAt+'#'+o.rpcError:'')),
+    concentration:(r.operators.concentration||[]).map(o=>o.operator+':'+o.state+':'+(o.reasonCode||'')+(o.failedAt?'@'+o.failedAt+'#'+o.rpcError:'')),
     gaps:r.evidenceGaps,rpcCalls:r.cost.byProducer,ms:r.cost.totalMs});
   }catch(e){row.error=String(e?.message||e).slice(0,160);}
   notice('risk-'+t.network+'-'+t.name,row);
-  await sleep(t.network==='arc'?3000:1200);
+  await sleep(t.network==='arc'?3000:2500);
  }
  notice('risk-coverage-by-network (6 rules x tokens)',table);
  notice('risk-unknown-causes',gaps);
