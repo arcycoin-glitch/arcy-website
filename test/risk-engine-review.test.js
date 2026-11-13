@@ -34,7 +34,15 @@ function record(r, value, o = {}) {
 const all = values => V1.map((r, i) => record(RULES[i], values[i]));
 
 test('public V1 has no reviewed producer: perfect-looking evidence never yields CONFIRMED or NOT_CONFIRMED', () => {
-  for (const r of V1) { assert.ok(Object.isFrozen(r)); assert.ok(Object.isFrozen(r.producers)); assert.equal(r.producers.length, 0); }
+  // Issue #226 reviews exactly one producer, for exactly two rules, for positive values only.
+  const reviewedRules = { 'admin-upgrade-authority': true, 'privileged-minting': true };
+  for (const r of V1) {
+    assert.ok(Object.isFrozen(r)); assert.ok(Object.isFrozen(r.producers));
+    if (reviewedRules[r.id]) {
+      assert.equal(r.producers.length, 1); assert.ok(Object.isFrozen(r.producers[0])); assert.ok(Object.isFrozen(r.producers[0].values));
+      assert.deepEqual({ ...r.producers[0], values: [...r.producers[0].values] }, { id: 'arcy-risk-authority-producer', minVersion: 3, values: [true] });
+    } else assert.equal(r.producers.length, 0, r.id);
+  }
   for (const values of [[true, 500, '2499999', true, 100, 5000], [false, 499, '2500000', false, 99, 4999]]) {
     const out = evaluateRisk({ ...target, evidence: all(values) });
     assert.equal(out.dataQuality.coverage, 'INCOMPLETE');

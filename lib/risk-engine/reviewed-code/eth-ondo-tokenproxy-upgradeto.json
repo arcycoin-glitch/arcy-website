@@ -1,0 +1,150 @@
+{
+ "schemaVersion": 1,
+ "reviewId": "eth-ondo-tokenproxy-upgradeto",
+ "network": "ethereum",
+ "chainId": 1,
+ "capability": "upgrade",
+ "architecture": "eip1967-transparent-proxy",
+ "selector": "upgradeTo",
+ "actorRole": "eip1967-admin",
+ "proxyCodeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+ "implementationCodeHash": null,
+ "subject": "Ondo TokenProxy (OpenZeppelin TransparentUpgradeableProxy, solc 0.8.16)",
+ "codeProofs": [
+  {
+   "codeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+   "sourceMatch": "exact_match",
+   "verifiedRuntimeCodeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+   "sourcify": {
+    "chainId": 1,
+    "address": "0x96f6ef951840721adbf46ac996b59e0235cb985c",
+    "contract": "contracts/Proxy.sol:TokenProxy",
+    "compiler": "0.8.16+commit.07a7930e",
+    "verifiedAt": "2024-08-08T11:05:56Z"
+   },
+   "onchain": [
+    {
+     "operator": "allnodes",
+     "codeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+     "blockHash": "0xa627b5ab33575ac0b04048b2c3d524faa43931fc9cce100fadfe82042b22c80c",
+     "blockNumber": "26408721"
+    },
+    {
+     "operator": "drpc",
+     "codeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+     "blockHash": "0xa627b5ab33575ac0b04048b2c3d524faa43931fc9cce100fadfe82042b22c80c",
+     "blockNumber": "26408721"
+    }
+   ],
+   "sources": [
+    {
+     "path": "contracts/Proxy.sol",
+     "keccak256": "0x42687033883ef5046e852167a77cf4ee03ece44aed92082a7c639c5d4f99d4b1"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/Proxy.sol",
+     "keccak256": "0x68618e95a5dd887b8ee71af46e544aa1ae0b7202ac0129838afa431aecb891e3"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/IBeacon.sol",
+     "keccak256": "0x2b766db278b7d053357e3e3b660300e4093fdf054d3e2be1454c1d07fa6eef81"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/utils/Address.sol",
+     "keccak256": "0x40bfbd7537f14756fbb70025e858781190d73b9cc60ab85c3f518de6268a40da"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/utils/StorageSlot.sol",
+     "keccak256": "0xbad84241ae5d52ac742f00c16453d52677d965718f7a7a32ca86f45f589cdcc8"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/ERC1967Proxy.sol",
+     "keccak256": "0x9cdac4290af9d9725b96b6170d4e7d44699fd4c46c9ab0134e766e6dd6812bbb"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/ERC1967Upgrade.sol",
+     "keccak256": "0x966f1973ab998b9eede1679903c125f6e7fc3e82fe7bc8827154d997406e8386"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/draft-IERC1822.sol",
+     "keccak256": "0xd9d122855ea3e0a00a4ac5ad10b4363b8eb88655dc324e7d9c31103c59b410fc"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol",
+     "keccak256": "0x2ba9b344e37b445036cb06a32b4201f0718bacb9dc8120aa33cc28f1ffdb0cc6"
+    }
+   ]
+  }
+ ],
+ "storageSlots": [
+  {
+   "name": "_IMPLEMENTATION_SLOT",
+   "file": "StorageSlot.sol",
+   "value": "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
+  },
+  {
+   "name": "_ADMIN_SLOT",
+   "file": "ERC1967Upgrade.sol",
+   "value": "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"
+  }
+ ],
+ "reviewedFunctions": [
+  {
+   "name": "upgradeTo",
+   "file": "proxy/TransparentUpgradeableProxy.sol",
+   "source": "function upgradeTo(address newImplementation) external ifAdmin { _upgradeToAndCall(newImplementation, bytes(\"\"), false); }",
+   "finding": "external ifAdmin; body is _upgradeToAndCall(newImplementation, \"\", false), so no delegatecall follows. For the admin this replaces the implementation inside the proxy itself."
+  },
+  {
+   "name": "ifAdmin",
+   "file": "proxy/TransparentUpgradeableProxy.sol",
+   "source": "modifier ifAdmin() { if (msg.sender == _getAdmin()) { _; } else { _fallback(); } }",
+   "finding": "Runs the function body only when msg.sender equals _getAdmin(); every other caller is delegated to the implementation."
+  },
+  {
+   "name": "_getAdmin",
+   "file": "proxy/ERC1967Upgrade.sol",
+   "source": "function _getAdmin() internal view returns (address) { return StorageSlot.getAddressSlot(_ADMIN_SLOT).value; }",
+   "finding": "Reads the admin from _ADMIN_SLOT, which is the EIP-1967 admin slot the producer reads."
+  },
+  {
+   "name": "_upgradeToAndCall",
+   "file": "proxy/ERC1967Upgrade.sol",
+   "source": "function _upgradeToAndCall( address newImplementation, bytes memory data, bool forceCall ) internal { _upgradeTo(newImplementation); if (data.length > 0 || forceCall) { Address.functionDelegateCall(newImplementation, data); } }",
+   "finding": "Calls _upgradeTo(newImplementation); delegatecalls the new implementation only when data is non-empty or forceCall is true."
+  },
+  {
+   "name": "_upgradeTo",
+   "file": "proxy/ERC1967Upgrade.sol",
+   "source": "function _upgradeTo(address newImplementation) internal { _setImplementation(newImplementation); emit Upgraded(newImplementation); }",
+   "finding": "Calls _setImplementation(newImplementation) and emits Upgraded; no other condition."
+  },
+  {
+   "name": "_setImplementation",
+   "file": "proxy/ERC1967Upgrade.sol",
+   "source": "function _setImplementation(address newImplementation) private { require( Address.isContract(newImplementation), \"ERC1967: new implementation is not a contract\" ); StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = newImplementation; }",
+   "finding": "Requires the new implementation to be a contract, then stores it in _IMPLEMENTATION_SLOT: the EIP-1967 implementation slot is overwritten."
+  }
+ ],
+ "conclusion": "For this exact proxy runtime code, upgradeTo called by the address in the EIP-1967 admin slot is executed by the proxy itself (it is never delegated) and overwrites the EIP-1967 implementation slot with the supplied contract address. The admin therefore controls which code the proxy runs.",
+ "limits": [
+  "Source-to-bytecode identity is Sourcify exact_match (creation and runtime, no transformations) for this code hash; it was not recompiled locally.",
+  "The review covers the proxy code only. It says nothing about who controls the admin address (multisig, governance, timelock) or about delays before an upgrade can execute.",
+  "It does not review the implementation and proves no mint capability."
+ ],
+ "review": {
+  "method": "Manual reading of the exact-match sources listed in codeProofs; function sources are quoted from the collector output.",
+  "reviewer": "Claude (AI assistant) in the ARCY engineering session; not an independent human audit",
+  "date": "2026-11-14",
+  "collector": "scripts/review-code-evidence.cjs",
+  "workflowRun": 43510780070,
+  "commit": "c2ae66bb43ba3054f0b5f49c7d306cdbd7021b89",
+  "observedOn": {
+   "address": "0x96f6ef951840721adbf46ac996b59e0235cb985c",
+   "block": {
+    "number": "26408721",
+    "hash": "0xa627b5ab33575ac0b04048b2c3d524faa43931fc9cce100fadfe82042b22c80c"
+   }
+  }
+ }
+}

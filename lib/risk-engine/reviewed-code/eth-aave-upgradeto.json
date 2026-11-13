@@ -1,0 +1,184 @@
+{
+ "schemaVersion": 1,
+ "reviewId": "eth-aave-upgradeto",
+ "network": "ethereum",
+ "chainId": 1,
+ "capability": "upgrade",
+ "architecture": "eip1967-transparent-proxy",
+ "selector": "upgradeTo",
+ "actorRole": "eip1967-admin",
+ "proxyCodeHash": "0x98a3150c9759d754a4b31f6fb3f4828371c60c2c07fb0754cfa2b230cb601001",
+ "implementationCodeHash": null,
+ "subject": "Aave InitializableAdminUpgradeabilityProxy (solc 0.6.10)",
+ "codeProofs": [
+  {
+   "codeHash": "0x98a3150c9759d754a4b31f6fb3f4828371c60c2c07fb0754cfa2b230cb601001",
+   "sourceMatch": "exact_match",
+   "verifiedRuntimeCodeHash": "0x98a3150c9759d754a4b31f6fb3f4828371c60c2c07fb0754cfa2b230cb601001",
+   "sourcify": {
+    "chainId": 1,
+    "address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+    "contract": "contracts/open-zeppelin/InitializableAdminUpgradeabilityProxy.sol:InitializableAdminUpgradeabilityProxy",
+    "compiler": "0.6.10+commit.00c0fcaf",
+    "verifiedAt": "2024-08-08T11:01:15Z"
+   },
+   "onchain": [
+    {
+     "operator": "allnodes",
+     "codeHash": "0x98a3150c9759d754a4b31f6fb3f4828371c60c2c07fb0754cfa2b230cb601001",
+     "blockHash": "0xa627b5ab33575ac0b04048b2c3d524faa43931fc9cce100fadfe82042b22c80c",
+     "blockNumber": "26408721"
+    },
+    {
+     "operator": "drpc",
+     "codeHash": "0x98a3150c9759d754a4b31f6fb3f4828371c60c2c07fb0754cfa2b230cb601001",
+     "blockHash": "0xa627b5ab33575ac0b04048b2c3d524faa43931fc9cce100fadfe82042b22c80c",
+     "blockNumber": "26408721"
+    }
+   ],
+   "sources": [
+    {
+     "path": "contracts/open-zeppelin/Proxy.sol",
+     "keccak256": "0xa30b47c519a4427eb371871f8743909ab6c826839f303ee543f8311ba5dc3758"
+    },
+    {
+     "path": "contracts/open-zeppelin/Address.sol",
+     "keccak256": "0x95ab5946f04d7d1f6f1ddaae196b9aea974b8e39a6cf2f94d0678b54186cf952"
+    },
+    {
+     "path": "contracts/open-zeppelin/UpgradeabilityProxy.sol",
+     "keccak256": "0x44e899e6c254a1d383d29fcc191738db50191eaec5b3ec73c0151746c9148a04"
+    },
+    {
+     "path": "contracts/open-zeppelin/BaseUpgradeabilityProxy.sol",
+     "keccak256": "0xda4d2801bb85c0b1b7c28972b37c7b2a909ff6019c47a2fe4982e81fc871d730"
+    },
+    {
+     "path": "contracts/open-zeppelin/BaseAdminUpgradeabilityProxy.sol",
+     "keccak256": "0x48114b13bb6cbf483082568a495401689fd9d1cb5ac89ced3955019fc3ea7adb"
+    },
+    {
+     "path": "contracts/open-zeppelin/InitializableUpgradeabilityProxy.sol",
+     "keccak256": "0xe2dc95aaf1375d7cf048ed60b9e0bef79f3b231cb52deaee4b920bfd17893214"
+    },
+    {
+     "path": "contracts/open-zeppelin/InitializableAdminUpgradeabilityProxy.sol",
+     "keccak256": "0x8fa9d4bed59857a7e3ea183135c22a9fb8100d7ea548f5adfe54c288132da66e"
+    },
+    {
+     "path": "contracts/utils/MintableErc20.sol",
+     "keccak256": "0x3cdf2717a382683bfaed4cbc2ba77da1ba9fb3cb8fb16dc607735e616cdb0ef8"
+    },
+    {
+     "path": "contracts/interfaces/IERC20.sol",
+     "keccak256": "0x5d4164e0ca960da4ae69489d002faa15595739bffcd0f04cb8bea74e66d2d87b"
+    },
+    {
+     "path": "contracts/interfaces/ITransferHook.sol",
+     "keccak256": "0x6a07ea8fa32d957ccfaf03879a74b3f5b99f114ad2bf2770d569c63f560bba43"
+    },
+    {
+     "path": "contracts/utils/VersionedInitializable.sol",
+     "keccak256": "0x13ad63f84de5108523ee2e865c5af09defe9c6f0e9fe830954bee4fc199bbe73"
+    },
+    {
+     "path": "contracts/utils/DoubleTransferHelper.sol",
+     "keccak256": "0xb3cde9e5f946b22573915d9f461d979e01f9aef36093d58eb3ac1dd014a18ad4"
+    },
+    {
+     "path": "contracts/utils/MockTransferHook.sol",
+     "keccak256": "0xb3e1bb24a4cea5da4a467ed9ab46db5cb8372d3fc4a047d8ac0f3eeb6775156e"
+    },
+    {
+     "path": "contracts/open-zeppelin/ERC20.sol",
+     "keccak256": "0x02678cb29acb24ce741dfb9859c91da40c1f57650eafa7f48de868014e3b7985"
+    },
+    {
+     "path": "contracts/open-zeppelin/SafeMath.sol",
+     "keccak256": "0xa36a7b370cc5fe4be6358cc8f8e5b236c9b8c5dc57dfc472a7f81400ba86099e"
+    },
+    {
+     "path": "contracts/interfaces/IERC20Detailed.sol",
+     "keccak256": "0x1593a9ad03d39fb1d7b5a4f70737c45e258665fbb2fa5a68de80dc57b9dad31b"
+    },
+    {
+     "path": "contracts/token/AaveToken.sol",
+     "keccak256": "0x4aec942f4e5013a3dd90b85467d53a22c1ca38fa8ee9537306a60747505440e9"
+    },
+    {
+     "path": "contracts/open-zeppelin/Context.sol",
+     "keccak256": "0xb6232cf1921a36b072814b88b8508f2cf9890919fd9e678f1bdade789a0620cd"
+    },
+    {
+     "path": "contracts/token/LendToAaveMigrator.sol",
+     "keccak256": "0xf8fd877e30d01b8aec46ba1e65cbafe4b412b6c353df697cb438e2891ed09349"
+    }
+   ]
+  }
+ ],
+ "storageSlots": [
+  {
+   "name": "IMPLEMENTATION_SLOT",
+   "file": "BaseUpgradeabilityProxy.sol",
+   "value": "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
+  },
+  {
+   "name": "ADMIN_SLOT",
+   "file": "BaseAdminUpgradeabilityProxy.sol",
+   "value": "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"
+  }
+ ],
+ "reviewedFunctions": [
+  {
+   "name": "upgradeTo",
+   "file": "open-zeppelin/BaseAdminUpgradeabilityProxy.sol",
+   "source": "function upgradeTo(address newImplementation) external ifAdmin { _upgradeTo(newImplementation); }",
+   "finding": "external ifAdmin; body is exactly _upgradeTo(newImplementation). For the admin this replaces the implementation; it is handled by the proxy itself and never reaches the implementation."
+  },
+  {
+   "name": "ifAdmin",
+   "file": "open-zeppelin/BaseAdminUpgradeabilityProxy.sol",
+   "source": "modifier ifAdmin() { if (msg.sender == _admin()) { _; } else { _fallback(); } }",
+   "finding": "Runs the function body only when msg.sender equals the address stored in ADMIN_SLOT; every other caller is delegated to the implementation."
+  },
+  {
+   "name": "_admin",
+   "file": "open-zeppelin/BaseAdminUpgradeabilityProxy.sol",
+   "source": "function _admin() internal view returns (address adm) { bytes32 slot = ADMIN_SLOT; assembly { adm := sload(slot) } }",
+   "finding": "Reads the admin from ADMIN_SLOT, which is the EIP-1967 admin slot the producer reads."
+  },
+  {
+   "name": "_upgradeTo",
+   "file": "open-zeppelin/BaseUpgradeabilityProxy.sol",
+   "source": "function _upgradeTo(address newImplementation) internal { _setImplementation(newImplementation); emit Upgraded(newImplementation); }",
+   "finding": "Calls _setImplementation(newImplementation) and emits Upgraded; no other condition."
+  },
+  {
+   "name": "_setImplementation",
+   "file": "open-zeppelin/BaseUpgradeabilityProxy.sol",
+   "source": "function _setImplementation(address newImplementation) internal { require(Address.isContract(newImplementation), \"Cannot set a proxy implementation to a non-contract address\"); bytes32 slot = IMPLEMENTATION_SLOT; assembly { sstore(slot, newImplementation) } }",
+   "finding": "Requires the new implementation to be a contract, then sstore(IMPLEMENTATION_SLOT, newImplementation): the EIP-1967 implementation slot is overwritten."
+  }
+ ],
+ "conclusion": "For this exact proxy runtime code, upgradeTo called by the address in the EIP-1967 admin slot is executed by the proxy itself (it is never delegated) and overwrites the EIP-1967 implementation slot with the supplied contract address. The admin therefore controls which code the proxy runs.",
+ "limits": [
+  "Source-to-bytecode identity is Sourcify exact_match (creation and runtime, no transformations) for this code hash; it was not recompiled locally.",
+  "The review covers the proxy code only. It says nothing about who controls the admin address (multisig, governance, timelock) or about delays before an upgrade can execute.",
+  "It does not review the implementation and proves no mint capability."
+ ],
+ "review": {
+  "method": "Manual reading of the exact-match sources listed in codeProofs; function sources are quoted from the collector output.",
+  "reviewer": "Claude (AI assistant) in the ARCY engineering session; not an independent human audit",
+  "date": "2026-11-14",
+  "collector": "scripts/review-code-evidence.cjs",
+  "workflowRun": 43510780070,
+  "commit": "c2ae66bb43ba3054f0b5f49c7d306cdbd7021b89",
+  "observedOn": {
+   "address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+   "block": {
+    "number": "26408721",
+    "hash": "0xa627b5ab33575ac0b04048b2c3d524faa43931fc9cce100fadfe82042b22c80c"
+   }
+  }
+ }
+}
