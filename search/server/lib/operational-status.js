@@ -52,9 +52,18 @@ function holderWorker(diag,now){
  if(state===STATE.HEALTHY&&providers.length&&cooling===providers.length){state=STATE.DEGRADED;reasonCode='ALL_RPC_PROVIDERS_COOLING';}
  if(state===STATE.HEALTHY&&inProgress&&stalled===inProgress){state=STATE.DEGRADED;reasonCode='ALL_IN_PROGRESS_WORK_STALLED';}
  if(state===STATE.HEALTHY&&failing>0){state=STATE.DEGRADED;reasonCode='HOLDER_JOBS_FAILED';}
+ // Non-identifying failure detail: reason codes, phases and idle ages only (never addresses), so an operator can tell
+ // a provider outage from a contract-specific failure without the authenticated worker route.
+ const histogram=list=>{const m={};for(const t of list){const k=code(t.lastReason)||'UNSPECIFIED';m[k]=(m[k]||0)+1;}return Object.fromEntries(Object.entries(m).slice(0,12));};
+ const failed=tokens.filter(t=>t&&t.lastState==='FAILED'),active=tokens.filter(open);
+ const jobs={failingReasons:histogram(failed),failingPhases:Object.fromEntries(Object.entries(failed.reduce((m,t)=>{const k=code(t.phase)||'UNKNOWN';m[k]=(m[k]||0)+1;return m;},{})).slice(0,8)),
+  failingSlicesMax:failed.length?Math.max(...failed.map(t=>finite(t.slices)?t.slices:0)):null,
+  failingIdleSecondsMin:failed.filter(t=>finite(t.idleMs)).length?Math.round(Math.min(...failed.filter(t=>finite(t.idleMs)).map(t=>t.idleMs))/1000):null,
+  inProgressReasons:histogram(active),inProgressPhases:Object.fromEntries(Object.entries(active.reduce((m,t)=>{const k=code(t.phase)||'UNKNOWN';m[k]=(m[k]||0)+1;return m;},{})).slice(0,8))};
  const states=last&&last.states&&typeof last.states==='object'?Object.fromEntries(Object.entries(last.states).filter(([k,v])=>code(k)&&finite(v)).slice(0,12)):null;
  return {state,reasonCode,
   heartbeat:{lastInvocationAt:finite(last?.at)?new Date(last.at).toISOString():null,ageSeconds:heartbeatAge,lastInvocationMs:finite(last?.elapsedMs)?Math.round(last.elapsedMs):null,lastInvocationServed:Array.isArray(last?.served)?last.served.length:null,lastInvocationStates:states},
+  jobs,
   backlog:{tokensTracked:tokens.length,inProgress,complete:tokens.filter(t=>t&&t.lastState==='COMPLETE').length,failing,unsupported,stalled},
   lastCompleteSliceAgeSeconds:completeIdle.length?Math.round(Math.min(...completeIdle)/1000):null,
   rpc:{requests,http429:r429,http429Share:share===null?null:Math.round(share*1000)/1000,providers:providers.length,providersCooling:cooling},
