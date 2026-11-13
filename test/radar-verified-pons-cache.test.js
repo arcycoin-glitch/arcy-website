@@ -119,3 +119,26 @@ test('public Radar API never edge-caches STALE data and does not extend an old v
   if(oldKey===undefined)delete process.env.COINGECKO_DEMO_API_KEY;else process.env.COINGECKO_DEMO_API_KEY=oldKey;
  }
 });
+
+test('existing Railway holder volume persists factory-verified snapshot atomically and rejects corruption',async()=>{
+ const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'arcy-pons-volume-test-'));
+ const opts={config:{url:null,token:null},durableDir:dir,now:()=>NOW};
+ try{
+  assert.deepEqual(await store.apply({mode:'get'},opts),{ok:true,hit:false});
+  assert.deepEqual(await store.apply({mode:'put',snapshot:verified()},opts),{ok:true,saved:true});
+  const second=await store.apply({mode:'get'},opts);
+  assert.equal(second.ok,true);assert.equal(second.hit,true);
+  assert.deepEqual(second.snapshot,verified());
+  const older=verified(10000);
+  assert.deepEqual(await store.apply({mode:'put',snapshot:older},opts),{ok:true,saved:false});
+  assert.deepEqual((await store.apply({mode:'get'},opts)).snapshot,verified(),'older publisher cannot regress snapshot');
+  const storedFile=path.join(dir,'radar-verified-pons.json');
+  await fs.writeFile(storedFile,'{corrupt');
+  assert.notEqual((await store.apply({mode:'get'},opts)).ok,true);
+  assert.deepEqual(await store.apply({mode:'put',snapshot:verified()},opts),{ok:true,saved:true});
+  assert.equal((await store.apply({mode:'get'},opts)).hit,true);
+  const expired={...opts,now:()=>NOW+4*60*60*1000};
+  assert.notEqual((await store.apply({mode:'get'},expired)).ok,true,'never return an expired snapshot');
+ }finally{await fs.rm(dir,{recursive:true,force:true});}
+});
