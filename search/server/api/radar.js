@@ -37,7 +37,20 @@ module.exports=async function(req,res){
   const data=await radar.load(network,{env:process.env,rpcUrl});
   // Long edge cache protects the provider quota (Demo plan: 10k credits/month). Stale-if-error is bounded in the library.
   const ttl=Math.max(600,Math.floor(Number(process.env.RADAR_V2_TTL_MS||1800000)/1000));
-  res.setHeader('Cache-Control',`public, max-age=0, s-maxage=${ttl}, stale-while-revalidate=${ttl}`);
+  if(data.freshness==='STALE'){
+   // Never prolong a <=3h verification grace period via a new edge TTL.
+   res.setHeader('Cache-Control','no-store');
+  }else if(network==='pons'){
+   // A cross-instance verified edition may already be nearly at the source TTL:
+   // constrain edge cache to the actual remaining age, not another full cycle.
+   const maxAge=require('../../../lib/radar-v2/sources').geckoAccess(process.env).ttlMs;
+   const age=Date.now()-Date.parse(data.asOf);
+   const remaining=Number.isFinite(age)?Math.max(0,Math.floor((maxAge-Math.max(0,age))/1000)):0;
+   const cacheSeconds=Math.min(ttl,remaining);
+   res.setHeader('Cache-Control',`public, max-age=0, s-maxage=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`);
+  }else{
+   res.setHeader('Cache-Control',`public, max-age=0, s-maxage=${ttl}, stale-while-revalidate=${ttl}`);
+  }
   return res.status(200).json(data);
  }catch(error){
   const code=typeof error?.code==='string'&&/^RADAR_[A-Z0-9_]{3,60}$/.test(error.code)?error.code:'RADAR_SOURCE_UNAVAILABLE';

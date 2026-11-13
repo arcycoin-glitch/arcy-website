@@ -40,7 +40,7 @@ test('public V1 has no reviewed producer: perfect-looking evidence never yields 
     assert.ok(Object.isFrozen(r)); assert.ok(Object.isFrozen(r.producers));
     if (reviewedRules[r.id]) {
       assert.equal(r.producers.length, 1); assert.ok(Object.isFrozen(r.producers[0])); assert.ok(Object.isFrozen(r.producers[0].values));
-      assert.deepEqual({ ...r.producers[0], values: [...r.producers[0].values] }, { id: 'arcy-risk-authority-producer', minVersion: 2, values: [true] });
+      assert.deepEqual({ ...r.producers[0], values: [...r.producers[0].values] }, { id: 'arcy-risk-authority-producer', minVersion: 3, values: [true] });
     } else assert.equal(r.producers.length, 0, r.id);
   }
   for (const values of [[true, 500, '2499999', true, 100, 5000], [false, 499, '2500000', false, 99, 4999]]) {

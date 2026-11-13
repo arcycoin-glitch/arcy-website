@@ -1,0 +1,36 @@
+name: Reviewed-code evidence collector (read-only)
+# Reads public chain state from two registered operators and public Sourcify verification data. Nothing is signed,
+# sent or written to the repository; registry entries are added only by a reviewed pull request.
+on:
+  pull_request:
+    paths:
+      - 'scripts/review-code-evidence.cjs'
+      - 'lib/risk-engine/reviewed-code/**'
+      - '.github/workflows/reviewed-code-evidence.yml'
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: 'Comma-separated network:address list (max 12)'
+        required: false
+permissions:
+  contents: read
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/review-code-evidence.cjs
+        env:
+          REVIEW_TARGETS: ${{ inputs.targets }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reviewed-code-evidence
+          path: review-out/
+          retention-days: 30

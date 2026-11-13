@@ -54,8 +54,9 @@ async function head(network){
    }
    Object.assign(row,{block:r.block.number,independence:r.independence.independent?'INDEPENDENT':r.independence.reasonCode,
     operators:r.operators.map(o=>({role:o.role,operator:o.operator,state:o.state,reason:o.reasonCode,calls:o.rpcCalls,ms:o.ms,
-     implementation:o.outcome?.implementation||null,upgrade:o.outcome?.upgrade&&[o.outcome.upgrade.state,o.outcome.upgrade.reasonCode||'',o.outcome.upgrade.actorRole||'',o.outcome.upgrade.selector||'',(o.outcome.upgrade.codeHash||'').slice(0,18)].join('|'),
-     mint:o.outcome?.mint&&[o.outcome.mint.state,o.outcome.mint.reasonCode||'',o.outcome.mint.actorRole||'',(o.outcome.mint.codeHash||'').slice(0,18)].join('|')})),
+     implementation:o.outcome?.implementation||null,proxyCode:(o.outcome?.proxyCodeHash||'').slice(0,18),implCode:(o.outcome?.implementationCodeHash||'').slice(0,18),beacon:o.outcome?.beacon||null,
+     upgrade:o.outcome?.upgrade&&[o.outcome.upgrade.state,o.outcome.upgrade.reasonCode||'',o.outcome.upgrade.actorRole||'',o.outcome.upgrade.selector||'',o.outcome.upgrade.reviewId||''].join('|'),
+     mint:o.outcome?.mint&&[o.outcome.mint.state,o.outcome.mint.reasonCode||'',o.outcome.mint.actorRole||'',o.outcome.mint.reviewId||''].join('|')})),
     records:Object.fromEntries(r.records.map(x=>[x.metricId,x.state+'|'+x.reasonCode])),
     findings:Object.fromEntries(risk.findings.map(f=>[f.ruleId,f.status+'|'+f.reasonCode])),rpcCalls:r.cost.rpcCalls,ms:r.cost.ms});
    const n=table[t.network]||={tokens:0,CONFIRMED:0,NOT_CONFIRMED:0,UNKNOWN:0,STALE:0,CONFLICTING:0,UNSUPPORTED:0};
