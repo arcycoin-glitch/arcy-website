@@ -112,7 +112,7 @@ test('public Radar API never edge-caches STALE data and does not extend an old v
   const oldFresh=verified(75*60*1000);
   oldFresh.asOf=new Date(Date.now()-75*60*1000).toISOString();
   const success=await invoke(oldFresh);
-  const ttl=Number(/s-maxage=(\\d+)/.exec(success.headers['Cache-Control'])?.[1]);
+  const ttl=Number(/s-maxage=(\d+)/.exec(success.headers['Cache-Control'])?.[1]);
   assert.ok(ttl>=270&&ttl<=300,'75-minute-old verified result must expire at the 80-minute Demo source TTL');
  }finally{
   radar.load=original;
