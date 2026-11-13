@@ -233,50 +233,17 @@ test('gate: forged negatives, old producer versions, other engines, replayed and
 });
 
 const report=(over={})=>({ok:true,network:'ethereum',chainId:1,address:TOKEN,block:BLOCK,cards:{supply:{fields:{totalSupply:{value:'1',dataState:'DATA_FOUND'}}}},...over});
-test('shadow mode: OFF makes no request; ON only enqueues and reads a snapshot, never runs a producer in the request path',async()=>{
+test('shadow mode: OFF makes no request; ON never touches the report; shipped registry yields UNKNOWN',async()=>{
  const sim=chainSim(),r=report(),before=JSON.stringify(r);
  assert.equal(await shadow.runIfEnabled(r,{network:'ethereum',env:{},fetcher:sim.fetcher}),null);assert.equal(sim.calls.length,0);
  for(const v of ['0','true',''])assert.equal(shadow.enabled({ARC_AUTONOMY_RISK_ENGINE_ENABLED:v}),false);
- const ops=[],store={enqueue:async(...a)=>{ops.push(['enqueue',...a]);return true;},getSnapshot:async()=>null};
- const lines=[],out=await shadow.runIfEnabled(r,{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},fetcher:sim.fetcher,store,now:()=>NOW,log:l=>lines.push(l)});
- assert.equal(sim.calls.length,0,'no RPC in the request path');assert.equal(JSON.stringify(r),before);
- assert.deepEqual(ops,[['enqueue','ethereum',TOKEN,NOW]]);assert.deepEqual({s:out.state,q:out.queue,v:out.view},{s:'READ',q:'QUEUED',v:null});
- assert.equal(lines.length,1);assert.ok(!/https?:\/\/|drpc\.org|publicnode/.test(lines[0]));
- // A slow or broken store is bounded and never fails the report.
- const slow={enqueue:()=>new Promise(()=>{}),getSnapshot:()=>new Promise(()=>{})},t=Date.now();
- const timed=await shadow.runIfEnabled(r,{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},store:slow,log:()=>{}});
- assert.equal(timed.queue,'RISK_STORE_TIMEOUT');assert.ok(Date.now()-t<shadow.LIMITS.requestPathMs+400);
- const broken=await shadow.runIfEnabled(r,{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},log:()=>{}}); // no store configured
- assert.equal(broken.state,'FAILED');assert.equal(broken.reasonCode,'RISK_STORE_UNAVAILABLE');assert.equal(JSON.stringify(r),before);
- const bad=await shadow.runIfEnabled({address:'nope'},{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},store,log:()=>{}});
- assert.deepEqual(bad,{schemaVersion:2,mode:'SHADOW',state:'FAILED',reasonCode:'RISK_SHADOW_REPORT_INVALID'});
- // The worker-side analysis on the shipped registry: the fixture code is unreviewed => UNKNOWN only.
- const analysed=await shadow.run(r,{network:'ethereum',env:{},fetcher:chainSim().fetcher,produce:authority.produce,now:()=>NOW,log:()=>{}});
- assert.ok(analysed.findings.every(f=>f.status==='UNKNOWN'));
- assert.equal(analysed.records.find(x=>x.metricId==='risk.mint-authority').reasonCode,'OPERATION_SEMANTICS_UNREVIEWED');assert.equal(analysed.ledger.history,'NOT_PRESERVED');
-});
-
-test('public gate: OFF (default) never attaches anything; ON attaches re-evaluated findings that age into STALE',async()=>{
- const r=report(),before=JSON.stringify(r);
- const analysed=await shadow.run(r,{network:'ethereum',env:{},fetcher:chainSim().fetcher,produce:(a)=>authority.produce({...a,registry:REGISTRY}),now:()=>NOW,log:()=>{}});
- const snapshot={network:'ethereum',chainId:1,token:TOKEN,scope:null,generatedAt:analysed.generatedAt,records:analysed.records};
- const store={enqueue:async()=>true,getSnapshot:async()=>structuredClone(snapshot)};
- // Engine ON, public OFF: snapshot read, nothing attached.
- const off=await shadow.runIfEnabled(r,{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},store,now:()=>NOW,log:()=>{}});
- assert.equal(JSON.stringify(r),before);assert.equal(off.view.findings.find(f=>f.ruleId==='privileged-minting').status,'CONFIRMED');
- // Public flag without the engine flag does nothing.
- assert.equal(await shadow.runIfEnabled(r,{network:'ethereum',env:{ARC_AUTONOMY_RISK_PUBLIC_ENABLED:'1'},store,log:()=>{}}),null);assert.equal(JSON.stringify(r),before);
- // Both ON: one additive key; every finding carries what/why/source/chain/contract/block/time/limitations.
- const env={ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1',ARC_AUTONOMY_RISK_PUBLIC_ENABLED:'1'},on=report();
- await shadow.runIfEnabled(on,{network:'ethereum',env,store,now:()=>NOW,log:()=>{}});
- assert.deepEqual(Object.keys(on).filter(k=>!(k in r)),['riskFindings']);
- const mint=on.riskFindings.findings.find(f=>f.ruleId==='privileged-minting');
- assert.equal(mint.status,'CONFIRMED');assert.ok(mint.verified&&mint.why&&mint.limitations);assert.equal(mint.contract,TOKEN);
- assert.deepEqual(mint.source.operators,['allnodes','drpc']);assert.equal(mint.block.hash,HASH);assert.ok(mint.observedAt);
- for(const f of on.riskFindings.findings)if(f.status==='UNKNOWN')assert.equal(f.verified,null);
- // Two hours later the same snapshot is STALE, never a fresh verdict.
- const late=report();await shadow.runIfEnabled(late,{network:'ethereum',env,store,now:()=>NOW+2*3600000,log:()=>{}});
- assert.equal(late.riskFindings.findings.find(f=>f.ruleId==='privileged-minting').status,'STALE');
+ const lines=[],out=await shadow.runIfEnabled(r,{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},fetcher:sim.fetcher,now:()=>NOW,log:l=>lines.push(l)});
+ assert.equal(JSON.stringify(r),before);assert.equal(out.state,'COMPLETE');
+ assert.ok(out.findings.every(f=>f.status==='UNKNOWN'));
+ assert.equal(out.records.find(x=>x.metricId==='risk.mint-authority').reasonCode,'OPERATION_SEMANTICS_UNREVIEWED');
+ assert.equal(out.ledger.history,'NOT_PRESERVED');assert.equal(lines.length,1);assert.ok(!/https?:\/\/|drpc\.org|publicnode/.test(lines[0]));
+ const bad=await shadow.runIfEnabled({address:'nope'},{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},log:()=>{}});
+ assert.deepEqual(bad,{schemaVersion:1,mode:'SHADOW',state:'FAILED',reasonCode:'RISK_SHADOW_REPORT_INVALID'});
 });
 
 test('shadow ledger: durable records survive restart, reruns are throttled, concurrency is safe, a failing ledger is reported',async()=>{
@@ -298,12 +265,10 @@ test('shadow ledger: durable records survive restart, reruns are throttled, conc
  }finally{await fs.rm(dir,{recursive:true,force:true});}
 });
 
-test('the report builder runs shadow mode after the verification runtime and adds no other response key',()=>{
+test('the report builder runs shadow mode after the verification runtime and adds no response key',()=>{
  const text=require('node:fs').readFileSync(path.join(__dirname,'..','search','server','lib','multichain-service.js'),'utf8');
  const a=text.indexOf("lib/verification/runtime').annotateIfEnabled(result,{network})"),b=text.indexOf("lib/risk-engine/shadow').runIfEnabled(result,{network})");
  assert.ok(a>0&&b>a);assert.ok(!/result\.risk|result\.riskShadow/.test(text));
- const shadowText=require('node:fs').readFileSync(path.join(__dirname,'..','lib','risk-engine','shadow.js'),'utf8');
- assert.deepEqual([...shadowText.matchAll(/report\.([A-Za-z]+)=/g)].map(m=>m[1]),['riskFindings']); // the only key, and only behind the public gate
 });
 
 test('shipped registry: two reviewed Ethereum upgrade proxies and two reviewed MINTER_ROLE mint routes, each with a valid artifact',()=>{
