@@ -124,3 +124,14 @@ test('status: a completed token keeps its last checkpoint phase but is not count
  const w=S.holderWorker(diag({tokens:[{address:ADDR,phase:'READ',lastState:'COMPLETE',lastAdvanced:0,slices:9,idleMs:6000},{address:ADDR,phase:'TAIL',lastState:'BUILDING',lastAdvanced:0,slices:4,idleMs:1}]}),NOW);
  assert.deepEqual(w.backlog,{tokensTracked:2,inProgress:1,complete:1,failing:0,unsupported:0,stalled:1});
 });
+
+test('status: failing and in-progress jobs expose reason codes and phases only, never addresses',()=>{
+ const w=S.holderWorker(diag({tokens:[
+  {address:ADDR,phase:'READ',lastState:'FAILED',lastReason:'GETTER_REVERTED',lastAdvanced:0,slices:9,idleMs:4000},
+  {address:'0x'+'cd'.repeat(20),phase:'DISCOVER',lastState:'FAILED',lastReason:'bad reason <x>',slices:2,idleMs:9000},
+  {address:'0x'+'ef'.repeat(20),phase:'TAIL',lastState:'BUILDING',lastReason:'RPC_COOLDOWN_YIELD',lastAdvanced:5,slices:1,idleMs:1}
+ ]}),NOW);
+ assert.equal(w.reasonCode,'HOLDER_JOBS_FAILED');assert.equal(w.backlog.failing,2);
+ assert.deepEqual(w.jobs,{failingReasons:{GETTER_REVERTED:1,UNSPECIFIED:1},failingPhases:{READ:1,DISCOVER:1},failingSlicesMax:9,failingIdleSecondsMin:4,inProgressReasons:{RPC_COOLDOWN_YIELD:1},inProgressPhases:{TAIL:1}});
+ assert.doesNotMatch(JSON.stringify(w),/0x[0-9a-f]{40}/i);
+});
