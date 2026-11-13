@@ -32,7 +32,7 @@ try{
   if(ok){const restart=sh(['restart',name]);if(restart.status!==0)ok=false;let answered=false;for(let i=0;i<30;i++){if(await probe()){answered=true;break;}await new Promise(r=>setTimeout(r,500));}ok=ok&&answered&&fs.readFileSync(sentinel,'utf8')==='preserve-existing-checkpoints';}
   // Module closure inside the real image: everything the worker can lazily require must load from the container's own
   // file set (a repository-layout test cannot see a file the Dockerfile forgot to copy).
-  if(ok){const load=sh(['exec',name,'node','-e',"for(const m of ['./lib/pulse-worker-refresh','./lib/pulse-onchain/monitor','./lib/pulse-onchain/engine','./lib/pulse-network-http','./lib/unlock-calendar','./lib/holder-publication'])require(m);const r=require('./lib/pulse-onchain/rpc');for(const c of ['arc','ethereum','robinhood'])if(!r.endpoints(c).length)throw Error('no endpoint '+c);console.log('IMAGE_MODULES_OK')"]);
+  if(ok){const load=sh(['exec',name,'node','-e',"for(const m of ['./lib/pulse-worker-refresh','./lib/pulse-news-storage','./lib/pulse-onchain/monitor','./lib/pulse-onchain/engine','./lib/pulse-network-http','./lib/unlock-calendar','./lib/holder-publication'])require(m);const r=require('./lib/pulse-onchain/rpc');for(const c of ['arc','ethereum','robinhood'])if(!r.endpoints(c).length)throw Error('no endpoint '+c);console.log('IMAGE_MODULES_OK')"]);
    if(load.status!==0||!/IMAGE_MODULES_OK/.test(load.stdout||'')){ok=false;console.error('image module closure failed:\n'+String(load.stderr||'').slice(-800));}}
   const logs=sh(['logs',name]);const text=(logs.stdout||'')+(logs.stderr||'');
   if(/Cannot find module|MODULE_NOT_FOUND|PULSE_REFRESH_FAILED/.test(text))ok=false;
