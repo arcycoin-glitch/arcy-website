@@ -14,8 +14,8 @@ test('matrix covers exactly the six rules on the three networks and never disagr
   if(rule.producers.length){
    // A producer exists: positive-only, and with an empty reviewed-code registry there is no route it can confirm.
    assert.equal(row.producer,rule.producers[0].id);assert.equal(row.minVersion,rule.producers[0].minVersion);assert.deepEqual([...rule.producers[0].values],[true]);assert.equal(row.polarity,'CONFIRM_ONLY');
-   // Reviewed routes exist only for Ethereum upgrades (four entries: two proxy codes x two selectors); none for mint anywhere.
-   for(const n of NETWORKS){const routes=n==='ethereum'&&rule.id==='admin-upgrade-authority'?4:0;
+   // Reviewed routes exist only on Ethereum: four upgrade entries (two proxy codes x two selectors), two MINTER_ROLE mint routes.
+   for(const n of NETWORKS){const routes=n!=='ethereum'?0:rule.id==='admin-upgrade-authority'?4:2;
     assert.deepEqual({...row.networks[n]},{state:'POSITIVE_ONLY',reviewedRoutes:routes,reasonCode:routes?null:'NO_REVIEWED_EXECUTION_ROUTE'});}
   }else{
    assert.equal(row.producer,null);assert.equal(row.polarity,'NONE');

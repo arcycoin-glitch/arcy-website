@@ -53,10 +53,11 @@ async function head(network){
    for(const f of risk.findings){
     if(f.status==='NOT_CONFIRMED')hard.push(t.name+' '+f.ruleId+' NOT_CONFIRMED without a reviewed negative producer');
     if(f.status==='CONFIRMED'){
-     // Reviewed routes exist only for Ethereum upgrades; a confirmation anywhere else, or without a registry review id
+     // Reviewed routes exist only on Ethereum; a confirmation anywhere else, or without a registry review id of the same capability
      // shared by every operator, is a defect.
      const ids=new Set(r.operators.map(o=>o.outcome?.[f.ruleId==='privileged-minting'?'mint':'upgrade']?.reviewId||''));
-     if(t.network!=='ethereum'||f.ruleId!=='admin-upgrade-authority'||ids.size!==1||!reviewed.REGISTRY.entries.some(e=>ids.has(e.id)))hard.push(t.name+' '+f.ruleId+' CONFIRMED outside the reviewed routes');
+     const cap=f.ruleId==='privileged-minting'?'mint':'upgrade';
+     if(t.network!=='ethereum'||ids.size!==1||!reviewed.REGISTRY.entries.some(e=>ids.has(e.id)&&e.capability===cap))hard.push(t.name+' '+f.ruleId+' CONFIRMED outside the reviewed routes');
      const x=r.records.find(y=>y.metricId===(f.ruleId==='privileged-minting'?'risk.mint-authority':'risk.upgrade-authority'));
      if(!x||x.state!=='VERIFIED_ONCHAIN'||new Set(x.observations.map(o=>o.source.operator)).size<2||new Set(x.observations.map(o=>o.block.hash)).size!==1)hard.push(t.name+' '+f.ruleId+' CONFIRMED without two-operator anchor');
     }
