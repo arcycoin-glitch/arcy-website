@@ -14,7 +14,7 @@ async function get(p,json=true){const t=Date.now();const r=await fetch(BASE+p,{h
  note('render-pulse-nav',{status:nav.status,loading:/Loading verified research/.test(nav.body),notConnected:/NOT CONNECTED/.test(nav.body)});
  const st=await get('/api/search?action=status');
  const c=st.body?.components||{};
- note('status',{http:st.status,ms:st.ms,overall:st.body?.overall,worker:c.holderWorker&&{state:c.holderWorker.state,reason:c.holderWorker.reasonCode,heartbeat:c.holderWorker.heartbeat,backlog:c.holderWorker.backlog,rpc:c.holderWorker.rpc,lastCompleteSliceAgeSeconds:c.holderWorker.lastCompleteSliceAgeSeconds},
+ note('status',{http:st.status,ms:st.ms,overall:st.body?.overall,worker:c.holderWorker&&{state:c.holderWorker.state,reason:c.holderWorker.reasonCode,heartbeat:c.holderWorker.heartbeat,backlog:c.holderWorker.backlog,jobs:c.holderWorker.jobs,rpc:c.holderWorker.rpc,lastCompleteSliceAgeSeconds:c.holderWorker.lastCompleteSliceAgeSeconds},
   pulse:c.pulse&&Object.fromEntries(Object.entries(c.pulse).map(([k,v])=>[k,{state:v.state,reason:v.reasonCode,ageHours:v.ageHours,edition:v.edition}])),unlocks:c.unlocks,version:st.body?.version,env:c.searchApi?.environment});
  if(st.status!==200||typeof st.body?.overall!=='string')fail('status','status endpoint missing');
  const p=await get('/api/pulse?chains=all');
