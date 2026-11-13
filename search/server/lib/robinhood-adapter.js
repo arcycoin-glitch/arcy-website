@@ -65,10 +65,15 @@ async function holder({address,base}){
   top10Pct:NO('No complete pinned-block holder ranking with supply reconciliation.'),
   top20Pct:NO('No complete pinned-block holder ranking with supply reconciliation.')
  };
+ const countPromise=require('./robinhood-holder-count').fetchCount(address);
+ const rankedPromise=require('./robinhood-holder-rank').fetchRank(address,{
+  block:base.block,totalSupplyRaw:base.totalSupplyRaw,reportedHolderCountPromise:countPromise,
+  rpcCall:base.readAtBlock,verifyBlock:base.verifyBlock
+ });
  const [count,reported,ranked]=await Promise.all([
-  require('./robinhood-holder-count').fetchCount(address),
+  countPromise,
   require('./goplus-evidence').inspectHolders('robinhood',address),
-  require('./robinhood-holder-rank').fetchRank(address,{block:base.block,totalSupplyRaw:base.totalSupplyRaw})
+  rankedPromise
  ]);
  if(count)fields.holderCount=count;
  else if(reported.holderCount?.dataState==='DATA_FOUND')
