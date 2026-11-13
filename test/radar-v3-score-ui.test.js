@@ -58,28 +58,38 @@ const data=(network,{engine='arcy-radar-v3',score=72.5,empty=false}={})=>({
  discovery:engine==='arcy-radar-v3'?{scoreVersion:'arcy-discovery-2'}:undefined,
  tokens:empty?[]:[token(score)],attribution:[]
 });
-async function mount({overrides={},http={},fetcher}={}){
+async function mount({overrides={},http={},fetcher,warm=true,timers}={}){
  const detail=new Node('section');detail.id='tokenDetail';const calls=[];
  const document={
   createElement:tag=>new Node(tag),
   createTextNode:s=>new Text(s),
-  getElementById:id=>id==='tokenDetail'?detail:null
+  getElementById:id=>id==='tokenDetail'?detail:null,
+  visibilityState:'visible'
  };
  const responses={robinhood:data('robinhood'),arc:data('arc',{engine:'arcy-radar-v2'}),ethereum:data('ethereum',{score:105}),pons:data('pons',{empty:true}),...overrides};
- const ctx={document,Intl,Date,URL,AbortController,setTimeout,clearTimeout,
+ const ctx={document,Intl,Date,URL,AbortController,setTimeout:timers?.setTimeout||setTimeout,clearTimeout:timers?.clearTimeout||clearTimeout,
   window:{scrollY:0,scrollTo(){}},
   fetch:async url=>{const network=new URL(url,'https://example.com').searchParams.get('chain');calls.push(network);return fetcher?fetcher(network):{ok:http[network]!==false,json:async()=>responses[network]};}
  };
  vm.runInNewContext(js,ctx);
- // Wait for all four immediate fetches, JSON reads and Promise.all() callback.
- for(let i=0;i<5;i++)await Promise.resolve();
+ // Most visual assertions use a fully warmed fixture. Warm it through explicit
+ // user interactions, NOT hidden load-time calls; production starts with zero.
+ if(warm){
+  const views=detail.querySelectorAll('.arcy-radar-view-button');
+  const nav=detail.querySelector('.arcy-radar-networks');
+  views[1].click(); // Robinhood: currently selected by default.
+  for(const net of ['arc','ethereum','pons'])nav.children.find(c=>c.dataset.network===net).click();
+  views[0].click(); // Return to the normal Token Research default.
+  nav.children.find(c=>c.dataset.network==='robinhood').click();
+ }
+ for(let i=0;i<12;i++)await Promise.resolve();
  return {detail,calls,responses,http};
 }
 const panel=(detail,net)=>detail.querySelector('[data-overview="'+net+'"]');
 test('JS parses and V3 score/rationale use the existing verified API, without extra calls',async()=>{
  assert.doesNotThrow(()=>new Function(js));
  const {detail,calls}=await mount();
- assert.equal(calls.length,4,'only existing per-network readiness calls');
+ assert.equal(calls.length,4,'one user-triggered read per network in warmed fixture');
  const rob=panel(detail,'robinhood');
  assert.equal(rob.hidden,false,'single default selected network');
  assert.equal(rob.querySelector('.arcy-radar-overview-score-value').textContent,'72.5');
@@ -256,7 +266,7 @@ test('manual retry fetches only failed Pons and can recover without refetching h
  detail.querySelector('.arcy-radar-networks').children.find(c=>c.dataset.network==='pons').click();
  p.querySelector('.arcy-radar-overview-action').click();
  await new Promise(setImmediate);
- assert.deepEqual(calls,['arc','ethereum','robinhood','pons','pons']);
+ assert.deepEqual(calls,['robinhood','arc','ethereum','pons','pons']);
  assert.equal(p.querySelector('.arcy-radar-overview-freshness').textContent,'DOĞRULANDI');
  assert.equal(p.querySelectorAll('.arcy-radar-overview-token').length,1);
  p.querySelector('.arcy-radar-overview-action').click();
@@ -286,4 +296,71 @@ test('Retry-After disables manual retry without scheduling another provider requ
  action.click();await new Promise(setImmediate);
  assert.equal(calls.length,4);
  assert.doesNotMatch(p.querySelector('.arcy-radar-overview-empty').textContent,/lansmanı bulunamadı/);
+});
+
+test('entering Search makes no hidden Radar requests; only selected networks are queried',async()=>{
+ const {detail,calls}=await mount({warm:false});
+ assert.deepEqual(calls,[],'Token Research page must not prefetch four Radar providers');
+ const views=detail.querySelectorAll('.arcy-radar-view-button');
+ views[1].click();
+ await new Promise(setImmediate);
+ assert.deepEqual(calls,['robinhood'],'Radar entry loads only the selected network');
+ const nav=detail.querySelector('.arcy-radar-networks');
+ nav.children.find(c=>c.dataset.network==='pons').click();
+ await new Promise(setImmediate);
+ assert.deepEqual(calls,['robinhood','pons'],'Pons selection makes one targeted request');
+});
+
+test('Pons cooldown schedules one visible selected-network recovery, then verifies the returned evidence',async()=>{
+ const scheduled=[];
+ const timers={
+  setTimeout:(fn,ms)=>{const h={fn,ms,cancelled:false,unref(){}};scheduled.push(h);return h;},
+  clearTimeout:h=>{if(h)h.cancelled=true;}
+ };
+ let ponsCalls=0;
+ const {detail,calls}=await mount({warm:false,timers,fetcher:async network=>{
+  if(network!=='pons')return {ok:true,json:async()=>data(network)};
+  return ++ponsCalls===1
+   ?{ok:false,headers:{get:key=>key==='retry-after'?'1':null}}
+   :{ok:true,json:async()=>data('pons')};
+ }});
+ detail.querySelectorAll('.arcy-radar-view-button')[1].click();
+ await new Promise(setImmediate);
+ detail.querySelector('.arcy-radar-networks').children.find(c=>c.dataset.network==='pons').click();
+ await new Promise(setImmediate);
+ const card=panel(detail,'pons');
+ assert.equal(card.querySelector('.arcy-radar-overview-action').textContent,'Kaynak bekleme süresinde');
+ assert.equal(ponsCalls,1);
+ const retry=scheduled.find(h=>!h.cancelled&&h.ms<=1000);
+ assert.ok(retry,'one finite provider-authorized retry timer');
+ retry.fn();
+ await new Promise(setImmediate);
+ assert.equal(ponsCalls,2,'exactly one retry after provider cooldown');
+ assert.equal(card.querySelector('.arcy-radar-overview-freshness').textContent,'DOĞRULANDI');
+ assert.equal(card.querySelectorAll('.arcy-radar-overview-token').length,1);
+ assert.equal(calls.filter(x=>x==='arc'||x==='ethereum').length,0);
+});
+
+test('cooldown expiry never fetches a hidden or unselected Radar network',async()=>{
+ const scheduled=[];
+ const timers={
+  setTimeout:(fn,ms)=>{const h={fn,ms,cancelled:false,unref(){}};scheduled.push(h);return h;},
+  clearTimeout:h=>{if(h)h.cancelled=true;}
+ };
+ const {detail,calls}=await mount({warm:false,timers,fetcher:async network=>
+  network==='pons'
+   ?{ok:false,headers:{get:key=>key==='retry-after'?'1':null}}
+   :{ok:true,json:async()=>data(network)}
+ });
+ detail.querySelectorAll('.arcy-radar-view-button')[1].click();
+ await new Promise(setImmediate);
+ const nav=detail.querySelector('.arcy-radar-networks');
+ nav.children.find(c=>c.dataset.network==='pons').click();
+ await new Promise(setImmediate);
+ nav.children.find(c=>c.dataset.network==='robinhood').click();
+ const retry=scheduled.find(h=>!h.cancelled&&h.ms<=1000);
+ assert.ok(retry);
+ retry.fn();
+ await new Promise(setImmediate);
+ assert.equal(calls.filter(x=>x==='pons').length,1,'no background retry for unselected Pons');
 });
