@@ -34,15 +34,24 @@ function record(r, value, o = {}) {
 const all = values => V1.map((r, i) => record(RULES[i], values[i]));
 
 test('public V1 has no reviewed producer: perfect-looking evidence never yields CONFIRMED or NOT_CONFIRMED', () => {
-  // Issue #226 reviews exactly one producer, for exactly two rules, for positive values only.
-  const reviewedRules = { 'admin-upgrade-authority': true, 'privileged-minting': true };
+  // Reviewed producers (#226, #234): exact id, minimum version and polarity per rule. Anything else is unreviewed.
+  const expected = {
+    'admin-upgrade-authority': { id: 'arcy-risk-authority-producer', minVersion: 4, values: [true] },
+    'privileged-minting': { id: 'arcy-risk-authority-producer', minVersion: 4, values: [true] },
+    'low-pool-liquidity': { id: 'arcy-risk-pool-producer', minVersion: 1 },
+    'high-exit-impact': { id: 'arcy-risk-pool-producer', minVersion: 1, verdicts: [true] },
+    'top-ten-holder-concentration': { id: 'arcy-risk-concentration-producer', minVersion: 1, verdicts: [true] },
+  };
   for (const r of V1) {
     assert.ok(Object.isFrozen(r)); assert.ok(Object.isFrozen(r.producers));
-    if (reviewedRules[r.id]) {
-      assert.equal(r.producers.length, 1); assert.ok(Object.isFrozen(r.producers[0])); assert.ok(Object.isFrozen(r.producers[0].values));
-      assert.deepEqual({ ...r.producers[0], values: [...r.producers[0].values] }, { id: 'arcy-risk-authority-producer', minVersion: 4, values: [true] });
+    if (expected[r.id]) {
+      assert.equal(r.producers.length, 1); assert.ok(Object.isFrozen(r.producers[0]));
+      const p = r.producers[0];
+      for (const k of ['values', 'verdicts']) if (p[k] !== undefined) assert.ok(Object.isFrozen(p[k]));
+      assert.deepEqual(JSON.parse(JSON.stringify(p)), expected[r.id], r.id);
     } else assert.equal(r.producers.length, 0, r.id);
   }
+  assert.deepEqual(V1.filter(r => !r.producers.length).map(r => r.id), ['sell-transfer-tax']);
   for (const values of [[true, 500, '2499999', true, 100, 5000], [false, 499, '2500000', false, 99, 4999]]) {
     const out = evaluateRisk({ ...target, evidence: all(values) });
     assert.equal(out.dataQuality.coverage, 'INCOMPLETE');

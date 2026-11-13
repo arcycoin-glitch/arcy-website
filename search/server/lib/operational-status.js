@@ -22,6 +22,14 @@ const ageSeconds=(iso,now)=>{const t=typeof iso==='number'?iso:Date.parse(iso||'
 const shortSha=v=>typeof v==='string'&&/^[0-9a-f]{7,40}$/i.test(v)?v.slice(0,12).toLowerCase():null;
 const code=v=>typeof v==='string'&&/^[A-Z0-9_]{1,80}$/.test(v)?v:null;
 
+function riskWorker(r,now){
+ if(!r||typeof r!=='object')return {enabled:false,reasonCode:'NOT_REPORTED'};
+ if(r.enabled!==true)return {enabled:false,reasonCode:code(r.reasonCode)||null};
+ const at=Date.parse(r.lastTickAt||''),pick=(o,key=code)=>o&&typeof o==='object'?Object.fromEntries(Object.entries(o).filter(([k,v])=>key(k)&&finite(v)).slice(0,16)):null,name=k=>/^[A-Za-z][A-Za-z0-9]{0,31}$/.test(k)?k:null;
+ return {enabled:true,lastTickAgeSeconds:Number.isFinite(at)?Math.max(0,Math.round((now-at)/1000)):null,totals:pick(r.totals,name),findingStatuses:pick(r.findingStatuses),
+  unknownCauses:pick(r.unknownCauses),queue:r.queue&&finite(r.queue.total)?{total:r.queue.total,due:finite(r.queue.due)?r.queue.due:null}:null,
+  jobMs:r.jobMs&&{p50:finite(r.jobMs.p50)?r.jobMs.p50:null,p95:finite(r.jobMs.p95)?r.jobMs.p95:null,samples:finite(r.jobMs.samples)?r.jobMs.samples:0},rpcLastHour:pick(r.rpcLastHour,name)};
+}
 function holderWorker(diag,now){
  if(diag?.unreachable)return {state:STATE.UNAVAILABLE,reasonCode:code(diag.reasonCode)||'WORKER_UNREACHABLE',basis:'Authenticated read-only worker diagnostics did not answer.'};
  if(diag?.notConfigured)return {state:STATE.UNKNOWN,reasonCode:'WORKER_NOT_CONFIGURED_IN_THIS_RUNTIME',basis:'This deployment has no worker diagnostics configuration (expected in Preview).'};
@@ -64,6 +72,8 @@ function holderWorker(diag,now){
  return {state,reasonCode,
   heartbeat:{lastInvocationAt:finite(last?.at)?new Date(last.at).toISOString():null,ageSeconds:heartbeatAge,lastInvocationMs:finite(last?.elapsedMs)?Math.round(last.elapsedMs):null,lastInvocationServed:Array.isArray(last?.served)?last.served.length:null,lastInvocationStates:states},
   jobs,
+  // Autonomous risk worker (counts and reason codes only; no token addresses). Absent or disabled => reported as such.
+  risk:riskWorker(diag?.worker?.risk,now),
   backlog:{tokensTracked:tokens.length,inProgress,complete:tokens.filter(t=>t&&t.lastState==='COMPLETE').length,failing,unsupported,stalled},
   lastCompleteSliceAgeSeconds:completeIdle.length?Math.round(Math.min(...completeIdle)/1000):null,
   rpc:{requests,http429:r429,http429Share:share===null?null:Math.round(share*1000)/1000,providers:providers.length,providersCooling:cooling},
