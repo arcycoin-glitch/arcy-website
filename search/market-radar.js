@@ -189,7 +189,7 @@ const change24hReason=item=>{
  const networkTheme={arc:'arc',ethereum:'ethereum',robinhood:'robinhood',pons:'pons'};
  const icon={arc:'',ethereum:'',robinhood:'',pons:''};
  const overviewData=new Map();
- const overviewPending=new Map(),overviewRetryAt=new Map(),overviewRetryTimers=new Map();
+ const overviewPending=new Map(),overviewRetryAt=new Map(),overviewRetryTimers=new Map(),overviewAutoRetries=new Map();
  let expandedNetwork=null;
  // UI-only: explain the source-backed V3 score without extra provider requests.
  function explainDiscovery(raw){
@@ -352,7 +352,7 @@ const change24hReason=item=>{
   discoveryNote.hidden=true;
   const action=el('button','arcy-radar-overview-action','Tümünü Gör →');
   action.type='button';action.addEventListener('click',()=>{
-   if(!overviewData.has(id)){void refreshOverview(id);return;}
+   if(!overviewData.has(id)){overviewAutoRetries.delete(id);void refreshOverview(id);return;}
    expandedNetwork=expandedNetwork===id?null:id;
    for(const [key,data] of overviewData)renderOverview(key,data);
    for(const node of overview.children)node.classList.toggle('is-expanded',node.dataset.overview===expandedNetwork);
@@ -492,13 +492,22 @@ const change24hReason=item=>{
       const wait=Math.min(until-Date.now(),24*3600*1000);
       overviewRetryAt.set(network,Date.now()+wait);
       clearTimeout(overviewRetryTimers.get(network));
-      const retryTimer=setTimeout(()=>{overviewRetryAt.delete(network);overviewRetryTimers.delete(network);renderOverview(network,null);},wait);
+      const retryTimer=setTimeout(()=>{
+       overviewRetryAt.delete(network);overviewRetryTimers.delete(network);
+       // Once per network/page view: recover from an upstream Retry-After without needing a manual reload.
+       // Hidden tabs and unselected cards never spend another request; a second 429 needs manual retry.
+       if(!overviewAutoRetries.get(network)&&active==='radar'&&selected===network&&!document.hidden){
+        overviewAutoRetries.set(network,true);
+        void refreshOverview(network);
+       }else renderOverview(network,null);
+      },wait);
       retryTimer.unref?.();overviewRetryTimers.set(network,retryTimer);
      }
      renderOverview(network,null);return false;
     }
     const data=await response.json();
     renderOverview(network,data);
+    if(validOverview(network,data))overviewAutoRetries.delete(network);
     const ready=validOverview(network,data)&&data.tokens.length>0;
     if(ready){
      radarBtn.disabled=false;radarBtn.removeAttribute('title');
