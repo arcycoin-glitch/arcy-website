@@ -48,6 +48,9 @@ function excerpts(content){
   for(let j=i;j<content.length&&j<i+6000;j++){const c=content[j];if(c==='{')depth++;else if(c==='}'){depth--;if(depth===0){end=j+1;break;}}else if(c===';'&&depth===0){end=j+1;break;}}
   if(end>0)out.push({kind:m[1],name:m[2],text:content.slice(i,end).replace(/\s+/g,' ').slice(0,900)});
  }
+ // Storage-slot constants decide WHERE the reviewed functions read and write.
+ const slots=/bytes32\s+(?:internal\s+|private\s+|public\s+)?constant\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]{1,200});/g;
+ while((m=slots.exec(content)))out.push({kind:'constant',name:m[1],text:m[2].replace(/\s+/g,' ')});
  return out;
 }
 async function sourcify(chainId,address,expectedCodeHash){
@@ -109,9 +112,11 @@ async function review(target){
    implementation:r.implementationSource&&{status:r.implementationSource.status,runtimeMatch:r.implementationSource.runtimeMatch,creationMatch:r.implementationSource.creationMatch,equal:r.implementationSource.bytecodeEqualsOnchain,contract:r.implementationSource.contract,compiler:r.implementationSource.compiler,files:r.implementationSource.sources.length,transformations:r.implementationSource.transformations},
    operators:(r.operators||[]).map(o=>o.operator+(o.error?':'+o.error:'')),mintSelector:r.operators?.[0]?.mintSelectorInExecutingCode??null};
   summary.push(line);console.log('REVIEW_EVIDENCE '+JSON.stringify(line));
+  if(r.machineEvidenceComplete)console.log('REVIEW_PROOF '+JSON.stringify({target:t,block:r.block,codeProofs:r.codeProofs}));
   for(const [label,s] of [['token',r.tokenSource],['implementation',r.implementationSource]]){
    if(!s||s.runtimeMatch!=='exact_match'||!s.bytecodeEqualsOnchain)continue; // only exact, on-chain-equal sources are worth reviewing
-   for(const f of s.functions.slice(0,40))console.log('REVIEW_SOURCE '+JSON.stringify({target:t,code:label,path:f.path.split('/').slice(-2).join('/'),name:f.name,text:f.text}));
+   for(const f of s.functions.filter(x=>x.kind!=='constant').slice(0,40))console.log('REVIEW_SOURCE '+JSON.stringify({target:t,code:label,path:f.path.split('/').slice(-2).join('/'),name:f.name,text:f.text}));
+   for(const f of s.functions.filter(x=>x.kind==='constant'))console.log('REVIEW_CONSTANT '+JSON.stringify({target:t,code:label,path:f.path.split('/').slice(-1)[0],name:f.name,value:f.text}));
    console.log('REVIEW_FILES '+JSON.stringify({target:t,code:label,files:s.sources.map(x=>x.path.split('/').slice(-1)[0]+':'+x.keccak256.slice(0,18))}).slice(0,3000));
   }
  }
