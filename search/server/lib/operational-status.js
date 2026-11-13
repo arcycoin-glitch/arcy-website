@@ -26,7 +26,8 @@ function riskWorker(r,now){
  if(!r||typeof r!=='object')return {enabled:false,reasonCode:'NOT_REPORTED'};
  if(r.enabled!==true)return {enabled:false,reasonCode:code(r.reasonCode)||null};
  const at=Date.parse(r.lastTickAt||''),pick=(o,key=code)=>o&&typeof o==='object'?Object.fromEntries(Object.entries(o).filter(([k,v])=>key(k)&&finite(v)).slice(0,16)):null,name=k=>/^[A-Za-z][A-Za-z0-9]{0,31}$/.test(k)?k:null;
- return {enabled:true,lastTickAgeSeconds:Number.isFinite(at)?Math.max(0,Math.round((now-at)/1000)):null,totals:pick(r.totals,name),findingStatuses:pick(r.findingStatuses),
+ // storeMode 'local' means snapshots stay on the worker volume and the Search API (which reads shared Redis) cannot see them.
+ return {enabled:true,storeMode:r.storeMode==='redis'||r.storeMode==='local'?r.storeMode:null,lastTickAgeSeconds:Number.isFinite(at)?Math.max(0,Math.round((now-at)/1000)):null,totals:pick(r.totals,name),findingStatuses:pick(r.findingStatuses),
   unknownCauses:pick(r.unknownCauses),queue:r.queue&&finite(r.queue.total)?{total:r.queue.total,due:finite(r.queue.due)?r.queue.due:null}:null,
   jobMs:r.jobMs&&{p50:finite(r.jobMs.p50)?r.jobMs.p50:null,p95:finite(r.jobMs.p95)?r.jobMs.p95:null,samples:finite(r.jobMs.samples)?r.jobMs.samples:0},rpcLastHour:pick(r.rpcLastHour,name)};
 }

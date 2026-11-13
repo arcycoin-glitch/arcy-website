@@ -7,6 +7,8 @@ const {evaluateRisk}=require('../lib/risk-engine');
 const evidence=require('../lib/verification/metric-evidence');
 const observer=require('../lib/verification/onchain-observer');
 const v2=require('../lib/liquidity-exit-v2');
+const v3=require('../lib/liquidity-exit-v3');
+const V3F=v3.PROTOCOLS.ethereum[0].factory,V3POOL='0x'+'53'.repeat(20);
 
 const NOW=Date.parse('2026-11-14T00:00:00.000Z'),BLOCK='0x64',HASH='0x'+'11'.repeat(32),TS=Math.floor((NOW-60000)/1000);
 const TOKEN='0x'+'ab'.repeat(20),PAIR='0x'+'50'.repeat(20),PAIR2='0x'+'51'.repeat(20);
@@ -46,10 +48,12 @@ function poolChain(over={}){
   if(r){
    const [rt,rq]=r,t0=b.tokenIs0?TOKEN:USDC.token,t1=b.tokenIs0?USDC.token:TOKEN;
    if(s===v2.SELECTORS.factory)return ok(ADDRW(b.pairFactories?.[to]||b.pairFactory));
-   if(s===v2.SELECTORS.token0)return ok(ADDRW(b.token0??t0));
+   if(s===v2.SELECTORS.token0)return b.badToken0?ok('0x1234'):ok(ADDRW(b.token0??t0));
    if(s===v2.SELECTORS.token1)return ok(ADDRW(t1));
    if(s===v2.SELECTORS.getReserves){const [r0,r1]=b.tokenIs0?[rt,rq]:[rq,rt];return ok('0x'+[W(r0),W(r1),W(TS-30)].map(x=>x.slice(2)).join(''));}
   }
+  if(to===V3F&&s===v3.SELECTORS.getPool){const fee=Number(BigInt('0x'+data.slice(138,202)));return ok(ADDRW(b.v3Pools?.[fee]||'0x'+'0'.repeat(40)));}
+  if(s===v2.SELECTORS.balanceOf&&b.v3Balances?.['0x'+data.slice(34,74)]!==undefined)return ok(W(b.v3Balances['0x'+data.slice(34,74)]));
   if(s===v2.SELECTORS.balanceOf){const who='0x'+data.slice(34,74),rr=b.reserves[who];if(!rr)return ok(W(0));const isTok=to===TOKEN;return ok(W((isTok?rr[0]:rr[1])+b.balancesExtra));}
   if(to===UNI.router&&s===v2.SELECTORS.getAmountsOut){const amountIn=BigInt('0x'+data.slice(10,74)),[rt,rq]=b.reserves[PAIR];const out=quote(amountIn,rt,rq,30)+b.routerSkew;
    return ok('0x'+[W(32),W(2),W(amountIn),W(out)].map(x=>x.slice(2)).join(''));}
@@ -205,4 +209,24 @@ test('concentration: supply inconsistencies, disagreements, 429 and missing cand
  // The explorer list is used for addresses only; burns are dropped and the list is bounded.
  const listed=await conc.candidates('ethereum',TOKEN,{fetcher:async()=>new Response(JSON.stringify({items:[{address:{hash:DEAD}},...Array.from({length:60},(_,i)=>({address:{hash:'0x'+i.toString(16).padStart(40,'0')},value:'999999999'}))]}))});
  assert.equal(listed.addresses.length,20);assert.ok(!listed.addresses.includes(DEAD));assert.ok(!listed.addresses.includes('0x'+'0'.repeat(40)));
+});
+
+test('pool producer: a tiny V2 pool next to a deeper Uniswap V3 pool never yields a liquidity or exit-impact risk verdict',async()=>{
+ const thin={reserves:{[PAIR]:[20000n*10n**18n,10000n*10n**6n]}};
+ const deep=await run(poolChain({...thin,v3Pools:{500:V3POOL},v3Balances:{[V3POOL]:5000000n*10n**6n}}));
+ assert.equal(rec(deep,'risk.pool-liquidity').reasonCode,'DEEPER_REVIEWED_VENUE_EXISTS');assert.equal(rec(deep,'risk.exit-impact').reasonCode,'DEEPER_REVIEWED_VENUE_EXISTS');
+ assert.equal(findingFor(deep,'low-pool-liquidity').status,'UNKNOWN');assert.equal(findingFor(deep,'high-exit-impact').status,'UNKNOWN');
+ assert.equal(deep.operators[0].outcome.deeperVenue.pool,V3POOL);
+ // A shallower V3 pool does not suppress anything.
+ const shallow=await run(poolChain({...thin,v3Pools:{3000:V3POOL},v3Balances:{[V3POOL]:100n*10n**6n}}));
+ assert.equal(findingFor(shallow,'low-pool-liquidity').status,'CONFIRMED');assert.equal(shallow.operators[0].outcome.deeperVenue,null);
+ // The measured >= $25,000 pool fact is still a NOT_CONFIRMED even with a deeper venue elsewhere.
+ const big=await run(poolChain({v3Pools:{500:V3POOL},v3Balances:{[V3POOL]:9n*10n**12n}}));
+ assert.equal(findingFor(big,'low-pool-liquidity').status,'NOT_CONFIRMED');
+ // Operators disagreeing about the V3 venue is an identity mismatch, not a verdict.
+ const split=await run(poolChain({...thin,hosts:{'eth.drpc.org':{v3Pools:{500:V3POOL},v3Balances:{[V3POOL]:5000000n*10n**6n}}}}));
+ assert.notEqual(findingFor(split,'low-pool-liquidity').status,'CONFIRMED');
+ // A malformed answer from one candidate contract drops that candidate only.
+ const malformed=await run(poolChain({badToken0:true}));
+ assert.equal(malformed.operators[0].state,'OK');assert.equal(malformed.operators[0].outcome.candidates[0].reason,'NOT_V2_COMPATIBLE_POOL');assert.equal(malformed.records.length,0);
 });

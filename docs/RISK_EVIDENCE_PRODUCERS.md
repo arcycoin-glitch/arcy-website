@@ -78,6 +78,9 @@ Limits of a positive claim: it shows that at that block the reviewed code would 
   - both reserves are above zero.
   
   The pool with the most quote-side USD is selected; both operators must select the same pool.
+- **Deeper-venue guard.** Uniswap V3 `getPool(token, quote, fee)` is read for every reviewed quote asset and fee tier. If any V3 pool contract holds more quote value than the selected V2 pool, the V2 pool is not the token's deepest reviewed market. Risk verdicts (liquidity below $25k, any exit impact) are then withheld as `DEEPER_REVIEWED_VENUE_EXISTS`.
+  - This was found live: PYUSD's and ONDO's deepest V2 pairs hold $4 and $64, while their real markets are on Uniswap V3 and elsewhere. Curve, Balancer and centralized exchanges are not checked; every public finding says so.
+- A malformed answer from one candidate contract drops that candidate (`NOT_V2_COMPATIBLE_POOL`), not the operator.
 - **Liquidity** = 2 × quote reserve × anchor (usd-cent). This is the constant-product pool value at its own marginal price; it cannot be inflated without depositing quote asset. Scope: the selected pair. Both verdicts are reviewed.
 - **Exit impact** = price impact (fee excluded, fee reported separately) of selling $1,000 worth of the token at the pool's marginal price. The reviewed router's `getAmountsOut` must equal the model exactly. **Positive only**: token taxes, blacklists and trading restrictions are not modelled.
 - Not covered: V3/V4 pools; Arc and Robinhood (`PRICE_ANCHOR_NOT_REVIEWED`, and no RPC call is made there).

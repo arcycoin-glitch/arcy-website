@@ -10,6 +10,10 @@ The Risk Engine stays invisible to public Search reports until **every** gate be
 | `ARC_AUTONOMY_RISK_ENGINE_ENABLED=1` | Search API | enqueues the searched token and reads its latest snapshot (≤ 300 ms, no producer, no RPC) |
 | `ARC_AUTONOMY_RISK_PUBLIC_ENABLED=1` | Search API | attaches `riskFindings` (requires the engine flag) |
 
+Prerequisite: the worker and the Search API must use the **same** risk store. The holder worker runs with `ARC_HOLDER_STORAGE=local` on the `/data` volume. Unless it also has `ARC_INDEX_REDIS_URL`/`TOKEN` (or the Upstash pair) configured, risk snapshots stay on that volume and Search cannot read them.
+
+`status.worker.risk.storeMode` must read `redis` before the engine flag is enabled.
+
 Enabling order: worker → engine (shadow) → public. Each step can be reverted by unsetting its flag; nothing else changes.
 
 ## Gates

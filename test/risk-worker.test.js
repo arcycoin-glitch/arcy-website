@@ -94,9 +94,9 @@ test('worker: recoverable failures back off, permanent ones are removed, budgets
 test('status: risk worker metrics are counts and reason codes only',()=>{
  const w=status.holderWorker({ok:true,worker:{runtime:{commit:'1234567',startedAt:new Date(NOW).toISOString()},rpc:{metrics:{requests:1,http429:0},providers:[]},
   scheduler:{totals:{},lastInvocation:{at:NOW,elapsedMs:1,served:[],states:{}}},tokens:[],
-  risk:{enabled:true,lastTickAt:new Date(NOW-30000).toISOString(),totals:{ticks:3,complete:2},findingStatuses:{UNKNOWN:10,CONFIRMED:2},unknownCauses:{PRICE_ANCHOR_NOT_REVIEWED:2},
+  risk:{enabled:true,storeMode:'redis',lastTickAt:new Date(NOW-30000).toISOString(),totals:{ticks:3,complete:2},findingStatuses:{UNKNOWN:10,CONFIRMED:2},unknownCauses:{PRICE_ANCHOR_NOT_REVIEWED:2},
    queue:{total:4,due:1},jobMs:{p50:900,p95:2100,samples:2},rpcLastHour:{ethereum:120},lastJob:{network:'ethereum',state:'COMPLETE'},extra:'0x'+'ab'.repeat(20)}}},NOW);
- assert.deepEqual(w.risk,{enabled:true,lastTickAgeSeconds:30,totals:{ticks:3,complete:2},findingStatuses:{UNKNOWN:10,CONFIRMED:2},unknownCauses:{PRICE_ANCHOR_NOT_REVIEWED:2},
+ assert.deepEqual(w.risk,{enabled:true,storeMode:'redis',lastTickAgeSeconds:30,totals:{ticks:3,complete:2},findingStatuses:{UNKNOWN:10,CONFIRMED:2},unknownCauses:{PRICE_ANCHOR_NOT_REVIEWED:2},
   queue:{total:4,due:1},jobMs:{p50:900,p95:2100,samples:2},rpcLastHour:{ethereum:120}});
  assert.deepEqual(status.holderWorker({ok:true,worker:{runtime:{},rpc:{metrics:{},providers:[]},scheduler:{totals:{},lastInvocation:null},tokens:[]}},NOW).risk,{enabled:false,reasonCode:'NOT_REPORTED'});
 });
