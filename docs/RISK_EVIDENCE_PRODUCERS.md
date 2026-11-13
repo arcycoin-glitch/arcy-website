@@ -127,7 +127,7 @@ Shadow output carries `evidenceGaps`: for every `UNKNOWN` rule, the producer's o
   - never the Vercel tmp directory;
   - a corrupt local file is reported as `RISK_STORE_CORRUPT`, never reset.
 - **The worker** (`lib/risk-engine/worker.js`, `ARC_AUTONOMY_RISK_WORKER_ENABLED`, default OFF) runs from the holder worker loop after the holder slices:
-  - at most once a minute, at most 2 jobs per tick, at a block pinned 6 below head;
+  - at most one job every 90 s, at a block pinned 6 below head, 150 ms between calls per operator;
   - refresh every 6 h;
   - exponential backoff, capped at 1 h, only when no operator produced usable reads;
   - permanently invalid jobs are removed and recorded as `REJECTED`;

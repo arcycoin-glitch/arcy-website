@@ -86,7 +86,7 @@ function check(t,r,hard){
     gaps:r.evidenceGaps,rpcCalls:r.cost.byProducer,ms:r.cost.totalMs});
   }catch(e){row.error=String(e?.message||e).slice(0,160);}
   notice('risk-'+t.network+'-'+t.name,row);
-  await sleep(t.network==='ethereum'?15000:3000);
+  await sleep(t.network==='ethereum'?20000:3000);
  }
  notice('risk-coverage-by-network (6 rules x tokens)',table);
  notice('risk-unknown-causes',gaps);
