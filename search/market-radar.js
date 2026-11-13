@@ -190,7 +190,6 @@ const change24hReason=item=>{
  const icon={arc:'',ethereum:'',robinhood:'',pons:''};
  const overviewData=new Map();
  const overviewPending=new Map(),overviewRetryAt=new Map(),overviewRetryTimers=new Map();
- const overviewAutoRetried=new Set(); // One visible selected-network retry per cooldown.
  let expandedNetwork=null;
  // UI-only: explain the source-backed V3 score without extra provider requests.
  function explainDiscovery(raw){
@@ -493,20 +492,12 @@ const change24hReason=item=>{
       const wait=Math.min(until-Date.now(),24*3600*1000);
       overviewRetryAt.set(network,Date.now()+wait);
       clearTimeout(overviewRetryTimers.get(network));
-      const retryTimer=setTimeout(()=>{
-       overviewRetryAt.delete(network);overviewRetryTimers.delete(network);
-       // Respect the provider cooldown. Retry only the selected, visible
-       // network once; never spin on repeated 429s or refresh hidden cards.
-       if(active==='radar'&&selected===network&&document.visibilityState!=='hidden'&&!overviewAutoRetried.has(network)){
-        overviewAutoRetried.add(network);void refreshOverview(network);
-       }else renderOverview(network,null);
-      },wait);
+      const retryTimer=setTimeout(()=>{overviewRetryAt.delete(network);overviewRetryTimers.delete(network);renderOverview(network,null);},wait);
       retryTimer.unref?.();overviewRetryTimers.set(network,retryTimer);
      }
      renderOverview(network,null);return false;
     }
     const data=await response.json();
-    if(validOverview(network,data))overviewAutoRetried.delete(network);
     renderOverview(network,data);
     const ready=validOverview(network,data)&&data.tokens.length>0;
     if(ready){
@@ -521,6 +512,14 @@ const change24hReason=item=>{
   overviewPending.set(network,task);
   try{return await task;}finally{if(overviewPending.get(network)===task)overviewPending.delete(network);}
  }
- // Radar reads are on-demand: entering Radar or selecting a network.
- // Do not spend provider credits for four invisible cards on page load.
+ async function verifyPublicReadiness(){
+  try{
+   const all=await Promise.all(['arc','ethereum','robinhood','pons'].map(refreshOverview));
+   if(all.some(Boolean)){radarBtn.disabled=false;radarBtn.removeAttribute('title');}
+   else radarBtn.title='Market Radar is unavailable until verified data is ready';
+  }catch{
+   radarBtn.title='Market Radar is unavailable until verified data is ready';
+  } // Source/license failures must not disturb the existing token research.
+ }
+ void verifyPublicReadiness();
 })();
