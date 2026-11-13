@@ -6,7 +6,7 @@
 // never calls /api/search reports or ?action=queue). Output: every token whose job is FAILED / UNSUPPORTED, with the
 // worker's reason code, attempts and retry time, plus the publication state. No secrets are used or printed.
 const BASE=process.env.ARCY_BASE||'https://www.arcyusdc.xyz';
-const MAX=Math.min(400,Number(process.env.DIAG_MAX)||300);
+const MAX=Math.min(900,Number(process.env.DIAG_MAX)||800);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const ADDR=/^0x[0-9a-f]{40}$/;
 async function json(url,timeout=20000){try{const r=await fetch(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(timeout)});if(!r.ok)return {http:r.status};return {http:r.status,d:await r.json()};}catch(e){return {error:String(e.message).slice(0,60)};}}
@@ -22,12 +22,14 @@ async function blockscout(base){
  return out;
 }
 async function gecko(){
- const out=[];
- for(let page=1;page<=5;page++){
-  const r=await json('https://api.geckoterminal.com/api/v2/networks/arc/pools?page='+page);
-  if(!r.d?.data?.length)break;
-  for(const p of r.d.data)for(const rel of ['base_token','quote_token']){const id=p.relationships?.[rel]?.data?.id||'';const a=id.split('_').pop().toLowerCase();if(ADDR.test(a))out.push([a,null,null]);}
-  await sleep(2200);
+ const out=[],paths=[];
+ for(let page=1;page<=10;page++)paths.push('/pools?page='+page,'/new_pools?page='+page,'/pools?sort=h24_tx_count_desc&page='+page);
+ for(let page=1;page<=3;page++)paths.push('/trending_pools?page='+page);
+ for(const p of paths){
+  const r=await json('https://api.geckoterminal.com/api/v2/networks/arc'+p);
+  if(r.http===429){await sleep(20000);continue;}
+  for(const pool of r.d?.data||[])for(const rel of ['base_token','quote_token']){const id=pool.relationships?.[rel]?.data?.id||'';const a=id.split('_').pop().toLowerCase();if(ADDR.test(a))out.push([a,null,null]);}
+  await sleep(2100);
  }
  return out;
 }
@@ -46,11 +48,11 @@ async function gecko(){
   checked++;
   const job=r.d?.job||null,state=job?.state||(r.d?r.d.reasonCode||'NO_JOB':'HTTP_'+(r.http||r.error));
   states[state]=(states[state]||0)+1;
-  if(job&&(job.state==='FAILED'||job.state==='UNSUPPORTED'||(job.attempts||0)>0)){
+  if(job&&(job.state==='FAILED'||job.state==='UNSUPPORTED'||job.state==='INDEXING'||job.state==='VERIFYING'||(job.attempts||0)>1)){
    const row={address:a,symbol:meta.symbol,explorerHolders:meta.holders,job:{state:job.state,reasonCode:job.reasonCode||null,attempts:job.attempts??null,retryAt:job.retryAt?new Date(job.retryAt).toISOString():null,updatedAt:job.updatedAt?new Date(job.updatedAt).toISOString():null,hasCompleteSnapshot:job.hasCompleteSnapshot??null,progress:job.progress||null}};
    rows.push(row);console.log('DIAG_JOB '+JSON.stringify(row));
   }
-  await sleep(700);
+  await sleep(400);
  }
  console.log('DIAG_SUMMARY '+JSON.stringify({checked,states,flagged:rows.length}));
 })().catch(e=>{console.error('DIAG_FAILED',e.message);process.exit(1);});
