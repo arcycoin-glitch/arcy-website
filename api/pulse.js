@@ -141,10 +141,9 @@ module.exports=async(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   if(req.method!=='GET'||!chain)return res.status(400).json({ok:false,error:'PULSE_PROJECT_CHAIN_REQUIRED'});
   try{
-   const value=await require('../lib/pulse-projects').collectProjects(chain);
-   res.setHeader('Cache-Control','public, max-age=60, s-maxage=900');
+   const value=await require('../lib/pulse-news-storage').latestNews(chain);
    return res.status(200).json(value);
-  }catch{return res.status(503).json({ok:false,error:'PULSE_PROJECT_VIEW_UNAVAILABLE'});}
+  }catch{return res.status(200).json(require('../lib/pulse-projects').emptyView(chain));}
  }
  if(chain&&chain!=='arc'){
   if(req.method!=='GET'||req.query?.action==='refresh')return res.status(405).json({ok:false,error:'USE_AUTHENTICATED_COMBINED_REFRESH'});

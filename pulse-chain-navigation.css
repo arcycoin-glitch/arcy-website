@@ -13,6 +13,9 @@
    Existing network tabs remain separate, and desktop grid is untouched. */
 #pulse .pulse-card-controls{display:none}
 #pulse .pulse-project-card{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+#pulse .pulse-achieved{--accent:#efb25b}
+#pulse .pulse-upcoming{--accent:#40aefa}
+#pulse .pulse-risk-alert{--accent:#a37bf2}
 #pulse .pulse-project-card .pulse-owner{margin-top:0;font-size:11px;color:#a2c3d3}
 #pulse .pulse-project-card h4{font-size:22px}
 #pulse .pulse-project-purpose{color:#c3d7e1}
