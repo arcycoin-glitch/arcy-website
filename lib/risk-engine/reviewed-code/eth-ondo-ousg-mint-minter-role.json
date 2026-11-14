@@ -1,0 +1,362 @@
+{
+ "schemaVersion": 1,
+ "reviewId": "eth-ondo-ousg-mint-minter-role",
+ "network": "ethereum",
+ "chainId": 1,
+ "capability": "mint",
+ "architecture": "eip1967-delegated",
+ "selector": "mint",
+ "actorRole": "minter-role",
+ "proxyCodeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+ "implementationCodeHash": "0xe3966d923815cfd861c8d73e35fa571de9439704c40ec2341f867ede467fbbdf",
+ "subject": "Ondo OUSG: TokenProxy (OZ TransparentUpgradeableProxy) delegating to CashKYCSenderReceiver (ERC20PresetMinterPauserUpgradeable)",
+ "codeProofs": [
+  {
+   "codeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+   "sourceMatch": "exact_match",
+   "verifiedRuntimeCodeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+   "sourcify": {
+    "chainId": 1,
+    "address": "0x1b19c19393e2d034d8ff31ff34c81252fcbbee92",
+    "contract": "contracts/Proxy.sol:TokenProxy",
+    "compiler": "0.8.16+commit.07a7930e",
+    "verifiedAt": "2024-08-08T14:12:24Z"
+   },
+   "onchain": [
+    {
+     "operator": "allnodes",
+     "codeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+     "blockHash": "0x9c3a2118fd5296adfb39f300d92b155da0000f262792fff2aeb1abb4b298116f",
+     "blockNumber": "26409088"
+    },
+    {
+     "operator": "drpc",
+     "codeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+     "blockHash": "0x9c3a2118fd5296adfb39f300d92b155da0000f262792fff2aeb1abb4b298116f",
+     "blockNumber": "26409088"
+    }
+   ],
+   "sources": [
+    {
+     "path": "contracts/Proxy.sol",
+     "keccak256": "0x42687033883ef5046e852167a77cf4ee03ece44aed92082a7c639c5d4f99d4b1"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/Proxy.sol",
+     "keccak256": "0x68618e95a5dd887b8ee71af46e544aa1ae0b7202ac0129838afa431aecb891e3"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/IBeacon.sol",
+     "keccak256": "0x2b766db278b7d053357e3e3b660300e4093fdf054d3e2be1454c1d07fa6eef81"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/utils/Address.sol",
+     "keccak256": "0x40bfbd7537f14756fbb70025e858781190d73b9cc60ab85c3f518de6268a40da"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/utils/StorageSlot.sol",
+     "keccak256": "0xbad84241ae5d52ac742f00c16453d52677d965718f7a7a32ca86f45f589cdcc8"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/ERC1967Proxy.sol",
+     "keccak256": "0x9cdac4290af9d9725b96b6170d4e7d44699fd4c46c9ab0134e766e6dd6812bbb"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/ERC1967Upgrade.sol",
+     "keccak256": "0x966f1973ab998b9eede1679903c125f6e7fc3e82fe7bc8827154d997406e8386"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/draft-IERC1822.sol",
+     "keccak256": "0xd9d122855ea3e0a00a4ac5ad10b4363b8eb88655dc324e7d9c31103c59b410fc"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol",
+     "keccak256": "0x2ba9b344e37b445036cb06a32b4201f0718bacb9dc8120aa33cc28f1ffdb0cc6"
+    }
+   ]
+  },
+  {
+   "codeHash": "0xe3966d923815cfd861c8d73e35fa571de9439704c40ec2341f867ede467fbbdf",
+   "sourceMatch": "exact_match",
+   "verifiedRuntimeCodeHash": "0xe3966d923815cfd861c8d73e35fa571de9439704c40ec2341f867ede467fbbdf",
+   "sourcify": {
+    "chainId": 1,
+    "address": "0x1ceb44b6e515abf009e0ccb6ddafd723886cf3ff",
+    "contract": "contracts/cash/token/CashKYCSenderReceiver.sol:CashKYCSenderReceiver",
+    "compiler": "0.8.16+commit.07a7930e",
+    "verifiedAt": "2025-06-21T10:53:10Z"
+   },
+   "onchain": [
+    {
+     "operator": "allnodes",
+     "codeHash": "0xe3966d923815cfd861c8d73e35fa571de9439704c40ec2341f867ede467fbbdf",
+     "blockHash": "0x9c3a2118fd5296adfb39f300d92b155da0000f262792fff2aeb1abb4b298116f",
+     "blockNumber": "26409088"
+    },
+    {
+     "operator": "drpc",
+     "codeHash": "0xe3966d923815cfd861c8d73e35fa571de9439704c40ec2341f867ede467fbbdf",
+     "blockHash": "0x9c3a2118fd5296adfb39f300d92b155da0000f262792fff2aeb1abb4b298116f",
+     "blockNumber": "26409088"
+    }
+   ],
+   "sources": [
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol",
+     "keccak256": "0xea674449a96f9e7fd8fe08078ca9f95637357f33bcde468436e2066bf44e54c0"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol",
+     "keccak256": "0x755617f0f3d3dc7a4a4af976caddf2ca447926a225990ab1f4dcb338c9d2aeef"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/access/IAccessControlEnumerableUpgradeable.sol",
+     "keccak256": "0x09b3aa1d18fc1d83df71a6c0599c6eb33682f98af5a9ad559629bfcf043465ab"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol",
+     "keccak256": "0x82ced39d1596c05d590b7ca07c3817cf45cd27c08668c4ed630897861a394897"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/proxy/Initializable.sol",
+     "keccak256": "0x5f7910c7c2aa67f07405e09b766e52a110ca6c5184f02006dd1195a76213bf7a"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol",
+     "keccak256": "0x2f8b0c9c25ade515786001c2f5d3e597f8377a924315cad5ac35d1125814a77d"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/token/ERC20/ERC20BurnableUpgradeable.sol",
+     "keccak256": "0x7a7519bfba2b91e97da3c2be4b5aee05cbb9807c7802cf66977884fd3f8a9886"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/token/ERC20/ERC20PausableUpgradeable.sol",
+     "keccak256": "0x05493b3e834f2b9c66f0a4044768195b84d2504e0948d3c4a8ee987899ff161f"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/token/ERC20/ERC20PresetMinterPauserUpgradeable.sol",
+     "keccak256": "0xcb45ff1f7ed15baf000260ce95cb1aeb5e49e48e29b0b07d3ea5445954ce67b8"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol",
+     "keccak256": "0x301a422e282b30ebfa027ac397167321613f2e0b3fc70ec5f43c179faa676b7a"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/token/ERC20/IERC20MetadataUpgradeable.sol",
+     "keccak256": "0x907f0911faeaf81653d5ee3eec03191aeca130a35609dd024a6826ea1c3a9fca"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol",
+     "keccak256": "0x2af484bfbaf37c407079b5a4f54ccff98a7b3759146e667119703340b6e7dea1"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol",
+     "keccak256": "0xaf21ac76d103d3d1174d2bd26dde385c09f1bab9a60ec291c130efc8ccb20d36"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol",
+     "keccak256": "0x4ac0ee37ebcf5febf5b84d5e5a3c1e579aa13ebb652bc516833c4d878cb1a976"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/utils/ERC165Upgradeable.sol",
+     "keccak256": "0x6803f74547c82e8643b883626319b7ddff60d44e0acf8a14c7fdf86c9d6125bd"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/utils/EnumerableSetUpgradeable.sol",
+     "keccak256": "0xcfd889f86aa7523f1a9b7903c24ced3512ed3ba14d27372a75a07e9c49ed141b"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/utils/IERC165Upgradeable.sol",
+     "keccak256": "0x26751ffef7dd0b030529f36b653b20561de1eff524eea9b401b614d454a33c5b"
+    },
+    {
+     "path": "contracts/cash/external/openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol",
+     "keccak256": "0x14695559487022a2e893608ca1700670171e471003a4cced204acf93811d123d"
+    },
+    {
+     "path": "contracts/cash/interfaces/IKYCRegistry.sol",
+     "keccak256": "0xa053c754905a00de856dd671311f1451b1f704ae73c0d2ee902f0d099f42efcd"
+    },
+    {
+     "path": "contracts/cash/interfaces/IKYCRegistryClient.sol",
+     "keccak256": "0x5b021afe75d19ddf741285128f953f31ca4059ce6c825554e35af175cc9b3f03"
+    },
+    {
+     "path": "contracts/cash/kyc/KYCRegistryClient.sol",
+     "keccak256": "0xd0f5537caaf1a2b8740b557193933a5901057d8dff24043b8b93cb8d15aa4adb"
+    },
+    {
+     "path": "contracts/cash/kyc/KYCRegistryClientInitializable.sol",
+     "keccak256": "0x72939607819e10cf217be9634001bd9c286b70ffca3c01da4cca7e9c1b1604f8"
+    },
+    {
+     "path": "contracts/cash/token/CashKYCSenderReceiver.sol",
+     "keccak256": "0xb65921e6438ae0a6debefcc787eaff68d244de3c4905778bb83a300d4f1a65fc"
+    }
+   ]
+  }
+ ],
+ "roleConstants": [
+  {
+   "name": "MINTER_ROLE",
+   "file": "ERC20PresetMinterPauserUpgradeable.sol",
+   "value": "keccak256(\"MINTER_ROLE\")"
+  }
+ ],
+ "reviewedFunctions": [
+  {
+   "name": "mint",
+   "code": "implementation",
+   "file": "ERC20/ERC20PresetMinterPauserUpgradeable.sol",
+   "source": "function mint(address to, uint256 amount) public virtual { require( hasRole(MINTER_ROLE, _msgSender()), \"ERC20PresetMinterPauser: must have minter role to mint\" ); _mint(to, amount); }",
+   "finding": "Requires hasRole(MINTER_ROLE, msg.sender) and then calls _mint(to, amount). No other branch, no early return."
+  },
+  {
+   "name": "_mint",
+   "code": "implementation",
+   "file": "ERC20/ERC20Upgradeable.sol",
+   "source": "function _mint(address account, uint256 amount) internal virtual { require(account != address(0), \"ERC20: mint to the zero address\"); _beforeTokenTransfer(address(0), account, amount); _totalSupply += amount; _balances[account] += amount; emit Transfer(address(0), account, amount); _afterTokenTransfer(address(0), account, amount); }",
+   "finding": "Requires a non-zero recipient, runs _beforeTokenTransfer, then unconditionally adds amount to _totalSupply and to the recipient balance. A mint call that does not revert therefore increased total supply."
+  },
+  {
+   "name": "_beforeTokenTransfer",
+   "code": "implementation",
+   "file": "ERC20/ERC20PresetMinterPauserUpgradeable.sol",
+   "source": "function _beforeTokenTransfer( address from, address to, uint256 amount ) internal virtual override(ERC20Upgradeable, ERC20PausableUpgradeable) { super._beforeTokenTransfer(from, to, amount); }",
+   "finding": "Delegates to the parent hooks only."
+  },
+  {
+   "name": "_beforeTokenTransfer",
+   "code": "implementation",
+   "file": "ERC20/ERC20PausableUpgradeable.sol",
+   "source": "function _beforeTokenTransfer( address from, address to, uint256 amount ) internal virtual override { super._beforeTokenTransfer(from, to, amount); require(!paused(), \"ERC20Pausable: token transfer while paused\"); }",
+   "finding": "require(!paused()): pausing can block minting but cannot make it a no-op."
+  },
+  {
+   "name": "_beforeTokenTransfer",
+   "code": "implementation",
+   "file": "token/CashKYCSenderReceiver.sol",
+   "source": "function _beforeTokenTransfer( address from, address to, uint256 amount ) internal override { super._beforeTokenTransfer(from, to, amount); require( _getKYCStatus(_msgSender()), \"CashKYCSenderReceiver: must be KYC'd to initiate transfer\" ); if (from != address(0)) { // Only check KYC if not minting require( _getKYCStatus(from), \"CashKYCSenderReceiver: `from` address must be KYC'd to send tokens\" ); } if (to != address(0)) { // Only check KYC if not burning require( _getKYCStatus(to), \"CashKYCSenderReceiver: `to` address must be KYC'd to receive tokens\" ); } }",
+   "finding": "Only require() checks: KYC status of msg.sender and of the recipient (from is skipped when minting). It can revert the mint; it has no return path that skips the supply update."
+  },
+  {
+   "name": "hasRole",
+   "code": "implementation",
+   "file": "access/AccessControlUpgradeable.sol",
+   "source": "function hasRole(bytes32 role, address account) public view virtual override returns (bool) { return _roles[role].members[account]; }",
+   "finding": "Membership is read from _roles[role].members."
+  },
+  {
+   "name": "getRoleMemberCount",
+   "code": "implementation",
+   "file": "access/AccessControlEnumerableUpgradeable.sol",
+   "source": "function getRoleMemberCount(bytes32 role) public view virtual override returns (uint256) { return _roleMembers[role].length(); }",
+   "finding": "Returns the size of the enumerable member set the producer reads."
+  },
+  {
+   "name": "getRoleMember",
+   "code": "implementation",
+   "file": "access/AccessControlEnumerableUpgradeable.sol",
+   "source": "function getRoleMember(bytes32 role, uint256 index) public view virtual override returns (address) { return _roleMembers[role].at(index); }",
+   "finding": "Returns the member at an index of the same set."
+  },
+  {
+   "name": "_grantRole",
+   "code": "implementation",
+   "file": "access/AccessControlEnumerableUpgradeable.sol",
+   "source": "function _grantRole(bytes32 role, address account) internal virtual override { super._grantRole(role, account); _roleMembers[role].add(account); }",
+   "finding": "Every grant also adds the account to the enumerable set, so enumerated members are exactly the role holders."
+  },
+  {
+   "name": "ifAdmin",
+   "code": "token",
+   "file": "proxy/TransparentUpgradeableProxy.sol",
+   "source": "modifier ifAdmin() { if (msg.sender == _getAdmin()) { _; } else { _fallback(); } }",
+   "finding": "Calls from any address other than the EIP-1967 admin go to _fallback."
+  },
+  {
+   "name": "_fallback",
+   "code": "token",
+   "file": "proxy/Proxy.sol",
+   "source": "function _fallback() internal virtual { _beforeFallback(); _delegate(_implementation()); }",
+   "finding": "Runs _beforeFallback, then delegates to the EIP-1967 implementation."
+  },
+  {
+   "name": "_beforeFallback",
+   "code": "token",
+   "file": "proxy/TransparentUpgradeableProxy.sol",
+   "source": "function _beforeFallback() internal virtual override { require( msg.sender != _getAdmin(), \"TransparentUpgradeableProxy: admin cannot fallback to proxy target\" ); super._beforeFallback(); }",
+   "finding": "Rejects only the admin; a MINTER_ROLE member that is not the admin reaches the implementation."
+  },
+  {
+   "name": "_delegate",
+   "code": "token",
+   "file": "proxy/Proxy.sol",
+   "source": "function _delegate(address implementation) internal virtual { assembly { // Copy msg.data. We take full control of memory in this inline assembly // block because it will not return to Solidity code. We overwrite the // Solidity scratch pad at memory position 0. calldatacopy(0, 0, calldatasize()) // Call the implementation. // out and outsize are 0 because we don't know the size yet. let result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0) // Copy the returned data. returndatacopy(0, 0, returndatasize()) switch result // delegatecall returns 0 on error. case 0 { revert(0, returndatasize()) } default { return(0, returndatasize()) } } }",
+   "finding": "delegatecall with the full calldata; returns or reverts with the implementation result."
+  }
+ ],
+ "conclusion": "For this exact proxy and implementation code pair, mint(address,uint256) called by an AccessControlEnumerable MINTER_ROLE member that is not the proxy admin is delegated to the implementation and, when it does not revert, increases total supply by the requested amount. Role members can therefore create supply.",
+ "observedRoute": {
+  "block": {
+   "number": "26409088",
+   "hash": "0x9c3a2118fd5296adfb39f300d92b155da0000f262792fff2aeb1abb4b298116f"
+  },
+  "operators": [
+   "allnodes",
+   "drpc"
+  ],
+  "minterCount": 2,
+  "members": [
+   "0x93358db73b6cd4b98d89c8f5f230e81a95c2643a",
+   "0xaed4caf2e535d964165b4392342f71bac77e8367"
+  ],
+  "calls": [
+   {
+    "member": "0x93358db73b6cd4b98d89c8f5f230e81a95c2643a",
+    "recipient": "member",
+    "memberCall": "ACCEPTED:0x",
+    "controlCall": "REVERTED"
+   },
+   {
+    "member": "0x93358db73b6cd4b98d89c8f5f230e81a95c2643a",
+    "recipient": "control",
+    "memberCall": "REVERTED",
+    "controlCall": "REVERTED"
+   },
+   {
+    "member": "0xaed4caf2e535d964165b4392342f71bac77e8367",
+    "recipient": "member",
+    "memberCall": "ACCEPTED:0x",
+    "controlCall": "REVERTED"
+   },
+   {
+    "member": "0xaed4caf2e535d964165b4392342f71bac77e8367",
+    "recipient": "control",
+    "memberCall": "REVERTED",
+    "controlCall": "REVERTED"
+   }
+  ]
+ },
+ "limits": [
+  "Source-to-bytecode identity is Sourcify exact_match for both code hashes; not recompiled locally.",
+  "Recipient restrictions (allowlist, sanctions, KYC) and pausing can make individual mints revert; they cannot hide a mint that succeeds.",
+  "Says nothing about who controls the role members (a manager contract, multisig or operator key) or about off-chain issuance controls.",
+  "Only the first three enumerated members are simulated."
+ ],
+ "review": {
+  "method": "Manual reading of the exact-match sources listed in codeProofs; function sources are quoted from the collector output.",
+  "reviewer": "Claude (AI assistant) in the ARCY engineering session; not an independent human audit",
+  "date": "2026-11-14",
+  "collector": "scripts/review-code-evidence.cjs",
+  "workflowRun": 43521141469,
+  "commit": "67984fb2a6a6758836e2400c52bcc0503f318524",
+  "observedOn": {
+   "address": "0x1b19c19393e2d034d8ff31ff34c81252fcbbee92",
+   "block": {
+    "number": "26409088",
+    "hash": "0x9c3a2118fd5296adfb39f300d92b155da0000f262792fff2aeb1abb4b298116f"
+   }
+  }
+ }
+}

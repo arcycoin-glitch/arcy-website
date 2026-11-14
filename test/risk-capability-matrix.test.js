@@ -5,33 +5,31 @@ const {MATRIX,NETWORKS,blockers}=require('../lib/risk-engine/capability-matrix')
 const {RULES}=require('../lib/risk-engine/rules');
 const {evaluateRisk}=require('../lib/risk-engine');
 const shadow=require('../lib/risk-engine/shadow');
+const analyzer=require('../lib/risk-engine/analyze');
 const authority=require('../lib/risk-engine/producers/authority');
 
-test('matrix covers exactly the six rules on the three networks and never disagrees with the review gate',()=>{
+test('matrix covers exactly the six rules on the three networks and agrees with the review gate',()=>{
  assert.deepEqual(Object.keys(MATRIX).sort(),RULES.map(r=>r.id).sort());assert.equal(RULES.length,6);assert.deepEqual([...NETWORKS],['arc','ethereum','robinhood']);
- for(const rule of RULES){
-  const row=MATRIX[rule.id];assert.equal(row.metricId,rule.metricId);assert.deepEqual(Object.keys(row.networks),[...NETWORKS]);assert.ok(row.requires.length>=2&&row.note.length>40);
-  if(rule.producers.length){
-   // A producer exists: positive-only, and with an empty reviewed-code registry there is no route it can confirm.
-   assert.equal(row.producer,rule.producers[0].id);assert.equal(row.minVersion,rule.producers[0].minVersion);assert.deepEqual([...rule.producers[0].values],[true]);assert.equal(row.polarity,'CONFIRM_ONLY');
-   // Reviewed routes exist only for Ethereum upgrades (four entries: two proxy codes x two selectors); none for mint anywhere.
-   for(const n of NETWORKS){const routes=n==='ethereum'&&rule.id==='admin-upgrade-authority'?4:0;
-    assert.deepEqual({...row.networks[n]},{state:'POSITIVE_ONLY',reviewedRoutes:routes,reasonCode:routes?null:'NO_REVIEWED_EXECUTION_ROUTE'});}
-  }else{
-   assert.equal(row.producer,null);assert.equal(row.polarity,'NONE');
-   for(const n of NETWORKS){assert.equal(row.networks[n].state,'BLOCKED');assert.match(row.networks[n].reasonCode,/^[A-Z_]{8,}$/);}
-  }
- }
- assert.deepEqual(RULES.filter(r=>r.producers.length).map(r=>r.id).sort(),['admin-upgrade-authority','privileged-minting']);
- assert.equal(blockers('ethereum')['high-exit-impact'],'PRICE_ANCHOR_NOT_REVIEWED');assert.equal(blockers('arc')['top-ten-holder-concentration'],'HOLDER_CENSUS_SINGLE_OPERATOR');
+ const states=Object.fromEntries(Object.entries(MATRIX).map(([id,row])=>[id,Object.fromEntries(NETWORKS.map(n=>[n,row.networks[n].state+(row.networks[n].reasonCode?'/'+row.networks[n].reasonCode:'')]))]));
+ assert.deepEqual(states,{
+  'admin-upgrade-authority':{arc:'CONFIRM_ONLY/NO_REVIEWED_EXECUTION_ROUTE',ethereum:'CONFIRM_ONLY',robinhood:'CONFIRM_ONLY/NO_REVIEWED_EXECUTION_ROUTE'},
+  'privileged-minting':{arc:'CONFIRM_ONLY/NO_REVIEWED_EXECUTION_ROUTE',ethereum:'CONFIRM_ONLY',robinhood:'CONFIRM_ONLY/NO_REVIEWED_EXECUTION_ROUTE'},
+  'high-exit-impact':{arc:'BLOCKED/PRICE_ANCHOR_NOT_REVIEWED',ethereum:'CONFIRM_ONLY',robinhood:'BLOCKED/PRICE_ANCHOR_NOT_REVIEWED'},
+  'low-pool-liquidity':{arc:'BLOCKED/PRICE_ANCHOR_NOT_REVIEWED',ethereum:'MEASURED',robinhood:'BLOCKED/PRICE_ANCHOR_NOT_REVIEWED'},
+  'sell-transfer-tax':{arc:'BLOCKED/TRANSFER_DEDUCTION_NOT_ISOLATED',ethereum:'BLOCKED/TRANSFER_DEDUCTION_NOT_ISOLATED',robinhood:'BLOCKED/TRANSFER_DEDUCTION_NOT_ISOLATED'},
+  'top-ten-holder-concentration':{arc:'CONFIRM_ONLY',ethereum:'CONFIRM_ONLY',robinhood:'CONFIRM_ONLY'}});
+ assert.equal(MATRIX['admin-upgrade-authority'].networks.ethereum.reviewedRoutes,4);assert.equal(MATRIX['privileged-minting'].networks.ethereum.reviewedRoutes,2);
+ for(const rule of RULES){const row=MATRIX[rule.id];assert.equal(row.producer,rule.producers[0]?.id||null);assert.equal(row.ruleVersion,rule.version);assert.ok(row.requires.length>=2&&row.note.length>40);}
+ // NOT_CONFIRMED is possible only for the measured pool liquidity.
+ assert.deepEqual(Object.entries(MATRIX).filter(([,r])=>r.polarity==='MEASURED').map(([id])=>id),['low-pool-liquidity']);
  assert.equal(blockers('polygon'),null);assert.ok(Object.isFrozen(MATRIX)&&Object.isFrozen(MATRIX['sell-transfer-tax'].networks.arc));
 });
 
 test('high-exit-impact v2 uses a fixed USD probe: the old 1%-of-reserve method is no longer evidence',()=>{
  const rule=RULES.find(r=>r.id==='high-exit-impact');
- assert.equal(rule.version,2);assert.equal(rule.probeUsdCents,100000);assert.equal(rule.method(0),'pinned-fixed-usd-1000-exit-replay');assert.deepEqual([...rule.producers],[]);
- for(const r of RULES)if(r.id!=='high-exit-impact')assert.equal(r.version,1,r.id);
+ assert.equal(rule.version,2);assert.equal(rule.probeUsdCents,100000);assert.equal(rule.method(0),'pinned-fixed-usd-1000-exit-replay');
  assert.ok(!RULES.some(r=>/one-percent-reserve-exit/.test(r.method(1))));
+ const conc=RULES.find(r=>r.id==='top-ten-holder-concentration');assert.equal(conc.version,2);assert.equal(conc.method(6000),'pinned-verified-top-ten-eoa-share');
 });
 
 test('with no evidence every rule is UNKNOWN on every network, and docs carry every blocker code',()=>{
@@ -44,11 +42,11 @@ test('with no evidence every rule is UNKNOWN on every network, and docs carry ev
 });
 
 test('shadow output names the real evidence gap for each UNKNOWN rule',async()=>{
- shadow._reset();
- const token='0x'+'ab'.repeat(20),records=[];
- const produce=async()=>({producer:authority.PRODUCER,block:{number:'100',hash:'0x'+'11'.repeat(32)},independence:{independent:true,reasonCode:null},operators:[],records,cost:{rpcCalls:0,ms:0}});
- const out=await shadow.run({address:token,block:'0x64',network:'robinhood'},{network:'robinhood',env:{},produce,now:()=>Date.parse('2026-11-13T00:00:00Z'),log:()=>{}});
+ analyzer._reset();
+ const token='0x'+'ab'.repeat(20);
+ const empty=async()=>({producer:authority.PRODUCER,block:{number:'100',hash:'0x'+'11'.repeat(32)},independence:{independent:true,reasonCode:null},operators:[],records:[],cost:{rpcCalls:0,ms:0}});
+ const out=await analyzer.run({address:token,block:'0x64',network:'robinhood'},{network:'robinhood',env:{},producers:{authority:empty,pool:async()=>({records:[],pool:null,reasonCode:'PRICE_ANCHOR_NOT_REVIEWED',cost:{rpcCalls:0,ms:0}}),concentration:async()=>({records:[],reasonCode:'CANDIDATE_SOURCE_HTTP_503',cost:{rpcCalls:0,ms:0}})},now:()=>Date.parse('2026-11-13T00:00:00Z'),log:()=>{}});
  assert.equal(out.state,'COMPLETE');
- assert.deepEqual(out.evidenceGaps,{'admin-upgrade-authority':'NO_REVIEWED_EXECUTION_ROUTE','high-exit-impact':'PRICE_ANCHOR_NOT_REVIEWED','low-pool-liquidity':'RESERVE_VALUATION_NOT_REVIEWED',
-  'privileged-minting':'NO_REVIEWED_EXECUTION_ROUTE','sell-transfer-tax':'TRANSFER_DEDUCTION_NOT_ISOLATED','top-ten-holder-concentration':'HOLDER_CENSUS_UNAVAILABLE'});
+ assert.deepEqual(out.evidenceGaps,{'admin-upgrade-authority':'NO_REVIEWED_EXECUTION_ROUTE','high-exit-impact':'PRICE_ANCHOR_NOT_REVIEWED','low-pool-liquidity':'PRICE_ANCHOR_NOT_REVIEWED',
+  'privileged-minting':'NO_REVIEWED_EXECUTION_ROUTE','sell-transfer-tax':'TRANSFER_DEDUCTION_NOT_ISOLATED','top-ten-holder-concentration':'CANDIDATE_SOURCE_HTTP_503'});
 });

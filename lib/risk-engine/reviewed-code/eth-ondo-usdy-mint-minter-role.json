@@ -1,0 +1,395 @@
+{
+ "schemaVersion": 1,
+ "reviewId": "eth-ondo-usdy-mint-minter-role",
+ "network": "ethereum",
+ "chainId": 1,
+ "capability": "mint",
+ "architecture": "eip1967-delegated",
+ "selector": "mint",
+ "actorRole": "minter-role",
+ "proxyCodeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+ "implementationCodeHash": "0x8f5e4d087ec40f0ce649c01bf65465091aac7c8268c89b9556def5e244c9c145",
+ "subject": "Ondo USDY: TokenProxy (OZ TransparentUpgradeableProxy) delegating to USDY (ERC20PresetMinterPauserUpgradeable)",
+ "codeProofs": [
+  {
+   "codeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+   "sourceMatch": "exact_match",
+   "verifiedRuntimeCodeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+   "sourcify": {
+    "chainId": 1,
+    "address": "0x96f6ef951840721adbf46ac996b59e0235cb985c",
+    "contract": "contracts/Proxy.sol:TokenProxy",
+    "compiler": "0.8.16+commit.07a7930e",
+    "verifiedAt": "2024-08-08T11:05:56Z"
+   },
+   "onchain": [
+    {
+     "operator": "allnodes",
+     "codeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+     "blockHash": "0xfa44aee01623e850296f81499cd522f9f222f30b6e4347cf4df82bbf04d6397c",
+     "blockNumber": "26409087"
+    },
+    {
+     "operator": "drpc",
+     "codeHash": "0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387",
+     "blockHash": "0xfa44aee01623e850296f81499cd522f9f222f30b6e4347cf4df82bbf04d6397c",
+     "blockNumber": "26409087"
+    }
+   ],
+   "sources": [
+    {
+     "path": "contracts/Proxy.sol",
+     "keccak256": "0x42687033883ef5046e852167a77cf4ee03ece44aed92082a7c639c5d4f99d4b1"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/Proxy.sol",
+     "keccak256": "0x68618e95a5dd887b8ee71af46e544aa1ae0b7202ac0129838afa431aecb891e3"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/IBeacon.sol",
+     "keccak256": "0x2b766db278b7d053357e3e3b660300e4093fdf054d3e2be1454c1d07fa6eef81"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/utils/Address.sol",
+     "keccak256": "0x40bfbd7537f14756fbb70025e858781190d73b9cc60ab85c3f518de6268a40da"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/utils/StorageSlot.sol",
+     "keccak256": "0xbad84241ae5d52ac742f00c16453d52677d965718f7a7a32ca86f45f589cdcc8"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/ERC1967Proxy.sol",
+     "keccak256": "0x9cdac4290af9d9725b96b6170d4e7d44699fd4c46c9ab0134e766e6dd6812bbb"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/ERC1967Upgrade.sol",
+     "keccak256": "0x966f1973ab998b9eede1679903c125f6e7fc3e82fe7bc8827154d997406e8386"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/draft-IERC1822.sol",
+     "keccak256": "0xd9d122855ea3e0a00a4ac5ad10b4363b8eb88655dc324e7d9c31103c59b410fc"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol",
+     "keccak256": "0x2ba9b344e37b445036cb06a32b4201f0718bacb9dc8120aa33cc28f1ffdb0cc6"
+    }
+   ]
+  },
+  {
+   "codeHash": "0x8f5e4d087ec40f0ce649c01bf65465091aac7c8268c89b9556def5e244c9c145",
+   "sourceMatch": "exact_match",
+   "verifiedRuntimeCodeHash": "0x8f5e4d087ec40f0ce649c01bf65465091aac7c8268c89b9556def5e244c9c145",
+   "sourcify": {
+    "chainId": 1,
+    "address": "0xea0f7eebdc2ae40edfe33bf03d332f8a7f617528",
+    "contract": "contracts/usdy/USDY.sol:USDY",
+    "compiler": "0.8.16+commit.07a7930e",
+    "verifiedAt": "2025-07-04T23:40:49Z"
+   },
+   "onchain": [
+    {
+     "operator": "allnodes",
+     "codeHash": "0x8f5e4d087ec40f0ce649c01bf65465091aac7c8268c89b9556def5e244c9c145",
+     "blockHash": "0xfa44aee01623e850296f81499cd522f9f222f30b6e4347cf4df82bbf04d6397c",
+     "blockNumber": "26409087"
+    },
+    {
+     "operator": "drpc",
+     "codeHash": "0x8f5e4d087ec40f0ce649c01bf65465091aac7c8268c89b9556def5e244c9c145",
+     "blockHash": "0xfa44aee01623e850296f81499cd522f9f222f30b6e4347cf4df82bbf04d6397c",
+     "blockNumber": "26409087"
+    }
+   ],
+   "sources": [
+    {
+     "path": "contracts/usdy/USDY.sol",
+     "keccak256": "0x8842c7f73d7778076485503c7ca5c3b17ca114a994b995453ba451ba89a84bf0"
+    },
+    {
+     "path": "contracts/interfaces/IAllowlist.sol",
+     "keccak256": "0x7d1d7e212f8be7e1bc21d51161937c405c087d4751a01f419280f94e4613fd79"
+    },
+    {
+     "path": "contracts/interfaces/IBlocklist.sol",
+     "keccak256": "0xdc584fc0dd4e50f379b7222224c9f1c0a429a5c17e0aaca0e73d478404921ce8"
+    },
+    {
+     "path": "contracts/interfaces/IAllowlistClient.sol",
+     "keccak256": "0x0bf064ab264673e9c37cccf989f3098109b687a2e2d74b8b3ff6ffdd4c336982"
+    },
+    {
+     "path": "contracts/interfaces/IBlocklistClient.sol",
+     "keccak256": "0xd74c9b2de9259f6ceb243e42083266366900a11f2dc5252cbdff95ee360b917e"
+    },
+    {
+     "path": "contracts/sanctions/ISanctionsListClient.sol",
+     "keccak256": "0x0b05569a945016d90a6a50f6f5276c81e1631ec653108a9ab2c571abb8778623"
+    },
+    {
+     "path": "contracts/external/chainalysis/ISanctionsList.sol",
+     "keccak256": "0x924a511196b8802090ba421169b5f09c9dc3be319d014ea497d6bd142ce358cc"
+    },
+    {
+     "path": "contracts/sanctions/SanctionsListClientUpgradeable.sol",
+     "keccak256": "0xa2c5574a9f2bf09db2dffd9adab968f490b9570eca7bf89b413ac362f346eb50"
+    },
+    {
+     "path": "contracts/usdy/allowlist/AllowlistClientUpgradeable.sol",
+     "keccak256": "0x76af6fdae170446d99c176f593fc5189e60a1a2acc9d9988b141c632847acfa9"
+    },
+    {
+     "path": "contracts/usdy/blocklist/BlocklistClientUpgradeable.sol",
+     "keccak256": "0xcac2a56f86c47e5593ba63386a10dd3f71fae8dc2fd785fc36b5f9ea501afff1"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/proxy/Initializable.sol",
+     "keccak256": "0x010a43b8420b86f8e3c27e0647eff1d1e9b2a923826043a5141164c828c05bf5"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/utils/ERC165Upgradeable.sol",
+     "keccak256": "0x19f33d4901eb8c8b0dd5ff1e85076299f31a0841f75fb7472689d4c1257d9b1d"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol",
+     "keccak256": "0xaf21ac76d103d3d1174d2bd26dde385c09f1bab9a60ec291c130efc8ccb20d36"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol",
+     "keccak256": "0xc333158994f7724934ae32da3bd03a4e816446808bac93df1d3f0c044e469e62"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/utils/IERC165Upgradeable.sol",
+     "keccak256": "0x26751ffef7dd0b030529f36b653b20561de1eff524eea9b401b614d454a33c5b"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol",
+     "keccak256": "0x14695559487022a2e893608ca1700670171e471003a4cced204acf93811d123d"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol",
+     "keccak256": "0xe9aac368465a462d8ccd102fd72b12653321c873d3300c9066b780f842aaa056"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol",
+     "keccak256": "0x55e98d5f83168a3bb8a040695c28f65f2d64644773b1c5933a2a17dbc735e30a"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol",
+     "keccak256": "0x2af484bfbaf37c407079b5a4f54ccff98a7b3759146e667119703340b6e7dea1"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/utils/EnumerableSetUpgradeable.sol",
+     "keccak256": "0xcfd889f86aa7523f1a9b7903c24ced3512ed3ba14d27372a75a07e9c49ed141b"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol",
+     "keccak256": "0x7ac1155e2192229ae94148937eeade68dc9faadfec3ad1f7e320b4a74692b5a1"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol",
+     "keccak256": "0x82ced39d1596c05d590b7ca07c3817cf45cd27c08668c4ed630897861a394897"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/token/ERC20/ERC20BurnableUpgradeable.sol",
+     "keccak256": "0x6d17a46d3cdbe26e33ea08cbc6c00e47f1c0bb62b1b2393b9a8309d891ea67e9"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/token/ERC20/ERC20PausableUpgradeable.sol",
+     "keccak256": "0x5e3ee7a59749ecdc2eb8b900e84074ec413fdb66c2e1b47a2341b7f8892d789c"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/token/ERC20/IERC20MetadataUpgradeable.sol",
+     "keccak256": "0x93df6fb9d3f37b6a4b5ca97e2601134626663f091dd5ed62070bd904997c12c3"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol",
+     "keccak256": "0x8e289e9c791884b3c536b13b5a3cf0f48bbb78df3bf8d182a89679e62a06bbcd"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/access/IAccessControlEnumerableUpgradeable.sol",
+     "keccak256": "0x09b3aa1d18fc1d83df71a6c0599c6eb33682f98af5a9ad559629bfcf043465ab"
+    },
+    {
+     "path": "contracts/external/openzeppelin/contracts-upgradeable/token/ERC20/ERC20PresetMinterPauserUpgradeable.sol",
+     "keccak256": "0x6d365e9f73ac772eb680eddbcf41c0eda0152911d0f5a9e1482e69f1a3262e84"
+    }
+   ]
+  }
+ ],
+ "roleConstants": [
+  {
+   "name": "MINTER_ROLE",
+   "file": "ERC20PresetMinterPauserUpgradeable.sol",
+   "value": "keccak256(\"MINTER_ROLE\")"
+  }
+ ],
+ "reviewedFunctions": [
+  {
+   "name": "mint",
+   "code": "implementation",
+   "file": "ERC20/ERC20PresetMinterPauserUpgradeable.sol",
+   "source": "function mint(address to, uint256 amount) public virtual { require( hasRole(MINTER_ROLE, _msgSender()), \"ERC20PresetMinterPauser: must have minter role to mint\" ); _mint(to, amount); }",
+   "finding": "Requires hasRole(MINTER_ROLE, msg.sender) and then calls _mint(to, amount). No other branch, no early return."
+  },
+  {
+   "name": "_mint",
+   "code": "implementation",
+   "file": "ERC20/ERC20Upgradeable.sol",
+   "source": "function _mint(address account, uint256 amount) internal virtual { require(account != address(0), \"ERC20: mint to the zero address\"); _beforeTokenTransfer(address(0), account, amount); _totalSupply += amount; _balances[account] += amount; emit Transfer(address(0), account, amount); _afterTokenTransfer(address(0), account, amount); }",
+   "finding": "Requires a non-zero recipient, runs _beforeTokenTransfer, then unconditionally adds amount to _totalSupply and to the recipient balance. A mint call that does not revert therefore increased total supply."
+  },
+  {
+   "name": "_beforeTokenTransfer",
+   "code": "implementation",
+   "file": "ERC20/ERC20PresetMinterPauserUpgradeable.sol",
+   "source": "function _beforeTokenTransfer( address from, address to, uint256 amount ) internal virtual override(ERC20Upgradeable, ERC20PausableUpgradeable) { super._beforeTokenTransfer(from, to, amount); }",
+   "finding": "Delegates to the parent hooks only."
+  },
+  {
+   "name": "_beforeTokenTransfer",
+   "code": "implementation",
+   "file": "ERC20/ERC20PausableUpgradeable.sol",
+   "source": "function _beforeTokenTransfer( address from, address to, uint256 amount ) internal virtual override { super._beforeTokenTransfer(from, to, amount); require(!paused(), \"ERC20Pausable: token transfer while paused\"); }",
+   "finding": "require(!paused()): pausing can block minting but cannot make it a no-op."
+  },
+  {
+   "name": "_beforeTokenTransfer",
+   "code": "implementation",
+   "file": "usdy/USDY.sol",
+   "source": "function _beforeTokenTransfer( address from, address to, uint256 amount ) internal override { super._beforeTokenTransfer(from, to, amount); // Check constraints when `transferFrom` is called to facliitate // a transfer between two parties that are not `from` or `to`. if (from != msg.sender && to != msg.sender) { require(!_isBlocked(msg.sender), \"USDY: 'sender' address blocked\"); require(!_isSanctioned(msg.sender), \"USDY: 'sender' address sanctioned\"); require( _isAllowed(msg.sender), \"USDY: 'sender' address not on allowlist\" ); } if (from != address(0)) { // If not minting require(!_isBlocked(from), \"USDY: 'from' address blocked\"); require(!_isSanctioned(from), \"USDY: 'from' address sanctioned\"); require(_isAllowed(from), \"USDY: 'from' address not on allowlist\"); } if (to != address(0)) { // If not burning require(!_isBlocked(to), \"USDY: 'to' address blocked\"); require(!_isSanctioned(to)",
+   "finding": "Only require() checks: blocklist, sanctions list and allowlist of sender/from/to. It can revert the mint; it has no return path that skips the supply update."
+  },
+  {
+   "name": "hasRole",
+   "code": "implementation",
+   "file": "access/AccessControlUpgradeable.sol",
+   "source": "function hasRole(bytes32 role, address account) public view virtual override returns (bool) { return _roles[role].members[account]; }",
+   "finding": "Membership is read from _roles[role].members."
+  },
+  {
+   "name": "getRoleMemberCount",
+   "code": "implementation",
+   "file": "access/AccessControlEnumerableUpgradeable.sol",
+   "source": "function getRoleMemberCount(bytes32 role) public view virtual override returns (uint256) { return _roleMembers[role].length(); }",
+   "finding": "Returns the size of the enumerable member set the producer reads."
+  },
+  {
+   "name": "getRoleMember",
+   "code": "implementation",
+   "file": "access/AccessControlEnumerableUpgradeable.sol",
+   "source": "function getRoleMember(bytes32 role, uint256 index) public view virtual override returns (address) { return _roleMembers[role].at(index); }",
+   "finding": "Returns the member at an index of the same set."
+  },
+  {
+   "name": "_grantRole",
+   "code": "implementation",
+   "file": "access/AccessControlEnumerableUpgradeable.sol",
+   "source": "function _grantRole(bytes32 role, address account) internal virtual override { super._grantRole(role, account); _roleMembers[role].add(account); }",
+   "finding": "Every grant also adds the account to the enumerable set, so enumerated members are exactly the role holders."
+  },
+  {
+   "name": "ifAdmin",
+   "code": "token",
+   "file": "proxy/TransparentUpgradeableProxy.sol",
+   "source": "modifier ifAdmin() { if (msg.sender == _getAdmin()) { _; } else { _fallback(); } }",
+   "finding": "Calls from any address other than the EIP-1967 admin go to _fallback."
+  },
+  {
+   "name": "_fallback",
+   "code": "token",
+   "file": "proxy/Proxy.sol",
+   "source": "function _fallback() internal virtual { _beforeFallback(); _delegate(_implementation()); }",
+   "finding": "Runs _beforeFallback, then delegates to the EIP-1967 implementation."
+  },
+  {
+   "name": "_beforeFallback",
+   "code": "token",
+   "file": "proxy/TransparentUpgradeableProxy.sol",
+   "source": "function _beforeFallback() internal virtual override { require( msg.sender != _getAdmin(), \"TransparentUpgradeableProxy: admin cannot fallback to proxy target\" ); super._beforeFallback(); }",
+   "finding": "Rejects only the admin; a MINTER_ROLE member that is not the admin reaches the implementation."
+  },
+  {
+   "name": "_delegate",
+   "code": "token",
+   "file": "proxy/Proxy.sol",
+   "source": "function _delegate(address implementation) internal virtual { assembly { // Copy msg.data. We take full control of memory in this inline assembly // block because it will not return to Solidity code. We overwrite the // Solidity scratch pad at memory position 0. calldatacopy(0, 0, calldatasize()) // Call the implementation. // out and outsize are 0 because we don't know the size yet. let result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0) // Copy the returned data. returndatacopy(0, 0, returndatasize()) switch result // delegatecall returns 0 on error. case 0 { revert(0, returndatasize()) } default { return(0, returndatasize()) } } }",
+   "finding": "delegatecall with the full calldata; returns or reverts with the implementation result."
+  }
+ ],
+ "conclusion": "For this exact proxy and implementation code pair, mint(address,uint256) called by an AccessControlEnumerable MINTER_ROLE member that is not the proxy admin is delegated to the implementation and, when it does not revert, increases total supply by the requested amount. Role members can therefore create supply.",
+ "observedRoute": {
+  "block": {
+   "number": "26409087",
+   "hash": "0xfa44aee01623e850296f81499cd522f9f222f30b6e4347cf4df82bbf04d6397c"
+  },
+  "operators": [
+   "allnodes",
+   "drpc"
+  ],
+  "minterCount": 4,
+  "members": [
+   "0x25a103a1d6aec5967c1a4fe2039cdc514886b97e",
+   "0xa6275720b3fb1efe3e6ef2b5bf2293148852307d",
+   "0x1a694a09494e214a3be3652e4b343b7b81a73ad7"
+  ],
+  "calls": [
+   {
+    "member": "0x25a103a1d6aec5967c1a4fe2039cdc514886b97e",
+    "recipient": "member",
+    "memberCall": "ACCEPTED:0x",
+    "controlCall": "REVERTED"
+   },
+   {
+    "member": "0x25a103a1d6aec5967c1a4fe2039cdc514886b97e",
+    "recipient": "control",
+    "memberCall": "ACCEPTED:0x",
+    "controlCall": "REVERTED"
+   },
+   {
+    "member": "0xa6275720b3fb1efe3e6ef2b5bf2293148852307d",
+    "recipient": "member",
+    "memberCall": "ACCEPTED:0x",
+    "controlCall": "REVERTED"
+   },
+   {
+    "member": "0xa6275720b3fb1efe3e6ef2b5bf2293148852307d",
+    "recipient": "control",
+    "memberCall": "ACCEPTED:0x",
+    "controlCall": "REVERTED"
+   },
+   {
+    "member": "0x1a694a09494e214a3be3652e4b343b7b81a73ad7",
+    "recipient": "member",
+    "memberCall": "ACCEPTED:0x",
+    "controlCall": "REVERTED"
+   },
+   {
+    "member": "0x1a694a09494e214a3be3652e4b343b7b81a73ad7",
+    "recipient": "control",
+    "memberCall": "ACCEPTED:0x",
+    "controlCall": "REVERTED"
+   }
+  ]
+ },
+ "limits": [
+  "Source-to-bytecode identity is Sourcify exact_match for both code hashes; not recompiled locally.",
+  "Recipient restrictions (allowlist, sanctions, KYC) and pausing can make individual mints revert; they cannot hide a mint that succeeds.",
+  "Says nothing about who controls the role members (a manager contract, multisig or operator key) or about off-chain issuance controls.",
+  "Only the first three enumerated members are simulated."
+ ],
+ "review": {
+  "method": "Manual reading of the exact-match sources listed in codeProofs; function sources are quoted from the collector output.",
+  "reviewer": "Claude (AI assistant) in the ARCY engineering session; not an independent human audit",
+  "date": "2026-11-14",
+  "collector": "scripts/review-code-evidence.cjs",
+  "workflowRun": 43521141469,
+  "commit": "67984fb2a6a6758836e2400c52bcc0503f318524",
+  "observedOn": {
+   "address": "0x96f6ef951840721adbf46ac996b59e0235cb985c",
+   "block": {
+    "number": "26409087",
+    "hash": "0xfa44aee01623e850296f81499cd522f9f222f30b6e4347cf4df82bbf04d6397c"
+   }
+  }
+ }
+}

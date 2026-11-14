@@ -4,6 +4,7 @@ const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:pa
 const authority=require('../lib/risk-engine/producers/authority');
 const reviewed=require('../lib/risk-engine/reviewed-code');
 const shadow=require('../lib/risk-engine/shadow');
+const analyzer=require('../lib/risk-engine/analyze');
 const {evaluateRisk}=require('../lib/risk-engine');
 const evidence=require('../lib/verification/metric-evidence');
 const ledger=require('../lib/verification/evidence-ledger');
@@ -17,7 +18,7 @@ const word=a=>'0x'+a.slice(2).padStart(64,'0'),ZERO_WORD='0x'+'0'.repeat(64);
 // The fake chain ACCEPTS privileged calldata and changes nothing: by itself it IS the adversarial no-op / fallback case.
 const PROXY_CODE='0x6080604052363d3d3714',IMPL_CODE='0x60806040526340c10f1914',NOOP_CODE='0x60806040526340c10f195b00',INTERCEPT_PROXY='0x60806040526340c10f19335b00';
 const h=authority.codeHash;
-beforeEach(()=>{observer._resetHealth();shadow._reset();});
+beforeEach(()=>{observer._resetHealth();analyzer._reset();});
 
 // A reviewed registry for fixtures, built through the SAME validation as the shipped one.
 function entry(o){
@@ -33,7 +34,8 @@ function entry(o){
 const UPGRADE=entry({id:'fixture-upgrade',capability:'upgrade',architecture:'eip1967-transparent-proxy',selector:'upgradeToAndCall',actorRole:'eip1967-admin',proxyCodeHash:h(PROXY_CODE)});
 const MINT=entry({id:'fixture-mint',capability:'mint',architecture:'eip1967-delegated',selector:'mint',actorRole:'owner',proxyCodeHash:h(PROXY_CODE),implementationCodeHash:h(IMPL_CODE)});
 const DIRECT_MINT=entry({id:'fixture-direct-mint',capability:'mint',architecture:'direct',selector:'mint',actorRole:'owner',proxyCodeHash:h(IMPL_CODE)});
-const REGISTRY=reviewed.build([UPGRADE,MINT,DIRECT_MINT]);
+const ROLE_MINT=entry({id:'fixture-role-mint',capability:'mint',architecture:'eip1967-delegated',selector:'mint',actorRole:'minter-role',proxyCodeHash:h(PROXY_CODE),implementationCodeHash:h(IMPL_CODE)});
+const REGISTRY=reviewed.build([UPGRADE,MINT,DIRECT_MINT,ROLE_MINT]);
 
 function chainSim(over={},network='ethereum'){
  const calls=[];
@@ -56,7 +58,9 @@ function chainSim(over={},network='ethereum'){
    if(to!==TOKEN)return revert();
    if(data==='0x8da5cb5b')return b.ownerError?err():b.owner?ok(word(b.owner)):revert();
    if(data.startsWith('0x4f1ef286')||data.startsWith('0x3659cfe6'))return b.canUpgrade(from,data)?ok('0x'):revert();
-   if(data.startsWith('0x40c10f19'))return b.canMint(from)?ok(b.mintReturns):revert();
+   if(data.startsWith('0xca15c873'))return b.minters?ok(b.roleCountError?null:'0x'+BigInt(b.roleCount??b.minters.length).toString(16).padStart(64,'0')):revert();
+   if(data.startsWith('0x9010d07c')){if(b.memberError)return err();const i=Number(BigInt('0x'+data.slice(74)));return b.minters&&b.minters[i]?ok(word(b.minters[i])):b.minters&&b.badMember?ok('0x1234'):revert();}
+   if(data.startsWith('0x40c10f19')){const to='0x'+data.slice(34,74);return b.canMint(from,to)?ok(b.mintReturns):revert();}
    return revert();
   }
   return err();
@@ -71,7 +75,7 @@ const never=r=>{for(const f of evaluateRisk({network:r.network,chainId:r.chainId
 
 test('reviewed route + full two-operator identity agreement: the PUBLIC engine confirms upgrade and mint as HIGH',async()=>{
  const sim=chainSim(),r=await produce(sim);
- assert.equal(r.producer.version,3);
+ assert.equal(r.producer.version,4);
  for(const id of ['risk.upgrade-authority','risk.mint-authority']){
   const x=rec(r,id);assert.equal(x.state,'VERIFIED_ONCHAIN',id+' '+x.reasonCode);assert.equal(x.value,true);
   assert.doesNotThrow(()=>evidence.parseMetricEvidence(x));assert.deepEqual(x.block,{number:'100',hash:HASH});
@@ -216,7 +220,7 @@ test('gate: forged negatives, old producer versions, other engines, replayed and
  const r=await produce(chainSim()),good=rec(r,'risk.mint-authority');
  const forged=structuredClone(good);forged.value=false;for(const o of forged.observations){o.value=false;o.provenance.method='complete-mint-authority-audit';}
  assert.equal(finding([forged],'privileged-minting').reasonCode,'PRODUCER_NOT_REVIEWED');
- for(const version of [1,2]){const old=structuredClone(good);old.engine={id:'arcy-risk-authority-producer',version};assert.equal(finding([old],'privileged-minting').reasonCode,'PRODUCER_NOT_REVIEWED','v'+version);}
+ for(const version of [1,2,3]){const old=structuredClone(good);old.engine={id:'arcy-risk-authority-producer',version};assert.equal(finding([old],'privileged-minting').reasonCode,'PRODUCER_NOT_REVIEWED','v'+version);}
  const other=structuredClone(good);other.engine={id:'arcy-verification-runtime',version:9};assert.equal(finding([other],'privileged-minting').reasonCode,'PRODUCER_NOT_REVIEWED');
  // Replay: the same record an hour later is STALE; on another network it is not evidence at all.
  assert.equal(finding(r.records,'privileged-minting',{now:NOW+2*3600*1000}).status,'STALE');
@@ -230,50 +234,85 @@ test('gate: forged negatives, old producer versions, other engines, replayed and
 });
 
 const report=(over={})=>({ok:true,network:'ethereum',chainId:1,address:TOKEN,block:BLOCK,cards:{supply:{fields:{totalSupply:{value:'1',dataState:'DATA_FOUND'}}}},...over});
-test('shadow mode: OFF makes no request; ON never touches the report; shipped registry yields UNKNOWN',async()=>{
+test('shadow mode: OFF makes no request; ON only enqueues and reads a snapshot, never runs a producer in the request path',async()=>{
  const sim=chainSim(),r=report(),before=JSON.stringify(r);
  assert.equal(await shadow.runIfEnabled(r,{network:'ethereum',env:{},fetcher:sim.fetcher}),null);assert.equal(sim.calls.length,0);
  for(const v of ['0','true',''])assert.equal(shadow.enabled({ARC_AUTONOMY_RISK_ENGINE_ENABLED:v}),false);
- const lines=[],out=await shadow.runIfEnabled(r,{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},fetcher:sim.fetcher,now:()=>NOW,log:l=>lines.push(l)});
- assert.equal(JSON.stringify(r),before);assert.equal(out.state,'COMPLETE');
- assert.ok(out.findings.every(f=>f.status==='UNKNOWN'));
- assert.equal(out.records.find(x=>x.metricId==='risk.mint-authority').reasonCode,'OPERATION_SEMANTICS_UNREVIEWED');
- assert.equal(out.ledger.history,'NOT_PRESERVED');assert.equal(lines.length,1);assert.ok(!/https?:\/\/|drpc\.org|publicnode/.test(lines[0]));
- const bad=await shadow.runIfEnabled({address:'nope'},{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},log:()=>{}});
- assert.deepEqual(bad,{schemaVersion:1,mode:'SHADOW',state:'FAILED',reasonCode:'RISK_SHADOW_REPORT_INVALID'});
+ const ops=[],store={enqueue:async(...a)=>{ops.push(['enqueue',...a]);return true;},getSnapshot:async()=>null};
+ const lines=[],out=await shadow.runIfEnabled(r,{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},fetcher:sim.fetcher,store,now:()=>NOW,log:l=>lines.push(l)});
+ assert.equal(sim.calls.length,0,'no RPC in the request path');assert.equal(JSON.stringify(r),before);
+ assert.deepEqual(ops,[['enqueue','ethereum',TOKEN,NOW]]);assert.deepEqual({s:out.state,q:out.queue,v:out.view},{s:'READ',q:'QUEUED',v:null});
+ assert.equal(lines.length,1);assert.ok(!/https?:\/\/|drpc\.org|publicnode/.test(lines[0]));
+ // A slow or broken store is bounded and never fails the report.
+ const slow={enqueue:()=>new Promise(()=>{}),getSnapshot:()=>new Promise(()=>{})},t=Date.now();
+ const timed=await shadow.runIfEnabled(r,{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},store:slow,log:()=>{}});
+ assert.equal(timed.queue,'RISK_STORE_TIMEOUT');assert.ok(Date.now()-t<shadow.LIMITS.requestPathMs+400);
+ const broken=await shadow.runIfEnabled(r,{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},log:()=>{}}); // no store configured
+ assert.equal(broken.state,'FAILED');assert.equal(broken.reasonCode,'RISK_STORE_UNAVAILABLE');assert.equal(JSON.stringify(r),before);
+ const bad=await shadow.runIfEnabled({address:'nope'},{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},store,log:()=>{}});
+ assert.deepEqual(bad,{schemaVersion:2,mode:'SHADOW',state:'FAILED',reasonCode:'RISK_SHADOW_REPORT_INVALID'});
+ // The worker-side analysis on the shipped registry: the fixture code is unreviewed => UNKNOWN only.
+ const analysed=await analyzer.run(r,{network:'ethereum',env:{},fetcher:chainSim().fetcher,produce:authority.produce,now:()=>NOW,log:()=>{}});
+ assert.ok(analysed.findings.every(f=>f.status==='UNKNOWN'));
+ assert.equal(analysed.records.find(x=>x.metricId==='risk.mint-authority').reasonCode,'OPERATION_SEMANTICS_UNREVIEWED');assert.equal(analysed.ledger.history,'NOT_PRESERVED');
+});
+
+test('public gate: OFF (default) never attaches anything; ON attaches re-evaluated findings that age into STALE',async()=>{
+ const r=report(),before=JSON.stringify(r);
+ const analysed=await analyzer.run(r,{network:'ethereum',env:{},fetcher:chainSim().fetcher,produce:(a)=>authority.produce({...a,registry:REGISTRY}),now:()=>NOW,log:()=>{}});
+ const snapshot={network:'ethereum',chainId:1,token:TOKEN,scope:null,generatedAt:analysed.generatedAt,records:analysed.records};
+ const store={enqueue:async()=>true,getSnapshot:async()=>structuredClone(snapshot)};
+ // Engine ON, public OFF: snapshot read, nothing attached.
+ const off=await shadow.runIfEnabled(r,{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},store,now:()=>NOW,log:()=>{}});
+ assert.equal(JSON.stringify(r),before);assert.equal(off.view.findings.find(f=>f.ruleId==='privileged-minting').status,'CONFIRMED');
+ // Public flag without the engine flag does nothing.
+ assert.equal(await shadow.runIfEnabled(r,{network:'ethereum',env:{ARC_AUTONOMY_RISK_PUBLIC_ENABLED:'1'},store,log:()=>{}}),null);assert.equal(JSON.stringify(r),before);
+ // Both ON: one additive key; every finding carries what/why/source/chain/contract/block/time/limitations.
+ const env={ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1',ARC_AUTONOMY_RISK_PUBLIC_ENABLED:'1'},on=report();
+ await shadow.runIfEnabled(on,{network:'ethereum',env,store,now:()=>NOW,log:()=>{}});
+ assert.deepEqual(Object.keys(on).filter(k=>!(k in r)),['riskFindings']);
+ const mint=on.riskFindings.findings.find(f=>f.ruleId==='privileged-minting');
+ assert.equal(mint.status,'CONFIRMED');assert.ok(mint.verified&&mint.why&&mint.limitations);assert.equal(mint.contract,TOKEN);
+ assert.deepEqual(mint.source.operators,['allnodes','drpc']);assert.equal(mint.block.hash,HASH);assert.ok(mint.observedAt);
+ for(const f of on.riskFindings.findings)if(f.status==='UNKNOWN')assert.equal(f.verified,null);
+ // Two hours later the same snapshot is STALE, never a fresh verdict.
+ const late=report();await shadow.runIfEnabled(late,{network:'ethereum',env,store,now:()=>NOW+2*3600000,log:()=>{}});
+ assert.equal(late.riskFindings.findings.find(f=>f.ruleId==='privileged-minting').status,'STALE');
 });
 
 test('shadow ledger: durable records survive restart, reruns are throttled, concurrency is safe, a failing ledger is reported',async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'arcy-risk-ledger-'));
  try{
   const env={ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1',ARC_VERIFICATION_LEDGER_DIR:dir},sim=chainSim();
-  const first=await shadow.run(report(),{network:'ethereum',env,fetcher:sim.fetcher,now:()=>NOW,log:()=>{}});
+  const first=await analyzer.run(report(),{network:'ethereum',env,fetcher:sim.fetcher,now:()=>NOW,log:()=>{}});
   assert.equal(first.ledger.state,'RECORDED');assert.equal(first.ledger.written,2);
-  const again=await shadow.run(report(),{network:'ethereum',env,fetcher:sim.fetcher,now:()=>NOW+5000,log:()=>{}});assert.equal(again.ledger.throttled,2);
-  shadow._reset();
+  const again=await analyzer.run(report(),{network:'ethereum',env,fetcher:sim.fetcher,now:()=>NOW+5000,log:()=>{}});assert.equal(again.ledger.throttled,2);
+  analyzer._reset();
   const id={metricId:'risk.mint-authority',network:'ethereum',token:TOKEN,scope:null},disk=await ledger.read(id,{env});
   assert.equal(disk.current.reasonCode,'OPERATION_SEMANTICS_UNREVIEWED');assert.equal(disk.lastTrusted,null);assert.ok(ledger.validRecord(disk,id));
-  await Promise.all([1,2,3].map(i=>shadow.run(report(),{network:'ethereum',env,fetcher:chainSim().fetcher,now:()=>NOW+i*120000,log:()=>{}})));
+  await Promise.all([1,2,3].map(i=>analyzer.run(report(),{network:'ethereum',env,fetcher:chainSim().fetcher,now:()=>NOW+i*120000,log:()=>{}})));
   assert.ok(ledger.validRecord(await ledger.read(id,{env}),id));assert.ok(!(await fs.readdir(dir)).some(f=>f.endsWith('.tmp')||f.endsWith('.lock')));
-  shadow._reset();
+  analyzer._reset();
   const broken={directory:()=>dir,record:async()=>{throw Object.assign(Error('x'),{code:'EVIDENCE_LEDGER_WRITE_FAILED'});}};
-  const failed=await shadow.run(report(),{network:'ethereum',env,fetcher:chainSim().fetcher,now:()=>NOW+10*120000,log:()=>{},ledger:broken});
+  const failed=await analyzer.run(report(),{network:'ethereum',env,fetcher:chainSim().fetcher,now:()=>NOW+10*120000,log:()=>{},ledger:broken});
   assert.deepEqual({s:failed.ledger.state,h:failed.ledger.history},{s:'FAILED',h:'NOT_PRESERVED'});
  }finally{await fs.rm(dir,{recursive:true,force:true});}
 });
 
-test('the report builder runs shadow mode after the verification runtime and adds no response key',()=>{
+test('the report builder runs shadow mode after the verification runtime and adds no other response key',()=>{
  const text=require('node:fs').readFileSync(path.join(__dirname,'..','search','server','lib','multichain-service.js'),'utf8');
  const a=text.indexOf("lib/verification/runtime').annotateIfEnabled(result,{network})"),b=text.indexOf("lib/risk-engine/shadow').runIfEnabled(result,{network})");
  assert.ok(a>0&&b>a);assert.ok(!/result\.risk|result\.riskShadow/.test(text));
+ const shadowText=require('node:fs').readFileSync(path.join(__dirname,'..','lib','risk-engine','shadow.js'),'utf8');
+ assert.deepEqual([...shadowText.matchAll(/report\.([A-Za-z]+)=/g)].map(m=>m[1]),['riskFindings']); // the only key, and only behind the public gate
 });
 
-test('shipped registry: only the two reviewed Ethereum transparent-proxy upgrade routes, each with a valid artifact',()=>{
+test('shipped registry: two reviewed Ethereum upgrade proxies and two reviewed MINTER_ROLE mint routes, each with a valid artifact',()=>{
  const R=reviewed.REGISTRY,dir=path.join(__dirname,'..','lib','risk-engine','reviewed-code');
  assert.equal(R.rejected,0);
- assert.deepEqual(R.entries.map(e=>e.id).sort(),['eth-aave-upgradeto','eth-aave-upgradetoandcall','eth-ondo-tokenproxy-upgradeto','eth-ondo-tokenproxy-upgradetoandcall']);
+ assert.deepEqual(R.entries.map(e=>e.id).sort(),['eth-aave-upgradeto','eth-aave-upgradetoandcall','eth-ondo-ousg-mint-minter-role','eth-ondo-tokenproxy-upgradeto','eth-ondo-tokenproxy-upgradetoandcall','eth-ondo-usdy-mint-minter-role']);
  const AAVE='0x98a3150c9759d754a4b31f6fb3f4828371c60c2c07fb0754cfa2b230cb601001',ONDO='0xa23b20d4f9e75f4bf9bd74d8c1b7f0219547289c67a11dea65370c1810fc1387';
- for(const e of R.entries){
+ for(const e of R.entries.filter(x=>x.capability==='upgrade')){
   assert.deepEqual({n:e.network,c:e.capability,a:e.architecture,r:e.actorRole,i:e.implementationCodeHash},{n:'ethereum',c:'upgrade',a:'eip1967-transparent-proxy',r:'eip1967-admin',i:null});
   assert.ok([AAVE,ONDO].includes(e.proxyCodeHash));
   const art=JSON.parse(require('node:fs').readFileSync(path.join(dir,e.id+'.json'),'utf8')),proof=art.codeProofs[0];
@@ -289,5 +328,69 @@ test('shipped registry: only the two reviewed Ethereum transparent-proxy upgrade
  assert.equal(route({}).id,'eth-aave-upgradeto');
  // The same code is not reviewed for mint, for owner(), on another network, or when it is not acting as a proxy.
  for(const o of [{capability:'mint',selector:'mint'},{actorRole:'owner'},{network:'robinhood'},{network:'arc'},{isProxy:false},{proxyCodeHash:'0x'+'98'.repeat(32)}])assert.equal(route(o),null,JSON.stringify(o));
- assert.ok(!R.entries.some(e=>e.capability==='mint'));
+ // Mint: only MINTER_ROLE routes through the reviewed TokenProxy + implementation pair; no owner or admin mint route.
+ const mints=R.entries.filter(e=>e.capability==='mint');assert.equal(mints.length,2);
+ for(const e of mints){
+  assert.deepEqual({n:e.network,a:e.architecture,r:e.actorRole,p:e.proxyCodeHash},{n:'ethereum',a:'eip1967-delegated',r:'minter-role',p:ONDO});
+  const art=JSON.parse(require('node:fs').readFileSync(path.join(dir,e.id+'.json'),'utf8'));
+  assert.ok(reviewed.validEntry({...e,artifact:art}));assert.deepEqual(art.codeProofs.map(p=>p.codeHash).sort(),[e.proxyCodeHash,e.implementationCodeHash].sort());
+  assert.ok(art.codeProofs.every(p=>p.sourceMatch==='exact_match'&&p.verifiedRuntimeCodeHash===p.codeHash));
+  assert.ok(art.reviewedFunctions.some(f=>f.name==='_mint'&&/_totalSupply \+= amount/.test(f.source)));
+  assert.ok(art.reviewedFunctions.some(f=>f.name==='_beforeFallback'&&/admin cannot fallback/.test(f.source)));
+  assert.equal(art.roleConstants[0].value,'keccak256("MINTER_ROLE")');
+  const route=o=>R.match({network:'ethereum',capability:'mint',isProxy:true,proxyCodeHash:ONDO,implementationCodeHash:e.implementationCodeHash,actorRole:'minter-role',selector:'mint',...o});
+  assert.equal(route({}).id,e.id);
+  for(const o of [{actorRole:'owner'},{actorRole:'eip1967-admin'},{implementationCodeHash:'0x'+'00'.repeat(32)},{proxyCodeHash:AAVE},{isProxy:false},{network:'arc'}])assert.equal(route(o),null,JSON.stringify(o));
+ }
+});
+
+const M1='0x'+'31'.repeat(20),M2='0x'+'32'.repeat(20);
+test('v4 role-based mint: a reviewed MINTER_ROLE route confirms; recipient restrictions fall back to the actor',async()=>{
+ // No owner; two minters; the token only accepts minting to registered recipients (the minter itself).
+ const sim=chainSim({owner:null,minters:[M1,M2],canMint:(from,to)=>[M1,M2].includes(from)&&to===from});
+ const r=await produce(sim),x=rec(r,'risk.mint-authority'),o=r.operators[0].outcome.mint;
+ assert.equal(x.state,'VERIFIED_ONCHAIN',x.reasonCode);
+ assert.deepEqual({role:o.actorRole,actor:o.actor,recipient:o.recipient,review:o.reviewId},{role:'minter-role',actor:M1,recipient:M1,review:'fixture-role-mint'});
+ assert.equal(finding(r.records,'privileged-minting').status,'CONFIRMED');
+ // The control replay used the same calldata (recipient = minter) and reverted.
+ const mintCalls=sim.calls.filter(c=>c.method==='eth_call'&&c.params[0].data.startsWith('0x40c10f19')&&c.host==='ethereum-rpc.publicnode.com');
+ assert.ok(mintCalls.some(c=>c.params[0].from===CONTROL&&c.params[0].data.includes(M1.slice(2))));
+ // An owner-only review does not cover a minter-role route, and vice versa.
+ const ownerOnly=reviewed.build([MINT]);
+ assert.equal(rec(await produce(chainSim({owner:null,minters:[M1],canMint:f=>f===M1}),{registry:ownerOnly}),'risk.mint-authority').reasonCode,'OPERATION_SEMANTICS_UNREVIEWED');
+ const roleOnly=reviewed.build([ROLE_MINT]);
+ assert.equal(rec(await produce(chainSim(),{registry:roleOnly}),'risk.mint-authority').reasonCode,'OPERATION_SEMANTICS_UNREVIEWED');
+});
+
+const neverMint=r=>{const f=finding(r.records,'privileged-minting');assert.notEqual(f.status,'CONFIRMED');assert.notEqual(f.status,'NOT_CONFIRMED');};
+test('v4 role-based mint never confirms through the proxy admin, a no-op, a disagreement or a broken role read',async()=>{
+ // The admin is also a MINTER_ROLE member: on a transparent proxy that call is intercepted, never a delegated mint.
+ const adminMinter=await produce(chainSim({owner:null,minters:[ADMIN],canMint:f=>f===ADMIN}));
+ assert.equal(rec(adminMinter,'risk.mint-authority').reasonCode,'OPERATION_SEMANTICS_UNREVIEWED');neverMint(adminMinter);
+ // Minter accepted but anyone else is too: not privileged.
+ const open=await produce(chainSim({owner:null,minters:[M1],canMint:()=>true}));
+ assert.equal(rec(open,'risk.mint-authority').reasonCode,'UNPRIVILEGED_CALL_ALSO_ACCEPTED');
+ // Behind an unreviewed implementation (e.g. a no-op mint) the same role differential is not a capability.
+ const noop=await produce(chainSim({owner:null,minters:[M1],canMint:f=>f===M1,implCode:NOOP_CODE}));
+ assert.equal(rec(noop,'risk.mint-authority').reasonCode,'OPERATION_SEMANTICS_UNREVIEWED');neverMint(noop);
+ // Operators enumerate different first members (role changed between reads / inconsistent node).
+ const split=await produce(chainSim({owner:null,minters:[M1,M2],canMint:f=>[M1,M2].includes(f),hosts:{'eth.drpc.org':{minters:[M2,M1]}}}));
+ assert.equal(rec(split,'risk.mint-authority').reasonCode,'EXECUTION_IDENTITY_MISMATCH');neverMint(split);
+ // Recipient differs between operators (one accepts the control recipient, the other only the minter).
+ const recip=await produce(chainSim({owner:null,minters:[M1],canMint:f=>f===M1,hosts:{'eth.drpc.org':{canMint:(f,to)=>f===M1&&to===M1}}}));
+ assert.equal(rec(recip,'risk.mint-authority').reasonCode,'EXECUTION_IDENTITY_MISMATCH');
+ // Provider error on a role read fails that operator; a malformed member word is not a member.
+ const down=await produce(chainSim({owner:null,minters:[M1],canMint:f=>f===M1,hosts:{'eth.drpc.org':{memberError:true}}}));
+ assert.equal(down.operators[1].state,'FAILED');assert.equal(rec(down,'risk.mint-authority').state,'SINGLE_SOURCE');neverMint(down);
+ observer._resetHealth();
+ const bad=await produce(chainSim({owner:null,minters:[],roleCount:1,badMember:true,canMint:()=>false}));
+ assert.equal(bad.operators[0].reasonCode,'RPC_MALFORMED_RESPONSE');neverMint(bad);
+ // A huge role set is bounded: at most 3 members are read per operator.
+ observer._resetHealth();
+ const many=chainSim({owner:null,minters:[M1,M2,'0x'+'33'.repeat(20),'0x'+'34'.repeat(20)],roleCount:10**6,canMint:()=>false});
+ await produce(many);
+ assert.ok(many.calls.filter(c=>c.host==='ethereum-rpc.publicnode.com'&&c.method==='eth_call'&&c.params[0].data.startsWith('0x9010d07c')).length<=3);
+ // No minter accepted and no owner: NOT demonstrated, never "cannot mint".
+ const none=await produce(chainSim({owner:null,minters:[M1],canMint:()=>false}));
+ assert.equal(rec(none,'risk.mint-authority').reasonCode,'NO_PRIVILEGED_MINT_CALL_ACCEPTED');neverMint(none);
 });
