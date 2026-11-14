@@ -56,20 +56,57 @@ Registered in `lib/risk-engine/rules.js` for two rules, **positive values only**
 
 Limits of a positive claim: it shows that at that block the reviewed code would execute the reviewed operation for that actor. It does not show that the actor's key or multisig is live, that a timelock does not delay execution, or that other mint/upgrade paths (roles, master-minter schemes, legacy non-EIP-1967 proxies) do not exist — those stay `UNKNOWN`.
 
+## Risk Engine V4 (#234)
+
+### Authority producer v4: role-based minting
+- `MINTER_ROLE` members of an `AccessControlEnumerable` token are a distinct actor role, `minter-role`. At most three members are read per operator, in the contract's own set order.
+- Mint recipients tried, in order: the control address, then the actor itself (allowlist and KYC tokens accept only registered recipients). The recipient is part of the calldata identity both operators must agree on.
+- A delegated mint by the proxy admin is never a reviewed route: a transparent proxy answers admin calls itself.
+- The gate requires producer v4.
+- Reviewed mint routes: Ondo **USDY** and **OUSG** (TokenProxy `0xa23b20d4…` with their exact-match implementations).
+  - `mint` checks `hasRole(MINTER_ROLE)` and calls `_mint`.
+  - `_mint` runs `_beforeTokenTransfer` (only `require` checks: pause, allowlist/blocklist/sanctions or KYC) and then unconditionally executes `_totalSupply += amount`.
+  - So a non-reverting mint call increased supply. Artifacts: `lib/risk-engine/reviewed-code/eth-ondo-*-mint-minter-role.json`.
+- Not reviewed: USDon (Sourcify `match`, not exact).
+
+### Pool producer v1 (`lib/risk-engine/producers/pool.js`), Ethereum
+- **USD anchors.** Chainlink USDC/USD, ETH/USD and USDT/USD feeds. Identity (`description()`), `decimals() == 8`, a positive answer, a complete round and freshness (heartbeat + 30 min) are re-checked on every run, together with the quote token's `decimals()`. A failed check removes that quote asset; there is no default price.
+- **Pools.** Candidates come from `getPair(token, quote)` on the reviewed V2 factories (Uniswap V2, SushiSwap V2). Each pair must pass:
+  - `pair.factory()` equals that factory;
+  - the token pair is exact;
+  - balances are at least the reserves;
+  - both reserves are above zero.
+  
+  The pool with the most quote-side USD is selected; both operators must select the same pool.
+- **Deeper-venue guard.** Uniswap V3 `getPool(token, quote, fee)` is read for every reviewed quote asset and fee tier. If any V3 pool contract holds more quote value than the selected V2 pool, the V2 pool is not the token's deepest reviewed market. Risk verdicts (liquidity below $25k, any exit impact) are then withheld as `DEEPER_REVIEWED_VENUE_EXISTS`.
+  - This was found live: PYUSD's and ONDO's deepest V2 pairs hold $4 and $64, while their real markets are on Uniswap V3 and elsewhere. Curve, Balancer and centralized exchanges are not checked; every public finding says so.
+- A malformed answer from one candidate contract drops that candidate (`NOT_V2_COMPATIBLE_POOL`), not the operator.
+- **Liquidity** = 2 × quote reserve × anchor (usd-cent). This is the constant-product pool value at its own marginal price; it cannot be inflated without depositing quote asset. Scope: the selected pair. Both verdicts are reviewed.
+- **Exit impact** = price impact (fee excluded, fee reported separately) of selling $1,000 worth of the token at the pool's marginal price. The reviewed router's `getAmountsOut` must equal the model exactly. **Positive only**: token taxes, blacklists and trading restrictions are not modelled.
+- Not covered: V3/V4 pools; Arc and Robinhood (`PRICE_ANCHOR_NOT_REVIEWED`, and no RPC call is made there).
+
+### Concentration producer v1 (`lib/risk-engine/producers/concentration.js`), all networks, positive only
+- **Candidates.** Addresses from the first page of the public Blockscout holder list (Ethereum, Robinhood, `arcscan.app` for Arc). These are addresses only; explorer balances and flags are ignored.
+- **Reads, on two operators at one block:** every candidate balance, `totalSupply()`, the balances of `0x0` and `0x…dEaD`, and `eth_getCode` of the ranked holders.
+- **Claim:** at most ten addresses without code hold ≥ 50% of the non-burned supply. Any ten addresses holding that much proves the true top ten do too, so no complete census is needed.
+- **Policy:** contracts (pools, bridges, Safes, EIP-7702 delegated accounts) are excluded from the numerator, which can only lower the share. Custodial EOAs count as holders.
+- **Below 50%** → `NOT_VERIFIED / BELOW_THRESHOLD_NEGATIVE_NOT_REVIEWED`. A negative verdict needs a complete two-operator census, which does not exist.
+- If candidate balances plus burns exceed supply → `SUPPLY_RECONCILIATION_FAILED`.
+
 ## Capability / evidence matrix (`lib/risk-engine/capability-matrix.js`)
 
 Shadow output carries `evidenceGaps`: for every `UNKNOWN` rule, the producer's own reason where one ran, otherwise the blocker below.
 
-| Rule | Producer | Arc 5042 | Ethereum 1 | Robinhood 4663 | Missing evidence |
-|---|---|---|---|---|---|
-| `admin-upgrade-authority` | authority v3, confirm-only | `NO_REVIEWED_EXECUTION_ROUTE` | 2 reviewed proxy codes; others `OPERATION_SEMANTICS_UNREVIEWED` | `NO_REVIEWED_EXECUTION_ROUTE` | a reviewed route artifact per proxy code; a negative needs a complete upgrade-path audit |
-| `privileged-minting` | authority v3, confirm-only | `NO_REVIEWED_EXECUTION_ROUTE` | `NO_REVIEWED_EXECUTION_ROUTE` | `NO_REVIEWED_EXECUTION_ROUTE` | a reviewed route artifact; a negative needs a complete supply-increase audit |
-| `high-exit-impact` (rule v2) | none | `PRICE_ANCHOR_NOT_REVIEWED` | `PRICE_ANCHOR_NOT_REVIEWED` | `PRICE_ANCHOR_NOT_REVIEWED` | Rule v1 probed 1 % of reserves, which gives ≈ 0.99 % impact on every constant-product pool whatever its size. v2 defines a fixed $1,000 probe (`pinned-fixed-usd-1000-exit-replay`); it needs a reviewed same-block USD anchor for the quote asset from two operators. None is reviewed on any network |
-| `low-pool-liquidity` | none | `RESERVE_VALUATION_NOT_REVIEWED` | `RESERVE_VALUATION_NOT_REVIEWED` | `RESERVE_VALUATION_NOT_REVIEWED` | two-operator reserves plus a reviewed USD valuation of both assets; market-reported liquidity is not proof |
-| `sell-transfer-tax` | none | `TRANSFER_DEDUCTION_NOT_ISOLATED` | `TRANSFER_DEDUCTION_NOT_ISOLATED` | `TRANSFER_DEDUCTION_NOT_ISOLATED` | balance deltas across a simulated transfer (state override / trace) on two operators; never inferred from a quote |
-| `top-ten-holder-concentration` | none | `HOLDER_CENSUS_SINGLE_OPERATOR` | `HOLDER_CENSUS_UNAVAILABLE` | `HOLDER_CENSUS_UNAVAILABLE` | complete census reconciled to supply at one block hash, reproduced by a second operator, with a reviewed eligibility policy |
+| Rule | Producer / polarity | Arc 5042 | Ethereum 1 | Robinhood 4663 |
+|---|---|---|---|---|
+| `admin-upgrade-authority` | authority v4, confirm-only | `NO_REVIEWED_EXECUTION_ROUTE` | 2 reviewed proxy codes (AAVE; Ondo TokenProxy) | `NO_REVIEWED_EXECUTION_ROUTE` (stock tokens are beacon proxies) |
+| `privileged-minting` | authority v4, confirm-only | `NO_REVIEWED_EXECUTION_ROUTE` | 2 reviewed MINTER_ROLE routes (USDY, OUSG) | `NO_REVIEWED_EXECUTION_ROUTE` |
+| `high-exit-impact` (rule v2) | pool v1, confirm-only | `PRICE_ANCHOR_NOT_REVIEWED` | reviewed V2 pools with a USDC/WETH/USDT pair | `PRICE_ANCHOR_NOT_REVIEWED` |
+| `low-pool-liquidity` | pool v1, both verdicts for the scoped pool | `PRICE_ANCHOR_NOT_REVIEWED` | reviewed V2 pools with a USDC/WETH/USDT pair | `PRICE_ANCHOR_NOT_REVIEWED` |
+| `sell-transfer-tax` | none | `TRANSFER_DEDUCTION_NOT_ISOLATED` | `TRANSFER_DEDUCTION_NOT_ISOLATED` | `TRANSFER_DEDUCTION_NOT_ISOLATED` |
+| `top-ten-holder-concentration` (rule v2) | concentration v1, confirm-only | explorer candidates + Circle/QuickNode | explorer candidates + Allnodes/dRPC | explorer candidates + official/dRPC |
 
-No rule returns `NOT_CONFIRMED` anywhere: no producer performs a complete audit.
+`sell-transfer-tax` stays UNKNOWN. A tax needs balance deltas across a simulated sell transfer, separated from pool fee and price impact, including account-dependent exemptions. That requires a reviewed `eth_call` state-override (helper-contract) simulation on two operators. None exists yet, and a quote is never used as evidence of a tax.
 
 ## Evidence lifecycle
 
@@ -82,11 +119,23 @@ No rule returns `NOT_CONFIRMED` anywhere: no producer performs a complete audit.
 | VERIFIED | `VERIFIED_ONCHAIN` + reviewed producer version + allowed polarity | engine `CONFIRMED` |
 | UNKNOWN / CONFLICTING / STALE | any step missing, disagreeing or too old | never a verdict |
 
-## Durability
+## Durability and autonomous execution
 
-The Evidence Ledger needs `ARC_VERIFICATION_LEDGER_DIR` or `ARC_HOLDER_PUBLISHED_DIR`. On Vercel neither is durable or shared, so shadow results there report `ledger.history: NOT_PRESERVED`. Retained risk history exists only where the worker volume is mounted. Writes are atomic (lock + fsync + rename), throttled to one rewrite per minute per unchanged record, and time-bounded (1.5 s).
+- **Evidence history.** The Evidence Ledger needs `ARC_VERIFICATION_LEDGER_DIR` or `ARC_HOLDER_PUBLISHED_DIR`. On Vercel neither is durable, so history there is reported as `NOT_PRESERVED`. The Railway worker's `/data` volume is durable.
+- **Queue, job state, latest snapshot and worker metrics** live in `lib/risk-engine/store.js`:
+  - shared Redis (the holder index's Upstash instance) when configured, otherwise one JSON file on a persistent volume;
+  - never the Vercel tmp directory;
+  - a corrupt local file is reported as `RISK_STORE_CORRUPT`, never reset.
+- **The worker** (`lib/risk-engine/worker.js`, `ARC_AUTONOMY_RISK_WORKER_ENABLED`, default OFF) runs from the holder worker loop after the holder slices:
+  - at most one job every 90 s, at a block pinned 6 below head, 150 ms between calls per operator;
+  - refresh every 6 h;
+  - exponential backoff, capped at 1 h, only when no operator produced usable reads;
+  - permanently invalid jobs are removed and recorded as `REJECTED`;
+  - a per-network hourly RPC budget (default 2,400 calls).
+- **Search** (`ARC_AUTONOMY_RISK_ENGINE_ENABLED`) only enqueues the token and reads the latest snapshot, in parallel, bounded at 300 ms. It never runs a producer.
+- **Snapshots** store full records, and readers re-evaluate them at read time, so evidence past its rule window is `STALE`, never re-labelled as fresh.
 
-## Next release gates
+## Release gates (see docs/RISK_SHADOW_ACCEPTANCE.md)
 
 1. Owner review of the producer semantics and this matrix.
 2. Live probe results on the current head (appended to the PR).

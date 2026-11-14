@@ -20,7 +20,7 @@ const authority=require('../lib/risk-engine/producers/authority');
 const DEFAULT_TARGETS=['ethereum:0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9','ethereum:0x96f6ef951840721adbf46ac996b59e0235cb985c','ethereum:0x1b19c19393e2d034d8ff31ff34c81252fcbbee92',
  'ethereum:0xace8e719899f6e91831b18ae746c9a965c2119f1','ethereum:0x6c3ea9036406852006290770bedfcaba0e23a0e8','robinhood:0x322f0929c4625ed5bad873c95208d54e1c003b2d','arc:0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'];
 const SOURCIFY='https://sourcify.dev/server/v2/contract/';
-const INTERESTING=/^(upgradeTo|upgradeToAndCall|upgradeToAndCallUUPS|_upgradeTo|_upgradeToAndCall|_upgradeToAndCallUUPS|_setImplementation|_authorizeUpgrade|mint|_mint|issue|_fallback|_willFallback|_beforeFallback|_delegate|ifAdmin|onlyOwner|onlyProxy|onlyRole|_checkOwner|_checkRole|_admin|_getAdmin|admin|owner)$/;
+const INTERESTING=/^(upgradeTo|upgradeToAndCall|upgradeToAndCallUUPS|_upgradeTo|_upgradeToAndCall|_upgradeToAndCallUUPS|_setImplementation|_authorizeUpgrade|mint|_mint|issue|_fallback|_willFallback|_beforeFallback|_delegate|ifAdmin|onlyOwner|onlyProxy|onlyRole|_checkOwner|_checkRole|_admin|_getAdmin|admin|owner|_beforeTokenTransfer|_afterTokenTransfer|hasRole|getRoleMember|getRoleMemberCount|grantRole|_grantRole|_setupRole|pause|unpause|_checkMinter|_checkKYC|_checkAllowlist)$/;
 const hashOf=hex=>typeof hex==='string'&&/^0x(?:[0-9a-f]{2})+$/i.test(hex)?keccak(Buffer.from(hex.slice(2),'hex')):null;
 const word=raw=>/^0x[0-9a-f]{64}$/i.test(raw||'')?(/^0x0{24}/i.test(raw)&&!/^0x0{64}$/.test(raw)?'0x'+raw.slice(-40).toLowerCase():null):undefined;
 async function rpc(url,method,params){
@@ -52,6 +52,22 @@ function excerpts(content){
  const slots=/bytes32\s+(?:internal\s+|private\s+|public\s+)?constant\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]{1,200});/g;
  while((m=slots.exec(content)))out.push({kind:'constant',name:m[1],text:m[2].replace(/\s+/g,' ')});
  return out;
+}
+// Role-based mint observation (AccessControlEnumerable): MINTER_ROLE members, then mint(recipient,1) from a member and
+// from the control address at the pinned block. eth_call only; reported per operator so they can be compared.
+const MINTER_ROLE='0x'+keccak(Buffer.from('MINTER_ROLE')).slice(2);
+async function roleMint(e,token,block,control){
+ const call=(from,data)=>rpc(e.url,'eth_call',[{...(from?{from}:{}),to:token,data},block]);
+ const count=await call(null,'0xca15c873'+MINTER_ROLE.slice(2));
+ if(count.error||!/^0x[0-9a-f]{64}$/i.test(count.result||''))return {operator:e.operator,enumerable:false};
+ const n=Number(BigInt(count.result)),members=[];
+ for(let i=0;i<Math.min(n,3);i++){const m=await call(null,'0x9010d07c'+MINTER_ROLE.slice(2)+i.toString(16).padStart(64,'0'));members.push(word(m.result)||null);}
+ const mint=to=>'0x40c10f19'+to.slice(2).padStart(64,'0')+'1'.padStart(64,'0'),out=[];
+ for(const m of members.filter(Boolean))for(const to of [m,control]){
+  const a=await call(m,mint(to)),c=await call(control,mint(to));
+  out.push({member:m,recipient:to===m?'member':'control',memberCall:a.error||'ACCEPTED:'+String(a.result).slice(0,10),controlCall:c.error||'ACCEPTED'});
+ }
+ return {operator:e.operator,enumerable:true,minterCount:n,members,calls:out};
 }
 async function sourcify(chainId,address,expectedCodeHash){
  const res={address,status:null,runtimeMatch:null,creationMatch:null,onchainBytecodeHash:null,bytecodeEqualsOnchain:false,compiler:null,contract:null,sources:[],functions:[]};
@@ -86,6 +102,7 @@ async function review(target){
  if(new Set(views.map(v=>v.operator)).size<2)out.missing.push('TWO_INDEPENDENT_OPERATORS');
  if(out.missing.length)return out;
  const v=views[0];
+ out.roleMint=[];for(const e of endpoints.slice(0,2)){try{out.roleMint.push(await roleMint(e,token,block,authority.CONTROL));}catch(error){out.roleMint.push({operator:e.operator,error:String(error.message).slice(0,40)});}}
  out.identity={proxyCodeHash:v.codeHash,implementation:v.implementation,implementationCodeHash:v.implementationCodeHash,admin:v.admin,beacon:v.beacon,owner:v.owner};
  out.tokenSource=await sourcify(chainId,token,v.codeHash);
  out.implementationSource=v.implementation?await sourcify(chainId,v.implementation,v.implementationCodeHash):null;
@@ -112,6 +129,7 @@ async function review(target){
    implementation:r.implementationSource&&{status:r.implementationSource.status,runtimeMatch:r.implementationSource.runtimeMatch,creationMatch:r.implementationSource.creationMatch,equal:r.implementationSource.bytecodeEqualsOnchain,contract:r.implementationSource.contract,compiler:r.implementationSource.compiler,files:r.implementationSource.sources.length,transformations:r.implementationSource.transformations},
    operators:(r.operators||[]).map(o=>o.operator+(o.error?':'+o.error:'')),mintSelector:r.operators?.[0]?.mintSelectorInExecutingCode??null};
   summary.push(line);console.log('REVIEW_EVIDENCE '+JSON.stringify(line));
+  if(r.roleMint)console.log('REVIEW_ROLE_MINT '+JSON.stringify({target:t,roleMint:r.roleMint}));
   if(r.machineEvidenceComplete)console.log('REVIEW_PROOF '+JSON.stringify({target:t,block:r.block,codeProofs:r.codeProofs}));
   for(const [label,s] of [['token',r.tokenSource],['implementation',r.implementationSource]]){
    if(!s||s.runtimeMatch!=='exact_match'||!s.bytecodeEqualsOnchain)continue; // only exact, on-chain-equal sources are worth reviewing
