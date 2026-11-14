@@ -5,6 +5,7 @@ const {MATRIX,NETWORKS,blockers}=require('../lib/risk-engine/capability-matrix')
 const {RULES}=require('../lib/risk-engine/rules');
 const {evaluateRisk}=require('../lib/risk-engine');
 const shadow=require('../lib/risk-engine/shadow');
+const analyzer=require('../lib/risk-engine/analyze');
 const authority=require('../lib/risk-engine/producers/authority');
 
 test('matrix covers exactly the six rules on the three networks and agrees with the review gate',()=>{
@@ -41,10 +42,10 @@ test('with no evidence every rule is UNKNOWN on every network, and docs carry ev
 });
 
 test('shadow output names the real evidence gap for each UNKNOWN rule',async()=>{
- shadow._reset();
+ analyzer._reset();
  const token='0x'+'ab'.repeat(20);
  const empty=async()=>({producer:authority.PRODUCER,block:{number:'100',hash:'0x'+'11'.repeat(32)},independence:{independent:true,reasonCode:null},operators:[],records:[],cost:{rpcCalls:0,ms:0}});
- const out=await shadow.run({address:token,block:'0x64',network:'robinhood'},{network:'robinhood',env:{},producers:{authority:empty,pool:async()=>({records:[],pool:null,reasonCode:'PRICE_ANCHOR_NOT_REVIEWED',cost:{rpcCalls:0,ms:0}}),concentration:async()=>({records:[],reasonCode:'CANDIDATE_SOURCE_HTTP_503',cost:{rpcCalls:0,ms:0}})},now:()=>Date.parse('2026-11-13T00:00:00Z'),log:()=>{}});
+ const out=await analyzer.run({address:token,block:'0x64',network:'robinhood'},{network:'robinhood',env:{},producers:{authority:empty,pool:async()=>({records:[],pool:null,reasonCode:'PRICE_ANCHOR_NOT_REVIEWED',cost:{rpcCalls:0,ms:0}}),concentration:async()=>({records:[],reasonCode:'CANDIDATE_SOURCE_HTTP_503',cost:{rpcCalls:0,ms:0}})},now:()=>Date.parse('2026-11-13T00:00:00Z'),log:()=>{}});
  assert.equal(out.state,'COMPLETE');
  assert.deepEqual(out.evidenceGaps,{'admin-upgrade-authority':'NO_REVIEWED_EXECUTION_ROUTE','high-exit-impact':'PRICE_ANCHOR_NOT_REVIEWED','low-pool-liquidity':'PRICE_ANCHOR_NOT_REVIEWED',
   'privileged-minting':'NO_REVIEWED_EXECUTION_ROUTE','sell-transfer-tax':'TRANSFER_DEDUCTION_NOT_ISOLATED','top-ten-holder-concentration':'CANDIDATE_SOURCE_HTTP_503'});

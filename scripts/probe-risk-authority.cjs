@@ -15,7 +15,7 @@
 //  * Search with the engine flag ON: any producer RPC in the request path, a changed report shape, or riskFindings
 //    attached without the public flag
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
-const shadow=require('../lib/risk-engine/shadow');
+const shadow=require('../lib/risk-engine/analyze');
 const reviewed=require('../lib/risk-engine/reviewed-code');
 const evidence=require('../lib/verification/metric-evidence');
 const observer=require('../lib/verification/onchain-observer');

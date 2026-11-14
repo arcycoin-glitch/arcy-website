@@ -4,6 +4,7 @@ const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:pa
 const authority=require('../lib/risk-engine/producers/authority');
 const reviewed=require('../lib/risk-engine/reviewed-code');
 const shadow=require('../lib/risk-engine/shadow');
+const analyzer=require('../lib/risk-engine/analyze');
 const {evaluateRisk}=require('../lib/risk-engine');
 const evidence=require('../lib/verification/metric-evidence');
 const ledger=require('../lib/verification/evidence-ledger');
@@ -17,7 +18,7 @@ const word=a=>'0x'+a.slice(2).padStart(64,'0'),ZERO_WORD='0x'+'0'.repeat(64);
 // The fake chain ACCEPTS privileged calldata and changes nothing: by itself it IS the adversarial no-op / fallback case.
 const PROXY_CODE='0x6080604052363d3d3714',IMPL_CODE='0x60806040526340c10f1914',NOOP_CODE='0x60806040526340c10f195b00',INTERCEPT_PROXY='0x60806040526340c10f19335b00';
 const h=authority.codeHash;
-beforeEach(()=>{observer._resetHealth();shadow._reset();});
+beforeEach(()=>{observer._resetHealth();analyzer._reset();});
 
 // A reviewed registry for fixtures, built through the SAME validation as the shipped one.
 function entry(o){
@@ -251,14 +252,14 @@ test('shadow mode: OFF makes no request; ON only enqueues and reads a snapshot, 
  const bad=await shadow.runIfEnabled({address:'nope'},{network:'ethereum',env:{ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1'},store,log:()=>{}});
  assert.deepEqual(bad,{schemaVersion:2,mode:'SHADOW',state:'FAILED',reasonCode:'RISK_SHADOW_REPORT_INVALID'});
  // The worker-side analysis on the shipped registry: the fixture code is unreviewed => UNKNOWN only.
- const analysed=await shadow.run(r,{network:'ethereum',env:{},fetcher:chainSim().fetcher,produce:authority.produce,now:()=>NOW,log:()=>{}});
+ const analysed=await analyzer.run(r,{network:'ethereum',env:{},fetcher:chainSim().fetcher,produce:authority.produce,now:()=>NOW,log:()=>{}});
  assert.ok(analysed.findings.every(f=>f.status==='UNKNOWN'));
  assert.equal(analysed.records.find(x=>x.metricId==='risk.mint-authority').reasonCode,'OPERATION_SEMANTICS_UNREVIEWED');assert.equal(analysed.ledger.history,'NOT_PRESERVED');
 });
 
 test('public gate: OFF (default) never attaches anything; ON attaches re-evaluated findings that age into STALE',async()=>{
  const r=report(),before=JSON.stringify(r);
- const analysed=await shadow.run(r,{network:'ethereum',env:{},fetcher:chainSim().fetcher,produce:(a)=>authority.produce({...a,registry:REGISTRY}),now:()=>NOW,log:()=>{}});
+ const analysed=await analyzer.run(r,{network:'ethereum',env:{},fetcher:chainSim().fetcher,produce:(a)=>authority.produce({...a,registry:REGISTRY}),now:()=>NOW,log:()=>{}});
  const snapshot={network:'ethereum',chainId:1,token:TOKEN,scope:null,generatedAt:analysed.generatedAt,records:analysed.records};
  const store={enqueue:async()=>true,getSnapshot:async()=>structuredClone(snapshot)};
  // Engine ON, public OFF: snapshot read, nothing attached.
@@ -283,17 +284,17 @@ test('shadow ledger: durable records survive restart, reruns are throttled, conc
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'arcy-risk-ledger-'));
  try{
   const env={ARC_AUTONOMY_RISK_ENGINE_ENABLED:'1',ARC_VERIFICATION_LEDGER_DIR:dir},sim=chainSim();
-  const first=await shadow.run(report(),{network:'ethereum',env,fetcher:sim.fetcher,now:()=>NOW,log:()=>{}});
+  const first=await analyzer.run(report(),{network:'ethereum',env,fetcher:sim.fetcher,now:()=>NOW,log:()=>{}});
   assert.equal(first.ledger.state,'RECORDED');assert.equal(first.ledger.written,2);
-  const again=await shadow.run(report(),{network:'ethereum',env,fetcher:sim.fetcher,now:()=>NOW+5000,log:()=>{}});assert.equal(again.ledger.throttled,2);
-  shadow._reset();
+  const again=await analyzer.run(report(),{network:'ethereum',env,fetcher:sim.fetcher,now:()=>NOW+5000,log:()=>{}});assert.equal(again.ledger.throttled,2);
+  analyzer._reset();
   const id={metricId:'risk.mint-authority',network:'ethereum',token:TOKEN,scope:null},disk=await ledger.read(id,{env});
   assert.equal(disk.current.reasonCode,'OPERATION_SEMANTICS_UNREVIEWED');assert.equal(disk.lastTrusted,null);assert.ok(ledger.validRecord(disk,id));
-  await Promise.all([1,2,3].map(i=>shadow.run(report(),{network:'ethereum',env,fetcher:chainSim().fetcher,now:()=>NOW+i*120000,log:()=>{}})));
+  await Promise.all([1,2,3].map(i=>analyzer.run(report(),{network:'ethereum',env,fetcher:chainSim().fetcher,now:()=>NOW+i*120000,log:()=>{}})));
   assert.ok(ledger.validRecord(await ledger.read(id,{env}),id));assert.ok(!(await fs.readdir(dir)).some(f=>f.endsWith('.tmp')||f.endsWith('.lock')));
-  shadow._reset();
+  analyzer._reset();
   const broken={directory:()=>dir,record:async()=>{throw Object.assign(Error('x'),{code:'EVIDENCE_LEDGER_WRITE_FAILED'});}};
-  const failed=await shadow.run(report(),{network:'ethereum',env,fetcher:chainSim().fetcher,now:()=>NOW+10*120000,log:()=>{},ledger:broken});
+  const failed=await analyzer.run(report(),{network:'ethereum',env,fetcher:chainSim().fetcher,now:()=>NOW+10*120000,log:()=>{},ledger:broken});
   assert.deepEqual({s:failed.ledger.state,h:failed.ledger.history},{s:'FAILED',h:'NOT_PRESERVED'});
  }finally{await fs.rm(dir,{recursive:true,force:true});}
 });
