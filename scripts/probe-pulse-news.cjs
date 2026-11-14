@@ -11,8 +11,8 @@ async function main() {
   const views = Object.keys(NETWORKS).map(chain => newsView(snapshot, chain, { mode: 'ON_DEMAND' }));
   const result = { commit: process.env.GITHUB_SHA || null, checkedAt: snapshot.checkedAt,
     durationMs: Date.now() - started, httpRequests: snapshot.requests, rpcRequests: 0,
-    sources: snapshot.sources, networks: views.map(({ chain, chainId, freshness, sourceCoverage, projectCards }) =>
-      ({ chain, chainId, freshness, sourceCoverage, projectCards })) };
+    sources: snapshot.sources, networks: views.map(({ chain, chainId, freshness, sourceCoverage, eligible, projectCards }) =>
+      ({ chain, chainId, freshness, sourceCoverage, eligible, projectCards })) };
   console.log(JSON.stringify(result, null, 2));
   for (const view of views) {
     assert.deepEqual(view.projectCards.map(card => card.category), SLOTS);

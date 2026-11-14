@@ -172,7 +172,8 @@ test('Arc uses the original visible date and excludes unrelated article teasers'
   } });
   const completion = '<p>We launched a new transaction router for the Arc mainnet.</p>';
   const historical = await run(html('September 16, 2026', completion));
-  assert.equal(historical.events.length, 0);
+  assert.ok(newsView(historical, 'arc', { now: NOW }).projectCards.every(card => card.event === null),
+    'a partial scan cannot promote old news to a historical card');
   const recent = await run(html('November 10, 2026', completion));
   assert.equal(recent.events[0].publishedAt, '2026-11-10T00:00:00.000Z');
   const unrelated = await run(html('November 10, 2026', '<p>Neutral discussion.</p><h2>Related Posts</h2>' + completion));
@@ -192,4 +193,47 @@ test('scheduled Arc mainnet maintenance uses the official target timestamp', asy
   assert.equal(upcoming.state, 'VERIFIED');
   assert.equal(upcoming.event.targetStatus, 'SCHEDULED');
   assert.equal(upcoming.event.targetAt, '2026-11-16T03:00:00.000Z');
+});
+
+test('official roadmap uses the mainnet quarter, preserves an unconfirmed date, and expires the closed quarter', async () => {
+  const primary = 'https://ethereum.org/roadmap/';
+  const fetcher = async url => {
+    if (url === primary) return new Response('<h1>Ethereum roadmap</h1><section id="releases"><a href="/roadmap/old-fork/">Learn more</a><a href="/roadmap/future-fork/">Learn more</a><a href="https://forkcast.org/upgrade/future-fork">Progress</a></section>');
+    if (url === primary + 'future-fork/') return new Response('<h1>Future Fork</h1><dl><dt>Expected on mainnet</dt><dd>Q4 2026 <span>· Date not yet confirmed</span></dd><dt>Next milestone</dt><dd>Hoodi fork, October 27, 2026</dd></dl><p>Page last update:<!-- --> October 16, 2026</p>');
+    return sourceFixture({ articles: [], advisories: [], releases: [] })(url);
+  };
+  const snapshot = await scanNews({ now: NOW, fetcher });
+  const view = newsView(snapshot, 'ethereum', { now: NOW });
+  assert.equal(view.projectCards[1].event.targetWindow, 'Q4 2026');
+  assert.equal(view.projectCards[1].event.targetStatus, 'TENTATIVE');
+  assert.equal(view.projectCards[1].event.targetAt, null);
+  assert.equal(view.projectCards[1].event.dateBasis, 'SOURCE_UPDATED');
+  assert.match(view.projectCards[1].event.implication, /compatibility/);
+  assert.equal(view.sources.find(row => row.id === 'ethereum-roadmap').diagnostics.accepted, 1);
+  const closed = Date.parse('2027-01-01T00:00:00Z');
+  const next = await scanNews({ now: closed, fetcher });
+  assert.equal(newsView(next, 'ethereum', { now: closed }).projectCards[1].event, null);
+});
+
+test('official terminal records retire a replayed maintenance plan without promoting it to completed news', async () => {
+  const { combineHistory, validHistory } = require('../lib/pulse-projects');
+  const maintenance = { id: 'scheduled123', page_id: 'p89dljhsd44w', status: 'scheduled', created_at: checkDate,
+    name: 'Arc mainnet maintenance notice', components: [{ name: 'Arc Mainnet RPC', group_id: '32lclmtz775v' }],
+    scheduled_for: '2026-11-16T03:00:00Z', incident_updates: [{ status: 'scheduled', body: 'Arc plans to upgrade the mainnet RPC service.' }] };
+  const page = { id: 'p89dljhsd44w', url: 'https://status.arc.io' };
+  const at = Date.parse('2026-11-14T13:00:00Z');
+  const run = (items, now) => scanNews({ now, fetcher: sourceFixture({ overrides: {
+    'arc-incidents': () => Response.json({ page, incidents: [] }),
+    'arc-maintenance': () => Response.json({ page, scheduled_maintenances: items }),
+  } }) });
+  const scheduled = await run([maintenance], NOW);
+  assert.equal(newsView(scheduled, 'arc', { now: NOW }).projectCards[1].state, 'VERIFIED');
+  let history = combineHistory(null, scheduled);
+  const cancelled = await run([{ ...maintenance, status: 'cancelled', updated_at: new Date(at).toISOString() }], at);
+  history = combineHistory(history, cancelled);
+  assert.ok(validHistory(history, cancelled.checkedAt));
+  assert.equal(history.lifecycles[0].status, 'CANCELLED');
+  const oldFeed = await run([maintenance], at + HOUR);
+  assert.equal(newsView(oldFeed, 'arc', { now: at + HOUR, history }).projectCards[1].event, null);
+  assert.equal(newsView(cancelled, 'arc', { now: at, history }).projectCards[0].event, null);
 });
