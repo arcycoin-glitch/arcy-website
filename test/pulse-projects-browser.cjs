@@ -27,7 +27,11 @@ function snapshot(chain, { revision = 'First', checked = NOW, expires = checked 
       category, state: 'VERIFIED', reasonCode: 'ATTRIBUTED_PUBLICATION', event: {
         project: 'Fixture project ' + (index + 1), publisher: 'Fixture publisher', title: `${revision} ${chains[chain][1]} ${category}`,
         summary: 'Primary-source summary fixture.', url: `https://www.arc.io/blog/fixture-${chain}-${index}`, publishedAt: '2026-11-13T07:30:00.000Z',
-        targetAt: index === 1 ? '2026-11-20' : null, targetStatus: index === 1 ? 'SCHEDULED' : null,
+        targetAt: index === 1 && chain !== 'ethereum' ? '2026-11-20' : null,
+        targetWindow: index === 1 && chain === 'ethereum' ? 'Q4 2026' : null,
+        targetStatus: index === 1 ? chain === 'ethereum' ? 'TENTATIVE' : 'SCHEDULED' : null,
+        dateBasis: index === 1 && chain === 'ethereum' ? 'SOURCE_UPDATED' : 'PUBLISHED',
+        implication: 'Operators can use the scoped notice to assess their configuration.',
         evidenceGrade: ['MERGED_CODE', 'OFFICIAL_ANNOUNCEMENT', 'OFFICIAL_ADVISORY'][index],
         incidentStatus: index === 2 ? 'MONITORING' : null, reference: index === 2 ? 'fixture-advisory' : null,
         limitation: ['The merge provides repository evidence. Live deployment remains unconfirmed.', 'The scheduled date may change.',
@@ -125,13 +129,24 @@ async function main() {
         const cards = panel.locator('.pulse-card');
         assert.equal(await cards.count(), 3);
         assert.deepEqual(await cards.locator(':scope > span > span:last-child').allTextContents(), categories);
+        const marks = cards.locator('.pulse-category-glyph');
+        await marks.first().evaluate(img => img.decode());
+        assert.deepEqual(await marks.evaluateAll(items => items.map(img => [img.getAttribute('src'), img.alt,
+          img.parentElement.getAttribute('aria-hidden'), Math.round(img.getBoundingClientRect().width)])),
+          ['achieved', 'upcoming', 'risk-alert'].map(icon => [`/assets/pulse-${icon}.svg`, '', 'true', 25]));
+        assert.equal(await panel.getByText('Why it matters', { exact: true }).count(), 3);
+        if (chain === 'ethereum') {
+          assert.equal(await panel.getByText('Tentative roadmap', { exact: true }).count(), 1);
+          assert.equal(await panel.getByText('Q4 2026', { exact: true }).count(), 1);
+        }
         assert.equal(new Set(await cards.locator('h4').allTextContents()).size, 3);
         assert.equal(await panel.locator('.pulse-take').count(), 1);
         const take = 'Current ' + chains[chain][1] + ' weekly take';
         await panel.locator('.pulse-take p').filter({ hasText: take }).waitFor();
         const upcoming = cards.nth(1);
-        assert.deepEqual(await upcoming.locator('dt').allTextContents(), ['Plan status', 'Announced target', 'Evidence limits']);
-        assert.match(await upcoming.locator('dl').textContent(), /Scheduled.*2026-11-20.*scheduled date may change/);
+        assert.deepEqual(await upcoming.locator('dt').allTextContents(), ['Plan status', 'Announced target', 'Why it matters', 'Evidence limits']);
+        assert.match(await upcoming.locator('dl').textContent(), chain === 'ethereum' ? /Tentative roadmap.*Q4 2026.*scheduled date may change/ :
+          /Scheduled.*2026-11-20.*scheduled date may change/);
         assert.match(await cards.nth(0).locator('footer').textContent(), /Merged code/);
         assert.match(await cards.nth(2).locator('footer').textContent(), /Official advisory or incident report/);
         assert.match(await cards.nth(2).locator('dl').textContent(), /Publisher statusMonitoringSource referencefixture-advisory/);

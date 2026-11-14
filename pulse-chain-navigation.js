@@ -14,7 +14,7 @@
  const chains=[['arc',5042,'Arc'],['ethereum',1,'Ethereum'],['robinhood',4663,'Robinhood Chain']];
  const categories=['ACHIEVED','UPCOMING','RISK_ALERT'];
  const categoryStyles=['pulse-achieved','pulse-upcoming','pulse-risk-alert'];
- const categoryIcons=['✓','↗','!'];
+ const categoryIcons=['achieved','upcoming','risk-alert'];
  const grades={
   ACHIEVED:{PUBLISHED_RELEASE:'Published release',MERGED_CODE:'Merged code',PUBLISHER_REPORTED_COMPLETION:'Publisher-reported completion'},
   UPCOMING:{OFFICIAL_ANNOUNCEMENT:'Official announcement'},
@@ -24,7 +24,9 @@
  const sourcePaths={
   'www.arc.io':/^\/blog\/[a-z0-9-]+\/?$/,
   'blog.ethereum.org':/^\/en\/20\d\d\/\d\d\/\d\d\/[a-z0-9-]+\/?$/,
-  'github.com':/^\/(?:ethereum\/go-ethereum\/(?:releases\/tag\/v[0-9.]+|security\/advisories\/GHSA(?:-[a-z0-9]{4}){3})|Uniswap\/v4-core\/commit\/[0-9a-f]{40})$/,
+  'github.com':/^\/(?:(?:ethereum\/go-ethereum|circlefin\/arc-node)\/(?:releases\/tag\/v[0-9.]+|security\/advisories\/GHSA(?:-[a-z0-9]{4}){3})|Uniswap\/v4-core\/commit\/[0-9a-f]{40})$/,
+  'ethereum.org':/^\/roadmap\/[a-z0-9-]+\/$/,
+  'docs.robinhood.com':/^\/chain\/notices-and-upgrades\/$/,
   'robinhood.com':/^\/(?:us\/en\/)?newsroom\/[a-z0-9-]+\/?$/,
   'status.arc.io':/^\/incidents\/[a-z0-9]{8,20}$/,
   'status.robinhoodchain.offchain.io':/^\/incident\/[a-z0-9-]{3,80}\/?$/,
@@ -41,12 +43,13 @@
  const reasons={
   PARTIAL_SOURCE_COVERAGE:'Some reviewed sources could not be checked.',
   SOURCE_REVIEW_REQUIRED:'Available reports need more evidence.',
+  INSUFFICIENT_EVIDENCE:'The reviewed sources lack details needed to verify an eligible signal.',
   SOURCE_COVERAGE_UNAVAILABLE:'The reviewed sources could not be checked.',
   NO_ELIGIBLE_EVENT:'No eligible event met the evidence requirements in the reviewed sources.',
   SNAPSHOT_EXPIRED:'The previous source check has expired.',
  };
  const titles={FRESH:'Sources checked.',PARTIAL:'Some sources could not be checked.',STALE:'Source check expired.',UNAVAILABLE:'Source coverage unavailable.'};
- const plans={PROPOSED:'Proposed',ANNOUNCED:'Announced',SCHEDULED:'Scheduled'};
+ const plans={PROPOSED:'Proposed',ANNOUNCED:'Announced',SCHEDULED:'Scheduled',TENTATIVE:'Tentative roadmap'};
  const incidents={INVESTIGATING:'Investigating',IDENTIFIED:'Identified',MONITORING:'Monitoring',RESOLVED:'Resolved',ACTIVE:'Active',
   POSTMORTEM:'Postmortem',PUBLISHED:'Advisory published'};
  const POLL_MS=5*60000,RETRY_MS=30000,MAX_RETRY_AFTER_MS=3600000,REQUEST_TIMEOUT_MS=6000;
@@ -83,27 +86,29 @@
     ![event.project,event.publisher,event.title,event.summary,event.limitation].every(cleanText))return null;
   const upcoming=category==='UPCOMING';
   const targetExpires=dateOnly(event.targetAt)?Date.parse(event.targetAt)+86400000:instant(event.targetAt);
-  if(upcoming?(!Object.hasOwn(plans,event.targetStatus)||(event.targetAt!==null&&!Number.isFinite(targetExpires))):
+  const targetWindow=event.targetStatus==='TENTATIVE'&&typeof event.targetWindow==='string'&&/^Q[1-4] 20\d{2}$/.test(event.targetWindow)?event.targetWindow:null;
+  if(upcoming?(!Object.hasOwn(plans,event.targetStatus)||(!targetWindow&&!Number.isFinite(targetExpires))):
       (event.targetStatus!==null||event.targetAt!==null))return null;
   if(upcoming&&event.targetAt!==null&&targetExpires<=Date.now())return null;
   used.add(source);
   const body=node('dl',null,'pulse-project-details');
   if(upcoming){
    body.append(node('dt','Plan status'),node('dd',plans[event.targetStatus]),node('dt','Announced target'));
-   const target=node('dd');target.append(event.targetAt?time(event.targetAt,!dateOnly(event.targetAt)):'No target date stated');body.append(target);
+   const target=node('dd');target.append(targetWindow||time(event.targetAt,!dateOnly(event.targetAt)));body.append(target);
   }
   if(category==='RISK_ALERT'&&Object.hasOwn(incidents,event.incidentStatus))body.append(node('dt','Publisher status'),node('dd',incidents[event.incidentStatus]));
   if(cleanText(event.reference)&&event.reference.length<=100)body.append(node('dt','Source reference'),node('dd',event.reference));
+  if(cleanText(event.implication))body.append(node('dt','Why it matters'),node('dd',event.implication));
   body.append(node('dt','Evidence limits'),node('dd',event.limitation));
   const footer=node('footer',null,'pulse-project-source');
-  const publishedLine=node('small','Published ');publishedLine.append(time(published));
+  const publishedLine=node('small',event.dateBasis==='SOURCE_UPDATED'?'Source updated ':'Published ');publishedLine.append(time(published));
   const link=node('a','VIEW PRIMARY SOURCE');link.href=source;link.target='_blank';link.rel='noopener noreferrer';
   link.setAttribute('aria-label','View '+event.publisher+' primary source');
   footer.append(node('small',grades[category][grade]+' · '+event.publisher),publishedLine);
   const alsoReported=Array.isArray(event.corroboratingPublishers)?event.corroboratingPublishers.slice(0,3).filter(cleanText):[];
   if(alsoReported.length)footer.append(node('small','Also reported by '+alsoReported.join(', ')));
   footer.append(link);
-  return [node('small',event.project,'pulse-owner'),node('h4',event.title),node('p',event.summary,'pulse-project-purpose'),body,footer];
+  return [node('small',event.project+(event.historical===true?' · Historical context':''),'pulse-owner'),node('h4',event.title),node('p',event.summary,'pulse-project-purpose'),body,footer];
  }
  function renderProjects(index,{projectCards=[],freshness='UNAVAILABLE',lastSuccessfulAt=null,checkedAt=null}={},status){
   const panel=panels[index],grid=panel.querySelector('.pulse-grid'),desc=panel.querySelector('.head p'),used=new Set();
@@ -123,7 +128,8 @@
    if(!parts&&category==='RISK_ALERT'&&state!=='LOADING')content.push(node('p','Coverage is limited to reviewed sources.'));
    card.dataset.pulseState=state;
    if(state==='LOADING')card.setAttribute('aria-busy','true');else card.removeAttribute('aria-busy');
-   const label=node('span'),icon=node('span',categoryIcons[slot],'v8-pulse-icon');icon.setAttribute('aria-hidden','true');
+   const label=node('span'),icon=node('span',null,'v8-pulse-icon');icon.setAttribute('aria-hidden','true');
+   const glyph=node('img');glyph.className='pulse-category-glyph';glyph.src='/assets/pulse-'+categoryIcons[slot]+'.svg';glyph.alt='';glyph.width=25;glyph.height=25;icon.append(glyph);
    label.append(icon,node('span',category));
    const children=[label,...content],art=card.querySelector(':scope > img[aria-hidden="true"]');
    if(art)children.push(art);
@@ -207,6 +213,7 @@
  }
  skeleton(panels[1],'Ethereum');skeleton(panels[2],'Robinhood Chain');
  if(projectsMode){
+  for(const panel of panels)panel.querySelector('.pulse-take b')?.append(node('small',' · Weekly edition context'));
   panels.forEach((panel,index)=>{
    const grid=panel.querySelector('.pulse-grid');
    grid.replaceChildren(...categoryStyles.map(cls=>node('article',null,'pulse-card pulse-project-card '+cls)));

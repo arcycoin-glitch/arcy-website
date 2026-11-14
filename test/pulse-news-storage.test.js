@@ -46,7 +46,7 @@ async function fixture(t, scan) {
   return {
     root, env, now, advance(ms) { time += ms; },
     store: () => createStore({ env, now, scan }),
-    file: path.join(root, 'pulse-news.v1.json')
+    file: path.join(root, 'pulse-news.v2.json')
   };
 }
 
@@ -87,7 +87,7 @@ test('one worker cohort reserves cadence before scanning and survives restart', 
   proceed();
   assert.deepEqual(await concurrent, await running);
   assert.equal((await first.refreshIfDue()), null);
-  assert.deepEqual(await fs.readdir(root), ['pulse-news.v1.json']);
+  assert.deepEqual(await fs.readdir(root), ['pulse-news.v2.json']);
 
   const state = unpack(await restarted.latest(), PUBLIC, now());
   assert.equal(state.attempt, 'CHECKED');
@@ -117,6 +117,26 @@ test('a corrupt or wrong-key publication is rejected and an incomplete newer ato
   advance(INTERVAL_MS);
   await store().refreshIfDue();
   assert.equal(unpack(await fresh.latest(), PUBLIC, now()).snapshot.checkedAt, new Date(now()).toISOString());
+});
+
+test('V4 reads a signed V3 reservation and preserves the old durable file during migration', async t => {
+  const { root, store, now, advance } = await fixture(t, checkedEthereum);
+  const snapshot = await checkedEthereum({ now: now() });
+  const legacy = { schemaVersion: 1, attempt: 'CHECKED', attemptedAt: snapshot.checkedAt,
+    nextAttemptAt: new Date(now() + INTERVAL_MS).toISOString(), lastSuccessfulAt: { arc: null, ethereum: snapshot.checkedAt, robinhood: null },
+    snapshot, lastVerifiedSnapshot: null };
+  const pathV3 = path.join(root, 'pulse-news.v1.json');
+  const original = JSON.stringify(signature(legacy));
+  await fs.writeFile(pathV3, original);
+  assert.equal(unpack(await store().latest(), PUBLIC, now()).schemaVersion, 1);
+  assert.equal(await store().refreshIfDue(), null);
+  advance(INTERVAL_MS);
+  await store().refreshIfDue();
+  const migrated = unpack(await store().latest(), PUBLIC, now());
+  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(migrated.history.sourceHealth.find(row => row.id === 'ethereum-foundation').lastSuccessfulAt, migrated.attemptedAt);
+  assert.equal(await fs.readFile(pathV3, 'utf8'), original);
+  assert.deepEqual(await store().latest({ legacy: true }), JSON.parse(original));
 });
 
 test('outage and hard failure preserve per-chain success and cooldown through restart', async t => {
