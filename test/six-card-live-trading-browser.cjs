@@ -70,6 +70,14 @@ try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j
     });
     for(const {header,cell} of columns)assert.ok(Math.abs(header-cell)<2,'header lines up with row at '+width+'px');
     assert.equal(await page.locator(card+' .lt-wallet').count(),4,'wallet shown without a Holders tab');
+    const walletLinks=await page.locator(card+' .lt-wallet-cell a.lt-wallet').evaluateAll(nodes=>nodes.map(a=>({label:a.textContent,href:a.href,target:a.target,rel:a.rel,aria:a.getAttribute('aria-label')})));
+    assert.equal(walletLinks.length,4,'verified wallets clickable');
+    for(const item of walletLinks){
+     assert.match(item.label,/^0x…[a-f0-9]{4}$/i,'compact 0x…last4 wallet');
+     assert.match(item.href,/^https:\/\/[^/]+\/address\/0x[a-f0-9]{40}$/i,'chain wallet explorer target');
+     assert.equal(item.target,'_blank');assert.match(item.rel,/noopener/);
+     assert.match(item.aria,/Open wallet 0x[a-f0-9]{40} in block explorer/i);
+    }
     assert.equal(await page.locator(card+' .lt-scope, '+card+' .description, '+card+' .lt-tx, '+card+' .lt-pool').count(),0,'no technical fields in compact feed');
     assert.ok(await page.locator(card+' .lt-table-wrap').evaluate(e=>e.scrollWidth<=e.clientWidth+1),'no horizontal trade tape scroll');
   }else{
@@ -83,5 +91,5 @@ try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no page overflow at '+width);
   assert.deepEqual(errors,[]);await page.close();views++;
  }
- console.log('PASS: six-card navigation + Live Trading at 320/390/800/1440 px on arc/ethereum/robinhood ('+views+' views): order, 1/6 positions, next/previous/click, one desktop row, equal heights, BUY/SELL colours, https links, unsupported state, 20-check tally, aligned 4-column headings, no overflow or console errors. Mocked fixtures only.');
+ console.log('PASS: six-card navigation + Live Trading at 320/390/800/1440 px on arc/ethereum/robinhood ('+views+' views): order, 1/6 positions, next/previous/click, one desktop row, equal heights, BUY/SELL colours, https links, unsupported state, 20-check tally, aligned 4-column headings, shortened clickable wallets, no overflow or console errors. Mocked fixtures only.');
 }finally{await browser?.close();server.kill();}})().catch(e=>{console.error(e);process.exit(1);});
