@@ -140,6 +140,50 @@ test('fewer than 10 qualifying tokens: the list is shorter, never padded',async(
  const out=await run('arc',specs);
  assert.deepEqual(out.tokens.map(t=>t.symbol).sort(),['ONE','TWO']);
 });
+test('Arc: low-volume +33% mover appears separately, never ranked or assigned a safety score',async()=>{
+ const specs=[
+  {a:addr(545),s:'CORE',vol:26000,liq:55000,chg:3,age:5,buys:80,sells:70},
+  {a:addr(546),s:'MOVER',vol:2400,liq:29000,chg:33,age:5,buys:35,sells:25},
+  {a:addr(547),s:'FALL',vol:2200,liq:28000,chg:-27,age:6,buys:20,sells:14},
+  {a:addr(548),s:'LOWLIQ',vol:2100,liq:7000,chg:60,age:5},
+  {a:addr(549),s:'YOUNG',vol:2200,liq:30000,chg:45,age:.25},
+  {a:addr(550),s:'FLAT',vol:2100,liq:30000,chg:12,age:5}
+ ];
+ const out=await run('arc',specs);
+ assert.deepEqual(out.tokens.map(t=>t.symbol),['CORE'],'minimum volume remains a hard ranking floor');
+ assert.deepEqual(out.watchlist.map(t=>t.symbol),['MOVER','FALL']);
+ assert.equal(out.watchlist[0].change24hPct,33);
+ assert.equal(out.watchlist[0].volume24hUsd,2400);
+ assert.equal(out.watchlist[0].watchReason,'VOLUME_BELOW_NETWORK_FLOOR');
+ assert.equal(out.watchlist[0].promoted,false);
+ assert.equal(out.watchlist[0].discovery,null,'no Discovery Score for excluded candidates');
+ assert.equal(out.watchlist[0].fields.change24hPct.status,'SOURCE_REPORTED');
+ assert.equal(out.watchlistPolicy.volumeFloorUsd,5000);
+ assert.equal(out.watchlistPolicy.liquidityFloorUsd,20000);
+ assert.equal(out.usage.geckoterminal,4,'no extra external source requests');
+ assert.equal(out.usage.dexscreener,0,'no new DEX calls when the approval flag is OFF');
+ assert.equal(out.discovery.excludedCounts.INELIGIBLE_AFTER_VERIFICATION>=4,true);
+ const eth=await run('ethereum',[{a:addr(545),s:'CORE',vol:300000,liq:400000}]);
+ assert.equal(Object.hasOwn(eth,'watchlist'),false,'Arc watchlist never affects other chains');
+});
+test('Arc: conflicting 24h change cannot enter observed movers list',async()=>{
+ const specs=[
+  {a:addr(610),s:'CORE',vol:35000,liq:55000,chg:2,age:5},
+  {a:addr(611),s:'MOVER',vol:2400,liq:29000,chg:33,age:5}
+ ];
+ const pairs=specs.map((x,i)=>({chainId:'arc',pairAddress:addr(70000+i),
+  baseToken:{address:x.a},quoteToken:{address:addr(900)},priceUsd:'0.5',
+  volume:{h24:x.vol},liquidity:{usd:x.liq},priceChange:{h24:x.s==='MOVER'?-7:2},
+  fdv:1000000,pairCreatedAt:T0-5*DAY}));
+ const fetcher=router([[/tokens\\/multi/,()=>resp(multi('arc',specs))],
+  [/coingecko\\.com/,()=>resp(page('arc',specs))],
+  [/api\\.dexscreener\\.com/,()=>resp(pairs)]]);
+ const out=await radar.load('arc',{env:{...ENV,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher,
+  now:()=>T0,disableCache:true});
+ assert.deepEqual(out.watchlist,[],'provider disagreement is never turned into a mover');
+ assert.ok(!out.tokens.some(x=>x.symbol==='MOVER'),'low volume is still excluded');
+ assert.equal(out.usage.dexscreener,1,'shared existing cross-check request');
+});
 test('Arc rescues legitimate candidates using token-level totals without lowering final verification gates or raising provider calls',async()=>{
  const specs=[
   {a:addr(510),s:'EXISTING',vol:90000,liq:85000,buys:100,sells:100},
