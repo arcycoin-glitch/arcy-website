@@ -1,6 +1,6 @@
 'use strict';
 // Operational status: Search API availability, durable Holder worker heartbeat, publication freshness and
-// runtime versions. Read-only and cheap: at most four authenticated GETs to the existing worker telemetry routes
+// runtime versions. Read-only and cheap: at most two authenticated GETs to the existing worker telemetry routes
 // (no live provider probes: ?probe=0), coalesced and cached per instance, so public traffic cannot amplify worker
 // load. No blockchain RPC, explorer or market request is made. Never returns URLs, credentials, token addresses
 // or queue contents.
@@ -26,13 +26,12 @@ async function collect(fetcher=fetch,now=Date.now()){
  const runtime={commit:process.env.VERCEL_GIT_COMMIT_SHA||null,
   environment:process.env.VERCEL_ENV==='production'&&process.env.VERCEL==='1'?'production':process.env.VERCEL==='1'?'preview-or-build':'local'};
  if(!base)return evaluate({diagnostics:{notConfigured:true},runtime},now);
- const [diagnostics,pulseAudit,networkPulseAudit,unlockAudit]=await Promise.all([
-  get(base,'/holder/rpc-diagnostics?probe=0',fetcher),get(base,'/pulse/audit',fetcher),
-  get(base,'/pulse/networks/audit',fetcher),get(base,'/unlocks/audit',fetcher)]);
+ const [diagnostics,unlockAudit]=await Promise.all([
+  get(base,'/holder/rpc-diagnostics?probe=0',fetcher),get(base,'/unlocks/audit',fetcher)]);
  // An empty audit object means the route exists but nothing was ever recorded.
  const norm=a=>a&&!a.unreachable&&!Object.keys(a).length?null:a;
  return evaluate({diagnostics:diagnostics?.unreachable?diagnostics:diagnostics?.ok===true?diagnostics:{worker:null},
-  pulseAudit:norm(pulseAudit),networkPulseAudit:norm(networkPulseAudit),unlockAudit:norm(unlockAudit),runtime},now);
+  unlockAudit:norm(unlockAudit),runtime},now);
 }
 async function current(fetcher){
  const now=Date.now();

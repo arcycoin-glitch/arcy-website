@@ -55,7 +55,7 @@ The website brings together ARCY's project identity and its research tools:
 
 **[Open ARCY SEARCH →](https://www.arcyusdc.xyz/#search)**
 
-The original ARCY site also includes its Burn dashboard, Unlocks, Arc Pulse, Research and Swap navigation.
+The original ARCY site also includes its Burn dashboard, Unlocks, Research and Swap navigation.
 
 > **Market data status:** Commercial-use permissions for some third-party market feeds are still being assessed. Live Beta preserves the 4H / 1D / 1W / 30D chart interface, but price candles and unsupported market metrics remain pending until an approved source is connected. This does not prevent on-chain contract research.
 

@@ -23,7 +23,7 @@ test('mobile browsers receive visible fallback and accessible manual playback',(
 });
 test('all section transitions retain reduced-motion support and reveal without hidden layout',()=>{
  const script=read('premium.js'),css=read('premium.css');
- for(const id of ['hero','search','burn','unlocks','pulse','buy'])
+ for(const id of ['hero','search','burn','unlocks','buy'])
   assert.match(script,new RegExp("'"+id+"'"));
  assert.match(script,/IntersectionObserver/);
  assert.match(script,/arcy-section-arrived/);

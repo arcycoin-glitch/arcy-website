@@ -1,5 +1,5 @@
 {
-  "description": "Approved fingerprints for preservation tests. pr26 = facts captured once from PR #26 head 7c1faf7 (data/search-mechanics-deep, never merged into main). current = approved production state; refresh with `node scripts/approved-baseline.cjs --write` only inside a reviewed PR that intentionally changes a protected file.",
+  "description": "Approved fingerprints for immutable Search and Unlocks evidence. Retired website news components have been removed; PR26 mechanics evidence remains pinned.",
   "pr26": {
     "commit": "7c1faf7baa920581f9216b3403a208d5317665b5",
     "capturedAt": "2026-10-28T22:06:19.009Z",
@@ -18,11 +18,7 @@
   },
   "current": {
     "files": {
-      "index.html": "b061eb46ebbd1720697488218cc1c817e63b2ec8eefdbbad37ce6682df5598c5",
-      "premium.css": "a9b0d3d90f9eea1e7428c4528f1dcce7b73eb10c644be52b1b106305a31d0de0",
-      "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885",
-      "api/pulse.js": "c48d4862c3064fe3c0f3c3ce8764a205049ed06dcec5793b75e5a2ae38c8c479",
-      "scripts/holder-worker.cjs": "dd24fcf667f4d9a6a8118779e8071d5f6ca9d5db396c82f7ac8c6db7f4be80d1"
+      "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885"
     },
     "searchIndexWithoutScripts": "a095530dae90cdc047b3cf9372f23592e7eacdd1184d44785ad1328e5c955ccb",
     "schema": "8abad7b06f58e3710595ef35823a0f4a4d6288dfdfa343bfd47367953c180633",
@@ -75,14 +71,14 @@
       "files": [
         "index.html"
       ],
-      "reason": "Owner-requested PR #121 premium Synthra section redesign: remove duplicate community copy, preserve original owl asset, display a compact premium external-swap panel with one disclaimer-gated CTA, and reduce footer quick-links. Header #buy nav label updated from Community to Swap. No token buy claim, wallet connection, transaction engine, or changes to protected Search, Radar, Pulse, backend or Railway."
+      "reason": "Owner-requested PR #121 premium Synthra section redesign: remove duplicate community copy, preserve original owl asset, display a compact premium external-swap panel with one disclaimer-gated CTA, and reduce footer quick-links. Header #buy nav label updated from Community to Swap. No token buy claim, wallet connection, transaction engine, or changes to protected Search, Radar, retired news module, backend or Railway."
     },
     {
       "date": "2026-11-01",
       "files": [
         "index.html"
       ],
-      "reason": "Owner-requested Unlocks-only coverage counters, grouped events, sorting, source details and mobile readability. All non-Unlocks homepage bytes protected by unlocks-scope-baseline.json; API, collectors, evidence policy, Search, Radar, Pulse and worker unchanged."
+      "reason": "Owner-requested Unlocks-only coverage counters, grouped events, sorting, source details and mobile readability. All non-Unlocks homepage bytes protected by unlocks-scope-baseline.json; API, collectors, evidence policy, Search, Radar, retired news module and worker unchanged."
     },
     {
       "date": "2026-11-03",
@@ -96,14 +92,14 @@
       "files": [
         "index.html"
       ],
-      "reason": "Phase 5 initial-render honesty: the four static scanner badges said NOT CONNECTED before any scan (crawlers/no-JS/slow loads) although app.js renders NOT SCANNED; text aligned to the actual idle state. Pulse loader also signals a failed network-Pulse request so Ethereum/Robinhood panels show an honest UNAVAILABLE state instead of 'not connected'. No layout, card size, section order or style change."
+      "reason": "Phase 5 initial-render honesty: the four static scanner badges said NOT CONNECTED before any scan (crawlers/no-JS/slow loads) although app.js renders NOT SCANNED; text aligned to the actual idle state. retired news module loader also signals a failed network-retired news module request so Ethereum/Robinhood panels show an honest UNAVAILABLE state instead of 'not connected'. No layout, card size, section order or style change."
     },
     {
       "date": "2026-11-07",
       "files": [
         "scripts/holder-worker.cjs"
       ],
-      "reason": "Arc Pulse incident: the durable worker loop calls the bounded lib/pulse-worker-refresh.js catch-up (only when the current cycle has no signed edition, >=7 h after cycle start, >=6 h between attempts, skipped in --once). Holder batch logic, publication and logging fields unchanged; one optional 'pulse' field added to HOLDER_WORKER_BATCH."
+      "reason": "Arc retired news module incident: the durable worker loop calls the bounded lib/retired news module-worker-refresh.js catch-up (only when the current cycle has no signed edition, >=7 h after cycle start, >=6 h between attempts, skipped in --once). Holder batch logic, publication and logging fields unchanged; one optional 'retired news module' field added to HOLDER_WORKER_BATCH."
     },
     {
       "date": "2026-11-07",

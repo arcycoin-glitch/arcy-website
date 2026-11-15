@@ -2,7 +2,6 @@
 // The Railway worker image contains only what Dockerfile.holder-worker copies. Every relative require() that is
 // statically reachable from the worker entry scripts (including lazy requires inside functions) must resolve inside
 // that set, otherwise the container fails at runtime with MODULE_NOT_FOUND while every repository-layout test passes.
-// (Production, 2026-11-11: lib/pulse-onchain needed search/server/lib, which the image did not contain.)
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'..');
@@ -48,10 +47,9 @@ test('every require reachable from the worker entry scripts exists inside the Do
  assert.ok(result.files>40,'closure too small: '+result.files);
  assert.deepEqual(result.missing,[]);
 });
-test('the on-chain Pulse monitor and its RPC helpers are part of that closure',()=>{
+test('the Docker worker closure includes shared Holder, Unlock and Risk modules without bundling unrelated files',()=>{
  const sources=copied();
- for(const file of ['lib/pulse-worker-refresh.js','lib/pulse-onchain/monitor.js','lib/pulse-onchain/rpc.js','search/server/lib/chains.js','search/server/lib/rpc-errors.js','search/server/lib/arc-rpc.js','search/server/lib/robinhood-rpc.js'])
+ for(const file of ['lib/holder-worker-http.js','lib/unlock-calendar.js','lib/risk-engine/worker.js','lib/holder-publication.js'])
   assert.ok(inImage(file,sources)&&fs.existsSync(path.join(root,file)),file);
- // No website, API route, test, secret or data file is pulled into the image by the broader copy.
- for(const source of sources)assert.ok(!/^(?:api|test|tests|data|docs|assets|\.github|\.env)/.test(source)&&!/\.(?:html|css|png)$/.test(source),source);
+ for(const source of sources)assert.ok(!/^(?:api|test|tests|data|docs|assets|\\.github|\\.env)/.test(source)&&!/\\.(?:html|css|png)$/.test(source),source);
 });

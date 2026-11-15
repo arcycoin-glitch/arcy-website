@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
 const os=require('node:os');
 const path=require('node:path');
-const transport=require('../lib/pulse-onchain/rpc');
+const transport=require('../lib/verification/rpc-transport');
 const ledger=require('../lib/verification/provider-watchdog-ledger');
 const watchdog=require('../lib/verification/provider-watchdog');
 

@@ -4,16 +4,16 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.join(__dirname,'..');
 const appSource=fs.readFileSync(path.join(root,'site-refresh.js'),'utf8');
 const gatewaySource=fs.readFileSync(path.join(root,'api/search/index.js'),'utf8');
-function scheduler({archive=false}={}){
+function scheduler(){
  const listeners={},calls=[],timers=[];
  let now=Date.parse('2026-10-15T12:00:00Z'),visible='visible',online=true,finish;
  const fn=name=>(arg)=>{calls.push([name,arg]);return name==='unlocks'?new Promise(resolve=>{finish=resolve}):Promise.resolve()};
- const window={loadBurn:fn('burn'),loadArcPrices:fn('market'),loadUnlocks:fn('unlocks'),loadPulse:fn('pulse'),
+ const window={loadBurn:fn('burn'),loadArcPrices:fn('market'),loadUnlocks:fn('unlocks'),
   addEventListener(k,cb){listeners['window:'+k]=cb}};
  const document={get visibilityState(){return visible},addEventListener(k,cb){listeners['doc:'+k]=cb}};
  const navigator={get onLine(){return online}};
- const clock={now:()=>now},location={search:archive?'?pulseEdition=2':''};
- vm.runInNewContext(appSource,{document,window,navigator,location,Date:clock,URLSearchParams,Promise,
+ const clock={now:()=>now};
+ vm.runInNewContext(appSource,{document,window,navigator,Date:clock,URLSearchParams,Promise,
   setInterval(cb,ms){timers.push([cb,ms]);return 1}});
  return {tick:t=>{now=t;window.ARCY_AUTO_REFRESH.check(t)},calls,window,listeners,timers,
   get finishing(){return finish},set visible(v){visible=v},set online(v){online=v}};
@@ -31,16 +31,15 @@ test('refresh script uses bounded intervals and performs NO duplicate initial fe
  assert.deepEqual(x.calls.map(x=>x[0]),['burn','market','burn','market','unlocks']);
  assert.equal(x.calls[4][1].silent,true,'background unlock refresh preserves active pagination');
  x.tick(start+3601000);await flush();
- assert.ok(x.calls.some(x=>x[0]==='pulse'),'Pulse refreshes after 1h');
+ assert.ok(x.calls.every(x=>['burn','market','unlocks'].includes(x[0])),'Only retained data loaders refresh');
  x.finishing();await flush();
  assert.equal(x.window.ARCY_AUTO_REFRESH.status().unlocks.pending,false);
 });
-test('background, offline, archived Pulse and pending requests do not thrash providers',async()=>{
- const start=Date.parse('2026-10-15T12:00:00Z'),x=scheduler({archive:true});
+test('background, offline and pending requests do not thrash providers',async()=>{
+ const start=Date.parse('2026-10-15T12:00:00Z'),x=scheduler();
  x.visible='hidden';x.tick(start+7200000);await flush();assert.equal(x.calls.length,0);
  x.visible='visible';x.online=false;x.tick(start+7200000);await flush();assert.equal(x.calls.length,0);
  x.online=true;x.listeners['window:focus']();await flush();assert.equal(x.calls.length,3);
- assert.ok(!x.calls.some(x=>x[0]==='pulse'),'archive edition must never be overwritten');
  x.tick(start+7201000);await flush();assert.equal(x.calls.length,3,'timer cannot refetch immediately');
  x.tick(start+7900000);await flush();
  const initialUnlocks=x.calls.filter(x=>x[0]==='unlocks');
@@ -49,7 +48,7 @@ test('background, offline, archived Pulse and pending requests do not thrash pro
 });
 test('site keeps exactly the approved sections and exposes refresh handlers',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
- for(const method of ['loadUnlocks','loadPulse'])
+ for(const method of ['loadUnlocks'])
   assert.match(html,new RegExp('async function '+method+'\\('));
  assert.match(html,/\/site-refresh\.js/);
  assert.match(html,/if\(!silent\)unlockPage=1/);
