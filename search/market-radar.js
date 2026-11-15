@@ -342,6 +342,8 @@ const change24hReason=item=>{
    const logoHosts=new Set(['coin-images.coingecko.com','assets.coingecko.com','assets.geckoterminal.com','cdn.dexscreener.com','dd.dexscreener.com']);
    let logoUrl=null;
    try{const candidate=new URL(item.logo?.url);if(candidate.protocol==='https:'&&logoHosts.has(candidate.hostname))logoUrl=candidate.href;}catch{}
+   // Data Engine V2: Search's exact-contract artwork (same origin, fixed paths only) is reused as-is.
+   if(!logoUrl&&typeof item.logo?.url==='string'&&/^\/search\/assets\/token-icons\/[a-z0-9-]+\.svg$|^\/assets\/hero-arcy\.png$/.test(item.logo.url))logoUrl=item.logo.url;
    const logoWrap=el('span','arcy-radar-overview-logo-wrap');
    if(logoUrl){
     const logo=el('img','arcy-radar-overview-token-logo');

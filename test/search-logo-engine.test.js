@@ -151,3 +151,17 @@ test('both approved UIs include source-validated art and preserve fallback witho
  assert.match(detail,/art\.addEventListener\('error',\(\)=>art\.remove\(\)/);
  assert.match(detail,/image\.addEventListener\('error',\(\)=>\{image\.remove\(\);avatar\.classList\.remove\('has-logo'\)\}/);
 });
+test('Data Engine V2 wrong-logo security: one image URL shared by different contracts is withheld from all of them',async()=>{
+ const P1='0x'+'1'.repeat(40),P2='0x'+'2'.repeat(40),P3='0x'+'3'.repeat(40),OWN='https://cdn.dexscreener.com/cms/images/own-logo.png';
+ const fetchImpl=async url=>{if(url===ICON||url===OWN)return imageResponse();throw Error('unexpected '+url);};
+ // three "POLL" search results on Ethereum: two contracts reuse the same artwork, one has its own
+ const rows=[{network:'ethereum',chainId:1,address:P1,symbol:'POLL',logoUrl:ICON},{network:'ethereum',chainId:1,address:P2,symbol:'POLL',logoUrl:ICON},
+  {network:'ethereum',chainId:1,address:P3,symbol:'POLL',logoUrl:OWN},{network:'ethereum',chainId:1,address:'0x1f9840a85d5af5bf1d1762f925bdaddc4201f984',symbol:'UNI'}];
+ const out=await logos.enhance('ethereum',rows,{fetchImpl});
+ assert.equal(out[0].logoUrl,null);assert.equal(out[1].logoUrl,null);assert.equal(out[0].logoWithheld,'SHARED_BY_MULTIPLE_CONTRACTS');
+ assert.equal(out[2].logoUrl,OWN,'a contract with its own artwork keeps it');
+ assert.equal(out[3].logoUrl,'/search/assets/token-icons/uni.svg','local exact-contract art is exempt');
+ // the same contract listed twice is not a conflict
+ const same=await logos.enhance('ethereum',[{network:'ethereum',chainId:1,address:P3,logoUrl:OWN},{network:'ethereum',chainId:1,address:P3.toUpperCase().replace('0X','0x'),logoUrl:OWN}],{fetchImpl});
+ assert.equal(same[0].logoUrl,OWN);assert.equal(same[1].logoUrl,OWN);
+});

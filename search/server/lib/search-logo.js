@@ -114,6 +114,13 @@ async function enhance(network,items,{fetchImpl=global.fetch,now=Date.now()}={})
    provider?'Source-indexed decorative token image; NOT issuer verification':null;
   return {...item,logoUrl:logo,logoSource};
  });
+ // Data Engine V2 identity rule: logo identity is chainId + normalized contract. A third-party image URL that this result set
+ // assigns to MORE THAN ONE distinct contract (e.g. several "POLL" contracts on Ethereum) is a copy-cat signal: it is removed from
+ // all of them. A wrong logo is worse than no logo; the UI falls back to the ticker letter. Local exact-contract art is exempt.
+ const owners=new Map();
+ for(const item of decorated){if(!item.logoUrl||item.logoUrl.startsWith('/')||!ADDRESS.test(item.address||''))continue;
+  const k=item.logoUrl;if(!owners.has(k))owners.set(k,new Set());owners.get(k).add((item.chainId??cfg.chainId)+':'+item.address.toLowerCase());}
+ for(const item of decorated)if(item.logoUrl&&!item.logoUrl.startsWith('/')&&owners.get(item.logoUrl)?.size>1){item.logoUrl=null;item.logoSource=null;item.logoWithheld='SHARED_BY_MULTIPLE_CONTRACTS';}
  // Optional art is bounded independently; slow thumbnails cannot hold data
  // for an unbounded period. Exact-contract local CC0 files need no hotlink.
  const deadline=Date.now()+1000;let cursor=0;
