@@ -56,6 +56,25 @@ function classify(f,{card='',now=Date.now()}={}){
  if(stale)return {evidenceClass:'STALE',evidenceClassBasis:stale,provenance:{...base,underlyingClass:cls,underlyingBasis:why,failureReason:null}};
  return {evidenceClass:cls,evidenceClassBasis:why,provenance:{...base,failureReason:null}};
 }
+// ── Data Engine V2 unified evidence state (additive; `evidenceClass` is unchanged) ──────────────────────────────────────
+// VERIFIED · PARTIAL_EVIDENCE · SOURCE_DISAGREEMENT · STALE · NOT_VERIFIED · NOT_SUPPORTED.
+// Two providers that serve the SAME underlying dataset are one source, not two: their agreement is PARTIAL_EVIDENCE.
+const STATES=Object.freeze(['VERIFIED','PARTIAL_EVIDENCE','SOURCE_DISAGREEMENT','STALE','NOT_VERIFIED','NOT_SUPPORTED']);
+const SAME_ORIGIN=Object.freeze([['geckoterminal','coingecko'],['blockscout','arcscan','explorer.robinhood.com'],['dexscreener','dex screener']]);
+const originOf=p=>{const k=String(p||'').toLowerCase();const i=SAME_ORIGIN.findIndex(g=>g.some(x=>k.includes(x)));return i<0?k:'group:'+i;};
+const independent=providers=>new Set((providers||[]).map(originOf)).size>=2;
+const UNSUPPORTED=/UNSUPPORTED|NOT_SUPPORTED|NO_SUPPORTED|CHAIN_NOT_COVERED|NOT_APPLICABLE/;
+function evidenceState(field,r){
+ if(r.evidenceClass==='STALE')return ['STALE',r.evidenceClassBasis];
+ if(field?.crossCheck?.state==='DISAGREE'||field?.reasonCode==='SOURCES_DISAGREE'||r.provenance?.conflict)return ['SOURCE_DISAGREEMENT','independent sources report different values'];
+ if(r.evidenceClass==='NOT_VERIFIED'){
+  const code=String(r.provenance?.failureReason||'');
+  return UNSUPPORTED.test(code)?['NOT_SUPPORTED',code]:['NOT_VERIFIED',code||'no usable value'];
+ }
+ if(r.evidenceClass==='ON_CHAIN_VERIFIED')return ['VERIFIED','on-chain'];
+ if(r.evidenceClass==='CROSS_VERIFIED')return independent(field?.crossCheck?.providers)?['VERIFIED','independent providers agree']:['PARTIAL_EVIDENCE','providers agree but share the same underlying dataset'];
+ return ['PARTIAL_EVIDENCE','single source; not independently confirmed'];
+}
 // A licensing gate on a secondary provider is an operator matter; the user needs to know what is (not) established.
 // Only the display sentence changes: reasonCode is kept and the original operator text moves to reasonDetail.
 const PLAIN=Object.freeze({PROVIDER_DISABLED_LICENSE_UNVERIFIED:'Not established from verified source code or on-chain reads; no approved secondary source is enabled.'});
@@ -66,18 +85,19 @@ function plainReason(field){
 }
 function annotate(report,{now=Date.now()}={}){
  if(!report?.cards||typeof report.cards!=='object')return report;
- const summary={},total={};for(const c of CLASSES)total[c]=0;let unlabeled=0,lineageCapped=0;
+ const summary={},total={},states={};for(const c of CLASSES)total[c]=0;for(const s of STATES)states[s]=0;let unlabeled=0,lineageCapped=0;
  for(const [card,body] of Object.entries(report.cards)){
   const row={};for(const c of CLASSES)row[c]=0;
   for(const [key,field] of Object.entries(body?.fields||{})){
    if(!field||typeof field!=='object')continue;
    plainReason(field);
    const r=classify(field,{card,now});field.evidenceClass=r.evidenceClass;field.evidenceClassBasis=r.evidenceClassBasis;field.provenance=r.provenance;
+   const [st,stWhy]=evidenceState(field,r);field.evidenceState=st;field.evidenceStateBasis=stWhy;states[st]++;
    row[r.evidenceClass]++;total[r.evidenceClass]++;if(r.provenance.lineage&&!r.provenance.lineage.onchainOnly)lineageCapped++;if(r.provenance.failureReason==='UNSPECIFIED_NOT_VERIFIED')unlabeled++;
   }
   summary[card]=row;
  }
- report.evidenceSummary={classes:CLASSES,byCard:summary,total,unlabeledFailures:unlabeled,lineageCapped,generatedAt:new Date(now).toISOString()};
+ report.evidenceSummary={classes:CLASSES,byCard:summary,total,unlabeledFailures:unlabeled,lineageCapped,states:STATES,stateTotal:states,generatedAt:new Date(now).toISOString()};
  return report;
 }
-module.exports={CLASSES,LIMITS,classify,annotate,plainReason,PLAIN};
+module.exports={CLASSES,STATES,LIMITS,classify,annotate,plainReason,PLAIN,evidenceState,independent};

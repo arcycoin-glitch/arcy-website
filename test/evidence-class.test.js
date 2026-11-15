@@ -36,3 +36,19 @@ test('annotate is additive: values/status untouched; summary counts and unlabele
  assert.deepEqual(report.evidenceSummary.byCard.holders,{ON_CHAIN_VERIFIED:1,CROSS_VERIFIED:0,SINGLE_SOURCE:0,STALE:0,NOT_VERIFIED:1});
  assert.equal(report.evidenceSummary.unlabeledFailures,1);
 });
+test('Data Engine V2 unified evidence states; same-origin providers are not independent',()=>{
+ const st=f=>{const r=ec.classify(f,{card:'supply'});return ec.evidenceState(f,r)[0];};
+ assert.equal(st({value:1,status:'ON_CHAIN'}),'VERIFIED');
+ assert.equal(st({value:1,status:'SOURCE_REPORTED',crossCheck:{state:'AGREE',providers:['GeckoTerminal','DEX Screener']}}),'VERIFIED');
+ assert.equal(st({value:1,status:'SOURCE_REPORTED',crossCheck:{state:'AGREE',providers:['GeckoTerminal','CoinGecko']}}),'PARTIAL_EVIDENCE','one company, one dataset');
+ assert.equal(st({value:1,status:'SOURCE_REPORTED',source:'Blockscout'}),'PARTIAL_EVIDENCE');
+ assert.equal(st({value:1,status:'SOURCE_REPORTED',crossCheck:{state:'DISAGREE',providers:['A','B']}}),'SOURCE_DISAGREEMENT');
+ assert.equal(st({value:null,status:'NOT_VERIFIED',reasonCode:'SOURCES_DISAGREE'}),'SOURCE_DISAGREEMENT');
+ assert.equal(st({value:1,status:'ON_CHAIN',snapshot:{blockAgeSeconds:3*86400}}),'STALE');
+ assert.equal(st({value:null,status:'NOT_VERIFIED',reasonCode:'CHAIN_UNSUPPORTED'}),'NOT_SUPPORTED');
+ assert.equal(st({value:null,status:'NOT_VERIFIED',reasonCode:'RPC_TIMEOUT'}),'NOT_VERIFIED');
+ const rep={cards:{supply:{fields:{a:{value:1,status:'ON_CHAIN'},b:{value:null,status:'NOT_VERIFIED',reasonCode:'X'}}}}};
+ ec.annotate(rep);
+ assert.equal(rep.cards.supply.fields.a.evidenceState,'VERIFIED');assert.equal(rep.cards.supply.fields.a.evidenceClass,'ON_CHAIN_VERIFIED','existing class unchanged');
+ assert.deepEqual(rep.evidenceSummary.stateTotal,{VERIFIED:1,PARTIAL_EVIDENCE:0,SOURCE_DISAGREEMENT:0,STALE:0,NOT_VERIFIED:1,NOT_SUPPORTED:0});
+});
