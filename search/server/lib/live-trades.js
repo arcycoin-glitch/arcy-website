@@ -46,13 +46,14 @@ const USD_STABLES=Object.freeze({
 const ETH_PRICED=Object.freeze({ethereum:Object.freeze({[ZERO]:{symbol:'ETH',decimals:18},'0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2':{symbol:'WETH',decimals:18}})});
 const NATIVE=Object.freeze({arc:{symbol:'USDC',decimals:18},ethereum:{symbol:'ETH',decimals:18},robinhood:{symbol:'ETH',decimals:18}});
 const NET=Object.freeze({
- // window: blocks per log query; lookback: max blocks examined; confirmations: blocks withheld from the head.
- ethereum:{rpc:()=>require('./eth').rpc,window:600,lookback:7200,confirmations:2,paceMs:0,maxHeadAgeS:90},
- arc:{rpc:()=>require('./arc-rpc').rpc,window:1500,lookback:12000,confirmations:0,paceMs:220,maxHeadAgeS:30},
- robinhood:{rpc:()=>require('./robinhood-rpc').rpc,window:3000,lookback:36000,confirmations:0,paceMs:120,maxHeadAgeS:30}
+ // window: first span per log query (grows x2 on empty answers up to maxSpan, halves on provider range/size errors);
+ // lookback: max blocks examined (~24 h of blocks); confirmations: blocks withheld from the head.
+ ethereum:{rpc:()=>require('./eth').rpc,window:600,maxSpan:2000,lookback:7200,confirmations:2,paceMs:0,maxHeadAgeS:90},
+ arc:{rpc:()=>require('./arc-rpc').rpc,window:1500,maxSpan:60000,lookback:520000,confirmations:0,paceMs:220,maxHeadAgeS:30},
+ robinhood:{rpc:()=>require('./robinhood-rpc').rpc,window:3000,maxSpan:100000,lookback:860000,confirmations:0,paceMs:120,maxHeadAgeS:30}
 });
-const MAX_POOLS=3,MAX_ROWS=25,MAX_LOG_CALLS=8,MAX_ROW_READS=40,CACHE_MS=20000,IDENTITY_CACHE=500,MAX_INFLIGHT=3;
-const cache=new Map(),inflight=new Map(),identityCache=new Map(),metaCache=new Map(),txCache=new Map(),blockCache=new Map();
+const MAX_POOLS=3,MAX_ROWS=20,MAX_LOG_CALLS=10,MAX_ROW_READS=40,KEEP_LOGS=60,CACHE_MS=20000,IDENTITY_CACHE=500,MAX_INFLIGHT=3;
+const cache=new Map(),inflight=new Map(),incremental=new Map(),identityCache=new Map(),metaCache=new Map(),txCache=new Map(),blockCache=new Map();
 let running=0;
 const fail=(code,extra={})=>Object.assign(Error(code),{code,...extra});
 const pad=a=>a.slice(2).toLowerCase().padStart(64,'0');
@@ -137,7 +138,7 @@ function decodeSwap(pool,log){
  const side=tokenPool<0n&&counterPool>0n?'BUY':tokenPool>0n&&counterPool<0n?'SELL':'SWAP';
  return {side,tokenPool,counterPool};
 }
-async function logsFor(rpc,pool,from,to,state){
+async function logsFor(rpc,pool,from,to,state,maxSpan){
  const filter=pool.kind==='V4'?{address:pool.emitter,topics:[TOPIC.V4,pool.pool]}:{address:pool.pool,topics:[TOPIC[pool.kind]]};
  const out=[];let hi=to;
  while(hi>=from&&state.logCalls<MAX_LOG_CALLS&&out.length<MAX_ROWS){
@@ -153,6 +154,7 @@ async function logsFor(rpc,pool,from,to,state){
     out.push(l);
    }
    hi=lo-1n;
+   if(!logs.length)state.span=Math.min(maxSpan,state.span*2);   // quiet market: widen the next (older) chunk
   }catch(e){
    if(state.span<=64)throw e;state.span=Math.max(64,Math.floor(state.span/2));   // provider range/size limits: narrow
   }
@@ -165,7 +167,7 @@ async function ethUsd(network,rpc,block){
  const key='ethusd';const hit=metaCache.get(key);if(hit&&hit.at>Date.now()-60000)return hit.value;
  try{
   const f=await require('./oracle-market').inspect('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',block,{rpcCall:(m,p)=>rpc.call(m,p)});
-  const value=f?.dataState==='DATA_FOUND'&&Number.isFinite(f.value)?{price:f.value,source:'Chainlink ETH/USD (pinned block)',block}:null;
+  const q=f?.priceUsd;const value=q?.dataState==='DATA_FOUND'&&Number.isFinite(q.value)?{price:q.value,source:'Chainlink ETH/USD (pinned block)',block,updatedAt:q.evidence?.[0]?.updatedAt||null}:null;
   remember(metaCache,key,{at:Date.now(),value});return value;
  }catch{return null;}
 }
@@ -209,8 +211,15 @@ async function analyze({network,address,rpcFn=null,pools:poolsOverride=null,now=
  if(!pools.length)return {...base,status:'UNSUPPORTED',reasonCode:candidates.length?'NO_VERIFIED_POOL':'NO_POOL_CANDIDATES',trades:[],cost:{rpcCalls:rpc.calls.n}};
  // 3. logs
  const state={span:net.window,logCalls:0},from=toBlock-BigInt(net.lookback)>0n?toBlock-BigInt(net.lookback):0n;
- const found=[];
- for(const p of pools){for(const l of await logsFor(rpc,p,from,toBlock,state))found.push({p,l});}
+ // Incremental refresh: with the same verified pool set, only blocks after the previous confirmed window are read.
+ const incKey=network+':'+token,poolsKey=pools.map(p=>p.pool).join(','),prev=incremental.get(incKey);
+ let found=[],mode='FULL_WINDOW',scanFrom=from;
+ if(prev&&prev.poolsKey===poolsKey&&toBlock>=prev.toBlock&&toBlock-prev.toBlock<=BigInt(net.maxSpan)){
+  mode='INCREMENTAL';scanFrom=prev.toBlock+1n;
+  const byPool=new Map(pools.map(p=>[p.pool,p]));
+  found=prev.logs.filter(x=>byPool.has(x.pool)&&BigInt(x.l.blockNumber)>=from).map(x=>({p:byPool.get(x.pool),l:x.l}));
+  if(scanFrom<=toBlock)for(const p of pools){state.span=net.maxSpan;for(const l of await logsFor(rpc,p,scanFrom,toBlock,state,net.maxSpan))found.push({p,l});}
+ }else for(const p of pools){state.span=net.window;for(const l of await logsFor(rpc,p,from,toBlock,state,net.maxSpan))found.push({p,l});}
  const seen=new Set(),rows=[];
  for(const {p,l} of found){
   const key=String(l.transactionHash).toLowerCase()+':'+String(l.logIndex);if(seen.has(key))continue;seen.add(key);
@@ -218,6 +227,7 @@ async function analyze({network,address,rpcFn=null,pools:poolsOverride=null,now=
   rows.push({p,l,d,block:BigInt(l.blockNumber),logIndex:Number(BigInt(l.logIndex))});
  }
  rows.sort((a,b)=>a.block===b.block?b.logIndex-a.logIndex:(b.block>a.block?1:-1));
+ remember(incremental,incKey,{toBlock,poolsKey,logs:rows.slice(0,KEEP_LOGS).map(r=>({pool:r.p.pool,l:r.l}))},200);
  const top=rows.slice(0,MAX_ROWS);
  // 5. per-row block binding and sender (bounded, cached; reorg = hash mismatch -> dropped)
  let reads=0;const counterMeta=new Map(),txCount=new Map();
@@ -245,7 +255,7 @@ async function analyze({network,address,rpcFn=null,pools:poolsOverride=null,now=
  }
  const live=headAgeS<=net.maxHeadAgeS;
  return {...base,status:trades.length?(live?'LIVE':'DELAYED'):'NO_RECENT_SWAPS',reasonCode:trades.length?null:'NO_SWAPS_IN_WINDOW',
-  window:{fromBlock:from.toString(),toBlock:toBlock.toString(),logCalls:state.logCalls,finalSpan:state.span},ethUsd:ethPrice,trades,cost:{rpcCalls:rpc.calls.n}};
+  window:{fromBlock:from.toString(),scanFrom:scanFrom.toString(),toBlock:toBlock.toString(),mode,logCalls:state.logCalls,finalSpan:state.span},ethUsd:ethPrice,trades,cost:{rpcCalls:rpc.calls.n}};
 }
 function classify(e){
  const code=/^[A-Z][A-Z0-9_]{2,63}$/.test(e?.code||'')?e.code:/429/.test(String(e?.message))?'RPC_RATE_LIMITED':/GeckoTerminal/.test(String(e?.message))?'POOL_SOURCE_UNAVAILABLE':'PROVIDER_UNAVAILABLE';
@@ -262,5 +272,5 @@ async function cached({network,address},run=analyze,now=Date.now){
   catch(e){return classify(e);}finally{running--;inflight.delete(key);}})();
  inflight.set(key,task);return task;
 }
-module.exports={analyze,cached,classify,decodeSwap,identifyPool,usdOf,units,TOPIC,NET,USD_STABLES,MAX_ROWS,
- _reset:()=>{for(const m of [cache,inflight,identityCache,metaCache,txCache,blockCache])m.clear();running=0;}};
+module.exports={analyze,KEEP_LOGS,cached,classify,decodeSwap,identifyPool,usdOf,units,TOPIC,NET,USD_STABLES,MAX_ROWS,
+ _reset:()=>{for(const m of [cache,inflight,incremental,identityCache,metaCache,txCache,blockCache])m.clear();running=0;}};
