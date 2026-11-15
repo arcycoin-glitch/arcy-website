@@ -17,7 +17,7 @@ const keccak=require('../lib/keccak');
 const observer=require('../lib/verification/onchain-observer');
 const evidence=require('../lib/verification/metric-evidence');
 const authority=require('../lib/risk-engine/producers/authority');
-const DEFAULT_TARGETS=['ethereum:0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9','ethereum:0x96f6ef951840721adbf46ac996b59e0235cb985c','ethereum:0x1b19c19393e2d034d8ff31ff34c81252fcbbee92',
+const DEFAULT_TARGETS=['robinhood:0xaf3d76f1834a1d425780943c99ea8a608f8a93f9','ethereum:0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9','ethereum:0x96f6ef951840721adbf46ac996b59e0235cb985c','ethereum:0x1b19c19393e2d034d8ff31ff34c81252fcbbee92',
  'ethereum:0xace8e719899f6e91831b18ae746c9a965c2119f1','ethereum:0x6c3ea9036406852006290770bedfcaba0e23a0e8','robinhood:0x322f0929c4625ed5bad873c95208d54e1c003b2d','arc:0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'];
 const SOURCIFY='https://sourcify.dev/server/v2/contract/';
 const INTERESTING=/^(upgradeTo|upgradeToAndCall|upgradeToAndCallUUPS|_upgradeTo|_upgradeToAndCall|_upgradeToAndCallUUPS|_setImplementation|_authorizeUpgrade|mint|_mint|issue|_fallback|_willFallback|_beforeFallback|_delegate|ifAdmin|onlyOwner|onlyProxy|onlyRole|_checkOwner|_checkRole|_admin|_getAdmin|admin|owner|_beforeTokenTransfer|_afterTokenTransfer|hasRole|getRoleMember|getRoleMemberCount|grantRole|_grantRole|_setupRole|pause|unpause|_checkMinter|_checkKYC|_checkAllowlist)$/;
@@ -109,7 +109,20 @@ async function review(target){
  const proof=(s,label)=>{if(!s)return;if(s.status!==200)out.missing.push(label+'_NOT_ON_SOURCIFY('+s.status+')');else{if(s.runtimeMatch!=='exact_match')out.missing.push(label+'_RUNTIME_MATCH_IS_'+String(s.runtimeMatch).toUpperCase());
   if(!s.bytecodeEqualsOnchain)out.missing.push(label+'_VERIFIED_BYTECODE_HASH_DIFFERS_FROM_OPERATORS');if(!s.sources.length)out.missing.push(label+'_NO_SOURCES');}};
  proof(out.tokenSource,'TOKEN');proof(out.implementationSource,'IMPLEMENTATION');
- if(v.beacon)out.missing.push('BEACON_ROUTE_UNSUPPORTED');
+ if(v.beacon){
+  out.missing.push('BEACON_ROUTE_UNSUPPORTED');
+  // Beacon evidence (read-only): implementation() and owner() of the beacon on both operators, code hashes, Sourcify.
+  out.beaconViews=[];
+  for(const e of endpoints.slice(0,2)){
+   try{
+    const impl=word((await rpc(e.url,'eth_call',[{to:v.beacon,data:'0x5c60da1b'},block])).result),own=word((await rpc(e.url,'eth_call',[{to:v.beacon,data:authority.SEL.owner},block])).result);
+    const bcode=(await rpc(e.url,'eth_getCode',[v.beacon,block])).result,icode=impl?(await rpc(e.url,'eth_getCode',[impl,block])).result:null;
+    out.beaconViews.push({operator:e.operator,implementation:impl||null,owner:own||null,beaconCodeHash:hashOf(bcode),implementationCodeHash:hashOf(icode)});
+   }catch(error){out.beaconViews.push({operator:e.operator,error:String(error.message).slice(0,40)});}
+  }
+  const b0=out.beaconViews[0];
+  if(b0&&!b0.error){out.beaconSource=await sourcify(chainId,v.beacon,b0.beaconCodeHash);out.beaconImplementationSource=b0.implementation?await sourcify(chainId,b0.implementation,b0.implementationCodeHash):null;}
+ }
  out.codeProofs=[[v.codeHash,out.tokenSource],[v.implementationCodeHash,out.implementationSource]].filter(([h,s])=>h&&s&&s.status===200&&s.runtimeMatch==='exact_match'&&s.bytecodeEqualsOnchain)
   .map(([h,s])=>({codeHash:h,sourceMatch:s.runtimeMatch,verifiedRuntimeCodeHash:s.onchainBytecodeHash,sourcify:{chainId,address:s.address,contract:s.contract,compiler:s.compiler,verifiedAt:s.verifiedAt||null},
    onchain:views.map(x=>({operator:x.operator,codeHash:h,blockHash:x.blockHash,blockNumber:headNumber.toString()})),sources:s.sources.map(({path:p,keccak256})=>({path:p,keccak256}))}));
@@ -130,6 +143,9 @@ async function review(target){
    operators:(r.operators||[]).map(o=>o.operator+(o.error?':'+o.error:'')),mintSelector:r.operators?.[0]?.mintSelectorInExecutingCode??null};
   summary.push(line);console.log('REVIEW_EVIDENCE '+JSON.stringify(line));
   if(r.roleMint)console.log('REVIEW_ROLE_MINT '+JSON.stringify({target:t,roleMint:r.roleMint}));
+  if(r.beaconViews)console.log('REVIEW_BEACON '+JSON.stringify({target:t,views:r.beaconViews,beacon:r.beaconSource&&{status:r.beaconSource.status,runtimeMatch:r.beaconSource.runtimeMatch,creationMatch:r.beaconSource.creationMatch,equal:r.beaconSource.bytecodeEqualsOnchain,contract:r.beaconSource.contract},
+   implementation:r.beaconImplementationSource&&{status:r.beaconImplementationSource.status,runtimeMatch:r.beaconImplementationSource.runtimeMatch,creationMatch:r.beaconImplementationSource.creationMatch,equal:r.beaconImplementationSource.bytecodeEqualsOnchain,contract:r.beaconImplementationSource.contract,files:r.beaconImplementationSource.sources.length}}));
+  for(const [label,src] of [['beacon',r.beaconSource],['beacon-implementation',r.beaconImplementationSource]]){if(!src||src.status!==200)continue;for(const f of src.functions.filter(x=>x.kind!=='constant').slice(0,40))console.log('REVIEW_SOURCE '+JSON.stringify({target:t,code:label,path:f.path.split('/').slice(-2).join('/'),name:f.name,text:f.text}));}
   if(r.machineEvidenceComplete)console.log('REVIEW_PROOF '+JSON.stringify({target:t,block:r.block,codeProofs:r.codeProofs}));
   for(const [label,s] of [['token',r.tokenSource],['implementation',r.implementationSource]]){
    if(!s||s.runtimeMatch!=='exact_match'||!s.bytecodeEqualsOnchain)continue; // only exact, on-chain-equal sources are worth reviewing
