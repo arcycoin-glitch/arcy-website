@@ -6,8 +6,7 @@
  const tasks=[
   {key:'burn',fn:'loadBurn',interval:2*60*1000},
   {key:'market',fn:'loadArcPrices',interval:3*60*1000},
-  {key:'unlocks',fn:'loadUnlocks',interval:10*60*1000},
-  {key:'pulse',fn:'loadPulse',interval:60*60*1000}
+  {key:'unlocks',fn:'loadUnlocks',interval:10*60*1000}
  ];
  const state=Object.fromEntries(tasks.map(t=>[t.key,{lastAttempt:Date.now(),pending:false}]));
  function eligible(){
@@ -19,7 +18,6 @@
   for(const task of tasks){
    const status=state[task.key];
    if(status.pending||now-status.lastAttempt<task.interval)continue;
-   if(task.key==='pulse'&&new URLSearchParams(location.search).has('pulseEdition'))continue;
    const loader=window[task.fn];
    if(typeof loader!=='function')continue;
    status.pending=true;

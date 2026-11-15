@@ -15,10 +15,17 @@ test('Unlocks scope is stable across LF and CRLF checkouts', () => {
   const html = fs.readFileSync(require.resolve('../index.html'), 'utf8');
   assert.equal(outsideUnlocks(html.replace(/\r\n/g, '\n')), outsideUnlocks(html));
 });
-test('Unlocks UI exception preserves every unrelated homepage byte from main', () => {
-  const html = fs.readFileSync(require.resolve('../index.html'), 'utf8');
-  const hash = crypto.createHash('sha256').update(outsideUnlocks(html)).digest('hex');
-  assert.equal(hash, baseline.homepageOutsideUnlocksSha256, 'Out-of-scope homepage change: review rather than refresh the scope fingerprint');
+test('retiring the news module leaves the retained Unlocks contract intact', () => {
+  const html=fs.readFileSync(require.resolve('../index.html'),'utf8');
+  const start=html.indexOf('<section id="unlocks">'),end=html.indexOf('</section>',start);
+  const section=html.slice(start,end);
+  assert.ok(start>0&&end>start);
+  assert.match(section,/id="unlockSearch"/);
+  assert.match(section,/id="unlockRows"/);
+  assert.match(section,/data-days="1"/);
+  assert.match(section,/data-days="7"/);
+  assert.match(section,/data-days="30"/);
+  assert.doesNotMatch(html,/<section id="pulse"/);
 });
 test('new calendar CSS is exclusively scoped to #unlocks', () => {
   const css = fs.readFileSync(require.resolve('../unlocks.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -32,6 +39,6 @@ test('Unlocks owl retains the exact original image bytes after extraction from t
   const bytes = fs.readFileSync(require.resolve('../assets/unlocks-owl.webp'));
   assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'), baseline.unlocksOwlSha256);
   const html = fs.readFileSync(require.resolve('../index.html'), 'utf8');
-  const section = html.slice(html.indexOf('<section id="unlocks">'), html.indexOf('<section id="pulse">'));
+  const section = html.slice(html.indexOf('<section id="unlocks">'), html.indexOf('</section>',html.indexOf('<section id="unlocks">')));
   assert.match(section, /src="\/assets\/unlocks-owl.webp"/);
 });

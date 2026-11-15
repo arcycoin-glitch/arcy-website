@@ -2,8 +2,8 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const refresh=require('../lib/holder-refresh'),storage=require('../lib/holder-storage'),worker=require('../lib/holder-candidates'),budget=require('../lib/holder-budget');
 const address=n=>'0x'+n.toString(16).padStart(40,'0');
 
-test('Vercel leaves holder processing to the persistent worker and preserves Pulse cron and function limit',()=>{
- const config=JSON.parse(fs.readFileSync(path.join(__dirname,'../vercel.json')));assert.ok(!config.crons.some(c=>c.path==='/api/holderrefresh'));assert.deepEqual(config.crons.find(c=>c.path==='/api/pulse'),{path:'/api/pulse',schedule:'0 6 * * 1'});assert.ok(fs.readdirSync(path.join(__dirname,'../api')).filter(f=>f.endsWith('.js')).length<=12);
+test('Vercel leaves holder processing to the persistent worker and removes retired cron and respects function limit',()=>{
+ const config=JSON.parse(fs.readFileSync(path.join(__dirname,'../vercel.json')));assert.ok(!(config.crons||[]).some(c=>c.path==='/api/holderrefresh'));assert.ok(!(config.crons||[]).some(c=>c.path==='/api/pulse'));assert.ok(fs.readdirSync(path.join(__dirname,'../api')).filter(f=>f.endsWith('.js')).length<=12);
 });
 
 test('scheduled queue processes multiple batches and rotates unfinished jobs behind untouched work',async()=>{

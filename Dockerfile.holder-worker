@@ -3,7 +3,6 @@ RUN apk add --no-cache su-exec
 WORKDIR /app
 COPY package.json ./
 COPY lib ./lib
-# lib/pulse-onchain (durable Pulse monitor) reads the shared chain configuration and RPC helpers.
 # test/docker-image-closure.test.js fails if any require reachable from the worker is missing from this image.
 COPY search/server/lib ./search/server/lib
 COPY scripts/holder-worker.cjs ./scripts/holder-worker.cjs
