@@ -257,7 +257,7 @@ test('manual retry fetches only failed Pons and can recover without refetching h
  p.querySelector('.arcy-radar-overview-action').click();
  await new Promise(setImmediate);
  assert.deepEqual(calls,['arc','ethereum','robinhood','pons','pons']);
- assert.equal(p.querySelector('.arcy-radar-overview-freshness').textContent,'DOĞRULANDI');
+ assert.equal(p.querySelector('.arcy-radar-overview-freshness').textContent,'VERİ GÜNCEL');
  assert.equal(p.querySelectorAll('.arcy-radar-overview-token').length,1);
  p.querySelector('.arcy-radar-overview-action').click();
  assert.equal(calls.length,5,'expansion after recovery never fetches again');
@@ -276,7 +276,7 @@ test('repeated manual clicks coalesce while a Pons retry is pending',async()=>{
  assert.equal(p.querySelector('.arcy-radar-overview-freshness').textContent,'KONTROL EDİLİYOR');
  finish();await new Promise(setImmediate);
  assert.equal(action.disabled,false);
- assert.equal(p.querySelector('.arcy-radar-overview-freshness').textContent,'DOĞRULANDI');
+ assert.equal(p.querySelector('.arcy-radar-overview-freshness').textContent,'VERİ GÜNCEL');
 });
 test('Retry-After disables manual retry without scheduling another provider request',async()=>{
  const {detail,calls}=await mount({fetcher:async network=>network==='pons'?{ok:false,headers:{get:key=>key==='retry-after'?'60':null}}:{ok:true,json:async()=>data(network)}});
