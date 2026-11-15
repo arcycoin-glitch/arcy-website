@@ -96,6 +96,16 @@ test('curated project repositories require matching ownership, dates and explici
     'release provider worker')]))).length, 0);
   assert.equal((await discoverSource(bursar, get([commit('bursar-world/bursar',
     'release provider worker', '')]))).length, 0);
+  assert.equal((await discoverSource(bursar, get([commit('bursar-world/bursar',
+    'fix Ethereum mainnet fee processing')]))).length, 0);
+  assert.equal((await discoverSource(bursar, get([commit('bursar-world/bursar',
+    'feat: add Base chain support')]))).length, 0);
+  assert.equal((await discoverSource(bursar, get([commit('bursar-world/bursar',
+    'fix typo in release notes')]))).length, 0);
+  assert.equal((await discoverSource(argus, get([commit('itsfriedpotato/argus-agent',
+    'docs: add Arc release information')]))).length, 0);
+  assert.equal((await discoverSource(bursar, get([commit('bursar-world/bursar',
+    'feat: add provider worker retry logic')]))).length, 1);
 });
 
 test('undated, expired, future publication, closed target and conflicting completion claims are withheld', async () => {
