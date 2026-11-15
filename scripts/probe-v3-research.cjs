@@ -58,5 +58,17 @@ async function logos(){
   note('logo-'+symbol,{wantName:name,status:s.status,candidates:out});
  }
 }
-(async()=>{try{await synthra();}catch(e){note('synthra-error',{error:String(e.stack||e).slice(0,400)});}
- try{await logos();}catch(e){note('logo-error',{error:String(e.stack||e).slice(0,400)});}})();
+async function transferProbe(){
+ const t=await J('https://api.geckoterminal.com/api/v2/networks/arc/pools/'+POOL+'/trades');
+ const a=(t.json?.data||[])[0]?.attributes;if(!a)return note('xfer-none',{status:t.status});
+ const b='0x'+Number(a.block_number).toString(16),T='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',P='0x'+'0'.repeat(24)+POOL.slice(2),U='0x3600000000000000000000000000000000000000';
+ const tries={arrayAddrNestedTopic:{address:[U,POLL],topics:[T,[P]]},arrayAddrPlainTopic:{address:[U,POLL],topics:[T,P]},pollOnly:{address:POLL,topics:[T,P]},usdcOnly:{address:U,topics:[T,P]},usdcTo:{address:U,topics:[T,null,P]},anyTo:{topics:[T,null,P]}};
+ const out={tx:a.tx_hash,block:a.block_number};
+ for(const [k,f] of Object.entries(tries)){try{const l=await arc('eth_getLogs',[{...f,fromBlock:b,toBlock:b}]);out[k]={n:l.length,emitters:[...new Set(l.map(x=>x.address.slice(0,10)))],inTx:l.filter(x=>x.transactionHash===a.tx_hash).length};}catch(e){out[k]={error:String(e.message).slice(0,140)};}await sleep(300);}
+ try{const rc=await arc('eth_getTransactionReceipt',[a.tx_hash]);out.receipt={from:rc?.from,blockHash:rc?.blockHash?.slice(0,12),logs:(rc?.logs||[]).map(l=>[l.address.slice(0,10),l.topics[0].slice(0,10),l.topics.length,(l.data.length-2)/2])};}catch(e){out.receipt={error:String(e.message).slice(0,140)};}
+ try{const all=await arc('eth_getLogs',[{fromBlock:b,toBlock:b}]);out.allLogsInBlock=all.filter(x=>x.transactionHash===a.tx_hash).map(l=>[l.address.slice(0,10),l.topics[0].slice(0,10),l.topics.length]);}catch(e){out.allLogsInBlock={error:String(e.message).slice(0,140)};}
+ note('xfer-probe',out);
+}
+(async()=>{try{await transferProbe();}catch(e){note('xfer-error',{error:String(e.stack||e).slice(0,300)});}
+ try{await synthra();}catch(e){note('synthra-error',{error:String(e.stack||e).slice(0,400)});}
+ })();
