@@ -36,14 +36,20 @@ const SPX_SLOTS=Object.freeze({packed:6,initialBuy:7,initialSell:8,finalBuy:9,fi
 const TORCH_GETTERS=Object.freeze(['BUY_TAX_BPS()','buyTaxBps()','FEE_ROUTER()']);
 const PAXOS_GETTERS=Object.freeze(['supplyController()','assetProtectionRole()']);
 // Every selector a reviewed profile may read beyond the generic verified-source pass (benchmark kind "augReviewed").
-// owner(): legacy (pre-0.4.21) ABIs carry no stateMutability, so the generic getter pass skips it and the BNB profile reads it.
-const REVIEWED_GETTERS=Object.freeze([...TORCH_GETTERS,...PAXOS_GETTERS,'owner()']);
+const REVIEWED_GETTERS=Object.freeze([...TORCH_GETTERS,...PAXOS_GETTERS]);
 const REVIEWED_BUDGET=8;
 const slotKey=i=>'0x'+i.toString(16).padStart(64,'0');
 const ZERO='0x'+'0'.repeat(40);
 const pct=bps=>Number(bps)/100;
 function observed(details,method){return details.observations.find(x=>x.method===method);}
-async function apply({profile,fields,details,proof,fact,word,storage,address,block,direct=false,admin=null,kind=null}){
+// Same-block reuse: the card's pinned owner() getter observation (control.inspect / adapters) for this exact token and block.
+// Legacy (pre-0.4.21) ABIs carry no stateMutability, so the generic verified-source getter pass does not re-read owner().
+function priorOwner(prior,address,block){
+ const f=prior?.ownerAdmin,m=/^owner\(\) getter: (0x[0-9a-fA-F]{40})$/.exec(String(f?.value||''));
+ const e=Array.isArray(f?.evidence)&&f.evidence.find(x=>x?.method==='owner()'&&x.block===block&&String(x.address||'').toLowerCase()===String(address).toLowerCase());
+ return f?.dataState==='DATA_FOUND'&&m&&e?m[1].toLowerCase():null;
+}
+async function apply({profile,fields,details,proof,fact,word,storage,address,block,direct=false,admin=null,kind=null,prior=null}){
  if(!Object.values(PROFILES).includes(profile))return;
  const p={...proof,reviewedTokenProfile:profile};
  const transferOnly=scope=>fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed complete token transfer execution',{...p,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope},'VERIFIED_SOURCE');
@@ -147,7 +153,7 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   fields.tradingTaxes=transferOnly('transfer/transferFrom move the full amount; zero-value transfers and the zero address revert. No fee code exists. Pool fees are separate.');
   if(!direct)return;
   fields.mintCapability=noMint('Supply is set once in the constructor; no function creates supply. burn and freeze/unfreeze act only on the caller\'s own balance.');
-  const owner=await ownerWord();
+  const owner=priorOwner(prior,address,block)||await ownerWord();
   if(owner&&owner!==ZERO)fields.ownerAdmin=fact('Owner: ETH withdrawal only · '+owner,'Reviewed complete source + pinned owner()',{...p,owner,scope:'withdrawEther(uint256) is the only owner function: it sends ETH held by this contract to the owner. The owner cannot move, freeze or create tokens, and no function changes the owner.'},'VERIFIED_SOURCE_AND_STATE');
  }
  if(profile==='ERC1155_WRAPPED_FIXED_SUPPLY'){
@@ -168,4 +174,4 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   if(owner)fields.ownerAdmin=fact('Owner-governed (pause, freeze role, supply controller) · '+owner,'Reviewed onlyOwner paths + pinned owner()/assetProtectionRole()',{...p,owner,assetProtectionRole:protection,proxyAdmin:admin,scope:'The owner can pause/unpause, set the asset-protection role and supply controller, and reclaim tokens held by the contract. The asset-protection role'+(protection?' '+protection:'')+' can freeze addresses and wipe a frozen balance. Ownership moves only through propose/claim.'+upgrade},'VERIFIED_SOURCE_AND_STATE');
  }
 }
-module.exports={PROFILES,SPX_SLOTS,TORCH_GETTERS,PAXOS_GETTERS,REVIEWED_GETTERS,REVIEWED_BUDGET,slotKey,apply};
+module.exports={priorOwner,PROFILES,SPX_SLOTS,TORCH_GETTERS,PAXOS_GETTERS,REVIEWED_GETTERS,REVIEWED_BUDGET,slotKey,apply};

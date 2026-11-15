@@ -38,7 +38,7 @@ test('V5 reviewed profiles are full-digest keyed and registered; restriction get
   const d=digestOf(name);assert.match(d,/^[0-9a-f]{64}$/);assert.equal(reviewed.PROFILES[d],name);
  }
  assert.ok(restrictions.RESTRICTION_GETTERS.length<=3&&restrictions.RESTRICTION_BUDGET===2);
- assert.deepEqual(reviewed.REVIEWED_GETTERS.slice(-3),['supplyController()','assetProtectionRole()','owner()']);
+ assert.deepEqual(reviewed.REVIEWED_GETTERS.slice(-2),['supplyController()','assetProtectionRole()']);
 });
 test('UERC20: fixed supply, no admin, full-value transfer and no restrictions; zero extra reads',async()=>{
  const x=fixture(digestOf('UNISWAP_UERC20_FIXED_SUPPLY'),{network:'robinhood'});const r=await inspect(x);
@@ -167,4 +167,14 @@ test('Risk Engine reuse (flag on): corroborates, fails closed on conflict, simul
   assert.equal((await riskEvidence.attach(emptyCard(),{network:'ethereum',address:TOKEN,env,reader:reader(r),now})).fields.tradingTaxes.dataState,'NOT_VERIFIED');
  const failing={getSnapshot:async()=>{throw Error('down');}};
  assert.equal((await riskEvidence.attach(base,{network:'ethereum',address:TOKEN,env,reader:failing,now})).fields.tradingTaxes.value,reviewedTax.value);
+});
+
+test('BNB reuses the same-block owner() observation already on the card (no new RPC); other blocks/tokens are ignored',async()=>{
+ const x=fixture(digestOf('LEGACY_FIXED_SUPPLY_SELF_FREEZE'));
+ const prior=(blk,a=TOKEN)=>({...emptyCard(),fields:{...emptyCard().fields,ownerAdmin:{value:'owner() getter: '+OWNER,status:'GETTER_REPORTED',dataState:'DATA_FOUND',evidence:[{method:'owner()',block:blk,address:a}]}}});
+ const r=await deep.inspect({...x.options,card:prior(block)});
+ assert.equal(r.fields.ownerAdmin.value,'Owner: ETH withdrawal only · '+OWNER);
+ assert.equal(x.log.filter(c=>c.method==='eth_call').length,0,'owner() reused, not re-read');
+ assert.equal(reviewed.priorOwner(prior('0x1').fields,TOKEN,block),null);
+ assert.equal(reviewed.priorOwner(prior(block,'0x'+'22'.repeat(20)).fields,TOKEN,block),null);
 });

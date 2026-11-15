@@ -87,7 +87,7 @@ function decodeArray(raw,max=32){
  const n=Number(BigInt('0x'+words[1]));if(n<1||n>max||words.length!==n+2)return null;
  const addresses=words.slice(2).map(w=>addressWord('0x'+w));return addresses.every(Boolean)&&new Set(addresses).size===n?addresses:null;
 }
-async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSupplementary=null}={}){
+async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSupplementary=null,card=null}={}){
  const cfg=chain(network);if(!ADDRESS.test(address||'')||!/^0x[0-9a-f]+$/i.test(block||'')||typeof rpc!=='function')throw Error('Invalid Mechanics identity');
  address=address.toLowerCase();const diagnostics=[],fields={},details={block,chainId:cfg.chainId,address,observations:[],sources:[],failures:diagnostics};
  // Bounded shared per-inspection reads. No cached state crosses a pinned block.
@@ -326,7 +326,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
     if(t.burnable)details.observations.push({method:'OpenZeppelin ERC20Burnable library',block,...sourceProof,scope:'Public burn/burnFrom capability exists (holders may burn their own or approved tokens). This is not evidence that any burn or buyback occurred.'});
    }
    await require('./mechanics-reviewed-v4').apply({profile,fields,details,proof,fact,word,call,address,block,keccak,admin,direct:target===address&&nonDelegating(code)});
-   await require('./mechanics-reviewed-tokens').apply({profile,fields,details,proof,fact,word,address,block,admin,kind,direct:target===address&&nonDelegating(code),
+   await require('./mechanics-reviewed-tokens').apply({profile,fields,details,proof,fact,word,address,block,admin,kind,prior:card?.fields||null,direct:target===address&&nonDelegating(code),
     storage:slot=>safe('eth_getStorageAt',[address,slot,block])});
    // Mechanics V5: Transfer Restrictions from the same reviewed source and pinned reads (supplementary field).
    const restriction=await require('./mechanics-restrictions').derive({profile,fields,details,proof,word,address,block,kind,direct:target===address&&nonDelegating(code)});
