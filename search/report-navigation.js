@@ -20,6 +20,7 @@ window.ARCYLiveTrading=(()=>{
  const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
  const safeUrl=u=>{try{const x=new URL(u);return x.protocol==='https:'&&!x.username&&!x.password&&x.href.length<400?x.href:null;}catch{return null;}};
  const short=a=>typeof a==='string'&&a.length>12?a.slice(0,6)+'…'+a.slice(-4):String(a||'');
+ const shortWallet=a=>/^0x[0-9a-f]{40}$/i.test(a||'')?'0x…'+a.slice(-4):short(a);
  const amount=v=>{if(v===null||v===undefined||v==='')return '—';const n=Number(v);if(!Number.isFinite(n))return String(v||'—');return n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(2)+'K':n>=1?n.toFixed(2):n.toPrecision(3);};
  const ago=iso=>{const ts=Date.parse(iso);if(!Number.isFinite(ts))return '—';const s=Math.max(0,Math.round((Date.now()-ts)/1000));return s<60?s+'s':s<3600?Math.round(s/60)+'m':s<86400?Math.round(s/3600)+'h':Math.round(s/86400)+'d';};
  const STATUS={LIVE:'LIVE',DELAYED:'DELAYED',NO_RECENT_SWAPS:'NO RECENT SWAPS',UNSUPPORTED:'LIMITED COVERAGE',UNAVAILABLE:'UNAVAILABLE',BUSY:'LOADING'};
@@ -63,10 +64,12 @@ window.ARCYLiveTrading=(()=>{
    const txUrl=safeUrl(t.explorerUrl),base=txUrl?txUrl.replace(/\/tx\/0x[0-9a-f]{64}$/i,''):null;
    const walletCell=el('td','lt-wallet-cell');
    if(base&&/^0x[0-9a-f]{40}$/i.test(t.wallet||'')){
-    const wallet=el('a','lt-wallet',short(t.wallet));
-    wallet.href=base+'/address/'+t.wallet;wallet.target='_blank';wallet.rel='noopener noreferrer';wallet.title=t.wallet;
+    const wallet=el('a','lt-wallet',shortWallet(t.wallet));
+    wallet.href=base+'/address/'+t.wallet;wallet.target='_blank';wallet.rel='noopener noreferrer';
+    wallet.title=t.wallet+' · Open wallet in block explorer';
+    wallet.setAttribute('aria-label','Open wallet '+t.wallet+' in block explorer');
     walletCell.append(wallet);
-   }else{const wallet=el('span','lt-wallet',short(t.wallet));wallet.title=t.wallet||'';walletCell.append(wallet);}
+   }else{const wallet=el('span','lt-wallet',shortWallet(t.wallet));wallet.title=t.wallet||'';walletCell.append(wallet);}
    row.append(walletCell);
    const hasUsd=Number.isFinite(t.usd)&&t.usd>=0;
    const valueText=hasUsd?'$'+t.usd.toLocaleString('en-US',{maximumFractionDigits:t.usd<1?4:2}):amount(t.counterAmount)+(t.counterSymbol?' '+t.counterSymbol:'');
