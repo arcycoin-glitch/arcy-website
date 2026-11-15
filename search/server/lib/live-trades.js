@@ -224,20 +224,26 @@ async function reconcileTransfers(rpc,rows,state){
     const t=(l?.topics||[]).map(x=>String(x).toLowerCase());
     if(l?.removed===true||t.length!==3||String(l.data||'').length!==66||t[0]!==TRANSFER)continue;
     const token=String(l.address).toLowerCase(),tx=String(l.transactionHash).toLowerCase(),v=BigInt(l.data);
-    if(poolTopic.has(t[2])){const k=tx+':'+poolTopic.get(t[2])+':'+token;net.set(k,(net.get(k)||0n)+v);}
-    if(poolTopic.has(t[1])){const k=tx+':'+poolTopic.get(t[1])+':'+token;net.set(k,(net.get(k)||0n)-v);}
+    // individual legs per tx+pool+token+direction (a pool may also skim a protocol fee in a separate transfer)
+    if(poolTopic.has(t[2])){const k=tx+':'+poolTopic.get(t[2])+':'+token+':IN';if(!net.has(k))net.set(k,[]);net.get(k).push(v);}
+    if(poolTopic.has(t[1])){const k=tx+':'+poolTopic.get(t[1])+':'+token+':OUT';if(!net.has(k))net.set(k,[]);net.get(k).push(v);}
    }
   }
  }catch(e){return {ok,calls,status:'TRANSFER_LOGS_UNAVAILABLE',error:String(e?.message||e).slice(0,120)};}
  const inBlocks=new Set(blocks.map(String));rows=rows.filter(r=>inBlocks.has(String(r.block)));
- // Sum the decoded pool deltas per tx+pool, then require BOTH token legs to match the Transfer ledger exactly.
- const want=new Map();
- for(const r of rows){const k=String(r.l.transactionHash).toLowerCase()+':'+r.p.pool;const w=want.get(k)||{p:r.p,d0:0n,d1:0n};
-  const tokenIs0=r.p.token0===r.p.token;w.d0+=tokenIs0?r.d.tokenPool:r.d.counterPool;w.d1+=tokenIs0?r.d.counterPool:r.d.tokenPool;want.set(k,w);}
- for(const [k,w] of want){
-  if(w.d0!==0n&&w.d1!==0n&&(net.get(k+':'+w.p.token0)||0n)===w.d0&&(net.get(k+':'+w.p.token1)||0n)===w.d1)ok.add(k);
+ // Each swap must have BOTH legs as exact individual Transfers: the token the pool received (positive delta) INTO the pool and
+ // the token it paid (negative delta) OUT of the pool, same tx. Matched legs are consumed, so two swaps cannot share one transfer.
+ // Extra transfers (e.g. a protocol-fee skim of the input token) are allowed; they never substitute for a leg.
+ let checked=0;
+ for(const r of rows){
+  checked++;const tx=String(r.l.transactionHash).toLowerCase(),tokenIs0=r.p.token0===r.p.token;
+  const d0=tokenIs0?r.d.tokenPool:r.d.counterPool,d1=tokenIs0?r.d.counterPool:r.d.tokenPool;
+  if(!(d0>0n&&d1<0n)&&!(d0<0n&&d1>0n))continue;
+  const leg=(token,d)=>{const list=net.get(tx+':'+r.p.pool+':'+token+(d>0n?':IN':':OUT'))||[],want=d>0n?d:-d,i=list.findIndex(v=>v===want);return i<0?null:()=>list.splice(i,1);};
+  const a=leg(r.p.token0,d0),b=leg(r.p.token1,d1);
+  if(a&&b){a();b();ok.add(tx+':'+r.p.pool+':'+r.logIndex);}
  }
- return {ok,calls,status:'OK',checked:want.size,matched:ok.size,blocks:blocks.length};
+ return {ok,calls,status:'OK',checked,matched:ok.size,blocks:blocks.length};
 }
 // V3: verified pools are scanned in GROUPS — all V2/V3 pools in one filter (address array, OR-ed Swap topics) and V4 pools per
 // PoolManager (poolIds OR-ed in topic1). Same events, same per-log checks, a fraction of the eth_getLogs calls.
@@ -377,7 +383,7 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  const rec=top.filter(r=>r.p.reconcile);let reconciled=null;
  if(rec.length){
   reconciled=await reconcileTransfers(rpc,rec,state);
-  top=top.filter(r=>!r.p.reconcile||reconciled.ok.has(String(r.l.transactionHash).toLowerCase()+':'+r.p.pool));
+  top=top.filter(r=>!r.p.reconcile||reconciled.ok.has(String(r.l.transactionHash).toLowerCase()+':'+r.p.pool+':'+r.logIndex));
  }
  // 5. per-row block binding and sender (bounded, cached; reorg = hash mismatch -> dropped)
  let reads=0;const counterMeta=new Map(),txCount=new Map();
@@ -417,12 +423,12 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  let scannedSince=null;if(!trades.length&&scannedFrom<=toBlock){const b=await blockRead('0x'+scannedFrom.toString(16));if(b)scannedSince=new Date(b.timestamp*1000).toISOString();}
  const live=headAgeS<=net.maxHeadAgeS;
  // V3 honesty: "no swaps" is only claimed when nothing provider-reported is left unexplained.
- const droppedUnreconciled=reconciled&&reconciled.status!=='OK'&&rec.length>0;
+ const droppedUnreconciled=reconciled&&reconciled.status!=='OK'&&rec.length>0,unmatched=reconciled&&reconciled.status==='OK'&&rec.length>(reconciled.matched||0);
  const reportedOnVerified=pools.reduce((n,p)=>n+(p.providerTrades24h||0),0);
  const windowShort=!(scannedFrom<=from)&&reportedOnVerified>0;
- const incompleteReason=activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':droppedUnreconciled?'RECONCILIATION_UNAVAILABLE':windowShort?'SCAN_WINDOW_INCOMPLETE':null;
+ const incompleteReason=activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':droppedUnreconciled?'RECONCILIATION_UNAVAILABLE':unmatched?'SWAPS_NOT_RECONCILED':windowShort?'SCAN_WINDOW_INCOMPLETE':null;
  const status=trades.length?(live?'LIVE':'DELAYED'):incompleteReason?'COVERAGE_INCOMPLETE':'NO_RECENT_SWAPS';
- if(reconciled)base.reconciliation={status:reconciled.status,checked:reconciled.checked??0,matched:reconciled.matched??0,...(reconciled.error?{error:reconciled.error}:{}),method:'Swap deltas must equal the tokens\' own Transfer events into/out of the pool in the same tx'};
+ if(reconciled)base.reconciliation={status:reconciled.status,checked:reconciled.checked??0,matched:reconciled.matched??0,...(reconciled.error?{error:reconciled.error}:{}),method:'Each swap leg must equal an individual token Transfer into/out of the pool in the same tx'};
  return {...base,coverage,status,reasonCode:trades.length?null:incompleteReason||'NO_SWAPS_IN_WINDOW',lastTradeAt:trades[0]?.timestamp||null,
   window:{fromBlock:from.toString(),scanFrom:scanFrom.toString(),scannedFromBlock:scannedFrom.toString(),scannedSince,toBlock:toBlock.toString(),mode,logCalls:state.logCalls,finalSpan:state.span,lookbackComplete:scannedFrom<=from},ethUsd:ethPrice,trades,cost:{rpcCalls:rpc.calls.n}};
 }

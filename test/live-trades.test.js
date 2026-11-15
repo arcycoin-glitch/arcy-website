@@ -308,3 +308,26 @@ test('V3 honesty: unreconcilable swaps or a short scan window with provider acti
  assert.equal(lt.classify(Error('GeckoTerminal HTTP 429')).reasonCode,'POOL_SOURCE_RATE_LIMITED');
  assert.equal(lt.classify(Error('HTTP 429')).reasonCode,'RPC_RATE_LIMITED');
 });
+test('V3 Synthra real-trade reconciliation (Arc tx 0x5a01…): fee-skim transfer allowed; both swap legs must match individual transfers',async()=>{
+ lt._reset();
+ const T='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',U='0x'+'9'.repeat(40),FEE='0x'+'8'.repeat(40),pt=a=>'0x'+'0'.repeat(24)+a.slice(2);
+ // POLL is token1 here (USDC token0), exactly like the Synthra pool: amount0=-16541436 USDC, amount1=+119700e18 POLL (a sell)
+ const POLLT=TOKEN,USDCT='0x'+'0'.repeat(39)+'1';
+ const sell=swapLog(990,1,v3data(-16541436n,119700n*10n**18n));
+ const x=(token,from,to,v)=>({address:token,topics:[T,pt(from),pt(to)],data:'0x'+v.toString(16).padStart(64,'0'),transactionHash:sell.transactionHash,blockNumber:'0x3de'});
+ const transfers=[x(POLLT,POOL,FEE,399n*10n**18n),x(USDCT,POOL,U,16541436n),x(POLLT,U,POOL,119700n*10n**18n)];
+ const txs={[sell.transactionHash]:{from:U,to:'0x'+'f'.repeat(40),blockHash:sell.blockHash}};
+ const base=rpcMock({factory:'0x'+'7'.repeat(40),registered:POOL,logs:[sell],blocks:{'0x3de':{hash:'0xbh990',timestamp:'0x6553f100'}},txs});
+ const fn=async(m,p)=>{
+  if(m==='eth_call'&&p[0].to===POOL&&p[0].data==='0x0dfe1681')return '0x'+'0'.repeat(24)+USDCT.slice(2);
+  if(m==='eth_call'&&p[0].to===POOL&&p[0].data==='0xd21220a7')return '0x'+'0'.repeat(24)+POLLT.slice(2);
+  if(m==='eth_getLogs'&&p[0].topics?.[0]===T)return transfers.filter(t=>p[0].address.includes(t.address));
+  return base.fn(m,p);};
+ const r=await lt.analyze({network:'ethereum',address:POLLT,rpcFn:fn,pools:[{pool:POOL,dex:'synthra-arc',reserveUsd:5,trades24h:45}]});
+ assert.equal(r.reconciliation.matched,1,'fee skim does not break exact leg matching');assert.equal(r.trades.length,1);assert.equal(r.trades[0].side,'SELL');
+ lt._reset();
+ const missingOut=transfers.filter(t=>t.topics[2]!==pt(U));
+ const fn2=async(m,p)=>{if(m==='eth_getLogs'&&p[0].topics?.[0]===T)return missingOut.filter(t=>p[0].address.includes(t.address));return fn(m,p);};
+ const r2=await lt.analyze({network:'ethereum',address:POLLT,rpcFn:fn2,pools:[{pool:POOL,dex:'synthra-arc',reserveUsd:5,trades24h:45}]});
+ assert.equal(r2.trades.length,0,'a swap whose payout transfer is missing is never shown');assert.equal(r2.status,'COVERAGE_INCOMPLETE');
+});
