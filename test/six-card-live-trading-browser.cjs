@@ -1,5 +1,5 @@
 'use strict';
-// Final Engine: six-card navigation + Live Trading rendering at 320/390/800/1440 px on arc/ethereum/robinhood.
+// Final Engine: six-card navigation + Live Trading rendering at 320/390/800/1024/1440 px on arc/ethereum/robinhood.
 // All API responses are mocked fixtures (never Production data); the fixture trades exist only inside this test.
 const {chromium}=require('playwright'),{spawn}=require('node:child_process'),assert=require('node:assert/strict'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),schema=require('../search/server/schema');
@@ -10,13 +10,14 @@ function trades(network,status='LIVE'){
  const row=(side,i)=>({side,tokenAmount:String(1000+i),counterAmount:'0.5',counterSymbol:'WETH',usd:i%2?1500.5:null,usdStatus:i%2?'ORACLE_PRICED':'USD_NOT_VERIFIED',usdBasis:'x',
   wallet:'0x'+String(i).padStart(40,'a'),route:'ROUTER',txHash:'0x'+String(i).padStart(64,'b'),logIndex:i,block:String(100-i),blockHash:'0x'+'c'.repeat(64),timestamp:new Date(Date.now()-i*60000).toISOString(),
   pool:'0x'+'d'.repeat(40),poolKind:'V3',protocol:'uniswap-v3',explorerUrl:explorer+'/tx/0x'+String(i).padStart(64,'b'),verification:'ONCHAIN_VERIFIED'});
- return status==='LIVE'?{ok:true,network,status,tokenSymbol:'TEST',headBlock:'100',headAgeSeconds:2,window:{fromBlock:'1',toBlock:'100'},trades:['BUY','SELL','SWAP','BUY'].map(row)}:
-  {ok:true,network,status:'UNSUPPORTED',reasonCode:'NO_VERIFIED_POOL',trades:[]};
+ if(status==='LIVE'){const tr=['BUY','SELL','SWAP','BUY'].map(row);return {ok:true,network,status,tokenSymbol:'TEST',headBlock:'100',headAgeSeconds:2,window:{fromBlock:'1',toBlock:'100'},lastTradeAt:tr[0].timestamp,pools:[],excludedPools:[],trades:tr};}
+ if(status==='COVERAGE_INCOMPLETE')return {ok:true,network,status,reasonCode:'ACTIVE_POOLS_UNSUPPORTED',headBlock:'100',trades:[],pools:[],excludedPools:[{pool:'0x'+'e'.repeat(40),dex:'synthra-arc',reasonCode:'UNREVIEWED_FACTORY',providerTrades24h:45}],coverage:{complete:false}};
+ return {ok:true,network,status:'UNSUPPORTED',reasonCode:'NO_VERIFIED_POOL',trades:[]};
 }
 (async()=>{let browser;const server=spawn(process.execPath,['dev.cjs'],{cwd:root,env:{...process.env,PORT:'3128'},windowsHide:true,stdio:['ignore','pipe','pipe']});
 try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j);});
  browser=await chromium.launch({headless:true,channel:process.env.ARCY_BROWSER_CHANNEL||'chrome'});let views=0;
- for(const width of[320,390,800,1440])for(const [network,chainId]of Object.entries({arc:5042,ethereum:1,robinhood:4663}))for(const mode of width===1440?['LIVE','UNSUPPORTED']:['LIVE']){
+ for(const width of[320,390,800,1024,1440])for(const [network,chainId]of Object.entries({arc:5042,ethereum:1,robinhood:4663}))for(const mode of width===1440?['LIVE','UNSUPPORTED','COVERAGE_INCOMPLETE']:['LIVE']){
   const page=await browser.newPage({viewport:{width,height:900}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   page.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource/.test(m.text()))errors.push(m.text());});
   const unknown=()=>({value:null,dataState:'NOT_VERIFIED',status:'NOT_VERIFIED',reason:'Unknown fixture',evidence:[]});
@@ -30,7 +31,7 @@ try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j
   await page.route('https://www.geckoterminal.com/**',r=>r.fulfill({contentType:'text/html',body:'Fixture chart'}));
   await page.goto(origin+'/search/token/'+network+'/'+address);await page.waitForFunction(()=>document.querySelector('#detailState').textContent.includes('Snapshot complete'));
   await page.locator('#deepResearch').evaluate(e=>e.open=true);
-  await page.waitForFunction(()=>document.querySelector('#cards [data-card-id="trades"] .lt-badge')?.textContent!=='BUSY');
+  await page.waitForFunction(()=>{const b=document.querySelector('#cards [data-card-id="trades"] .lt-badge');return b&&!b.classList.contains('lt-busy');});
   // navigation: six shortcuts in the required order
   const labels=await page.locator('#reportNavigation a span:not([aria-hidden])').allInnerTexts();
   assert.deepEqual(labels.map(x=>x.trim()),ORDER,'six shortcuts in order at '+width);
@@ -80,6 +81,21 @@ try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j
     }
     assert.equal(await page.locator(card+' .lt-scope, '+card+' .description, '+card+' .lt-tx, '+card+' .lt-pool').count(),0,'no technical fields in compact feed');
     assert.ok(await page.locator(card+' .lt-table-wrap').evaluate(e=>e.scrollWidth<=e.clientWidth+1),'no horizontal trade tape scroll');
+    // Data Engine V2: last-trade note, collapsed technical evidence, untranslated data cells, Turkish page text
+    assert.match(await page.locator(card+' .lt-status').innerText(),/Last trade \d+s ago/);
+    assert.equal(await page.locator(card+' .lt-evidence').evaluate(e=>e.open),false,'Evidence Details collapsed');
+    assert.equal(await page.locator(card+' .lt-wallet').first().getAttribute('translate'),'no');
+    if(width===390){
+     await page.evaluate(()=>document.documentElement.lang='tr');await page.waitForTimeout(100);
+     assert.equal(await page.locator(card+' .lt-badge').innerText(),'CANLI');assert.equal(await page.locator(card+' tr.lt-buy .lt-side').first().innerText(),'Alış');
+     assert.equal(await page.locator(card+' .lt-evidence-summary').innerText(),'Kanıt Ayrıntıları');assert.deepEqual((await page.locator(card+' .lt-table-head th').allInnerTexts()).map(x=>x.toLocaleUpperCase('tr')),['İŞLEM','CÜZDAN','TUTAR','ZAMAN']);assert.match(await page.locator(card+' .lt-status').innerText(),/Son işlem \d+ sn önce/);
+     await page.evaluate(()=>document.documentElement.lang='en');await page.waitForTimeout(100);assert.equal(await page.locator(card+' .lt-badge').innerText(),'LIVE');
+    }
+  }else if(mode==='COVERAGE_INCOMPLETE'){
+   assert.equal(await page.locator(card+' .lt-badge').innerText(),'COVERAGE INCOMPLETE');assert.equal(await page.locator(card+' tbody tr').count(),0);
+   assert.match(await page.locator(card+' .lt-status').innerText(),/not yet reviewed/);
+   await page.locator(card+' .lt-evidence > summary').click();
+   assert.match(await page.locator(card+' .lt-evidence').innerText(),/synthra-arc .*45 trades\/24h reported/);
   }else{
    assert.equal(await page.locator(card+' .lt-badge').innerText(),'LIMITED COVERAGE');
    assert.equal(await page.locator(card+' tbody tr').count(),0);assert.ok(await page.locator(card+' .lt-table-wrap').isHidden());
@@ -91,5 +107,5 @@ try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no page overflow at '+width);
   assert.deepEqual(errors,[]);await page.close();views++;
  }
- console.log('PASS: six-card navigation + Live Trading at 320/390/800/1440 px on arc/ethereum/robinhood ('+views+' views): order, 1/6 positions, next/previous/click, one desktop row, equal heights, BUY/SELL colours, https links, unsupported state, 20-check tally, aligned 4-column headings, shortened clickable wallets, no overflow or console errors. Mocked fixtures only.');
+ console.log('PASS: six-card navigation + Live Trading at 320/390/800/1024/1440 px on arc/ethereum/robinhood ('+views+' views): order, 1/6 positions, next/previous/click, one desktop row, equal heights, BUY/SELL colours, https links, unsupported state, 20-check tally, aligned 4-column headings, shortened clickable wallets, COVERAGE_INCOMPLETE + collapsed Evidence Details + Turkish labels, no overflow or console errors. Mocked fixtures only.');
 }finally{await browser?.close();server.kill();}})().catch(e=>{console.error(e);process.exit(1);});
