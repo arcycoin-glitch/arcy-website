@@ -214,7 +214,7 @@ async function reconcileTransfers(rpc,rows,state){
  const range={fromBlock:'0x'+lo.toString(16),toBlock:'0x'+hi.toString(16)},net=new Map(),ok=new Set();let calls=0;
  try{
   for(const dir of ['out','in']){
-   calls++;state.logCalls++;
+   calls++;state.reconcileCalls=(state.reconcileCalls||0)+1;
    const topics=dir==='out'?[TRANSFER,pools.map(p=>topicAddr(p.pool))]:[TRANSFER,null,pools.map(p=>topicAddr(p.pool))];
    const logs=await rpc.call('eth_getLogs',[{address:tokens,topics,...range}]);
    for(const l of Array.isArray(logs)?logs:[]){
@@ -223,7 +223,7 @@ async function reconcileTransfers(rpc,rows,state){
     const v=BigInt(l.data);net.set(key,(net.get(key)||0n)+(dir==='in'?v:-v));
    }
   }
- }catch{return {ok,calls,status:'TRANSFER_LOGS_UNAVAILABLE'};}
+ }catch(e){return {ok,calls,status:'TRANSFER_LOGS_UNAVAILABLE',error:String(e?.message||e).slice(0,120)};}
  // Sum the decoded pool deltas per tx+pool, then require BOTH token legs to match the Transfer ledger exactly.
  const want=new Map();
  for(const r of rows){const k=String(r.l.transactionHash).toLowerCase()+':'+r.p.pool;const w=want.get(k)||{p:r.p,d0:0n,d1:0n};
@@ -410,13 +410,19 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  {const e=incremental.get(incKey);if(e)e.scannedFrom=scannedFrom;}
  let scannedSince=null;if(!trades.length&&scannedFrom<=toBlock){const b=await blockRead('0x'+scannedFrom.toString(16));if(b)scannedSince=new Date(b.timestamp*1000).toISOString();}
  const live=headAgeS<=net.maxHeadAgeS;
- const status=trades.length?(live?'LIVE':'DELAYED'):activeExcluded.length?'COVERAGE_INCOMPLETE':'NO_RECENT_SWAPS';
- if(reconciled)base.reconciliation={status:reconciled.status,checked:reconciled.checked??0,matched:reconciled.matched??0,method:'Swap deltas must equal the tokens\' own Transfer events into/out of the pool in the same tx'};
- return {...base,coverage,status,reasonCode:trades.length?null:activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':'NO_SWAPS_IN_WINDOW',lastTradeAt:trades[0]?.timestamp||null,
+ // V3 honesty: "no swaps" is only claimed when nothing provider-reported is left unexplained.
+ const droppedUnreconciled=reconciled&&reconciled.status!=='OK'&&rec.length>0;
+ const reportedOnVerified=pools.reduce((n,p)=>n+(p.providerTrades24h||0),0);
+ const windowShort=!(scannedFrom<=from)&&reportedOnVerified>0;
+ const incompleteReason=activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':droppedUnreconciled?'RECONCILIATION_UNAVAILABLE':windowShort?'SCAN_WINDOW_INCOMPLETE':null;
+ const status=trades.length?(live?'LIVE':'DELAYED'):incompleteReason?'COVERAGE_INCOMPLETE':'NO_RECENT_SWAPS';
+ if(reconciled)base.reconciliation={status:reconciled.status,checked:reconciled.checked??0,matched:reconciled.matched??0,...(reconciled.error?{error:reconciled.error}:{}),method:'Swap deltas must equal the tokens\' own Transfer events into/out of the pool in the same tx'};
+ return {...base,coverage,status,reasonCode:trades.length?null:incompleteReason||'NO_SWAPS_IN_WINDOW',lastTradeAt:trades[0]?.timestamp||null,
   window:{fromBlock:from.toString(),scanFrom:scanFrom.toString(),scannedFromBlock:scannedFrom.toString(),scannedSince,toBlock:toBlock.toString(),mode,logCalls:state.logCalls,finalSpan:state.span,lookbackComplete:scannedFrom<=from},ethUsd:ethPrice,trades,cost:{rpcCalls:rpc.calls.n}};
 }
 function classify(e){
- const code=/^[A-Z][A-Z0-9_]{2,63}$/.test(e?.code||'')?e.code:/429/.test(String(e?.message))?'RPC_RATE_LIMITED':/GeckoTerminal/.test(String(e?.message))?'POOL_SOURCE_UNAVAILABLE':'PROVIDER_UNAVAILABLE';
+ const m=String(e?.message);
+ const code=/^[A-Z][A-Z0-9_]{2,63}$/.test(e?.code||'')?e.code:/GeckoTerminal/.test(m)?(/429/.test(m)?'POOL_SOURCE_RATE_LIMITED':'POOL_SOURCE_UNAVAILABLE'):/429/.test(m)?'RPC_RATE_LIMITED':'PROVIDER_UNAVAILABLE';
  return {ok:false,readOnly:true,status:'UNAVAILABLE',reasonCode:code,trades:[]};
 }
 // Single-flight + short cache per chain:token; bounded concurrent builds across tokens.

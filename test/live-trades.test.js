@@ -295,3 +295,16 @@ test('V3 Synthra-style adapter: unreviewed V3-interface pool proven by factory r
  const r2=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:rpcMock({factory:'0x'+'7'.repeat(40)}).fn,pools:[{pool:POOL,dex:'synthra',reserveUsd:5,trades24h:45}]});
  assert.equal(r2.pools.length,0);assert.equal(r2.excludedPools[0].reasonCode,'UNREVIEWED_FACTORY');
 });
+test('V3 honesty: unreconcilable swaps or a short scan window with provider activity are COVERAGE_INCOMPLETE, never "no swaps"',async()=>{
+ lt._reset();
+ const T='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+ const good=swapLog(990,1,v3data(-2n*10n**18n,5_000_000n));
+ const txs={[good.transactionHash]:{from:'0x'+'e'.repeat(40),to:POOL,blockHash:good.blockHash}};
+ const base=rpcMock({factory:'0x'+'7'.repeat(40),registered:POOL,logs:[good],blocks:{'0x3de':{hash:'0xbh990',timestamp:'0x6553f100'}},txs});
+ const fn=async(m,p)=>{if(m==='eth_getLogs'&&p[0].topics?.[0]===T)throw Error('filter not supported');return base.fn(m,p);};
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:fn,pools:[{pool:POOL,dex:'synthra',reserveUsd:5,trades24h:45}]});
+ assert.equal(r.trades.length,0);assert.equal(r.status,'COVERAGE_INCOMPLETE');assert.equal(r.reasonCode,'RECONCILIATION_UNAVAILABLE');
+ assert.equal(r.reconciliation.status,'TRANSFER_LOGS_UNAVAILABLE');assert.match(r.reconciliation.error,/filter not supported/);
+ assert.equal(lt.classify(Error('GeckoTerminal HTTP 429')).reasonCode,'POOL_SOURCE_RATE_LIMITED');
+ assert.equal(lt.classify(Error('HTTP 429')).reasonCode,'RPC_RATE_LIMITED');
+});
