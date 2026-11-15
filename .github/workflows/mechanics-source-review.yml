@@ -1,0 +1,26 @@
+name: Mechanics source review probe (read-only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-mechanics-sources.cjs'
+      - 'scripts/mechanics-probe-extra.json'
+      - '.github/workflows/mechanics-source-review.yml'
+  workflow_dispatch:
+concurrency:
+  group: mechanics-source-review-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the standard Mechanics bench sample (read-only)
+        run: BENCH_SAMPLES_ONLY=1 node scripts/bench-mechanics.cjs samples
+      - name: Source review excerpts (read-only)
+        env:
+          PROBE_FULL: ${{ vars.MECHANICS_PROBE_FULL || '' }}
+        run: node scripts/probe-mechanics-sources.cjs mechanics-samples.json scripts/mechanics-probe-extra.json
