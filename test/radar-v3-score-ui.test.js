@@ -287,3 +287,30 @@ test('Retry-After disables manual retry without scheduling another provider requ
  assert.equal(calls.length,4);
  assert.doesNotMatch(p.querySelector('.arcy-radar-overview-empty').textContent,/lansmanı bulunamadı/);
 });
+
+test('Arc coverage is explained and unranked movers are isolated from the Discovery top ten',async()=>{
+ const arc=data('arc');
+ arc.discovery.uniqueCandidates=14;
+ arc.coverage.ranked=1;
+ arc.watchlist=[{...token(),rank:1,symbol:'POLL',name:'Polly',address:'0x'+'b'.repeat(40),
+  change24hPct:33,volume24hUsd:2200,liquidityUsd:28000,discovery:null,
+  watchReason:'VOLUME_BELOW_NETWORK_FLOOR',promoted:false,
+  fields:{...token().fields,change24hPct:{status:'SOURCE_REPORTED'}}}];
+ const {detail,calls}=await mount({overrides:{arc}});
+ const card=panel(detail,'arc');
+ assert.equal(card.querySelector('.arcy-radar-coverage-method').hidden,false);
+ assert.match(card.querySelector('.arcy-radar-coverage-method').textContent,/14 farklı token adayı/);
+ assert.match(card.querySelector('.arcy-radar-coverage-method').textContent,/\$5.000/);
+ const watchers=card.querySelector('.arcy-radar-observed-movers');
+ assert.equal(watchers.hidden,false);
+ assert.match(watchers.textContent,/POLL/);
+ assert.match(watchers.textContent,/\+33.0%/);
+ assert.match(watchers.textContent,/Tek kaynak bildirimi/);
+ assert.match(watchers.textContent,/sıralama dışı/);
+ assert.equal(card.querySelectorAll('.arcy-radar-overview-token').length,1,'main rank unchanged');
+ assert.equal(card.querySelectorAll('.arcy-radar-observed-row').length,1);
+ assert.equal(card.querySelector('.arcy-radar-observed-row').href,'/search/token/arc/'+'0x'+'b'.repeat(40));
+ assert.equal(panel(detail,'robinhood').querySelector('.arcy-radar-observed-movers').hidden,true);
+ assert.equal(calls.length,4,'no extra endpoint calls or cross-network coupling');
+ assert.match(css,/arcy-radar-observed-row:focus-visible/);
+});
