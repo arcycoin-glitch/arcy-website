@@ -92,7 +92,7 @@ test('verified but unreviewed source explains tax/mint/owner limitations, not a 
   assert.equal(o.verificationGap.sourceProvider,'Blockscout');
   assert.equal(o.reasonDetail,'Generic unavailable');
  }
- assert.match(explain('mintCapability',unknown(),d).reason,/mint\(\)/);
+ assert.match(explain('mintCapability',unknown(),d).explanation,/mint\(\)/);
 });
 test('verified ABI shows fee, role and mint interface candidates but does not assert capabilities',()=>{
  const d={sourceVerification:{matched:true,provider:'Sourcify',templateRejection:'OVERRIDES__transfer'},
@@ -100,9 +100,12 @@ test('verified ABI shows fee, role and mint interface candidates but does not as
    {name:'mint',stateMutability:'nonpayable'},
    {name:'grantRole',stateMutability:'nonpayable'}],failures:[]};
  const tax=explain('tradingTaxes',unknown(),d),mint=explain('mintCapability',unknown(),d),owner=explain('ownerAdmin',unknown(),d);
- assert.match(tax.reason,/setBuyFee/);
- assert.match(mint.reason,/mint/);
- assert.match(owner.reason,/grantRole/);
+ assert.match(tax.explanation,/setBuyFee/);
+ assert.match(mint.explanation,/mint/);
+ assert.match(owner.explanation,/grantRole/);
+ // Mechanics V5: the visible reason is short; interface hints live in `explanation`.
+ assert.equal(owner.reason,'Admin execution path not yet reviewed in the verified source.');
+ assert.ok(tax.reason.length<=80&&!/setBuyFee/.test(tax.reason));
  assert.equal(tax.dataState,'NOT_VERIFIED');
  assert.equal(mint.dataState,'NOT_VERIFIED');
  assert.equal(owner.dataState,'NOT_VERIFIED');
@@ -140,8 +143,8 @@ test('contract mechanics annotation works across network reports without changin
   assert.equal(card.fields.tradingTaxes.reason,'Generic unavailable','original not mutated');
   assert.equal(out.fields.contractArchitecture,verified,'proved existing value not copied/changed');
   assert.equal(out.fields.tradingTaxes.value,null);
-  assert.match(out.fields.tradingTaxes.reason,/setFee/);
-  assert.match(out.fields.ownerAdmin.reason,/grantRole/);
+  assert.match(out.fields.tradingTaxes.explanation,/setFee/);
+  assert.match(out.fields.ownerAdmin.explanation,/grantRole/);
   assert.equal(out.fields.ownerAdmin.dataState,'NOT_VERIFIED');
  }
 });

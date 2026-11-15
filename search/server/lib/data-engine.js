@@ -39,18 +39,22 @@ function formatCard(cardId,raw,cfg,context){
  const identity={network:cfg.id,chainId:cfg.chainId,address:context?.address,block:context?.block};
  const visible=cardId==='supply'?{...source,...derived.supply(source,identity)}:
   cardId==='liquidity'?{...source,liquidityTurnover24h:derived.liquidity(source,identity)}:source;
- const fields=Object.fromEntries(keys.map(key=>{
-  const field=validateField(visible[key],cfg),proof=field.evidence?.[0];
+ const checked=input=>{
+  const field=validateField(input,cfg),proof=field.evidence?.[0];
   // Auxiliary implementation/authority observations may name other addresses;
   // the primary metric proof must never explicitly name a different token.
   const identity=proof?.address||proof?.token||proof?.contract;
   if(context&&field.dataState==='DATA_FOUND'&&typeof identity==='string'&&ADDRESS.test(identity)&&identity.toLowerCase()!==context.address.toLowerCase())
-   return [key,missing('Primary evidence belongs to another token contract.','SOURCE_CONTRACT_MISMATCH',cfg.id)];
+   return missing('Primary evidence belongs to another token contract.','SOURCE_CONTRACT_MISMATCH',cfg.id);
   const historical=field.status==='HISTORICAL_ONCHAIN_VERIFIED'||field.freshness?.state==='LAST_VERIFIED';
   if(context&&!historical&&/^(ON_CHAIN|ONCHAIN_VERIFIED|VERIFIED_SOURCE_AND_STATE)/.test(field.status||'')&&proof?.block&&proof.block!==context.block)
-   return [key,missing('Current on-chain evidence does not match this analysis block.','SOURCE_BLOCK_MISMATCH',cfg.id)];
-  return [key,field];
- }));
+   return missing('Current on-chain evidence does not match this analysis block.','SOURCE_BLOCK_MISMATCH',cfg.id);
+  return field;
+ };
+ const fields=Object.fromEntries(keys.map(key=>[key,checked(visible[key])]));
+ // Mechanics V5 supplementary Transfer Restrictions: same identity/block validation, never part of the 4-field tally.
+ const supplementary=cardId==='mechanics'&&raw?.supplementary?.transferRestrictions&&typeof raw.supplementary.transferRestrictions==='object'?
+  {transferRestrictions:checked(raw.supplementary.transferRestrictions)}:null;
  const statuses=Object.values(fields).map(x=>x.dataState);
  const count=statuses.filter(s=>s==='DATA_FOUND').length;
  const holderCandidates=[];
@@ -109,9 +113,10 @@ function formatCard(cardId,raw,cfg,context){
  const issuerNotes=disclosed.length&&Array.isArray(raw.researchNotes)?
   raw.researchNotes.filter(x=>typeof x==='string'&&x.startsWith('Ondo Foundation disclosed a locked-token custody wallet')&&x.length<600).slice(0,1):[];
  return {...(auxiliarySupply?{context:auxiliarySupply}:{}),
+  ...(supplementary?{supplementary}:{}),
   ...(holderCandidates.length?{holderCandidates}:{}),
   ...(disclosed.length?{supplementalEvidence:disclosed}:{}),
-  researchNotes:[...require('./research-notes').notes(cardId,fields),...issuerNotes],
+  researchNotes:[...require('./research-notes').notes(cardId,fields,{supplementary}),...issuerNotes],
   fields,status:count===keys.length?'SOURCE_BACKED':
   count>0?'PARTIAL_EVIDENCE':
   statuses.includes('SOURCE_API_FAILED')?'SOURCE_API_FAILED':'NOT_VERIFIED',

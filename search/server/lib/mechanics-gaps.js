@@ -3,7 +3,18 @@
 const LABELS=Object.freeze({
  tradingTaxes:{scope:'Transfer and trading fee execution',hint:'No verified percentage can be claimed, including 0%.'},
  mintCapability:{scope:'Mint and supply-increase execution',hint:'A missing mint() selector does not prove fixed supply.'},
- ownerAdmin:{scope:'Administrator, ownership and role permissions',hint:'A missing or zero owner() does not prove all authority is absent.'}
+ ownerAdmin:{scope:'Administrator, ownership and role permissions',hint:'A missing or zero owner() does not prove all authority is absent.'},
+ transferRestrictions:{scope:'Pause, blacklist, allowlist and transfer-limit execution',hint:'A missing pause or blacklist selector does not prove transfers cannot be blocked.'}
+});
+// Short user-facing reasons (Mechanics V5). The complete technical explanation, including verified ABI interface hints,
+// is kept in `explanation` and the evidence JSON shown under 'View sources & evidence'.
+const PATH={tradingTaxes:'Fee',mintCapability:'Mint',ownerAdmin:'Admin',transferRestrictions:'Restriction'};
+const SHORT=Object.freeze({
+ MECHANICS_IMPLEMENTATION_UNRESOLVED:()=>'Proxy implementation path unresolved.',
+ MECHANICS_SOURCE_IDENTITY_UNVERIFIED:()=>'Published source does not match the deployed code.',
+ MECHANICS_SOURCE_READ_UNAVAILABLE:()=>'Source provider unavailable; retry later.',
+ MECHANICS_VERIFIED_SOURCE_UNAVAILABLE:()=>'Verified source unavailable.',
+ MECHANICS_EXECUTION_PATH_UNREVIEWED:key=>PATH[key]+' execution path not yet reviewed in the verified source.'
 });
 function explain(key,field,details){
  if(!field||field.dataState==='DATA_FOUND'||!Object.hasOwn(LABELS,key))return field;
@@ -19,6 +30,7 @@ function explain(key,field,details){
   // identity verification. These are not tax rates, permissions or proven mint.
   const re=key==='tradingTaxes'?/tax|fee|levy|commission/i:
    key==='mintCapability'?/mint|issu|bridge|supply|cap/i:
+   key==='transferRestrictions'?/pause|blacklist|blocklist|allowlist|whitelist|freeze|frozen|block|limit|max/i:
     /owner|admin|role|permission|auth|upgrade|pause|blacklist|masterminter/i;
   const candidates=(Array.isArray(details?.interfaceCandidates)?details.interfaceCandidates:[])
    .filter(x=>x&&typeof x.name==='string'&&/^[A-Za-z_][A-Za-z_0-9]{0,60}$/.test(x.name)&&re.test(x.name))
@@ -37,7 +49,7 @@ function explain(key,field,details){
   reasonCode='MECHANICS_VERIFIED_SOURCE_UNAVAILABLE';
   reason='No fully verified, pinned-runtime-matched contract source was obtained. '+label.hint;
  }else return field;
- return {...field,reasonCode,reason,reasonDetail:field.reasonDetail||field.reason||null,
+ return {...field,reasonCode,reason:SHORT[reasonCode](key),explanation:reason,reasonDetail:field.reasonDetail||field.reason||null,
   verificationGap:{sourceProvider:info.provider,sourceAssurance:info.assurance,
    templateRejection:info.templateRejection,implementationExecutionResolved:info.implementationExecutionResolved,
    verifiedAbiHints:info.matched?(Array.isArray(details?.interfaceCandidates)?details.interfaceCandidates:[])
@@ -45,4 +57,4 @@ function explain(key,field,details){
     .slice(0,16).map(x=>({name:x.name,mutability:x.stateMutability||null})):[],
    cause:reasonCode}};
 }
-module.exports={explain,LABELS};
+module.exports={explain,LABELS,SHORT};

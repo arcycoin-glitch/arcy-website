@@ -59,6 +59,7 @@ function excerpt(src,full){
    const tmpl=src?oz.diagnose(src.d.sources,{lib:require('../search/server/lib/oz-library-hashes'),main:src.d.compilation?.name}):null;
    console.log('SRC '+JSON.stringify({net,group:s.group,a,kind,target,block,outer:{status:outer.status,match:outer.match,invalid:outer.invalid,digest:outer.digest},inner:target===a?'same':{status:inner.status,match:inner.match,invalid:inner.invalid,digest:inner.digest},main:src?.d.compilation?.name||null,profile,template:tmpl?(tmpl.ok?'OK:'+tmpl.mint:tmpl.reason):null}));
    if(src&&(!profile||full(a,target))){for(const line of excerpt(src.d,full(a,target)))console.log('  FN '+line);}
+   if(outer.d&&target!==a)for(const f of Object.values(outer.d.sources))for(const m of f.content.matchAll(/bytes32\s+(?:private|internal|public)?\s*constant\s+(\w*SLOT\w*)\s*=\s*(0x[0-9a-fA-F]{64})/g))console.log('  CONST outer '+outer.digest+' '+m[1]+'='+m[2].toLowerCase());
    if(outer.d&&target!==a&&full(a))for(const line of excerpt(outer.d,true))console.log('  OUTER '+line);
    else if(src&&profile){for(const line of excerpt(src.d,false).filter(l=>/\.(f:(transfer|transferFrom|_transfer|_update|_beforeTokenTransfer|_transferFrom|_transferTokens|removeLimits)\(|m:)/.test(l)))console.log('  FN '+line);}
   }catch(e){console.log('SRC '+JSON.stringify({net,a,error:String(e.message||e).slice(0,160)}));}
