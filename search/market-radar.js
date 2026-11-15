@@ -239,7 +239,7 @@ const change24hReason=item=>{
   const hasData=data?.ok===true&&Array.isArray(data?.tokens)&&allCount>0;
   const stamp=Date.parse(data?.asOf||'');
   lastUpdated.textContent=verified&&Number.isFinite(stamp)?'Son veri: '+new Date(stamp).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):loading?'Kaynaklar kontrol ediliyor…':'Güncel veri alınamadı';
-  freshness.textContent=verified?(data.freshness==='STALE'?'ÖNBELLEK':hasData?'DOĞRULANDI':'PENCERE BOŞ'):loading?'KONTROL EDİLİYOR':'KAYNAK ERİŞİLEMİYOR';
+  freshness.textContent=verified?(data.freshness==='STALE'?'ÖNBELLEK':hasData?'VERİ GÜNCEL':'PENCERE BOŞ'):loading?'KONTROL EDİLİYOR':'KAYNAK ERİŞİLEMİYOR';
   freshness.classList.toggle('is-stale',!hasData||data.freshness==='STALE');
   total.textContent=hasData?allCount+' gözlemlenen token · Veriler yalnızca kaynakların döndürdüğü havuz ve tokenlarla sınırlıdır':verified?'Bu veri penceresinde sıralanabilir token yok':loading?'Kaynaklar kontrol ediliyor…':'Token listesi şu anda doğrulanamıyor';
 
