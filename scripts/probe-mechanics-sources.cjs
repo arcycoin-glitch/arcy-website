@@ -31,7 +31,7 @@ function excerpt(src,full){
   const s=oz.strip(f.content),cs=oz.contracts(s);if(!cs)continue;
   for(const c of cs){if(c.kind==='interface'||c.kind==='library')continue;const fns=oz.functions(c.body)||[];
    for(const fn of fns){const priv=PATH_FNS.test(fn.name)||fn.kind==='modifier'||(fn.kind==='function'&&PRIV.test(fn.name));
-    if(!priv&&!(full&&fn.kind==='constructor'))continue;const hdr=fn.header.replace(/\s+/g,' ').trim();
+    if(!priv&&!full)continue;const hdr=fn.header.replace(/\s+/g,' ').trim();
     const body=fn.body.replace(/\s+/g,' ').trim();
     out.push(p.split('/').pop()+':'+c.name+'.'+fn.kind[0]+':'+fn.name+'('+fn.params.replace(/\s+/g,' ').trim()+') '+hdr+' { '+body.slice(0,full?2400:700)+(body.length>(full?2400:700)?' …':'')+' }');}}
  }
