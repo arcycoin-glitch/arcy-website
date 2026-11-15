@@ -130,6 +130,7 @@ async function review(target){
     grants:logs?logs.map(l=>({k:l.topics[0]===GRANTED?'G':'R',role:l.topics[1],account:'0x'+l.topics[2].slice(-40),block:Number(BigInt(l.blockNumber))})):null});
   }
 
+  const b0=out.beaconViews[0];
   if(b0&&!b0.error){out.beaconSource=await sourcify(chainId,v.beacon,b0.beaconCodeHash);out.beaconImplementationSource=b0.implementation?await sourcify(chainId,b0.implementation,b0.implementationCodeHash):null;}
  }
  out.codeProofs=[[v.codeHash,out.tokenSource],[v.implementationCodeHash,out.implementationSource]].filter(([h,s])=>h&&s&&s.status===200&&s.runtimeMatch==='exact_match'&&s.bytecodeEqualsOnchain)
