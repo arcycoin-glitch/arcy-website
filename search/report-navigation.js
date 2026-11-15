@@ -113,7 +113,7 @@ window.ARCYLiveTrading=(()=>{
    if(data.headBlock)line(tx.ev.head,data.headBlock);
    if(data.window)line(tx.ev.window,(data.window.scannedFromBlock||data.window.fromBlock)+'–'+data.window.toBlock+(data.window.scannedSince?' · '+data.window.scannedSince:''));
    if(Array.isArray(data.pools))line(tx.ev.pools,data.pools.map(p=>(p.protocol||p.kind)+' '+short(p.pool)).join(', ')||'0');
-   if(activeEx.length)line(tx.ev.excluded,activeEx.map(x=>(x.dex||'?')+' '+short(x.pool)+' ('+tx.reported(x.providerTrades24h)+')').join(', '));
+   if(activeEx.length)line(tx.ev.excluded,activeEx.map(x=>(x.dex||'?')+' '+short(x.pool)+' ('+(x.reasonCode?x.reasonCode+' · ':'')+tx.reported(x.providerTrades24h)+')').join(', '));
    body.append(el('p','lt-ev-line lt-ev-method',tx.ev.method));
   }
   node.querySelector('.lt-evidence').hidden=!body.childElementCount;
