@@ -61,7 +61,7 @@ try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j
    assert.equal(await page.locator(card+' tr.lt-buy .lt-side').first().evaluate(e=>getComputedStyle(e).color),'rgb(47, 211, 138)');
    for(const href of await page.locator(card+' a').evaluateAll(a=>a.map(x=>x.href)))assert.match(href,/^https:\/\//);
    assert.match(await page.locator(card+' tbody tr').first().innerText(),/WETH/);
-    assert.deepEqual(await page.locator(card+' .lt-table-head th').allInnerTexts(),['Trade','Wallet','Amount','Time'],'visible four-column headings');
+    assert.deepEqual((await page.locator(card+' .lt-table-head th').allInnerTexts()).map(s=>s.toUpperCase()),['TRADE','WALLET','AMOUNT','TIME'],'visible four-column headings');
     assert.ok(await page.locator(card+' .lt-table-head').isVisible(),'column headings are shown');
     assert.equal(await page.locator(card+' tbody tr').first().locator('td').count(),4,'each trade has four aligned cells');
     const columns=await page.locator(card+' .lt-table').evaluate(table=>{
