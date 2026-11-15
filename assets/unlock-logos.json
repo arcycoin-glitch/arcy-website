@@ -301,6 +301,71 @@
       "name": "Grass",
       "symbol": "GRASS",
       "logo": "https://coin-images.coingecko.com/coins/images/40094/large/Grass.jpg?1725697048"
+    },
+    {
+      "name": "Aster",
+      "symbol": "ASTER",
+      "logo": "https://coin-images.coingecko.com/coins/images/69040/large/_ASTER.png?1757326782",
+      "identity": {
+        "coingeckoId": "aster-2",
+        "homepage": "https://www.asterdex.com/en",
+        "contracts": {
+          "binance-smart-chain": "0x000ae314e2a2172a039b26378814c252734f556a"
+        },
+        "basis": "Unique exact-symbol CoinGecko match whose name equals the unlock event name; image fetched (HTTP 200, PNG/JPEG magic) 2026-11-15"
+      }
+    },
+    {
+      "name": "Big Time",
+      "symbol": "BIGTIME",
+      "logo": "https://coin-images.coingecko.com/coins/images/32251/large/-6136155493475923781_121.jpg?1696998691",
+      "identity": {
+        "coingeckoId": "big-time",
+        "homepage": "https://bigtime.gg/",
+        "contracts": {
+          "ethereum": "0x64bc2ca1be492be7185faa2c8835d9b824c8a194"
+        },
+        "basis": "Unique exact-symbol CoinGecko match whose name equals the unlock event name; image fetched (HTTP 200, PNG/JPEG magic) 2026-11-15"
+      }
+    },
+    {
+      "name": "GRVT Token",
+      "symbol": "GRVT",
+      "logo": "https://coin-images.coingecko.com/coins/images/102172513/large/grvt_400x400.jpg?1773653767",
+      "identity": {
+        "coingeckoId": "grvt",
+        "homepage": "https://grvt.io/",
+        "contracts": {
+          "ethereum": "0xad29f2723fcdbcf665f210f25e06f97477e417cf"
+        },
+        "basis": "Unique exact-symbol CoinGecko match whose name equals the unlock event name; image fetched (HTTP 200, PNG/JPEG magic) 2026-11-15"
+      }
+    },
+    {
+      "name": "Gunz",
+      "symbol": "GUN",
+      "logo": "https://coin-images.coingecko.com/coins/images/55027/large/gunz.jpg?1743262298",
+      "identity": {
+        "coingeckoId": "gunz",
+        "homepage": "https://gunbygunz.com/",
+        "contracts": {
+          "avalanche": "0x26debd39d5ed069770406fca10a0e4f8d2c743eb"
+        },
+        "basis": "Unique exact-symbol CoinGecko match whose name equals the unlock event name; image fetched (HTTP 200, PNG/JPEG magic) 2026-11-15"
+      }
+    },
+    {
+      "name": "Layer3",
+      "symbol": "L3",
+      "logo": "https://coin-images.coingecko.com/coins/images/37768/large/Square.png?1722045128",
+      "identity": {
+        "coingeckoId": "layer3",
+        "homepage": "https://layer3.xyz/",
+        "contracts": {
+          "ethereum": "0x88909d489678dd17aa6d9609f89b0419bf78fd9a"
+        },
+        "basis": "Unique exact-symbol CoinGecko match whose name equals the unlock event name; image fetched (HTTP 200, PNG/JPEG magic) 2026-11-15"
+      }
     }
   ]
 }
