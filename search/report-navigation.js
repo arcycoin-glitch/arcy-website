@@ -20,51 +20,64 @@ window.ARCYLiveTrading=(()=>{
  const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
  const safeUrl=u=>{try{const x=new URL(u);return x.protocol==='https:'&&!x.username&&!x.password&&x.href.length<400?x.href:null;}catch{return null;}};
  const short=a=>typeof a==='string'&&a.length>12?a.slice(0,6)+'…'+a.slice(-4):String(a||'');
- const amount=v=>{const n=Number(v);if(!Number.isFinite(n))return String(v||'—');return n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(2)+'K':n>=1?n.toFixed(2):n.toPrecision(3);};
- const ago=iso=>{const s=Math.max(0,Math.round((Date.now()-Date.parse(iso))/1000));return s<60?s+'s ago':s<3600?Math.round(s/60)+'m ago':s<86400?Math.round(s/3600)+'h ago':Math.round(s/86400)+'d ago';};
- const STATUS={LIVE:'LIVE',DELAYED:'DELAYED',NO_RECENT_SWAPS:'NO RECENT SWAPS',UNSUPPORTED:'NOT SUPPORTED',UNAVAILABLE:'SOURCE UNAVAILABLE',BUSY:'BUSY'};
- const REASON={NO_VERIFIED_POOL:'No DEX pool of this contract could be verified on-chain against a reviewed factory or pool manager.',
-  NO_POOL_CANDIDATES:'No DEX pool was found for this exact contract.',NO_SWAPS_IN_WINDOW:'No swaps were found in the scanned recent block window.',
-  LIVE_TRADES_BUSY:'Trade feed is busy; retrying shortly.',RPC_RATE_LIMITED:'The chain RPC is rate-limiting requests; retrying with backoff.',
-  POOL_SOURCE_UNAVAILABLE:'The pool directory is temporarily unavailable; retrying.',RPC_HEAD_UNAVAILABLE:'The chain head could not be read; retrying.'};
- const USD={STABLECOIN_QUOTED:'Stablecoin-quoted',ORACLE_PRICED:'Chainlink ETH/USD',ORACLE_PRICED_ETH_REFERENCE:'ETH × Chainlink (Ethereum reference)',USD_NOT_VERIFIED:'USD not verified'};
+ const amount=v=>{if(v===null||v===undefined||v==='')return '—';const n=Number(v);if(!Number.isFinite(n))return String(v||'—');return n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(2)+'K':n>=1?n.toFixed(2):n.toPrecision(3);};
+ const ago=iso=>{const ts=Date.parse(iso);if(!Number.isFinite(ts))return '—';const s=Math.max(0,Math.round((Date.now()-ts)/1000));return s<60?s+'s':s<3600?Math.round(s/60)+'m':s<86400?Math.round(s/3600)+'h':Math.round(s/86400)+'d';};
+ const STATUS={LIVE:'LIVE',DELAYED:'DELAYED',NO_RECENT_SWAPS:'NO RECENT SWAPS',UNSUPPORTED:'LIMITED COVERAGE',UNAVAILABLE:'UNAVAILABLE',BUSY:'LOADING'};
+ const REASON={
+  NO_VERIFIED_POOL:'No reviewed pool available for this token.',
+  NO_POOL_CANDIDATES:'No supported pool found for this token.',
+  NO_SWAPS_IN_WINDOW:'No swaps in the scanned verified pools.',
+  LIVE_TRADES_BUSY:'Trade feed busy. Retrying.',
+  RPC_RATE_LIMITED:'Data provider busy. Retrying.',
+  POOL_SOURCE_UNAVAILABLE:'Pool source unavailable.',
+  RPC_HEAD_UNAVAILABLE:'Chain data unavailable.'
+ };
+ const USD={STABLECOIN_QUOTED:'Stablecoin-quoted',ORACLE_PRICED:'Chainlink ETH/USD',ORACLE_PRICED_ETH_REFERENCE:'ETH x Chainlink (Ethereum reference)',USD_NOT_VERIFIED:'USD not verified'};
  let node=null,key=null,timer=null,delay=30000,controller=null,report=null,generation=0;
  function build(){
   node=el('section','card live-trading-card');node.dataset.cardId='trades';node.style.setProperty('--accent','#22d4ff');
   const h=el('h2','lt-title');h.append(icon(19),document.createTextNode(' Live Trading'));
-  const d=el('div','description','Recent swaps from on-chain-verified pools of this exact contract. Real transactions only; not every venue or route.');
   const st=el('div','lt-status');st.setAttribute('role','status');st.setAttribute('aria-live','polite');
-  const wrap=el('div','lt-table-wrap');wrap.tabIndex=0;wrap.setAttribute('aria-label','Recent verified swaps');
-  const table=el('table','lt-table'),cap=el('caption','lt-sr','Recent verified swaps, newest first'),thead=el('thead'),tr=el('tr');
-  for(const c of ['Side','Amount','Value','Wallet','Time','Tx','Pool'])tr.append(el('th',null,c));
+  const wrap=el('div','lt-table-wrap');wrap.tabIndex=0;wrap.setAttribute('aria-label','Recent verified trades');
+  const table=el('table','lt-table'),cap=el('caption','lt-sr','Recent verified swaps, newest first');
+  const thead=el('thead','lt-sr'),tr=el('tr');
+  for(const label of ['Side and wallet address','Trade amount','Time'])tr.append(el('th',null,label));
   thead.append(tr);table.append(cap,thead,el('tbody'));wrap.append(table);
-  const scope=el('p','lt-scope');
-  node.append(h,d,st,wrap,scope);return node;
+  node.append(h,st,wrap);return node;
  }
- function setStatus(state,detail){const st=node.querySelector('.lt-status');st.replaceChildren();const b=el('span','lt-badge lt-'+String(state).toLowerCase(),STATUS[state]||state);st.append(b);if(detail)st.append(document.createTextNode(' '+detail));}
+ function setStatus(state,detail){
+  const st=node.querySelector('.lt-status');st.replaceChildren();
+  st.append(el('span','lt-badge lt-'+String(state).toLowerCase(),STATUS[state]||state));
+  if(detail)st.append(el('span','lt-note',detail));
+ }
  function paint(data){
-  const tbody=node.querySelector('tbody'),wrap=node.querySelector('.lt-table-wrap'),scope=node.querySelector('.lt-scope');tbody.replaceChildren();
+  const tbody=node.querySelector('tbody'),wrap=node.querySelector('.lt-table-wrap');tbody.replaceChildren();
   const trades=Array.isArray(data?.trades)?data.trades.slice(0,30):[];
   wrap.hidden=!trades.length;
   for(const t of trades){
-   const row=el('tr','lt-row lt-'+String(t.side||'SWAP').toLowerCase());
-   row.append(el('td','lt-side',t.side==='BUY'?'BUY':t.side==='SELL'?'SELL':'SWAP'));
-   const amt=el('td','lt-amount',amount(t.tokenAmount)+' '+(data.tokenSymbol||''));amt.title=t.tokenAmount+' '+(data.tokenSymbol||'')+' for '+t.counterAmount+' '+(t.counterSymbol||'');row.append(amt);
-   const val=el('td','lt-value',Number.isFinite(t.usd)?'$'+t.usd.toLocaleString('en-US',{maximumFractionDigits:t.usd<1?4:2}):amount(t.counterAmount)+' '+(t.counterSymbol||''));
-   val.title=(USD[t.usdStatus]||t.usdStatus||'')+(t.usdBasis?' · '+t.usdBasis:'');if(!Number.isFinite(t.usd))val.classList.add('lt-unverified');row.append(val);
+   const side=t.side==='BUY'?'BUY':t.side==='SELL'?'SELL':'SWAP';
+   const row=el('tr','lt-row lt-'+side.toLowerCase());
+   const left=el('td','lt-trade-cell'),entry=el('span','lt-entry');
+   entry.append(el('span','lt-side',side==='BUY'?'Buy':side==='SELL'?'Sell':'Swap'));
    const txUrl=safeUrl(t.explorerUrl),base=txUrl?txUrl.replace(/\/tx\/0x[0-9a-f]{64}$/i,''):null;
-   const wcell=el('td','lt-wallet');if(base&&/^0x[0-9a-f]{40}$/i.test(t.wallet||'')){const a=el('a',null,short(t.wallet));a.href=base+'/address/'+t.wallet;a.target='_blank';a.rel='noopener noreferrer';a.title=t.wallet;wcell.append(a);}else wcell.textContent=short(t.wallet);row.append(wcell);
-   const time=el('td','lt-time',ago(t.timestamp));time.title=t.timestamp+' · block '+t.block;row.append(time);
-   const tx=el('td','lt-tx');if(txUrl){const a=el('a',null,short(t.txHash));a.href=txUrl;a.target='_blank';a.rel='noopener noreferrer';a.title=t.txHash;tx.append(a);}else tx.textContent=short(t.txHash);row.append(tx);
-   const pool=el('td','lt-pool',(t.poolKind||'')+' · '+short(t.pool));pool.title=(t.protocol||'')+' '+(t.pool||'')+(t.route?' · '+t.route.toLowerCase().replace('_','-'):'');row.append(pool);
+   if(base&&/^0x[0-9a-f]{40}$/i.test(t.wallet||'')){
+    const wallet=el('a','lt-wallet',short(t.wallet));
+    wallet.href=base+'/address/'+t.wallet;wallet.target='_blank';wallet.rel='noopener noreferrer';wallet.title=t.wallet;
+    entry.append(wallet);
+   }else{const wallet=el('span','lt-wallet',short(t.wallet));wallet.title=t.wallet||'';entry.append(wallet);}
+   left.append(entry);row.append(left);
+   const hasUsd=Number.isFinite(t.usd)&&t.usd>=0;
+   const valueText=hasUsd?'$'+t.usd.toLocaleString('en-US',{maximumFractionDigits:t.usd<1?4:2}):amount(t.counterAmount)+(t.counterSymbol?' '+t.counterSymbol:'');
+   const valcell=el('td','lt-value-cell'),val=el(txUrl?'a':'span','lt-value'+(hasUsd?'':' lt-unverified'),valueText);
+   const description=(USD[t.usdStatus]||t.usdStatus||'')+(t.usdBasis?' · '+t.usdBasis:'');
+   val.title=[description,t.tokenAmount+' '+(data.tokenSymbol||''),t.txHash].filter(Boolean).join(' · ');
+   if(txUrl){val.href=txUrl;val.target='_blank';val.rel='noopener noreferrer';val.setAttribute('aria-label',valueText+' — view verified transaction');}
+   valcell.append(val);row.append(valcell);
+   const time=el('td','lt-time',ago(t.timestamp));time.title=(t.timestamp||'')+(t.block?' · block '+t.block:'');row.append(time);
    tbody.append(row);
   }
-  const chainLabel={arc:'Arc 5042',ethereum:'Ethereum 1',robinhood:'Robinhood 4663'}[data?.network]||'';
-  const head=data?.headBlock?' · Head block '+data.headBlock+(Number.isFinite(data.headAgeSeconds)?' ('+data.headAgeSeconds+'s old)':''):'';
-  scope.textContent=data?.ok?chainLabel+head+(data.window?' · Scanned blocks '+data.window.fromBlock+'–'+data.window.toBlock:'')+'. Each row is a pool Swap event bound to its block hash; wallet = transaction sender. USD is shown only from a stablecoin counter asset or Chainlink ETH/USD; otherwise the counter amount is shown.':'';
-  const n=trades.length;
-  if(data?.status==='LIVE')setStatus('LIVE',n+' recent swap'+(n===1?'':'s'));
-  else if(data?.status==='DELAYED')setStatus('DELAYED','Chain data is '+data.headAgeSeconds+'s old; not shown as live.');
+  if(data?.status==='LIVE')setStatus('LIVE');
+  else if(data?.status==='DELAYED')setStatus('DELAYED','Last verified trades may be delayed.');
   else setStatus(data?.status||'UNAVAILABLE',REASON[data?.reasonCode]||'');
  }
  function schedule(ok){
@@ -83,9 +96,9 @@ window.ARCYLiveTrading=(()=>{
   report=reportEl||report;const r=route();
   const others=[...cards.querySelectorAll('[data-card-id]')].some(n=>n.dataset.cardId!=='trades');
   if(!r||!others)return null;
-  if(!node){build();setStatus('BUSY','Loading verified swaps…');}
+  if(!node){build();setStatus('BUSY');}
   const k=r.network+':'+r.address;
-  if(k!==key){key=k;delay=30000;clearTimeout(timer);node.querySelector('tbody').replaceChildren();node.querySelector('.lt-table-wrap').hidden=true;setStatus('BUSY','Loading verified swaps…');load();}
+  if(k!==key){key=k;delay=30000;clearTimeout(timer);node.querySelector('tbody').replaceChildren();node.querySelector('.lt-table-wrap').hidden=true;setStatus('BUSY');load();}
   if(!cards.contains(node))cards.prepend(node);
   return node;
  }

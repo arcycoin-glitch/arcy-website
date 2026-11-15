@@ -56,15 +56,19 @@ try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j
   if(mode==='LIVE'){
    assert.equal(await page.locator(card+' .lt-badge').innerText(),'LIVE');
    assert.equal(await page.locator(card+' tbody tr').count(),4);
-   assert.equal(await page.locator(card+' tr.lt-buy .lt-side').first().innerText(),'BUY');
+   assert.equal(await page.locator(card+' tr.lt-buy .lt-side').first().innerText(),'Buy');
    assert.equal(await page.locator(card+' tr.lt-sell .lt-side').first().evaluate(e=>getComputedStyle(e).color),'rgb(255, 107, 107)');
    assert.equal(await page.locator(card+' tr.lt-buy .lt-side').first().evaluate(e=>getComputedStyle(e).color),'rgb(47, 211, 138)');
    for(const href of await page.locator(card+' a').evaluateAll(a=>a.map(x=>x.href)))assert.match(href,/^https:\/\//);
-   assert.match(await page.locator(card+' tbody tr').first().innerText(),/USD not verified|WETH/);
+   assert.match(await page.locator(card+' tbody tr').first().innerText(),/WETH/);
+    assert.equal(await page.locator(card+' .lt-table th').count(),3,'only side/address, amount and time columns');
+    assert.equal(await page.locator(card+' .lt-wallet').count(),4,'wallet shown without a Holders tab');
+    assert.equal(await page.locator(card+' .lt-scope, '+card+' .description, '+card+' .lt-tx, '+card+' .lt-pool').count(),0,'no technical fields in compact feed');
+    assert.ok(await page.locator(card+' .lt-table-wrap').evaluate(e=>e.scrollWidth<=e.clientWidth+1),'no horizontal trade tape scroll');
   }else{
-   assert.equal(await page.locator(card+' .lt-badge').innerText(),'NOT SUPPORTED');
+   assert.equal(await page.locator(card+' .lt-badge').innerText(),'LIMITED COVERAGE');
    assert.equal(await page.locator(card+' tbody tr').count(),0);assert.ok(await page.locator(card+' .lt-table-wrap').isHidden());
-   assert.match(await page.locator(card+' .lt-status').innerText(),/No DEX pool of this contract could be verified/);
+   assert.match(await page.locator(card+' .lt-status').innerText(),/No reviewed pool available/);
   }
   assert.ok(tradeRequests>=1&&tradeRequests<=2,'bounded trade requests ('+tradeRequests+')');
   assert.match(await page.locator('#evidenceCount').innerText(),/20 checks|\/20|of 20/,'20-check tally unchanged');
@@ -72,5 +76,5 @@ try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no page overflow at '+width);
   assert.deepEqual(errors,[]);await page.close();views++;
  }
- console.log('PASS: six-card navigation + Live Trading at 320/390/800/1440 px on arc/ethereum/robinhood ('+views+' views): order, 1/6 positions, next/previous/click, one desktop row, equal heights, BUY/SELL colours, https links, unsupported state, 20-check tally, no overflow or console errors. Mocked fixtures only.');
+ console.log('PASS: six-card navigation + Live Trading at 320/390/800/1440 px on arc/ethereum/robinhood ('+views+' views): order, 1/6 positions, next/previous/click, one desktop row, equal heights, BUY/SELL colours, https links, unsupported state, 20-check tally, compact 3-column tape, no overflow or console errors. Mocked fixtures only.');
 }finally{await browser?.close();server.kill();}})().catch(e=>{console.error(e);process.exit(1);});
