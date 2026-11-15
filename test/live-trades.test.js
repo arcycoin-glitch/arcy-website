@@ -270,6 +270,7 @@ test('V3: provider 429 gets a bounded retry; persistent rate limiting still surf
  const dead=async(m,p)=>{if(m==='eth_getBlockByNumber')throw Error('HTTP 429');return base.fn(m,p);};
  const c=await lt.cached({network:'ethereum',address:TOKEN},()=>lt.analyze({network:'ethereum',address:TOKEN,rpcFn:dead,pools:[{pool:POOL,dex:'uniswap_v3',reserveUsd:5}]}));
  assert.equal(c.status,'UNAVAILABLE');assert.equal(c.reasonCode,'RPC_RATE_LIMITED','never presented as success');
+});
 test('V3 Synthra-style adapter: unreviewed V3-interface pool proven by factory registry; rows shown ONLY when token Transfers reconcile exactly',async()=>{
  lt._reset();
  const T='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',U='0x'+'9'.repeat(40),pt=a=>'0x'+'0'.repeat(24)+a.slice(2);
