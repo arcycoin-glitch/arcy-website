@@ -1034,3 +1034,7 @@
  #tokenDetail .arcy-radar-observed-row{grid-template-columns:minmax(64px,1fr)66px;gap:5px}
  #tokenDetail .arcy-radar-observed-meta{grid-column:1/-1}
 }
+
+/* Data Engine V2: short visible reason for an unavailable 24h change */
+.arcy-radar-dash{flex-wrap:wrap;column-gap:4px;max-width:100%;min-width:0}
+.arcy-radar-dash-reason{display:block;flex-basis:100%;order:3;max-width:100%;margin-top:2px;font-size:10px;line-height:1.25;font-weight:600;color:#8ea4b4;white-space:normal;overflow-wrap:anywhere;letter-spacing:0;text-transform:none}

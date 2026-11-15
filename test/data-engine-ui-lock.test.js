@@ -8,6 +8,7 @@
 // 2026-11-03 owner-requested Radar exception: accessible info icon beside unavailable 24h change (market-radar.js/.css only; reasonCode/poolAgeHours, no policy/score/data change).
 // 2026-11-03 owner-requested Radar display extension (#138): show exact-source young-pool partial values explicitly labelled 'Açılıştan beri' in the existing cell. 24h value stays unverified/null, score unchanged, no new API calls; only Radar JS/CSS change, reviewed through dedicated tests.
 // 2026-11-03 Radar source-disagreement presentation: where both verified-identity providers supply different young-pool partial observations, render GT and DS separately with an explicit disagreement label instead of hiding both. 24h null/provenance/score policy unchanged; UI-only code and CSS reviewed by dedicated unit tests.
+// 2026-11-15 owner-requested Data Engine V2 Phase 5 Radar exception: a short visible reason ('Kaynak uyuşmazlığı' / 'Havuz çok yeni' / 'Geçmiş yok' / 'Doğrulanamadı') beside the unavailable 24h dash. market-radar.js/.css only; reasonCode already served, 24h value stays null, no score/data/policy change.
 // 2026-10-31 owner-approved UI exception (PR #121): source-rendered single Synthra CTA
 // replaces the duplicate community card with a premium Synthra destination panel and scoped footer/layout CSS.
 // Owner-authorized retirement of the news module updates index.html, premium.css and v8-premium.js only; unrelated protected Search and Radar assets remain pinned.
@@ -32,8 +33,8 @@ const BASELINE = Object.freeze({
   // 2026-11-07 owner-authorized Radar SCORE display repair: accept the existing
   // discovery-2 backend schema and hide absent rationales; no HTML/CSS/skeleton,
   // provider, ranking or other-page changes. Reviewed in PR #177.
-  "search/market-radar.js": "bbe2fe916f1fd74e103f9d1bb73ab2caea54b7f4",
-  "search/market-radar.css": "0199f5d36b808bf3bc0979a0b4580f8c11eba2ed",
+  "search/market-radar.js": "92eba6bdec464a3bade7cc2aed78454e4d6132a0",
+  "search/market-radar.css": "2eeac99a520a70b733544460b0ed293b1b6c7e97",
   "search/assets/arc-network-mark.svg": "164d2a27c837cd58e42cf12d5d9a89ad4a546225",
   "search/assets/ethereum-mark.svg": "b92e033331b638dc4e2904aaa96b9f7e20917eb7",
   "search/assets/robinhood-chain-mark.svg": "3cb7faadf2cd29c1b158065283c688f424079a8e"
