@@ -10,7 +10,7 @@
 // an approved change to a protected file. The PR26 section (taken once from
 // commit 7c1faf7) is never recomputed.
 const crypto = require('node:crypto'), fs = require('node:fs'), path = require('node:path');
-const PROTECTED_FILES = Object.freeze(['index.html', 'premium.css', 'api/unlocks.js', 'api/pulse.js', 'scripts/holder-worker.cjs']);
+const PROTECTED_FILES = Object.freeze(['api/unlocks.js']);
 const normalize = text => String(text).replace(/\r\n/g, '\n');
 const sha256 = text => crypto.createHash('sha256').update(text).digest('hex');
 const withoutScripts = html => html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');

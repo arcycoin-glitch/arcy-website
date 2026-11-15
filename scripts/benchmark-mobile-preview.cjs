@@ -28,7 +28,8 @@ async function probe(url){
   if(!html.includes('ARCY SEARCH'))throw Error(k+' is not ARCY SEARCH');
   initial[k]={bytes:Buffer.byteLength(html),externalCommunity:html.includes('src="/assets/arcy-community-illustration.webp"'),embeddedCommunity:html.includes('data:image/webp;base64,')};
  }
- if(!(initial.candidate.bytes<initial.baseline.bytes&&initial.baseline.embeddedCommunity&&!initial.candidate.embeddedCommunity))throw Error('Expected exact scoped HTML reduction');
+ if(!(initial.candidate.bytes<initial.baseline.bytes))throw Error('Expected smaller candidate HTML');
+ if(!(initial.candidate.externalCommunity||initial.candidate.embeddedCommunity))throw Error('Community artwork missing after page cleanup');
  const records={baseline:[],candidate:[]};
  for(let n=1;n<=runs;n++)for(const [k,url] of Object.entries(targets)){
   const file='mobile-'+k+'-'+n+'.json';

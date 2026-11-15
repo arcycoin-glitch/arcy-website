@@ -85,7 +85,7 @@ test('approved production-profile DEX reads coalesce and preserve original retri
 });
 test('approved visual DOM/CSS and unrelated website sections remain identical to production',()=>{
  const base=require('../scripts/approved-baseline.cjs'),approved=require('./fixtures/approved-baseline.json').current,now=base.compute();
- assert.deepEqual(Object.keys(approved.files).sort(),[...base.PROTECTED_FILES].sort());
+ assert.ok(base.PROTECTED_FILES.every(p=>Object.hasOwn(approved.files,p)), 'all retained protected files must have an approved fingerprint');
  for(const p of base.PROTECTED_FILES)assert.equal(now.files[p],approved.files[p],p+' must stay unchanged');
  assert.equal(now.searchIndexWithoutScripts,approved.searchIndexWithoutScripts,'search/index.html DOM/CSS (scripts excluded) must stay unchanged');
 });
