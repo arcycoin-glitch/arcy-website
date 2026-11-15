@@ -13,7 +13,8 @@ const RPC={ethereum:require('../search/server/lib/eth').rpc,arc:require('../sear
 const CHAIN={ethereum:1,arc:5042,robinhood:4663};
 const samples=[...JSON.parse(fs.readFileSync(process.argv[2]||'mechanics-samples.json','utf8'))];
 if(process.argv[3]&&fs.existsSync(process.argv[3]))samples.push(...JSON.parse(fs.readFileSync(process.argv[3],'utf8')));
-const FULL=new Set((process.env.PROBE_FULL||'').toLowerCase().split(',').filter(Boolean));
+const FULL=(process.env.PROBE_FULL||'').toLowerCase().split(',').filter(Boolean);
+const full=(...xs)=>xs.some(x=>FULL.some(p=>p==='all'||String(x||'').slice(2).startsWith(p)));
 const PATH_FNS=/^(transfer|transferFrom|_transfer|_update|_beforeTokenTransfer|_afterTokenTransfer|_transferFrom)$/;
 const PRIV=/mint|issue|pause|freeze|blacklist|blocklist|allowlist|whitelist|frozen|fee|tax|limit|max|owner|admin|role|upgrade|supplyController|assetProtection|rescue|wipe|seize|burn/i;
 const SLOT={impl:'0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc',legacy:'0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3',beacon:'0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50'};
@@ -30,7 +31,7 @@ function excerpt(src,full){
   const s=oz.strip(f.content),cs=oz.contracts(s);if(!cs)continue;
   for(const c of cs){if(c.kind==='interface'||c.kind==='library')continue;const fns=oz.functions(c.body)||[];
    for(const fn of fns){const priv=PATH_FNS.test(fn.name)||fn.kind==='modifier'||(fn.kind==='function'&&PRIV.test(fn.name));
-    if(!priv&&!full)continue;const hdr=fn.header.replace(/\s+/g,' ').trim();
+    if(!priv&&!(full&&fn.kind==='constructor'))continue;const hdr=fn.header.replace(/\s+/g,' ').trim();
     const body=fn.body.replace(/\s+/g,' ').trim();
     out.push(p.split('/').pop()+':'+c.name+'.'+fn.kind[0]+':'+fn.name+'('+fn.params.replace(/\s+/g,' ').trim()+') '+hdr+' { '+body.slice(0,full?2400:700)+(body.length>(full?2400:700)?' …':'')+' }');}}
  }
@@ -57,7 +58,7 @@ function excerpt(src,full){
    const profile=src?deep.PROFILES[src.digest]||null:null;
    const tmpl=src?oz.diagnose(src.d.sources,{lib:require('../search/server/lib/oz-library-hashes'),main:src.d.compilation?.name}):null;
    console.log('SRC '+JSON.stringify({net,group:s.group,a,kind,target,block,outer:{status:outer.status,match:outer.match,invalid:outer.invalid,digest:outer.digest},inner:target===a?'same':{status:inner.status,match:inner.match,invalid:inner.invalid,digest:inner.digest},main:src?.d.compilation?.name||null,profile,template:tmpl?(tmpl.ok?'OK:'+tmpl.mint:tmpl.reason):null}));
-   if(src&&(!profile||FULL.has(a)||FULL.has(target)||FULL.has('all'))){for(const line of excerpt(src.d,FULL.has(a)||FULL.has(target)))console.log('  FN '+line);}
+   if(src&&(!profile||full(a,target))){for(const line of excerpt(src.d,full(a,target)))console.log('  FN '+line);}
    else if(src&&profile){for(const line of excerpt(src.d,false).filter(l=>/\.(f:(transfer|transferFrom|_transfer|_update|_beforeTokenTransfer|_transferFrom)\(|m:)/.test(l)))console.log('  FN '+line);}
   }catch(e){console.log('SRC '+JSON.stringify({net,a,error:String(e.message||e).slice(0,160)}));}
  }
