@@ -42,6 +42,23 @@ function snapshot(chain, { revision = 'First', checked = NOW, expires = checked 
   };
 }
 
+function watchSnapshot(chain, count, { context = false, risk = false } = {}) {
+  const value = snapshot(chain);
+  if (risk) return value;
+  value.projectCards[2] = { category: 'RISK_ALERT', state: 'WATCH', reasonCode: 'WEEKLY_PROJECT_ACTIVITY',
+    event: null, activityWindow: context ? 'RECENT_30_DAYS' : 'ROLLING_7_DAYS',
+    projects: Array.from({ length: count }, (_, index) => ({
+      project: 'Watch project ' + (index + 1), title: 'Protocol feature ' + (index + 1),
+      summary: 'The repository contains an attributed development update.',
+      implication: 'Users can review the source for the change.',
+      limitation: 'A merged commit does not establish production deployment.',
+      url: 'https://github.com/bursar-world/bursar/commit/' + String(index + 1).repeat(40),
+      publisher: 'Bursar maintainers', publishedAt: '2026-11-13T07:30:00.000Z',
+      evidenceGrade: 'MERGED_CODE', updateCount: 1,
+    })) };
+  return value;
+}
+
 function routePulse(page, projects) {
   return page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
@@ -101,6 +118,44 @@ async function verifyRefresh(browser) {
     console.log('PASS visibility-aware refresh, expiry, 429 cooldown, recovery, and partial coverage');
   } finally {
     await page.close();
+  }
+}
+
+async function verifyWeeklyWatch(browser) {
+  for (const width of [1440, 800, 390, 320]) {
+    for (const scenario of [
+      { count: 1 }, { count: 2 }, { count: 3 },
+      { count: 1, context: true }, { count: 3, risk: true },
+    ]) {
+      const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
+      try {
+        await page.clock.setFixedTime(NOW);
+        await routePulse(page, (route, chain) => route.fulfill({ json: watchSnapshot(chain, scenario.count, scenario) }));
+        await page.goto(origin + '/#pulse', { waitUntil: 'domcontentloaded' });
+        const panel = page.locator('#pulse-panel-arc');
+        const third = panel.locator('.pulse-card').nth(2);
+        if (scenario.risk) {
+          await third.getByRole('heading', { name: 'First Arc RISK_ALERT' }).waitFor({ state: 'attached' });
+          assert.equal(await third.locator('.pulse-watch-row').count(), 0);
+          assert.equal(await third.locator(':scope > span > span:last-child').innerText(), 'RISK_ALERT');
+        } else {
+          await third.getByRole('heading', { name: 'Weekly project watch' }).waitFor({ state: 'attached' });
+          assert.equal(await third.locator('.pulse-watch-row').count(), scenario.count);
+          assert.equal(await third.locator(':scope > span > span:last-child').innerText(), 'WEEKLY PROJECT WATCH');
+          assert.equal(await third.locator('.pulse-watch-row a').count(), scenario.count);
+          for (const href of await third.locator('.pulse-watch-row a').evaluateAll(nodes => nodes.map(node => node.href))) {
+            assert.match(href, /^https:\/\/github\.com\/bursar-world\/bursar\/commit\/[0-9a-f]{40}$/);
+          }
+          const text = await third.textContent();
+          assert.match(text, scenario.context ? /Recent context from the last 30 days/ :
+            /Dated project activity from the rolling seven days/);
+        }
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      } finally {
+        await page.close();
+      }
+    }
+    console.log(`PASS ${width}px weekly watch: 1, 2, 3 projects, recent-context fallback and risk precedence`);
   }
 }
 
@@ -204,6 +259,7 @@ async function main() {
     assert.equal(await grid.getByRole('heading', { name: 'Sources unavailable' }).count(), 2);
     await page.close();
     await verifyRefresh(browser);
+    await verifyWeeklyWatch(browser);
   } finally {
     await browser?.close();
     server.kill();
