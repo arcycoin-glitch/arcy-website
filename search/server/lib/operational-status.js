@@ -8,8 +8,6 @@ const STATE=Object.freeze({HEALTHY:'HEALTHY',DEGRADED:'DEGRADED',UNAVAILABLE:'UN
 const LIMITS=Object.freeze({
  // Worker loop: <=40 s batch + <=30 s idle sleep. Three missed loops is degraded, ~15 missed loops is down.
  heartbeatHealthySeconds:180,heartbeatDegradedSeconds:900,
- // Pulse is weekly (Monday 06:00 UTC). One missed cycle plus a grace day is degraded; two missed cycles is stale.
- pulseHealthyHours:8*24,pulseDegradedHours:15*24,
  // Unlock calendar refreshes every 6 h; a signed edition past its refreshAt is overdue.
  unlockGraceSeconds:3600,unlockStaleSeconds:86400,
  // 429 share of all worker RPC requests since process start (in-process counters reset on restart).
@@ -82,19 +80,6 @@ function holderWorker(diag,now){
   runtime:{commit:shortSha(w.runtime?.commit),startedAt:typeof w.runtime?.startedAt==='string'?w.runtime.startedAt:null},
   basis:'Liveness = worker scheduler invocation age (in-process). Counters reset on worker restart. A published snapshot is not a heartbeat.'};
 }
-function weekly(audit,now,label){
- if(audit===undefined||audit?.unreachable)return {state:STATE.UNKNOWN,reasonCode:'AUDIT_UNAVAILABLE'};
- const ok=audit?.lastSuccessful,fail=audit?.lastFailure,age=ageSeconds(ok?.generatedAt,now),hours=age===null?null:Math.round(age/36)/100;
- let state,reasonCode=null;
- if(age===null){state=STATE.UNAVAILABLE;reasonCode='NO_SUCCESSFUL_PUBLICATION';}
- else if(hours<=LIMITS.pulseHealthyHours)state=STATE.HEALTHY;
- else if(hours<=LIMITS.pulseDegradedHours){state=STATE.DEGRADED;reasonCode='PUBLICATION_OVERDUE';}
- else {state=STATE.UNAVAILABLE;reasonCode='PUBLICATION_STALE';}
- const failAge=ageSeconds(fail?.at,now),failedAfter=failAge!==null&&(age===null||failAge<age);
- if(state===STATE.HEALTHY&&failedAfter){state=STATE.DEGRADED;reasonCode='LATEST_REFRESH_FAILED';}
- return {state,reasonCode,label,lastSuccessfulAt:typeof ok?.generatedAt==='string'?ok.generatedAt:null,ageHours:hours,edition:Number.isSafeInteger(ok?.number)?ok.number:null,status:typeof ok?.status==='string'?ok.status:null,
-  lastFailureAt:typeof fail?.at==='string'?fail.at:null,lastFailureCode:code(fail?.code),failedAfterLastSuccess:failedAfter};
-}
 function unlocks(audit,now){
  if(audit===undefined||audit?.unreachable)return {state:STATE.UNKNOWN,reasonCode:'AUDIT_UNAVAILABLE'};
  const ok=audit?.lastSuccessful,fail=audit?.lastFailure,refreshAt=Date.parse(ok?.refreshAt||''),overdue=Number.isFinite(refreshAt)?Math.max(0,Math.round((now-refreshAt)/1000)):null;
@@ -109,24 +94,20 @@ function unlocks(audit,now){
  return {state,reasonCode,generatedAt:typeof ok?.generatedAt==='string'?ok.generatedAt:null,refreshAt:typeof ok?.refreshAt==='string'?ok.refreshAt:null,overdueSeconds:overdue,
   eventCount:finite(ok?.eventCount)?ok.eventCount:null,partial:typeof ok?.partial==='boolean'?ok.partial:null,consecutiveFailures:consecutive,lastFailureCode:code(fail?.code)};
 }
-// inputs: {diagnostics, pulseAudit, networkPulseAudit:{chains:{ethereum,robinhood}}, unlockAudit, runtime:{commit,environment}}
+// inputs: {diagnostics, unlockAudit, runtime:{commit,environment}}
 function evaluate(inputs={},now=Date.now()){
  const worker=holderWorker(inputs.diagnostics,now);
- const chains=inputs.networkPulseAudit?.chains;
- const pulse={arc:weekly(inputs.pulseAudit,now,'Arc'),
-  ethereum:weekly(inputs.networkPulseAudit?.unreachable?{unreachable:true}:chains?chains.ethereum??null:undefined,now,'Ethereum'),
-  robinhood:weekly(inputs.networkPulseAudit?.unreachable?{unreachable:true}:chains?chains.robinhood??null:undefined,now,'Robinhood Chain')};
  const unlock=unlocks(inputs.unlockAudit,now);
  const vercel=shortSha(inputs.runtime?.commit),workerCommit=worker.runtime?.commit||null;
  const version={searchApi:vercel,holderWorker:workerCommit,match:vercel&&workerCommit?vercel.slice(0,7)===workerCommit.slice(0,7):null,
   note:'The worker is deployed separately on Railway; a mismatch is reported, not treated as a failure, because worker-only code may lag safely.'};
- const dataStates=[pulse.arc.state,pulse.ethereum.state,pulse.robinhood.state,unlock.state];
+ const dataStates=[unlock.state];
  // Overall: the Search API answering is itself the availability proof for this endpoint. Worker down = UNAVAILABLE
  // for the durable data pipeline; stale or failing publications = DEGRADED. UNKNOWN never upgrades to HEALTHY.
  const pipeline=worker.state===STATE.UNAVAILABLE?STATE.UNAVAILABLE:worst([worker.state,...dataStates.map(s=>s===STATE.UNAVAILABLE?STATE.DEGRADED:s)]);
  return {generatedAt:new Date(now).toISOString(),overall:pipeline,
-  components:{searchApi:{state:STATE.HEALTHY,environment:inputs.runtime?.environment||null},holderWorker:worker,pulse,unlocks:unlock},
+  components:{searchApi:{state:STATE.HEALTHY,environment:inputs.runtime?.environment||null},holderWorker:worker,unlocks:unlock},
   version,limits:LIMITS,
   states:'HEALTHY = within expected cadence; DEGRADED = late, failing or partially unknown; UNAVAILABLE = stale beyond tolerance or unreachable; UNKNOWN = not measurable from this runtime.'};
 }
-module.exports={evaluate,holderWorker,weekly,unlocks,LIMITS,STATE};
+module.exports={evaluate,holderWorker,unlocks,LIMITS,STATE};
