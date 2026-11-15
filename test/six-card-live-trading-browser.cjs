@@ -94,6 +94,7 @@ try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j
   }else if(mode==='COVERAGE_INCOMPLETE'){
    assert.equal(await page.locator(card+' .lt-badge').innerText(),'COVERAGE INCOMPLETE');assert.equal(await page.locator(card+' tbody tr').count(),0);
    assert.match(await page.locator(card+' .lt-status').innerText(),/not yet reviewed/);
+   assert.match(await page.locator(card+' .lt-status').innerText(),/Provider reports 45 trades\/24h .*NOT ON-CHAIN VERIFIED/);assert.equal(await page.locator(card+' tbody tr').count(),0,'provider activity never becomes a trade row');
    await page.locator(card+' .lt-evidence > summary').click();
    assert.match(await page.locator(card+' .lt-evidence').innerText(),/synthra-arc .*45 trades\/24h reported/);
   }else{

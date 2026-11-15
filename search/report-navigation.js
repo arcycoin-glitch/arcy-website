@@ -28,21 +28,27 @@ window.ARCYLiveTrading=(()=>{
   en:{title:'Live Trading',status:{LIVE:'LIVE',DELAYED:'DELAYED',NO_RECENT_SWAPS:'NO RECENT SWAPS',COVERAGE_INCOMPLETE:'COVERAGE INCOMPLETE',UNSUPPORTED:'LIMITED COVERAGE',UNAVAILABLE:'UNAVAILABLE',BUSY:'LOADING'},
    reason:{NO_VERIFIED_POOL:'No reviewed pool available for this token.',NO_POOL_CANDIDATES:'No supported pool found for this token.',NO_SWAPS_IN_WINDOW:'No swaps in the scanned verified pools.',
     ACTIVE_POOLS_UNSUPPORTED:'Active pools use DEX contracts not yet reviewed; their trades are not shown.',
+    RECONCILIATION_UNAVAILABLE:'Swaps were found but could not be reconciled with token transfers right now; none are shown.',
+    SCAN_WINDOW_INCOMPLETE:'The scanned block window did not reach the reported activity; no swap is claimed or denied.',
+    SWAPS_NOT_RECONCILED:'Swap events were found but their token transfers did not match exactly; they are not shown.',
     LIVE_TRADES_BUSY:'Trade feed busy. Retrying.',RPC_RATE_LIMITED:'Data provider busy. Retrying.',POOL_SOURCE_UNAVAILABLE:'Pool source unavailable.',RPC_HEAD_UNAVAILABLE:'Chain data unavailable.'},
    usd:{STABLECOIN_QUOTED:'Stablecoin-quoted',ORACLE_PRICED:'Chainlink ETH/USD',ORACLE_PRICED_ETH_REFERENCE:'ETH x Chainlink (Ethereum reference)',USD_NOT_VERIFIED:'USD not verified'},
    side:{BUY:'Buy',SELL:'Sell',SWAP:'Swap'},cols:['Trade','Wallet','Amount','Time'],caption:'Recent verified swaps, newest first',view:'view verified transaction',
    delayed:'Last verified trades may be delayed.',last:t=>'Last trade '+t+' ago',since:t=>'No verified swaps since '+t+'.',partial:'Partial coverage',
-   evidence:'Evidence Details',ev:{snapshot:'Snapshot',chain:'Network',head:'Head block',window:'Scanned blocks',pools:'Verified pools',excluded:'Not covered',
+   evidence:'Evidence Details',provider:n=>'Provider reports '+n+' trades/24h on uncovered pools — PROVIDER REPORTED, NOT ON-CHAIN VERIFIED.',ev:{snapshot:'Snapshot',reconcile:'Transfer reconciliation',chain:'Network',head:'Head block',window:'Scanned blocks',pools:'Verified pools',excluded:'Not covered',
     method:'Rows are pool Swap events bound to their block hash; wallet = transaction sender. USD only from a stablecoin counter asset or Chainlink ETH/USD. Not every venue or route; not investment advice.'},
    reported:n=>n+' trades/24h reported',unit:{s:'s',m:'m',h:'h',d:'d'}},
   tr:{title:'Canlı İşlemler',status:{LIVE:'CANLI',DELAYED:'GECİKMELİ',NO_RECENT_SWAPS:'SON İŞLEM YOK',COVERAGE_INCOMPLETE:'KAPSAM EKSİK',UNSUPPORTED:'SINIRLI KAPSAM',UNAVAILABLE:'ERİŞİLEMİYOR',BUSY:'YÜKLENİYOR'},
    reason:{NO_VERIFIED_POOL:'Bu token için incelenmiş havuz yok.',NO_POOL_CANDIDATES:'Bu token için desteklenen havuz bulunamadı.',NO_SWAPS_IN_WINDOW:'Taranan doğrulanmış havuzlarda işlem yok.',
     ACTIVE_POOLS_UNSUPPORTED:'Aktif havuzlar henüz incelenmemiş DEX kontratlarında; bu işlemler gösterilmiyor.',
+    RECONCILIATION_UNAVAILABLE:'İşlemler bulundu ancak şu anda token transferleriyle mutabakat yapılamadı; hiçbiri gösterilmiyor.',
+    SCAN_WINDOW_INCOMPLETE:'Taranan blok aralığı bildirilen aktiviteye ulaşmadı; işlem var ya da yok denmiyor.',
+    SWAPS_NOT_RECONCILED:'Swap olayları bulundu ancak token transferleri birebir eşleşmedi; gösterilmiyor.',
     LIVE_TRADES_BUSY:'İşlem akışı yoğun. Yeniden deneniyor.',RPC_RATE_LIMITED:'Veri sağlayıcı yoğun. Yeniden deneniyor.',POOL_SOURCE_UNAVAILABLE:'Havuz kaynağı erişilemiyor.',RPC_HEAD_UNAVAILABLE:'Zincir verisi erişilemiyor.'},
    usd:{STABLECOIN_QUOTED:'Stablecoin karşılığı',ORACLE_PRICED:'Chainlink ETH/USD',ORACLE_PRICED_ETH_REFERENCE:'ETH x Chainlink (Ethereum referansı)',USD_NOT_VERIFIED:'USD doğrulanmadı'},
    side:{BUY:'Alış',SELL:'Satış',SWAP:'Takas'},cols:['İşlem','Cüzdan','Tutar','Zaman'],caption:'Son doğrulanmış işlemler, en yeni önce',view:'doğrulanmış işlemi görüntüle',
    delayed:'Son doğrulanmış işlemler gecikmeli olabilir.',last:t=>'Son işlem '+t+' önce',since:t=>'Son dönemde doğrulanmış işlem bulunamadı ('+t+' itibarıyla).',partial:'Kısmi kapsam',
-   evidence:'Kanıt Ayrıntıları',ev:{snapshot:'Anlık görüntü',chain:'Ağ',head:'Zincir başı',window:'Taranan bloklar',pools:'Doğrulanmış havuzlar',excluded:'Kapsam dışı',
+   evidence:'Kanıt Ayrıntıları',provider:n=>'Sağlayıcı, kapsanmayan havuzlarda 24 saatte '+n+' işlem bildiriyor — SAĞLAYICI BİLDİRİMİ, ZİNCİRDE DOĞRULANMADI.',ev:{snapshot:'Anlık görüntü',reconcile:'Transfer mutabakatı',chain:'Ağ',head:'Zincir başı',window:'Taranan bloklar',pools:'Doğrulanmış havuzlar',excluded:'Kapsam dışı',
     method:'Satırlar blok hash’ine bağlı havuz Swap olaylarıdır; cüzdan = işlemi gönderen. USD yalnızca stablecoin karşı varlıktan veya Chainlink ETH/USD’den. Tüm piyasalar değildir; yatırım tavsiyesi değildir.'},
    reported:n=>'24 saatte '+n+' işlem bildirildi',unit:{s:' sn',m:' dk',h:' sa',d:' gün'}}
  };
@@ -115,6 +121,7 @@ window.ARCYLiveTrading=(()=>{
    if(data.window)line(tx.ev.window,(data.window.scannedFromBlock||data.window.fromBlock)+'–'+data.window.toBlock+(data.window.scannedSince?' · '+data.window.scannedSince:''));
    if(Array.isArray(data.pools))line(tx.ev.pools,data.pools.map(p=>(p.protocol||p.kind)+' '+short(p.pool)).join(', ')||'0');
    if(activeEx.length)line(tx.ev.excluded,activeEx.map(x=>(x.dex||'?')+' '+short(x.pool)+' ('+(x.reasonCode?x.reasonCode+' · ':'')+tx.reported(x.providerTrades24h)+')').join(', '));
+   if(data.reconciliation)line(tx.ev.reconcile,data.reconciliation.matched+' / '+data.reconciliation.checked+(data.reconciliation.status!=='OK'?' · '+data.reconciliation.status:''));
    body.append(el('p','lt-ev-line lt-ev-method',tx.ev.method));
   }
   node.querySelector('.lt-evidence').hidden=!body.childElementCount;
@@ -122,7 +129,7 @@ window.ARCYLiveTrading=(()=>{
   if(data?.status==='LIVE')setStatus('LIVE',(data.lastTradeAt?tx.last(ago(data.lastTradeAt)):'')+partial);
   else if(data?.status==='DELAYED')setStatus('DELAYED',tx.delayed);
   else if(data?.status==='NO_RECENT_SWAPS'&&data.window?.scannedSince)setStatus('NO_RECENT_SWAPS',tx.since(new Date(data.window.scannedSince).toLocaleString(lang()==='tr'?'tr-TR':'en-GB',{dateStyle:'medium',timeStyle:'short'})));
-  else setStatus(data?.status||'UNAVAILABLE',tx.reason[data?.reasonCode]||'');
+  else{const rep=activeEx.reduce((n,x)=>n+(x.providerTrades24h||0),0)+(data?.reasonCode==='ACTIVE_POOLS_UNSUPPORTED'?0:(data?.pools||[]).reduce((n,p)=>n+(p.providerTrades24h||0),0));setStatus(data?.status||'UNAVAILABLE',(tx.reason[data?.reasonCode]||'')+(data?.status==='COVERAGE_INCOMPLETE'&&rep?' '+tx.provider(rep):''));}
  }
  function schedule(ok){
   clearTimeout(timer);delay=ok?30000:Math.min(300000,delay*2);

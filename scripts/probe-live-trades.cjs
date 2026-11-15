@@ -12,7 +12,7 @@ const SAMPLES=[['arc','0xf76b1d00bd3d63a37246b5f512074e864010e33d','POLL'],['arc
    const t=Date.now();let r;try{r=await lt.analyze({network,address});}catch(e){r=lt.classify(e);r.err=String(e.message).slice(0,120);}
    const sides={};for(const x of r.trades||[])sides[x.side]=(sides[x.side]||0)+1;
    runs.push({pass,ms:Date.now()-t,status:r.status,reason:r.reasonCode,err:r.err,n:(r.trades||[]).length,sides,rpc:r.cost?.rpcCalls,mode:r.window?.mode,logCalls:r.window?.logCalls,
-    lookbackComplete:r.window?.lookbackComplete,scannedSince:r.window?.scannedSince,lastTradeAt:r.lastTradeAt,
+    lookbackComplete:r.window?.lookbackComplete,scannedSince:r.window?.scannedSince,lastTradeAt:r.lastTradeAt,reconciliation:r.reconciliation||null,verifs:[...new Set((r.trades||[]).map(t=>t.verification))],
     pools:(r.pools||[]).map(p=>p.protocol+':'+p.pool.slice(0,10)),excluded:(r.excludedPools||[]).map(p=>(p.dex||'')+':'+p.reasonCode+':'+(p.providerTrades24h??'')),coverage:r.coverage&&{complete:r.coverage.complete,excludedActive:r.coverage.excludedActivePools},
     usd:[...new Set((r.trades||[]).map(x=>x.usdStatus))]});
    await new Promise(s=>setTimeout(s,1500));

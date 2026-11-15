@@ -149,6 +149,12 @@ async function identifyPool(network,rpc,token,candidate,block){
    }else if(CANONICAL_V3.reference[network]&&await canonicalV3Runtime(network,rpc,candidate.pool,block)){
     out={kind:'V3',pool:candidate.pool,emitter:candidate.pool,protocol:'uniswap-v3-canonical-runtime',token0,token1,factory,
      method:'Pool runtime equals the Sourcify-verified canonical UniswapV3Pool (immutables masked); its factory is not reviewed'};
+   }else if(fee!==null&&fee<1000000n&&addr(await ethCall(rpc,factory,S.getPool+pad(token0)+pad(token1)+fee.toString(16).padStart(64,'0'),block).catch(()=>null))===candidate.pool){
+    // V3: an unreviewed V3-interface DEX (e.g. Synthra on Arc). Its factory's on-chain registry proves the pool, but its source is
+    // unpublished, so the Swap sign convention is NOT trusted: every displayed row must reconcile EXACTLY with the two tokens' own
+    // ERC-20 Transfer events into/out of the pool in the same transaction. Unreconciled rows are never shown.
+    out={kind:'V3',pool:candidate.pool,emitter:candidate.pool,protocol:'v3-interface-transfer-reconciled',token0,token1,fee:Number(fee),factory,reconcile:true,
+     method:'factory.getPool(token0,token1,fee) == pool (unreviewed source); every row reconciled with token Transfer events'};
    }else return {excluded:'UNREVIEWED_FACTORY',factory};
   }
  }else return {excluded:'POOL_ID_INVALID'};
@@ -199,6 +205,45 @@ function decodeSwap(pool,log){
  }
  const side=tokenPool<0n&&counterPool>0n?'BUY':tokenPool>0n&&counterPool<0n?'SELL':'SWAP';
  return {side,tokenPool,counterPool};
+}
+const TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+const topicAddr=a=>'0x'+'0'.repeat(24)+a.slice(2);
+const RECONCILE_BLOCKS=8;
+async function reconcileTransfers(rpc,rows,state){
+ const pools=[...new Map(rows.map(r=>[r.p.pool,r.p])).values()],tokens=[...new Set(pools.flatMap(p=>[p.token0,p.token1]))];
+ const poolTopic=new Map(pools.map(p=>[topicAddr(p.pool),p.pool]));
+ // One exact-block query per distinct block (newest first, capped): both directions are filtered locally, so no wide ranges are
+ // ever requested (wide Transfer ranges are rejected/oversized on busy chains). Rows in blocks beyond the cap stay unreconciled.
+ const blocks=[...new Set(rows.map(r=>r.block))].sort((a,b)=>a>b?-1:a<b?1:0).slice(0,RECONCILE_BLOCKS);
+ const net=new Map(),ok=new Set();let calls=0;
+ try{
+  for(const b of blocks){
+   calls++;state.reconcileCalls=(state.reconcileCalls||0)+1;
+   const h='0x'+b.toString(16),logs=await rpc.call('eth_getLogs',[{address:tokens,topics:[TRANSFER],fromBlock:h,toBlock:h}]);
+   for(const l of Array.isArray(logs)?logs:[]){
+    const t=(l?.topics||[]).map(x=>String(x).toLowerCase());
+    if(l?.removed===true||t.length!==3||String(l.data||'').length!==66||t[0]!==TRANSFER)continue;
+    const token=String(l.address).toLowerCase(),tx=String(l.transactionHash).toLowerCase(),v=BigInt(l.data);
+    // individual legs per tx+pool+token+direction (a pool may also skim a protocol fee in a separate transfer)
+    if(poolTopic.has(t[2])){const k=tx+':'+poolTopic.get(t[2])+':'+token+':IN';if(!net.has(k))net.set(k,[]);net.get(k).push(v);}
+    if(poolTopic.has(t[1])){const k=tx+':'+poolTopic.get(t[1])+':'+token+':OUT';if(!net.has(k))net.set(k,[]);net.get(k).push(v);}
+   }
+  }
+ }catch(e){return {ok,calls,status:'TRANSFER_LOGS_UNAVAILABLE',error:String(e?.message||e).slice(0,120)};}
+ const inBlocks=new Set(blocks.map(String));rows=rows.filter(r=>inBlocks.has(String(r.block)));
+ // Each swap must have BOTH legs as exact individual Transfers: the token the pool received (positive delta) INTO the pool and
+ // the token it paid (negative delta) OUT of the pool, same tx. Matched legs are consumed, so two swaps cannot share one transfer.
+ // Extra transfers (e.g. a protocol-fee skim of the input token) are allowed; they never substitute for a leg.
+ let checked=0;
+ for(const r of rows){
+  checked++;const tx=String(r.l.transactionHash).toLowerCase(),tokenIs0=r.p.token0===r.p.token;
+  const d0=tokenIs0?r.d.tokenPool:r.d.counterPool,d1=tokenIs0?r.d.counterPool:r.d.tokenPool;
+  if(!(d0>0n&&d1<0n)&&!(d0<0n&&d1>0n))continue;
+  const leg=(token,d)=>{const list=net.get(tx+':'+r.p.pool+':'+token+(d>0n?':IN':':OUT'))||[],want=d>0n?d:-d,i=list.findIndex(v=>v===want);return i<0?null:()=>list.splice(i,1);};
+  const a=leg(r.p.token0,d0),b=leg(r.p.token1,d1);
+  if(a&&b){a();b();ok.add(tx+':'+r.p.pool+':'+r.logIndex);}
+ }
+ return {ok,calls,status:'OK',checked,matched:ok.size,blocks:blocks.length};
 }
 // V3: verified pools are scanned in GROUPS — all V2/V3 pools in one filter (address array, OR-ed Swap topics) and V4 pools per
 // PoolManager (poolIds OR-ed in topic1). Same events, same per-log checks, a fraction of the eth_getLogs calls.
@@ -306,7 +351,7 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  const meta=await tokenMeta(network,rpc,token,pinned);
  const base={ok:true,readOnly:true,network:cfg.id,chainId:cfg.chainId,token,tokenSymbol:meta.symbol,headBlock:headNumber.toString(),toBlock:toBlock.toString(),
   headTimestamp:new Date(headTs*1000).toISOString(),headAgeSeconds:headAgeS,confirmations:net.confirmations,observedAt:new Date(now()).toISOString(),
-  pools:pools.map(p=>({pool:p.pool,kind:p.kind,protocol:p.protocol,dex:p.dex,counter:p.counter,identity:'ONCHAIN_VERIFIED',method:p.method,providerTrades24h:p.providerTrades24h??null})),excludedPools:excluded,
+  pools:pools.map(p=>({pool:p.pool,kind:p.kind,protocol:p.protocol,dex:p.dex,counter:p.counter,identity:p.reconcile?'REGISTRY_PROVEN_TRANSFER_RECONCILED':'ONCHAIN_VERIFIED',method:p.method,providerTrades24h:p.providerTrades24h??null})),excludedPools:excluded,
   scope:'Swaps emitted by on-chain-verified pools of this exact contract in a bounded recent block window. Not every venue or aggregator route; not investment advice.'};
  // Provider-reported activity on pools we cannot verify: never silently treated as "no swaps".
  const activeExcluded=excluded.filter(x=>(x.providerTrades24h||0)>0);
@@ -333,7 +378,13 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  }
  rows.sort((a,b)=>a.block===b.block?b.logIndex-a.logIndex:(b.block>a.block?1:-1));
  remember(incremental,incKey,{toBlock,poolsKey,logs:rows.slice(0,KEEP_LOGS).map(r=>({pool:r.p.pool,l:r.l}))},200);
- const top=rows.slice(0,MAX_ROWS);
+ let top=rows.slice(0,MAX_ROWS);
+ // Transfer reconciliation for unreviewed V3-interface pools (two eth_getLogs calls cover every such row).
+ const rec=top.filter(r=>r.p.reconcile);let reconciled=null;
+ if(rec.length){
+  reconciled=await reconcileTransfers(rpc,rec,state);
+  top=top.filter(r=>!r.p.reconcile||reconciled.ok.has(String(r.l.transactionHash).toLowerCase()+':'+r.p.pool+':'+r.logIndex));
+ }
  // 5. per-row block binding and sender (bounded, cached; reorg = hash mismatch -> dropped)
  let reads=0;const counterMeta=new Map(),txCount=new Map();
  for(const r of rows)txCount.set(r.l.transactionHash,(txCount.get(r.l.transactionHash)||0)+1);
@@ -362,7 +413,7 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
   rowsOut[i]={side:r.d.side,tokenAmount:units(tokenAbs,meta.decimals),counterAmount:units(counterAbs,cm.decimals),counterSymbol:cm.symbol,counter:r.p.counter,
    usd:usd.usd,usdStatus:usd.usdStatus,usdBasis:usd.usdBasis,wallet:tx.from,route,txHash:String(r.l.transactionHash).toLowerCase(),logIndex:r.logIndex,
    block:r.block.toString(),blockHash:blk.hash,timestamp:new Date(blk.timestamp*1000).toISOString(),pool:r.p.pool,poolKind:r.p.kind,protocol:r.p.protocol,
-   explorerUrl:cfg.explorer+'/tx/'+String(r.l.transactionHash).toLowerCase(),verification:'ONCHAIN_VERIFIED'};
+   explorerUrl:cfg.explorer+'/tx/'+String(r.l.transactionHash).toLowerCase(),verification:r.p.reconcile?'ONCHAIN_TRANSFER_RECONCILED':'ONCHAIN_VERIFIED'};
  }
  await Promise.all(Array.from({length:Math.min(ROW_CONCURRENCY,top.length)},async()=>{while(cursor<top.length)await one(cursor++);}));
  const trades=rowsOut.filter(Boolean);
@@ -371,12 +422,19 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  {const e=incremental.get(incKey);if(e)e.scannedFrom=scannedFrom;}
  let scannedSince=null;if(!trades.length&&scannedFrom<=toBlock){const b=await blockRead('0x'+scannedFrom.toString(16));if(b)scannedSince=new Date(b.timestamp*1000).toISOString();}
  const live=headAgeS<=net.maxHeadAgeS;
- const status=trades.length?(live?'LIVE':'DELAYED'):activeExcluded.length?'COVERAGE_INCOMPLETE':'NO_RECENT_SWAPS';
- return {...base,coverage,status,reasonCode:trades.length?null:activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':'NO_SWAPS_IN_WINDOW',lastTradeAt:trades[0]?.timestamp||null,
+ // V3 honesty: "no swaps" is only claimed when nothing provider-reported is left unexplained.
+ const droppedUnreconciled=reconciled&&reconciled.status!=='OK'&&rec.length>0,unmatched=reconciled&&reconciled.status==='OK'&&rec.length>(reconciled.matched||0);
+ const reportedOnVerified=pools.reduce((n,p)=>n+(p.providerTrades24h||0),0);
+ const windowShort=!(scannedFrom<=from)&&reportedOnVerified>0;
+ const incompleteReason=activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':droppedUnreconciled?'RECONCILIATION_UNAVAILABLE':unmatched?'SWAPS_NOT_RECONCILED':windowShort?'SCAN_WINDOW_INCOMPLETE':null;
+ const status=trades.length?(live?'LIVE':'DELAYED'):incompleteReason?'COVERAGE_INCOMPLETE':'NO_RECENT_SWAPS';
+ if(reconciled)base.reconciliation={status:reconciled.status,checked:reconciled.checked??0,matched:reconciled.matched??0,...(reconciled.error?{error:reconciled.error}:{}),method:'Each swap leg must equal an individual token Transfer into/out of the pool in the same tx'};
+ return {...base,coverage,status,reasonCode:trades.length?null:incompleteReason||'NO_SWAPS_IN_WINDOW',lastTradeAt:trades[0]?.timestamp||null,
   window:{fromBlock:from.toString(),scanFrom:scanFrom.toString(),scannedFromBlock:scannedFrom.toString(),scannedSince,toBlock:toBlock.toString(),mode,logCalls:state.logCalls,finalSpan:state.span,lookbackComplete:scannedFrom<=from},ethUsd:ethPrice,trades,cost:{rpcCalls:rpc.calls.n}};
 }
 function classify(e){
- const code=/^[A-Z][A-Z0-9_]{2,63}$/.test(e?.code||'')?e.code:/429/.test(String(e?.message))?'RPC_RATE_LIMITED':/GeckoTerminal/.test(String(e?.message))?'POOL_SOURCE_UNAVAILABLE':'PROVIDER_UNAVAILABLE';
+ const m=String(e?.message);
+ const code=/^[A-Z][A-Z0-9_]{2,63}$/.test(e?.code||'')?e.code:/GeckoTerminal/.test(m)?(/429/.test(m)?'POOL_SOURCE_RATE_LIMITED':'POOL_SOURCE_UNAVAILABLE'):/429/.test(m)?'RPC_RATE_LIMITED':'PROVIDER_UNAVAILABLE';
  return {ok:false,readOnly:true,status:'UNAVAILABLE',reasonCode:code,trades:[]};
 }
 // Single-flight + short cache per chain:token; bounded concurrent builds across tokens.
