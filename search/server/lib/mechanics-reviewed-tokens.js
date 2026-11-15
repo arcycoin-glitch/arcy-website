@@ -17,18 +17,39 @@ const PROFILES=Object.freeze({
  // Robinhood MowCat MOW (project/contracts/MowCat.sol, solc 0.8.26, self-contained ERC20)
  'ed77a6f1460d227f210f622309bcfdb45c449b045c946ecf2c802d505d7797e4':'FIXED_SUPPLY_NO_ADMIN',
  // Robinhood TorchToken (src/TorchToken.sol, solc 0.8.26, OZ 5.x ERC20 + ERC20Permit, immutable pool buy tax)
- 'ca5d5fac92a6000b4bcc5e5f5de8f68d62d7264b57738b2a918cacb23e365109':'IMMUTABLE_POOL_BUY_TAX'
+ 'ca5d5fac92a6000b4bcc5e5f5de8f68d62d7264b57738b2a918cacb23e365109':'IMMUTABLE_POOL_BUY_TAX',
+ // Mechanics V5 (docs/MECHANICS_V5_20261115.md; excerpts from scripts/probe-mechanics-sources.cjs):
+ // Uniswap UERC20 (UERC20.sol + BaseUERC20.sol + Solady ERC20): factory-parameter constructor mint, no admin
+ '530718da61de5033f13e3bc6f05a6108bfd479a8714bd71c7cf7374611a1b31f':'UNISWAP_UERC20_FIXED_SUPPLY',
+ // Ethereum SHIB (TokenMintERC20Token.sol): constructor-only mint, holder self-burn, no owner
+ '8bcf4ef22972093fba449cf65ff46195686bba4981d36053eea94c871d42d42f':'FIXED_SUPPLY_SELF_BURN',
+ // Ethereum BNB (BNB.sol, legacy solc 0.4): constructor supply, holder self-freeze/burn, owner can only withdraw ETH
+ '78eedccb186c7e496700360071c4261c07797d1475a90128ea144e97b4dcf099':'LEGACY_FIXED_SUPPLY_SELF_FREEZE',
+ // Ethereum NPC (NPC.sol): fixed supply held by the contract, 1:1e18 ERC1155 wrap/unwrap, Ownable with no owner powers
+ '398bcb7031ade72726ba64a6b43bb9f96705f196645759b653508a1d5f9f4a7b':'ERC1155_WRAPPED_FIXED_SUPPLY',
+ // Ethereum BUSD implementation (BUSDImplementation.sol) behind the reviewed ZeppelinOS AdminUpgradeabilityProxy
+ 'f529ab7e6bdcd5557c08a107acfb1cd33cddd4827909e6f052c6909227e34214':'PAXOS_SUPPLY_CONTROLLED'
 });
 // Bounded reads that only these profiles issue (benchmark budget kind "augReviewed"). Everything else they use is a read
 // the generic verified-source path already made at the same pinned block (owner(), cap(), role enumeration).
 const SPX_SLOTS=Object.freeze({packed:6,initialBuy:7,initialSell:8,finalBuy:9,finalSell:10,reduceBuyAt:11,reduceSellAt:12,buyCount:14});
 const TORCH_GETTERS=Object.freeze(['BUY_TAX_BPS()','buyTaxBps()','FEE_ROUTER()']);
+const PAXOS_GETTERS=Object.freeze(['supplyController()','assetProtectionRole()']);
+// Every selector a reviewed profile may read beyond the generic verified-source pass (benchmark kind "augReviewed").
+const REVIEWED_GETTERS=Object.freeze([...TORCH_GETTERS,...PAXOS_GETTERS]);
 const REVIEWED_BUDGET=8;
 const slotKey=i=>'0x'+i.toString(16).padStart(64,'0');
 const ZERO='0x'+'0'.repeat(40);
 const pct=bps=>Number(bps)/100;
 function observed(details,method){return details.observations.find(x=>x.method===method);}
-async function apply({profile,fields,details,proof,fact,word,storage,address,block,direct=false}){
+// Same-block reuse: the card's pinned owner() getter observation (control.inspect / adapters) for this exact token and block.
+// Legacy (pre-0.4.21) ABIs carry no stateMutability, so the generic verified-source getter pass does not re-read owner().
+function priorOwner(prior,address,block){
+ const f=prior?.ownerAdmin,m=/^owner\(\) getter: (0x[0-9a-fA-F]{40})$/.exec(String(f?.value||''));
+ const e=Array.isArray(f?.evidence)&&f.evidence.find(x=>x?.method==='owner()'&&x.block===block&&String(x.address||'').toLowerCase()===String(address).toLowerCase());
+ return f?.dataState==='DATA_FOUND'&&m&&e?m[1].toLowerCase():null;
+}
+async function apply({profile,fields,details,proof,fact,word,storage,address,block,direct=false,admin=null,kind=null,prior=null}){
  if(!Object.values(PROFILES).includes(profile))return;
  const p={...proof,reviewedTokenProfile:profile};
  const transferOnly=scope=>fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed complete token transfer execution',{...p,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope},'VERIFIED_SOURCE');
@@ -62,6 +83,14 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   fields.mintCapability=noMint('totalSupply() is a compile-time constant and no function credits new balances; the whole supply was assigned in the constructor.');
   if(owner===ZERO)fields.ownerAdmin=fact('Ownership renounced · tax wallet can only swap collected fees','Reviewed onlyOwner/taxWallet paths + pinned owner() = 0x0 and tax wallet slot',{...p,owner:ZERO,taxWallet,scope:'removeLimits, runitturbo, addBots and delBots require the owner, which is the zero address (no transferOwnership exists). The fee wallet'+(taxWallet?' '+taxWallet:'')+' can only call manualSwap to sell tokens already held by the contract and forward the ETH to itself; it cannot move holder balances.'},'VERIFIED_SOURCE_AND_STATE');
   else fields.ownerAdmin=fact('Owner-governed (removeLimits, bot list) · '+owner,'Reviewed onlyOwner paths + pinned owner()',{...p,owner,taxWallet,scope:'This owner can block or unblock addresses through the bot list and remove limits. The fee wallet can swap contract-held fees. EOA/multisig status not inferred.'},'VERIFIED_SOURCE_AND_STATE');
+  // Transfer Restrictions from the same pinned slots: only onlyOwner removeLimits() writes (20,20), and in the same call it
+  // sets max tx = max wallet = total supply and disables the transfer delay; no function can re-add them.
+  const limitsRemoved=thresholds==='20,20';
+  fields.transferRestrictions=fact((owner===ZERO?'Bot blocklist (frozen)':'Owner bot blocklist')+(limitsRemoved?' · limits removed':' · buy tx/wallet limits'),
+   'Reviewed _transfer bot/limit checks + pinned threshold slots'+(owner===ZERO?' + owner() = 0x0':''),{...p,...slotsProof,limitsRemoved,coverage:'TOKEN_TRANSFER_PATH',
+    scope:'Transfers to or from an address on the bot list revert'+(owner===ZERO?'; the owner is the zero address, so the list can no longer change and existing entries stay blocked':'; the owner can add or remove entries')+'. '+
+     (limitsRemoved?'removeLimits() has run (its threshold write is observed), which set max tx and max wallet to the total supply and turned off the transfer delay; no function can restore them.':
+      'Buys from the pair are capped by max tx/max wallet and a per-block transfer delay until the owner calls removeLimits().')},'VERIFIED_SOURCE_AND_STATE');
   details.observations.push({method:'Reviewed SPX fee and burn paths',block,...p,status:'VERIFIED_SOURCE_AND_STATE',burn:'No burn function; supply is constant.',buyback:'Collected tax is swapped for ETH to the fee wallet; this is not a buyback or burn.',taxMutable:!fixed});
  }
  if(profile==='OWNER_CAPPED_MINT_VOTES'){
@@ -108,5 +137,41 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   fields.ownerAdmin=fact('No token owner/admin · fixed fee router','Reviewed complete source: immutable configuration, no privileged function',{...p,scope:'Pool manager, factory, fee router and tax rate are immutable constructor values. No owner, role, pause, blacklist or upgrade path exists in the token. The fee router and launch factory are separate contracts and are NOT audited here.'},'VERIFIED_SOURCE');
   details.observations.push({method:'Reviewed Torch fee path',block,...p,status:'VERIFIED_SOURCE',burn:'No exposed burn path.',buyback:'Buy tax is sent to the fee router; what the router does with it (including any buyback) is not verified.',taxMutable:false});
  }
+ if(profile==='UNISWAP_UERC20_FIXED_SUPPLY'){
+  fields.tradingTaxes=transferOnly('Solady ERC20 transfer/transferFrom move the full amount; _beforeTokenTransfer and _afterTokenTransfer are empty and no fee code exists. Pool and hook fees are separate.');
+  if(!direct)return;
+  fields.mintCapability=noMint('The only _mint call is in the constructor (factory-supplied recipient and total supply); no external function creates supply and no burn function is exposed.');
+  fields.ownerAdmin=fact('No token owner/admin','Reviewed complete source: no privileged function',{...p,scope:'creator, graffiti and metadata are informational constructor values with no permission; no pause, blacklist, fee or upgrade path exists. Solady gives Uniswap\'s canonical Permit2 contract a built-in infinite allowance; Permit2 still needs the holder\'s own signed approval to move tokens.'},'VERIFIED_SOURCE');
+ }
+ if(profile==='FIXED_SUPPLY_SELF_BURN'){
+  fields.tradingTaxes=transferOnly('_transfer moves the full amount after nonzero-address and balance checks; no fee code exists. Pool fees are separate.');
+  if(!direct)return;
+  fields.mintCapability=noMint('The only _mint call is in the constructor. burn(uint256) lets a holder destroy their own tokens (reduces total supply); no address can create new supply.');
+  fields.ownerAdmin=fact('No token owner/admin','Reviewed complete source: no owner or privileged function',{...p,scope:'The source has no owner, role, pause, blacklist, fee or upgrade function; the deployment fee receiver has no permission.'},'VERIFIED_SOURCE');
+ }
+ if(profile==='LEGACY_FIXED_SUPPLY_SELF_FREEZE'){
+  fields.tradingTaxes=transferOnly('transfer/transferFrom move the full amount; zero-value transfers and the zero address revert. No fee code exists. Pool fees are separate.');
+  if(!direct)return;
+  fields.mintCapability=noMint('Supply is set once in the constructor; no function creates supply. burn and freeze/unfreeze act only on the caller\'s own balance.');
+  const owner=priorOwner(prior,address,block)||await ownerWord();
+  if(owner&&owner!==ZERO)fields.ownerAdmin=fact('Owner: ETH withdrawal only · '+owner,'Reviewed complete source + pinned owner()',{...p,owner,scope:'withdrawEther(uint256) is the only owner function: it sends ETH held by this contract to the owner. The owner cannot move, freeze or create tokens, and no function changes the owner.'},'VERIFIED_SOURCE_AND_STATE');
+ }
+ if(profile==='ERC1155_WRAPPED_FIXED_SUPPLY'){
+  fields.tradingTaxes=transferOnly('_transfer moves the full amount with empty transfer hooks; Transform/Respawn swap one ERC1155 item for 1e18 tokens held by the contract. No fee code exists. Pool fees are separate.');
+  if(!direct)return;
+  fields.mintCapability=noMint('The only _mint call is in the constructor, to the contract itself; tokens leave it only through Transform (ERC1155 deposit). No function creates supply.');
+  const owner=await ownerWord();
+  if(owner)fields.ownerAdmin=fact(owner===ZERO?'Ownership renounced · owner had no token powers':'Owner has no token powers · '+owner,'Reviewed complete source + pinned owner()',{...p,owner,scope:'The only owner-gated functions are transferOwnership and renounceOwnership; the owner cannot mint, pause, block or change fees. The ERC1155 contract is fixed at deployment and is NOT audited here.'},'VERIFIED_SOURCE_AND_STATE');
+ }
+ if(profile==='PAXOS_SUPPLY_CONTROLLED'){
+  // Authority claims only for the direct runtime or the reviewed ZeppelinOS legacy proxy binding (mechanics-deep).
+  if(!direct&&kind!=='Legacy implementation slot')return;
+  fields.tradingTaxes=transferOnly('transfer/transferFrom move the full amount. Signed betaDelegatedTransfer fees are amounts the signer authorises for a whitelisted relayer, not a token tax. Pause and freeze checks can revert. Pool fees are separate.');
+  const [ownerRaw,supplyRaw,protectionRaw]=await Promise.all([word(address,'owner()'),word(address,'supplyController()'),word(address,'assetProtectionRole()')]);
+  const owner=ownerRaw?addressWord(ownerRaw):null,supplyController=supplyRaw?addressWord(supplyRaw):null,protection=protectionRaw&&BigInt(protectionRaw)!==0n?addressWord(protectionRaw):null;
+  const upgrade=admin?' Proxy admin '+admin+' can replace this implementation.':' The implementation sits behind an upgradeable proxy.';
+  if(supplyController)fields.mintCapability=fact('Supply-controller mint · '+supplyController,'Reviewed increaseSupply + pinned supplyController()',{...p,supplyController,proxyAdmin:admin,scope:'The supply controller can create an unlimited amount (increaseSupply) and burn its own balance; the owner can replace it. No mint transaction was executed.'+upgrade},'VERIFIED_SOURCE_AND_STATE');
+  if(owner)fields.ownerAdmin=fact('Owner-governed (pause, freeze role, supply controller) · '+owner,'Reviewed onlyOwner paths + pinned owner()/assetProtectionRole()',{...p,owner,assetProtectionRole:protection,proxyAdmin:admin,scope:'The owner can pause/unpause, set the asset-protection role and supply controller, and reclaim tokens held by the contract. The asset-protection role'+(protection?' '+protection:'')+' can freeze addresses and wipe a frozen balance. Ownership moves only through propose/claim.'+upgrade},'VERIFIED_SOURCE_AND_STATE');
+ }
 }
-module.exports={PROFILES,SPX_SLOTS,TORCH_GETTERS,REVIEWED_BUDGET,slotKey,apply};
+module.exports={priorOwner,PROFILES,SPX_SLOTS,TORCH_GETTERS,PAXOS_GETTERS,REVIEWED_GETTERS,REVIEWED_BUDGET,slotKey,apply};

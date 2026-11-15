@@ -24,7 +24,8 @@ function fixture(digest,{calls={},slots={},runtime=code,abi=[]}={}){
 const fn=(name,inputs,out,mut='view')=>({type:'function',name,stateMutability:mut,inputs:inputs.map(type=>({type})),outputs:out?[{type:out}]:[]});
 const ctx={chainId:1,network:'ethereum',address:TOKEN,block};
 test('every reviewed token profile is keyed by a full 64-hex source digest and registered in mechanics-deep',()=>{
- assert.equal(Object.keys(reviewed.PROFILES).length,6);
+ // 6 original profiles + 5 Mechanics V5 reviewed sources (UERC20, SHIB, BNB, NPC, BUSD implementation).
+ assert.equal(Object.keys(reviewed.PROFILES).length,11);
  for(const [digest,name] of Object.entries(reviewed.PROFILES)){assert.match(digest,/^[0-9a-f]{64}$/);assert.equal(mechanics.PROFILES[digest],name);}
 });
 test('PEPE-style source: renounced owner freezes blacklist/rules; constructor-only mint; transfer-only tax claim',async()=>{

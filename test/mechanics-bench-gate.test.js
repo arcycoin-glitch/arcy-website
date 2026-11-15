@@ -81,3 +81,36 @@ test('an enumerated DEFAULT_ADMIN_ROLE member may only be upgraded to reviewed e
  const weaker=mk();weaker[6].f.ownerAdmin={...same[6].f.ownerAdmin,status:'GETTER_REPORTED',cls:'SINGLE_SOURCE'};
  assert.match(gate(mk(),weaker).out,/changed without same-owner stronger proof/);
 });
+
+test('V5: transfer-restriction reads <=2 per contract, only where the restriction row was unverified; a verified restriction cannot be lost',()=>{
+ const withR=ok=>rows(32,r=>{r.f.transferRestrictions=field(ok);});
+ const spend=(rs,i,n)=>{rs[i].net.rpc+=n;rs[i].net.augRestriction=n;return rs;};
+ assert.equal(gate(withR(false),spend(withR(false),3,2)).ok,true);
+ const over=gate(withR(false),spend(withR(false),3,3));assert.equal(over.ok,false);assert.match(over.out,/restriction state read budget exceeded/);
+ const ineligible=gate(withR(true),spend(withR(true),3,1));assert.equal(ineligible.ok,false);assert.match(ineligible.out,/already verified restriction row/);
+ const lost=withR(true);lost[4].f.transferRestrictions=field(false);assert.equal(gate(withR(true),lost).ok,false);
+ assert.equal(gate(rows(),withR(true)).ok,true,'older artifacts without the field: gains only');
+});
+test('V5: delegation-proven architecture may only become the reviewed proxy binding of the same kind',()=>{
+ const arch=v=>rows(32,(r,i)=>{if(i===2)r.f.contractArchitecture={...field(true),value:v};});
+ assert.equal(gate(arch('Legacy OpenZeppelin proxy slot · delegation proven'),arch('Legacy implementation slot')).ok,true);
+ assert.equal(gate(arch('EIP-1967 proxy · delegation proven'),arch('EIP-1967 implementation')).ok,true);
+ assert.equal(gate(arch('Legacy OpenZeppelin proxy slot · delegation proven'),arch('EIP-1967 implementation')).ok,false);
+ assert.equal(gate(arch('NON-PROXY · runtime verified'),arch('Legacy implementation slot')).ok,false);
+});
+test('V5: proxy-binding reads <=8, only for a contract newly bound from a delegation-proven architecture',()=>{
+ const arch=(b,a)=>[rows(32,(r,i)=>{if(i===2)r.f.contractArchitecture={...field(true),value:b};}),rows(32,(r,i)=>{if(i===2)r.f.contractArchitecture={...field(true),value:a};})];
+ const spend=(rs,i,n)=>{rs[i].net.rpc+=n;rs[i].net.augBinding=n;return rs;};
+ let [b,a]=arch('Legacy OpenZeppelin proxy slot · delegation proven','Legacy implementation slot');
+ assert.equal(gate(b,spend(a,2,6)).ok,true);
+ [b,a]=arch('Legacy OpenZeppelin proxy slot · delegation proven','Legacy implementation slot');
+ const over=gate(b,spend(a,2,9));assert.equal(over.ok,false);assert.match(over.out,/Proxy-binding read budget exceeded/);
+ const notBound=gate(rows(),spend(rows(),2,1));assert.equal(notBound.ok,false);assert.match(notBound.out,/not newly bound/);
+});
+
+test('V5: a not-newly-bound contract may use binding kinds only to replace its own pre-existing replay misses',()=>{
+ const b=rows(),a=rows();b[3].net.replayMiss=2;a[3].net.replayMiss=0;a[3].net.rpc+=2;a[3].net.augBinding=2;
+ assert.equal(gate(b,a).ok,true);
+ const b2=rows(),a2=rows();b2[3].net.replayMiss=1;a2[3].net.replayMiss=0;a2[3].net.rpc+=2;a2[3].net.augBinding=2;
+ assert.match(gate(b2,a2).out,/not newly bound/);
+});

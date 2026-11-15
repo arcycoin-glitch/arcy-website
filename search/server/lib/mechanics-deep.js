@@ -32,7 +32,9 @@ const PROFILES=Object.freeze({
  ...require('./mechanics-reviewed-tokens').PROFILES
 });
 const REVIEWED_LEGACY_PROXY='b49bec6077f927208196e052c2a55e5a37fe21fd8e9e1dc8e90f6f1116cf8c7e';
-const reviewedLegacy=digest=>[REVIEWED_LEGACY_PROXY,'316b86e4d73ad7a683188f2ac85162c763fd055d47d44c2be790d54b83a73a49'].includes(digest);
+// a3ba0c7d…: ZeppelinOS AdminUpgradeabilityProxy (PAXG/BUSD outer source, Mechanics V5 review: ifAdmin admin surface,
+// non-admin calls delegate to the zos implementation slot, admin in the zos admin slot).
+const reviewedLegacy=digest=>[REVIEWED_LEGACY_PROXY,'316b86e4d73ad7a683188f2ac85162c763fd055d47d44c2be790d54b83a73a49','a3ba0c7db5955fb767f442aa5051daf19604498dc8bf7f8885ee90f6cec0b578'].includes(digest);
 const REVIEWED_BEACON_PROXY='922425867904c46fb129080ebcd685ba70e0afb5aaa9fdc47b5f9327cee41196';
 const selector=s=>keccak(Buffer.from(s)).slice(0,10);
 function digest(sources){return crypto.createHash('sha256').update(JSON.stringify(Object.entries(sources).map(([p,x])=>[p,x.content]).sort(([a],[b])=>a.localeCompare(b)))).digest('hex');}
@@ -85,7 +87,7 @@ function decodeArray(raw,max=32){
  const n=Number(BigInt('0x'+words[1]));if(n<1||n>max||words.length!==n+2)return null;
  const addresses=words.slice(2).map(w=>addressWord('0x'+w));return addresses.every(Boolean)&&new Set(addresses).size===n?addresses:null;
 }
-async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
+async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSupplementary=null,card=null}={}){
  const cfg=chain(network);if(!ADDRESS.test(address||'')||!/^0x[0-9a-f]+$/i.test(block||'')||typeof rpc!=='function')throw Error('Invalid Mechanics identity');
  address=address.toLowerCase();const diagnostics=[],fields={},details={block,chainId:cfg.chainId,address,observations:[],sources:[],failures:diagnostics};
  // Bounded shared per-inspection reads. No cached state crosses a pinned block.
@@ -324,8 +326,12 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor}={}){
     if(t.burnable)details.observations.push({method:'OpenZeppelin ERC20Burnable library',block,...sourceProof,scope:'Public burn/burnFrom capability exists (holders may burn their own or approved tokens). This is not evidence that any burn or buyback occurred.'});
    }
    await require('./mechanics-reviewed-v4').apply({profile,fields,details,proof,fact,word,call,address,block,keccak,admin,direct:target===address&&nonDelegating(code)});
-   await require('./mechanics-reviewed-tokens').apply({profile,fields,details,proof,fact,word,address,block,direct:target===address&&nonDelegating(code),
+   await require('./mechanics-reviewed-tokens').apply({profile,fields,details,proof,fact,word,address,block,admin,kind,prior:card?.fields||null,direct:target===address&&nonDelegating(code),
     storage:slot=>safe('eth_getStorageAt',[address,slot,block])});
+   // Mechanics V5: Transfer Restrictions from the same reviewed source and pinned reads (supplementary field).
+   const restriction=await require('./mechanics-restrictions').derive({profile,fields,details,proof,word,address,block,kind,direct:target===address&&nonDelegating(code)});
+   // Delivered through the optional onSupplementary callback (mechanics-coverage), never as a fifth card field.
+   if(restriction&&typeof onSupplementary==='function')onSupplementary({transferRestrictions:fact(restriction.value,restriction.method,{...proof,...restriction.extra,coverage:'TOKEN_TRANSFER_PATH',scope:restriction.scope},restriction.status)});
   }
  }
  // Source/ABI-matched owner getter returning the zero address: recorded as a diagnostic observation ONLY. Project policy (see
