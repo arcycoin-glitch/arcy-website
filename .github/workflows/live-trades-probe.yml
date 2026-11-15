@@ -1,0 +1,22 @@
+name: Live Trading probe (read-only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-live-trades.cjs'
+      - 'search/server/lib/live-trades.js'
+      - '.github/workflows/live-trades-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-live-trades.cjs

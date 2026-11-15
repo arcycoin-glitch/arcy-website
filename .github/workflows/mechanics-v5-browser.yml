@@ -1,4 +1,4 @@
-name: Mechanics V5 responsive rendering (320/390/800/1440)
+name: Search browser regression (six-card navigation, Live Trading, Mechanics V5)
 on:
   pull_request:
     paths:
@@ -6,6 +6,11 @@ on:
       - 'search/server/lib/data-engine.js'
       - 'search/server/lib/research-notes.js'
       - 'test/mechanics-v5-browser.cjs'
+      - 'test/six-card-live-trading-browser.cjs'
+      - 'test/report-navigation-browser.cjs'
+      - 'search/report-navigation.js'
+      - 'search/report-navigation.css'
+      - 'search/server/lib/live-trades.js'
       - '.github/workflows/mechanics-v5-browser.yml'
   workflow_dispatch:
 permissions:
@@ -28,4 +33,7 @@ jobs:
       - name: Mechanics V5 rendering on arc/ethereum/robinhood at 320/390/800/1440 px (mocked fixtures)
         env:
           ARCY_BROWSER_CHANNEL: chrome
-        run: node test/mechanics-v5-browser.cjs
+        run: |
+          node test/mechanics-v5-browser.cjs
+          node test/six-card-live-trading-browser.cjs
+          node test/report-navigation-browser.cjs

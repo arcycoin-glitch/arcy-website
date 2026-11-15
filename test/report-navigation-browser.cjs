@@ -3,18 +3,19 @@
 const {chromium}=require('playwright'),{spawn}=require('node:child_process'),assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs');
 const root=path.resolve(__dirname,'..'),schema=require('../search/schema'),address='0x'+'1'.repeat(40),origin='http://127.0.0.1:3157';
 (async()=>{let browser;const server=spawn(process.execPath,['dev.cjs'],{cwd:root,env:{...process.env,PORT:'3157'},windowsHide:true,stdio:['ignore','pipe','pipe']});
-try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j)});browser=await chromium.launch({headless:true,channel:'msedge'});
+try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j)});browser=await chromium.launch({headless:true,channel:process.env.ARCY_BROWSER_CHANNEL||'msedge'});
 for(const width of[320,360,390,430,768,1440]){
  const page=await browser.newPage({viewport:{width,height:844},reducedMotion:'reduce'}),errors=[];let calls=0;
  page.on('pageerror',e=>errors.push(e.message));
  const cards=Object.fromEntries(schema.map(s=>[s.id,{fields:Object.fromEntries(s.fields.map(([key])=>[key,{value:1,dataState:'DATA_FOUND',status:'VERIFIED_SOURCE',chainId:5042,network:'arc',source:'Browser fixture',evidence:[{address,chainId:5042,block:'0x10',method:'Browser fixture'}]}]))}]));
  cards.mechanics.fields.tradingTaxes.value='Buy 0% · Sell 0% · Transfer 0%';
  const report={ok:true,address,network:'arc',chainId:5042,block:'0x10',cardCount:5,token:{name:'Fixture',symbol:'TEST'},cards};
- await page.route('**/api/search?**',r=>{calls++;return r.fulfill({json:report})});
+ // Final Engine: Live Trading has its own bounded feed (action=trades); token report requests are counted separately.
+ await page.route('**/api/search?**',r=>{if(new URL(r.request().url()).searchParams.get('action')==='trades')return r.fulfill({json:{ok:true,status:'UNSUPPORTED',reasonCode:'NO_VERIFIED_POOL',trades:[]}});calls++;return r.fulfill({json:report})});
  await page.route('https://www.geckoterminal.com/**',r=>r.fulfill({body:'Chart fixture',contentType:'text/html'}));
  await page.goto(origin+'/search/token/arc/'+address,{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>document.getElementById('detailState').textContent.includes('Snapshot complete'));
- assert.equal(await page.locator('#reportNavigation a').count(),5);assert.equal(await page.locator('#cards .card').count(),5);assert.equal(await page.locator('#cards .metric').count(),20);
+ assert.equal(await page.locator('#reportNavigation a').count(),6);await page.waitForFunction(()=>document.querySelectorAll('#cards .card').length===6);assert.equal(await page.locator('#cards [data-card-id="trades"]').count(),1);assert.equal(await page.locator('#cards .metric').count(),20);
  await page.locator('#deepResearch').evaluate(el=>el.open=true);
  const rail=await page.locator('#cards').evaluate(el=>({
   display:getComputedStyle(el).display,
@@ -22,7 +23,7 @@ for(const width of[320,360,390,430,768,1440]){
   widths:[...el.querySelectorAll('[data-card-id]')].map(c=>Math.round(c.getBoundingClientRect().width))
  }));
  assert.equal(rail.display,'flex','report cards must use a horizontal rail');
- assert(rail.scrollWidth>rail.clientWidth+40,'all 5 cards remain reachable by sideways swipe');
+ assert(rail.scrollWidth>rail.clientWidth+40,'all 6 cards remain reachable by sideways swipe');
  assert(rail.widths.every(w=>w>190&&w<=rail.clientWidth),'card width must fit mobile viewport');
  await page.locator('.report-carousel-arrow[aria-label="Next analysis"]').click();
  await page.waitForFunction(()=>document.getElementById('cards').scrollLeft>10);
@@ -30,7 +31,7 @@ for(const width of[320,360,390,430,768,1440]){
  await page.waitForFunction(()=>document.getElementById('cards').scrollLeft<10);
 
  const before=calls;
- for(const id of['liquidity','holders','mechanics','supply','activity']){
+ for(const id of['trades','liquidity','holders','mechanics','supply','activity']){
   await page.locator('#deepResearch').evaluate(el=>el.open=false);
   const link=page.locator('#reportNavigation a[href="#research-'+id+'"]');await link.click();
   const target=page.locator('#research-'+id);await target.waitFor({state:'visible'});
@@ -39,7 +40,7 @@ for(const width of[320,360,390,430,768,1440]){
   assert.equal(await link.getAttribute('aria-current'),'location');
  }
  // Keyboard activation and ordinary scroll update the same existing anchors.
- await page.locator('#reportNavigation a').first().focus();await page.keyboard.press('Enter');await page.waitForFunction(()=>document.activeElement.id==='research-liquidity');
+ await page.locator('#reportNavigation a').first().focus();await page.keyboard.press('Enter');await page.waitForFunction(()=>document.activeElement.id==='research-trades');
  await page.locator('#research-activity').evaluate(el=>el.scrollIntoView({block:'start'}));await page.waitForTimeout(80);
  assert.equal(await page.locator('#reportNavigation [aria-current]').count(),1);
  assert.equal(calls,before,'navigation must never refetch a token');
@@ -55,6 +56,6 @@ for(const width of[320,360,390,430,768,1440]){
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'page overflow');
  await page.locator('#reportNavigation').scrollIntoViewIfNeeded();
  fs.mkdirSync(path.resolve(root,'../.runtime/v7-navigation'),{recursive:true});await page.screenshot({path:path.resolve(root,'../.runtime/v7-navigation/'+width+'.png'),fullPage:true});
- assert.deepEqual(errors,[]);console.log('PASS '+width+': five shortcuts,20 metrics, keyboard, expansion, normal scroll, no requests, evidence, no overflow');await page.close();
+ assert.deepEqual(errors,[]);console.log('PASS '+width+': six shortcuts (Live Trading first),20 metrics, keyboard, expansion, normal scroll, no requests, evidence, no overflow');await page.close();
 }
 }finally{await browser?.close();server.kill();}})().catch(e=>{console.error(e);process.exitCode=1});

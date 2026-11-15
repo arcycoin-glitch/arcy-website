@@ -36,3 +36,36 @@
  #tokenDetail #deepResearch #cards .card .proof-panel{margin-top:8px}
  #tokenDetail #deepResearch #cards .card .proof-panel>summary{padding:8px 0;min-height:44px;align-content:center}
 }
+
+/* Final Engine: six-card navigation. One equal-width row on desktop; the existing accessible horizontal scroll below. */
+@media(min-width:1024px){
+ #reportNavigation{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;overflow:visible}
+ #reportNavigation a{flex:none;min-width:0;min-height:56px;padding:10px 8px;gap:7px;font-size:12.5px;line-height:1.2;text-align:center;border-radius:14px}
+ #reportNavigation a span[aria-hidden]{font-size:17px;flex:0 0 auto;display:inline-flex}
+ #reportNavigation a span:not([aria-hidden]){min-width:0;overflow-wrap:anywhere}
+}
+@media(min-width:1024px) and (max-width:1199px){#reportNavigation a{font-size:11.5px;padding:9px 6px;gap:5px}#reportNavigation a span[aria-hidden]{font-size:15px}}
+#reportNavigation a[aria-current="location"]{box-shadow:inset 0 0 0 1px #22d4ff}
+#reportNavigation .lt-icon{display:block}
+
+/* Live Trading card */
+.live-trading-card .lt-title{display:flex;align-items:center;gap:7px}
+.live-trading-card .lt-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0;font-size:12px;color:#9ebdcc}
+.live-trading-card .lt-badge{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid #27546c;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:#b5ebf7;background:#0d2534}
+.live-trading-card .lt-live{border-color:#2fd38a;color:#7ff0b9}
+.live-trading-card .lt-delayed{border-color:#ffcc82;color:#ffcc82}
+.live-trading-card .lt-unsupported,.live-trading-card .lt-unavailable{border-color:#8a5a5a;color:#ffb0a0}
+.live-trading-card .lt-table-wrap{max-height:420px;overflow:auto;border:1px solid #1b3d53;border-radius:12px;overscroll-behavior:contain}
+.live-trading-card .lt-table-wrap:focus-visible{outline:2px solid #ff984b;outline-offset:2px}
+.live-trading-card .lt-table{width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums}
+.live-trading-card .lt-table th{position:sticky;top:0;background:#0b1d2c;color:#83a3b6;font-weight:600;text-align:left;padding:7px 8px;border-bottom:1px solid #1b3d53;white-space:nowrap}
+.live-trading-card .lt-table td{padding:6px 8px;border-bottom:1px solid #12293a;white-space:nowrap;color:#cfe3ee}
+.live-trading-card .lt-table a{color:#7fdcf0;text-decoration:none}
+.live-trading-card .lt-table a:hover,.live-trading-card .lt-table a:focus-visible{text-decoration:underline}
+.live-trading-card .lt-buy .lt-side{color:#2fd38a;font-weight:700}
+.live-trading-card .lt-sell .lt-side{color:#ff6b6b;font-weight:700}
+.live-trading-card .lt-swap .lt-side{color:#9fb3c3;font-weight:700}
+.live-trading-card .lt-unverified{color:#8fa6b5}
+.live-trading-card .lt-scope{margin:8px 0 0;font-size:10.5px;line-height:1.5;color:#7f9eae}
+.live-trading-card .lt-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(max-width:650px){.live-trading-card .lt-table{font-size:11px}.live-trading-card .lt-table td,.live-trading-card .lt-table th{padding:6px}}
