@@ -77,6 +77,27 @@ test('an official undated plan remains an announcement and weekly watch uses sig
   assert.equal(newsView(compromised, 'ethereum', { now: NOW }).projectCards[2].state, 'VERIFIED');
 });
 
+test('curated project repositories require matching ownership, dates and explicit multichain scope', async () => {
+  const sha = 'a'.repeat(40);
+  const commit = (repo, message, date = checkDate) => ({ sha,
+    html_url: `https://github.com/${repo}/commit/${sha}`,
+    commit: { message, committer: { date } } });
+  const safe = SOURCES.find(source => source.id === 'safe-development');
+  const argus = SOURCES.find(source => source.id === 'argus-agent-development');
+  const bursar = SOURCES.find(source => source.id === 'bursar-development');
+  const get = rows => async () => Response.json(rows);
+  assert.equal((await discoverSource(safe, get([commit('safe-global/safe-wallet-monorepo',
+    'fix Ethereum mainnet fee handling')]))).length, 1);
+  assert.equal((await discoverSource(safe, get([commit('safe-global/safe-wallet-monorepo',
+    'fix Base fee handling')]))).length, 0);
+  assert.equal((await discoverSource(argus, get([commit('itsfriedpotato/argus-agent',
+    'release Arc launch agent')])))[0].chains[0], 'arc');
+  assert.equal((await discoverSource(bursar, get([commit('someone-else/bursar',
+    'release provider worker')]))).length, 0);
+  assert.equal((await discoverSource(bursar, get([commit('bursar-world/bursar',
+    'release provider worker', '')]))).length, 0);
+});
+
 test('undated, expired, future publication, closed target and conflicting completion claims are withheld', async () => {
   const article = (slug, title, summary, date = checkDate) => ({ title, summary, date,
     url: `https://blog.ethereum.org/en/2026/11/13/${slug}` });

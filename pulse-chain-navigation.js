@@ -24,7 +24,7 @@
  const sourcePaths={
   'www.arc.io':/^\/blog\/[a-z0-9-]+\/?$/,
   'blog.ethereum.org':/^\/en\/20\d\d\/\d\d\/\d\d\/[a-z0-9-]+\/?$/,
-  'github.com':/^\/(?:(?:ethereum\/go-ethereum|circlefin\/arc-node)\/(?:releases\/tag\/v[0-9.]+|security\/advisories\/GHSA(?:-[a-z0-9]{4}){3})|Uniswap\/v4-core\/commit\/[0-9a-f]{40})$/,
+  'github.com':/^\/(?:(?:ethereum\/go-ethereum|circlefin\/arc-node)\/(?:releases\/tag\/v[0-9.]+|security\/advisories\/GHSA(?:-[a-z0-9]{4}){3})|(?:Uniswap\/v4-core|itsfriedpotato\/argus-agent|safe-global\/safe-wallet-monorepo|arcus-xyz\/arcus-spot-sdk|bursar-world\/bursar)\/commit\/[0-9a-f]{40})$/,
   'ethereum.org':/^\/roadmap\/[a-z0-9-]+\/$/,
   'docs.robinhood.com':/^\/chain\/notices-and-upgrades\/$/,
   'robinhood.com':/^\/(?:us\/en\/)?newsroom\/[a-z0-9-]+\/?$/,
@@ -126,7 +126,9 @@
       cleanText(project.summary)&&cleanText(project.implication)&&cleanText(project.limitation)&&
       Number.isFinite(instant(project.publishedAt))&&instant(project.publishedAt)<=Date.parse(checkedAt));
    const watchParts=watch?[node('small',name,'pulse-owner'),node('h4','Weekly project watch'),
-    node('p','Recent activity from reviewed primary sources. This is a research list, not an investment ranking.')]:null;
+    node('p',item.activityWindow==='RECENT_30_DAYS'?
+      'Recent context from the last 30 days. No separate qualifying update was found in the rolling seven days.':
+      'Dated project activity from the rolling seven days.')]:null;
    if(watchParts)for(const project of item.projects){
     const row=node('div',null,'pulse-watch-row');
     const link=node('a',project.project+' · '+project.title);link.href=primaryUrl(project.url);link.target='_blank';link.rel='noopener noreferrer';
