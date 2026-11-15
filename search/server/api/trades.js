@@ -16,5 +16,8 @@ module.exports=async function(req,res){
  if(typeof p.address!=='string'||!ADDRESS.test(p.address.trim()))return res.status(400).json({ok:false,error:'VALID_TOKEN_REQUIRED'});
  if(!enforce(req,res))return;
  const out=await trades.cached({network,address:p.address.trim().toLowerCase()});
+ // V3: one chain read serves every visitor of the same token for a short window (edge cache + stale-while-revalidate), so each
+ // user does not trigger a new scan and all screen sizes render the SAME snapshot. Failures/busy states are never cached.
+ if(out.status!=='UNAVAILABLE'&&out.status!=='BUSY')res.setHeader('Cache-Control','public, max-age=0, s-maxage=15, stale-while-revalidate=45');
  return res.status(out.status==='UNAVAILABLE'?502:out.status==='BUSY'?503:200).json(out);
 };

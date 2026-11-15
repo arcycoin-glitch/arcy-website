@@ -32,7 +32,7 @@ window.ARCYLiveTrading=(()=>{
    usd:{STABLECOIN_QUOTED:'Stablecoin-quoted',ORACLE_PRICED:'Chainlink ETH/USD',ORACLE_PRICED_ETH_REFERENCE:'ETH x Chainlink (Ethereum reference)',USD_NOT_VERIFIED:'USD not verified'},
    side:{BUY:'Buy',SELL:'Sell',SWAP:'Swap'},cols:['Trade','Wallet','Amount','Time'],caption:'Recent verified swaps, newest first',view:'view verified transaction',
    delayed:'Last verified trades may be delayed.',last:t=>'Last trade '+t+' ago',since:t=>'No verified swaps since '+t+'.',partial:'Partial coverage',
-   evidence:'Evidence Details',ev:{chain:'Network',head:'Head block',window:'Scanned blocks',pools:'Verified pools',excluded:'Not covered',
+   evidence:'Evidence Details',ev:{snapshot:'Snapshot',chain:'Network',head:'Head block',window:'Scanned blocks',pools:'Verified pools',excluded:'Not covered',
     method:'Rows are pool Swap events bound to their block hash; wallet = transaction sender. USD only from a stablecoin counter asset or Chainlink ETH/USD. Not every venue or route; not investment advice.'},
    reported:n=>n+' trades/24h reported',unit:{s:'s',m:'m',h:'h',d:'d'}},
   tr:{title:'Canlı İşlemler',status:{LIVE:'CANLI',DELAYED:'GECİKMELİ',NO_RECENT_SWAPS:'SON İŞLEM YOK',COVERAGE_INCOMPLETE:'KAPSAM EKSİK',UNSUPPORTED:'SINIRLI KAPSAM',UNAVAILABLE:'ERİŞİLEMİYOR',BUSY:'YÜKLENİYOR'},
@@ -42,7 +42,7 @@ window.ARCYLiveTrading=(()=>{
    usd:{STABLECOIN_QUOTED:'Stablecoin karşılığı',ORACLE_PRICED:'Chainlink ETH/USD',ORACLE_PRICED_ETH_REFERENCE:'ETH x Chainlink (Ethereum referansı)',USD_NOT_VERIFIED:'USD doğrulanmadı'},
    side:{BUY:'Alış',SELL:'Satış',SWAP:'Takas'},cols:['İşlem','Cüzdan','Tutar','Zaman'],caption:'Son doğrulanmış işlemler, en yeni önce',view:'doğrulanmış işlemi görüntüle',
    delayed:'Son doğrulanmış işlemler gecikmeli olabilir.',last:t=>'Son işlem '+t+' önce',since:t=>'Son dönemde doğrulanmış işlem bulunamadı ('+t+' itibarıyla).',partial:'Kısmi kapsam',
-   evidence:'Kanıt Ayrıntıları',ev:{chain:'Ağ',head:'Zincir başı',window:'Taranan bloklar',pools:'Doğrulanmış havuzlar',excluded:'Kapsam dışı',
+   evidence:'Kanıt Ayrıntıları',ev:{snapshot:'Anlık görüntü',chain:'Ağ',head:'Zincir başı',window:'Taranan bloklar',pools:'Doğrulanmış havuzlar',excluded:'Kapsam dışı',
     method:'Satırlar blok hash’ine bağlı havuz Swap olaylarıdır; cüzdan = işlemi gönderen. USD yalnızca stablecoin karşı varlıktan veya Chainlink ETH/USD’den. Tüm piyasalar değildir; yatırım tavsiyesi değildir.'},
    reported:n=>'24 saatte '+n+' işlem bildirildi',unit:{s:' sn',m:' dk',h:' sa',d:' gün'}}
  };
@@ -109,6 +109,7 @@ window.ARCYLiveTrading=(()=>{
   const line=(k,v)=>{if(v===null||v===undefined||v==='')return;const p=el('p','lt-ev-line');p.append(el('strong',null,k+': '),nt(el('span',null,String(v))));body.append(p);};
   const activeEx=(data?.excludedPools||[]).filter(x=>(x.providerTrades24h||0)>0);
   if(data?.ok){
+   if(data.observedAt)line(tx.ev.snapshot,new Date(data.observedAt).toISOString().replace('T',' ').slice(0,19)+' UTC');
    line(tx.ev.chain,{arc:'Arc 5042',ethereum:'Ethereum 1',robinhood:'Robinhood 4663'}[data.network]||data.network);
    if(data.headBlock)line(tx.ev.head,data.headBlock);
    if(data.window)line(tx.ev.window,(data.window.scannedFromBlock||data.window.fromBlock)+'–'+data.window.toBlock+(data.window.scannedSince?' · '+data.window.scannedSince:''));

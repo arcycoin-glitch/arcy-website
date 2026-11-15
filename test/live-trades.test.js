@@ -34,7 +34,7 @@ function rpcMock({factory=V3F,registered=null,logs=[],blocks={},txs={},head=1000
  const fn=async(method,params)=>{
   calls.push(method);
   if(method==='eth_getBlockByNumber'){if(params[0]==='latest')return {number:'0x'+head.toString(16),timestamp:'0x'+headTs.toString(16),hash:'0xh'};const b=blocks[params[0]];return b||null;}
-  if(method==='eth_getLogs')return logs.filter(l=>l.address===params[0].address&&BigInt(l.blockNumber)>=BigInt(params[0].fromBlock)&&BigInt(l.blockNumber)<=BigInt(params[0].toBlock));
+  if(method==='eth_getLogs')return logs.filter(l=>[].concat(params[0].address).includes(l.address)&&BigInt(l.blockNumber)>=BigInt(params[0].fromBlock)&&BigInt(l.blockNumber)<=BigInt(params[0].toBlock));
   if(method==='eth_getTransactionByHash')return txs[params[0]]||null;
   if(method==='eth_call'){const {to,data}=params[0],s=data.slice(0,10);
    if(s===sel('token0()'))return aw(TOKEN);if(s===sel('token1()'))return aw(USDC);if(s===sel('fee()'))return '0x'+w(3000);if(s===sel('factory()'))return aw(factory);
@@ -229,4 +229,32 @@ test('V2: pools are verified in order of provider-reported activity, reserve onl
   pools:[{pool:P(1),reserveUsd:9e6,trades24h:3},{pool:P(2),reserveUsd:1e4,trades24h:491},{pool:P(3),reserveUsd:5e4,trades24h:3}]});
  assert.deepEqual(r.excludedPools.map(x=>x.pool),[P(2),P(1),P(3)]);
  assert.ok(r.excludedPools.every(x=>x.reasonCode),'each uncovered pool carries its reason code');
+});
+
+test('V3 RPC: log blockTimestamp + tx.blockHash bind rows without block reads; a tx placed in another block is dropped',async()=>{
+ lt._reset();
+ const ts='0x6553f100';
+ const logs=[swapLog(990,1,v3data(-2n*10n**18n,5_000_000n)),swapLog(995,3,v3data(10n**18n,-2_500_000n)),swapLog(997,2,v3data(10n**18n,-1_000_000n))].map(l=>({...l,blockTimestamp:ts}));
+ const txs={};for(const l of logs)txs[l.transactionHash]={from:'0x'+'e'.repeat(40),to:POOL,blockHash:l.blockHash};
+ txs[logs[2].transactionHash].blockHash='0xreorged';
+ const m=rpcMock({registered:POOL,logs,txs});
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:m.fn,pools:[{pool:POOL,dex:'uniswap_v3',reserveUsd:5}]});
+ assert.equal(r.trades.length,2,'row whose tx sits in another block is never shown');
+ assert.equal(m.calls.filter(c=>c==='eth_getBlockByNumber').length,1,'only the head read; no per-row block reads');
+ assert.equal(r.trades[0].timestamp,new Date(Number(BigInt(ts))*1000).toISOString());
+});
+test('V3 RPC: V2/V3 pools share one grouped eth_getLogs filter; V4 pools group per PoolManager',async()=>{
+ lt._reset();
+ const P2='0x'+'d'.repeat(40);
+ const logs=[swapLog(990,1,v3data(-2n*10n**18n,5_000_000n)),swapLog(995,3,v3data(10n**18n,-2_500_000n),{address:P2})];
+ const txs={};for(const l of logs)txs[l.transactionHash]={from:'0x'+'e'.repeat(40),to:POOL,blockHash:l.blockHash};
+ const blocks={'0x3de':{hash:'0xbh990',timestamp:'0x6553f100'},'0x3e3':{hash:'0xbh995',timestamp:'0x6553f200'}};
+ const base=rpcMock({registered:POOL,logs,txs,blocks});
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:base.fn,pools:[{pool:POOL,dex:'uniswap_v3',reserveUsd:5}]});
+ assert.equal(r.trades.length,1);
+ // direct check of the grouping helper
+ const g=lt._groupsOf([{kind:'V3',emitter:POOL,pool:POOL},{kind:'V2',emitter:P2,pool:P2},{kind:'V4',emitter:'0x'+'4'.repeat(40),pool:'0x'+'1'.repeat(64)},{kind:'V4',emitter:'0x'+'4'.repeat(40),pool:'0x'+'2'.repeat(64)}]);
+ assert.equal(g.length,2,'one V2/V3 group + one per PoolManager');
+ assert.deepEqual(g[0].filter.address,[POOL,P2]);assert.deepEqual(g[0].filter.topics[0].sort(),[lt.TOPIC.V2,lt.TOPIC.V3].sort());
+ assert.deepEqual(g[1].filter.topics[1],['0x'+'1'.repeat(64),'0x'+'2'.repeat(64)]);
 });
