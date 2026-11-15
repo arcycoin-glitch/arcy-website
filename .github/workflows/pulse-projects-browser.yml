@@ -29,6 +29,13 @@ jobs:
       - run: npm install --no-save --no-package-lock playwright@1.56.1
       - run: npx playwright install --with-deps chromium
       - run: node test/pulse-projects-browser.cjs
+        env:
+          PULSE_SCREENSHOT_DIR: pulse-v5-browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pulse-v5-browser
+          path: pulse-v5-browser/*.png
   pulse-live-sources:
     runs-on: ubuntu-latest
     timeout-minutes: 4

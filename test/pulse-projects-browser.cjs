@@ -159,6 +159,11 @@ async function main() {
           assert.match(await link.getAttribute('href'), /^https:\/\//);
         }
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        if (chain === 'arc' && process.env.PULSE_SCREENSHOT_DIR) {
+          const path = require('node:path');
+          require('node:fs').mkdirSync(process.env.PULSE_SCREENSHOT_DIR, { recursive: true });
+          await page.screenshot({ path: path.join(process.env.PULSE_SCREENSHOT_DIR, `pulse-${width}.png`), fullPage: true });
+        }
         if (width < 760) {
           const counter = panel.locator('.pulse-card-counter');
           assert.equal(await counter.innerText(), '1 / 3');
