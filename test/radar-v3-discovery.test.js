@@ -175,9 +175,9 @@ test('Arc: conflicting 24h change cannot enter observed movers list',async()=>{
   baseToken:{address:x.a},quoteToken:{address:addr(900)},priceUsd:'0.5',
   volume:{h24:x.vol},liquidity:{usd:x.liq},priceChange:{h24:x.s==='MOVER'?-7:2},
   fdv:1000000,pairCreatedAt:T0-5*DAY}));
- const fetcher=router([[/tokens\\/multi/,()=>resp(multi('arc',specs))],
-  [/coingecko\\.com/,()=>resp(page('arc',specs))],
-  [/api\\.dexscreener\\.com/,()=>resp(pairs)]]);
+ const fetcher=router([[/tokens[/]multi/,()=>resp(multi('arc',specs))],
+  [/coingecko[.]com/,()=>resp(page('arc',specs))],
+  [/api[.]dexscreener[.]com/,()=>resp(pairs)]]);
  const out=await radar.load('arc',{env:{...ENV,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher,
   now:()=>T0,disableCache:true});
  assert.deepEqual(out.watchlist,[],'provider disagreement is never turned into a mover');
