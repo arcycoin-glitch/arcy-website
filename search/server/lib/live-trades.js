@@ -208,22 +208,28 @@ function decodeSwap(pool,log){
 }
 const TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const topicAddr=a=>'0x'+'0'.repeat(24)+a.slice(2);
+const RECONCILE_BLOCKS=8;
 async function reconcileTransfers(rpc,rows,state){
  const pools=[...new Map(rows.map(r=>[r.p.pool,r.p])).values()],tokens=[...new Set(pools.flatMap(p=>[p.token0,p.token1]))];
- let lo=rows[0].block,hi=rows[0].block;for(const r of rows){if(r.block<lo)lo=r.block;if(r.block>hi)hi=r.block;}
- const range={fromBlock:'0x'+lo.toString(16),toBlock:'0x'+hi.toString(16)},net=new Map(),ok=new Set();let calls=0;
+ const poolTopic=new Map(pools.map(p=>[topicAddr(p.pool),p.pool]));
+ // One exact-block query per distinct block (newest first, capped): both directions are filtered locally, so no wide ranges are
+ // ever requested (wide Transfer ranges are rejected/oversized on busy chains). Rows in blocks beyond the cap stay unreconciled.
+ const blocks=[...new Set(rows.map(r=>r.block))].sort((a,b)=>a>b?-1:a<b?1:0).slice(0,RECONCILE_BLOCKS);
+ const net=new Map(),ok=new Set();let calls=0;
  try{
-  for(const dir of ['out','in']){
+  for(const b of blocks){
    calls++;state.reconcileCalls=(state.reconcileCalls||0)+1;
-   const topics=dir==='out'?[TRANSFER,pools.map(p=>topicAddr(p.pool))]:[TRANSFER,null,pools.map(p=>topicAddr(p.pool))];
-   const logs=await rpc.call('eth_getLogs',[{address:tokens,topics,...range}]);
+   const h='0x'+b.toString(16),logs=await rpc.call('eth_getLogs',[{address:tokens,topics:[TRANSFER],fromBlock:h,toBlock:h}]);
    for(const l of Array.isArray(logs)?logs:[]){
-    if(l?.removed===true||(l.topics||[]).length!==3||String(l.data||'').length!==66)continue;
-    const pool='0x'+String(l.topics[dir==='out'?1:2]).slice(26).toLowerCase(),key=String(l.transactionHash).toLowerCase()+':'+pool+':'+String(l.address).toLowerCase();
-    const v=BigInt(l.data);net.set(key,(net.get(key)||0n)+(dir==='in'?v:-v));
+    const t=(l?.topics||[]).map(x=>String(x).toLowerCase());
+    if(l?.removed===true||t.length!==3||String(l.data||'').length!==66||t[0]!==TRANSFER)continue;
+    const token=String(l.address).toLowerCase(),tx=String(l.transactionHash).toLowerCase(),v=BigInt(l.data);
+    if(poolTopic.has(t[2])){const k=tx+':'+poolTopic.get(t[2])+':'+token;net.set(k,(net.get(k)||0n)+v);}
+    if(poolTopic.has(t[1])){const k=tx+':'+poolTopic.get(t[1])+':'+token;net.set(k,(net.get(k)||0n)-v);}
    }
   }
  }catch(e){return {ok,calls,status:'TRANSFER_LOGS_UNAVAILABLE',error:String(e?.message||e).slice(0,120)};}
+ const inBlocks=new Set(blocks.map(String));rows=rows.filter(r=>inBlocks.has(String(r.block)));
  // Sum the decoded pool deltas per tx+pool, then require BOTH token legs to match the Transfer ledger exactly.
  const want=new Map();
  for(const r of rows){const k=String(r.l.transactionHash).toLowerCase()+':'+r.p.pool;const w=want.get(k)||{p:r.p,d0:0n,d1:0n};
@@ -231,7 +237,7 @@ async function reconcileTransfers(rpc,rows,state){
  for(const [k,w] of want){
   if(w.d0!==0n&&w.d1!==0n&&(net.get(k+':'+w.p.token0)||0n)===w.d0&&(net.get(k+':'+w.p.token1)||0n)===w.d1)ok.add(k);
  }
- return {ok,calls,status:'OK',checked:want.size,matched:ok.size};
+ return {ok,calls,status:'OK',checked:want.size,matched:ok.size,blocks:blocks.length};
 }
 // V3: verified pools are scanned in GROUPS — all V2/V3 pools in one filter (address array, OR-ed Swap topics) and V4 pools per
 // PoolManager (poolIds OR-ed in topic1). Same events, same per-log checks, a fraction of the eth_getLogs calls.
