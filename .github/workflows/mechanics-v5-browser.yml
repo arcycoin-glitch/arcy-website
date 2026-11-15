@@ -1,0 +1,28 @@
+name: Mechanics V5 responsive rendering (320/390/800/1440)
+on:
+  pull_request:
+    paths:
+      - 'search/server/lib/mechanics-*.js'
+      - 'search/server/lib/data-engine.js'
+      - 'search/server/lib/research-notes.js'
+      - 'test/mechanics-v5-browser.cjs'
+      - '.github/workflows/mechanics-v5-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - name: Mechanics V5 rendering on arc/ethereum/robinhood at 320/390/800/1440 px (mocked fixtures)
+        env:
+          ARCY_BROWSER_CHANNEL: chrome
+        run: node test/mechanics-v5-browser.cjs
