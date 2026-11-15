@@ -14,7 +14,7 @@ const ORDER=['Live Trading','Liquidity & Trading','Holder & Whale','Contract & M
    await page.goto(BASE+'/search/token/'+network+'/'+address,{waitUntil:'domcontentloaded',timeout:60000});
    await page.waitForFunction(()=>/Snapshot complete/.test(document.querySelector('#detailState')?.textContent||''),null,{timeout:120000});
    await page.locator('#deepResearch').evaluate(e=>e.open=true);
-   await page.waitForFunction(()=>{const b=document.querySelector('#cards [data-card-id="trades"] .lt-badge');return b&&b.textContent!=='BUSY';},null,{timeout:90000});
+   await page.waitForFunction(()=>{const b=document.querySelector('#cards [data-card-id="trades"] .lt-badge');return b&&!b.classList.contains('lt-busy');},null,{timeout:90000});
    row.nav=(await page.locator('#reportNavigation a span:not([aria-hidden])').allInnerTexts()).map(s=>s.trim());
    assert.deepEqual(row.nav,ORDER);
    const tops=await page.locator('#reportNavigation a').evaluateAll(a=>a.map(x=>Math.round(x.getBoundingClientRect().top)));

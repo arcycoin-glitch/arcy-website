@@ -33,8 +33,22 @@ const TOPIC=Object.freeze({
  V4:keccak(Buffer.from('Swap(bytes32,address,int128,int128,uint160,uint128,int24,uint24)')).toLowerCase()
 });
 const S=Object.freeze({token0:sel('token0()'),token1:sel('token1()'),fee:sel('fee()'),factory:sel('factory()'),
- getPair:sel('getPair(address,address)'),getPool:sel('getPool(address,address,uint24)'),decimals:sel('decimals()'),symbol:sel('symbol()')});
+ getPair:sel('getPair(address,address)'),getPool:sel('getPool(address,address,uint24)'),getPoolTs:sel('getPool(address,address,int24)'),tickSpacing:sel('tickSpacing()'),decimals:sel('decimals()'),symbol:sel('symbol()')});
 const ZERO='0x0000000000000000000000000000000000000000';
+// Live-Trading-only reviewed venues (swap identity and Swap-event semantics; never used for exit quotes). Evidence:
+// scripts/probe-trade-venues.cjs (Sourcify-verified factory + pool sources, canonical Swap topics observed in live logs).
+const TRADE_VENUES=Object.freeze({
+ ethereum:Object.freeze([{id:'shibaswap',kind:'V2',factory:'0x115934131916c8b277dd010ee02de363c09d037c',
+  review:'Sourcify UniswapV2Factory digest 0f727799… / UniswapV2Pair digest 8423d79c… (0.6.12); standard Swap(amount0In,amount1In,amount0Out,amount1Out) and getPair(token0,token1).'}]),
+ robinhood:Object.freeze([{id:'ramses-v3',kind:'V3',registration:'tickSpacing',factory:'0xe0c4ceb92d08ca985bb70fe0a22feb121a9854a8',
+  review:'Sourcify RamsesV3Factory digest 97bf045b… / RamsesV3Pool digest adabafbf…; Swap identical to Uniswap V3 (pool-perspective int256 amounts); getPool keyed by tickSpacing.'}]),
+ arc:Object.freeze([])
+});
+// Pools of an unreviewed factory are accepted only when their runtime equals the Sourcify-verified CANONICAL Uniswap V3
+// pool (same source digest as the reviewed Ethereum/Robinhood deployments) with compiler-declared immutables masked.
+const CANONICAL_V3=Object.freeze({digest:'745996826d21f5ee9981d97c82956ce7b94c99bbe0ce9007c0255bc139dc0bea',
+ reference:Object.freeze({arc:'0x162df51c504e7b8321e07387932f333d9be16a72'})});
+const canonicalRef=new Map();
 // Reviewed USD-denominated counter assets (exact chain + contract). Arc's native gas token IS USDC (18 decimals natively;
 // its ERC-20 interface at 0x3600… uses 6). Values are labelled "USDC/USDT/DAI-quoted", i.e. 1 unit treated as $1.
 const USD_STABLES=Object.freeze({
@@ -56,7 +70,7 @@ const NET=Object.freeze({
  arc:{rpc:()=>require('./arc-rpc').rpc,window:1500,maxSpan:60000,lookback:520000,confirmations:0,paceMs:220,maxHeadAgeS:30},
  robinhood:{rpc:()=>require('./robinhood-rpc').rpc,window:3000,maxSpan:100000,lookback:860000,confirmations:0,paceMs:120,maxHeadAgeS:30}
 });
-const MAX_POOLS=3,MAX_ROWS=20,MAX_LOG_CALLS=10,MAX_ROW_READS=40,KEEP_LOGS=60,CACHE_MS=20000,IDENTITY_CACHE=500,MAX_INFLIGHT=3;
+const ROW_CONCURRENCY=4,MAX_POOLS=3,MAX_ROWS=20,MAX_LOG_CALLS=10,MAX_ROW_READS=40,KEEP_LOGS=60,CACHE_MS=20000,IDENTITY_CACHE=500,MAX_INFLIGHT=3;
 const cache=new Map(),inflight=new Map(),incremental=new Map(),identityCache=new Map(),metaCache=new Map(),txCache=new Map(),blockCache=new Map();
 let running=0;
 const fail=(code,extra={})=>Object.assign(Error(code),{code,...extra});
@@ -116,10 +130,49 @@ async function identifyPool(network,rpc,token,candidate,block){
    const registered=addr(await ethCall(rpc,factory,S.getPair+pad(token0)+pad(token1),block));
    if(registered!==candidate.pool)return {excluded:'FACTORY_DOES_NOT_REGISTER_POOL'};
    out={kind:'V2',pool:candidate.pool,emitter:candidate.pool,protocol:r2.id,token0,token1,factory,method:'pool.factory() is reviewed AND factory.getPair(token0,token1) == pool'};
-  }else return {excluded:'UNREVIEWED_FACTORY',factory};
+  }else{
+   const venue=(TRADE_VENUES[network]||[]).find(v=>v.factory===factory);
+   if(venue&&venue.kind==='V2'){
+    const registered=addr(await ethCall(rpc,factory,S.getPair+pad(token0)+pad(token1),block));
+    if(registered!==candidate.pool)return {excluded:'FACTORY_DOES_NOT_REGISTER_POOL'};
+    out={kind:'V2',pool:candidate.pool,emitter:candidate.pool,protocol:venue.id,token0,token1,factory,method:'Reviewed '+venue.id+' factory: getPair(token0,token1) == pool'};
+   }else if(venue&&venue.kind==='V3'&&venue.registration==='tickSpacing'){
+    const ts=await ethCall(rpc,candidate.pool,S.tickSpacing,block);if(!WORD.test(ts||''))return {excluded:'POOL_INTERFACE_UNRECOGNIZED'};
+    const registered=addr(await ethCall(rpc,factory,S.getPoolTs+pad(token0)+pad(token1)+ts.slice(2),block));
+    if(registered!==candidate.pool)return {excluded:'FACTORY_DOES_NOT_REGISTER_POOL'};
+    out={kind:'V3',pool:candidate.pool,emitter:candidate.pool,protocol:venue.id,token0,token1,factory,method:'Reviewed '+venue.id+' factory: getPool(token0,token1,tickSpacing) == pool'};
+   }else if(CANONICAL_V3.reference[network]&&await canonicalV3Runtime(network,rpc,candidate.pool,block)){
+    out={kind:'V3',pool:candidate.pool,emitter:candidate.pool,protocol:'uniswap-v3-canonical-runtime',token0,token1,factory,
+     method:'Pool runtime equals the Sourcify-verified canonical UniswapV3Pool (immutables masked); its factory is not reviewed'};
+   }else return {excluded:'UNREVIEWED_FACTORY',factory};
+  }
  }else return {excluded:'POOL_ID_INVALID'};
  out.token=token;out.counter=out.token0===token?out.token1:out.token0;out.dex=candidate.dex||null;
  return remember(identityCache,key,out);
+}
+async function canonicalV3Runtime(network,rpc,pool,block){
+ let ref=canonicalRef.get(network);
+ if(!ref){
+  ref=(async()=>{
+   const address=CANONICAL_V3.reference[network],code=await rpc.call('eth_getCode',[address,block]);
+   const url='https://sourcify.dev/server/v2/contract/'+chain(network).chainId+'/'+address+'?fields=abi,sources,compilation,runtimeBytecode';
+   const r=await fetch(url,{signal:AbortSignal.timeout(8000),headers:{accept:'application/json'}});if(!r.ok)throw fail('CANONICAL_REFERENCE_UNAVAILABLE');
+   const v=require('./mechanics-deep').validateSource(await r.json(),{chainId:chain(network).chainId,address,code});
+   if(v.digest!==CANONICAL_V3.digest)throw fail('CANONICAL_REFERENCE_MISMATCH');
+   const regions=Object.values(v.immutableReferences||{}).flat();
+   if(!regions.length||!regions.every(x=>Number.isInteger(x.start)&&x.length===32))throw fail('CANONICAL_REFERENCE_MISMATCH');
+   return {masked:maskCode(code,regions),regions};
+  })();
+  canonicalRef.set(network,ref);ref.catch(()=>canonicalRef.delete(network));
+ }
+ let reference;try{reference=await ref;}catch{return false;}
+ const code=await rpc.call('eth_getCode',[pool,block]).catch(()=>null);
+ return typeof code==='string'&&maskCode(code,reference.regions)===reference.masked;
+}
+function maskCode(code,regions){
+ if(typeof code!=='string'||!/^0x(?:[0-9a-f]{2})+$/i.test(code))return null;
+ const b=Buffer.from(code.slice(2),'hex');for(const {start,length} of regions){if(start+length>b.length)return null;b.fill(0,start,start+length);}
+ return b.toString('hex');
 }
 // ---- 3/4. swap events -------------------------------------------------------------------------------------------
 function decodeSwap(pool,log){
@@ -157,7 +210,7 @@ async function logsFor(rpc,pool,from,to,state,maxSpan){
     if(emitter!==pool.emitter||t[0]!==TOPIC[pool.kind]||(pool.kind==='V4'&&t[1]!==pool.pool))continue;
     out.push(l);
    }
-   hi=lo-1n;
+   hi=lo-1n;state.lowest=state.lowest===undefined||lo<state.lowest?lo:state.lowest;
    if(!logs.length)state.span=Math.min(maxSpan,state.span*2);   // quiet market: widen the next (older) chunk
   }catch(e){
    if(state.span<=64)throw e;state.span=Math.max(64,Math.floor(state.span/2));   // provider range/size limits: narrow
@@ -202,7 +255,8 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  if(!candidates){
   const gecko=require('./gecko-market');
   const body=await gecko.json('https://api.geckoterminal.com/api/v2/networks/'+gecko.NETWORK_IDS[network]+'/tokens/'+token+'/pools?page=1&include=base_token,quote_token,dex');
-  candidates=gecko.normalizePools(body,network,token).map(p=>({pool:p.pool,dex:p.dex,reserveUsd:Number(p.attributes?.reserve_in_usd)||0}));
+  candidates=gecko.normalizePools(body,network,token).map(p=>{const t=p.attributes?.transactions?.h24||{};return {pool:p.pool,dex:p.dex,reserveUsd:Number(p.attributes?.reserve_in_usd)||0,
+   volume24hUsd:Number(p.attributes?.volume_usd?.h24)||0,trades24h:(Number(t.buys)||0)+(Number(t.sells)||0)};});
  }
  candidates=[...candidates].sort((a,b)=>(b.reserveUsd||0)-(a.reserveUsd||0)).slice(0,8);
  // 2. identity (bounded: stop after MAX_POOLS verified pools)
@@ -210,14 +264,19 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  for(const c of candidates){
   if(pools.length>=MAX_POOLS)break;
   let r;try{r=await identifyPool(network,rpc,token,c,pinned);}catch(e){r={excluded:e.code||'RPC_READ_FAILED'};}
-  if(r.excluded)excluded.push({pool:c.pool,dex:c.dex||null,reasonCode:r.excluded});else pools.push(r);
+  if(r.excluded)excluded.push({pool:c.pool,dex:c.dex||null,reasonCode:r.excluded,providerTrades24h:c.trades24h??null,providerVolume24hUsd:c.volume24hUsd??null});else pools.push({...r,providerTrades24h:c.trades24h??null});
  }
  const meta=await tokenMeta(network,rpc,token,pinned);
  const base={ok:true,readOnly:true,network:cfg.id,chainId:cfg.chainId,token,tokenSymbol:meta.symbol,headBlock:headNumber.toString(),toBlock:toBlock.toString(),
   headTimestamp:new Date(headTs*1000).toISOString(),headAgeSeconds:headAgeS,confirmations:net.confirmations,observedAt:new Date(now()).toISOString(),
-  pools:pools.map(p=>({pool:p.pool,kind:p.kind,protocol:p.protocol,dex:p.dex,counter:p.counter,identity:'ONCHAIN_VERIFIED',method:p.method})),excludedPools:excluded,
+  pools:pools.map(p=>({pool:p.pool,kind:p.kind,protocol:p.protocol,dex:p.dex,counter:p.counter,identity:'ONCHAIN_VERIFIED',method:p.method,providerTrades24h:p.providerTrades24h??null})),excludedPools:excluded,
   scope:'Swaps emitted by on-chain-verified pools of this exact contract in a bounded recent block window. Not every venue or aggregator route; not investment advice.'};
- if(!pools.length)return {...base,status:'UNSUPPORTED',reasonCode:candidates.length?'NO_VERIFIED_POOL':'NO_POOL_CANDIDATES',trades:[],cost:{rpcCalls:rpc.calls.n}};
+ // Provider-reported activity on pools we cannot verify: never silently treated as "no swaps".
+ const activeExcluded=excluded.filter(x=>(x.providerTrades24h||0)>0);
+ const coverage={verifiedPools:pools.length,excludedPools:excluded.length,excludedActivePools:activeExcluded.length,
+  providerTrades24hExcluded:activeExcluded.reduce((n,x)=>n+(x.providerTrades24h||0),0),providerTrades24hVerified:pools.reduce((n,p)=>n+(p.providerTrades24h||0),0),
+  complete:activeExcluded.length===0,note:activeExcluded.length?'Some active pools use DEX contracts that are not yet reviewed; their swaps are not shown.':null};
+ if(!pools.length)return {...base,coverage,status:activeExcluded.length?'COVERAGE_INCOMPLETE':'UNSUPPORTED',reasonCode:activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':candidates.length?'NO_VERIFIED_POOL':'NO_POOL_CANDIDATES',trades:[],cost:{rpcCalls:rpc.calls.n}};
  // 3. logs
  const state={span:net.window,logCalls:0},from=toBlock-BigInt(net.lookback)>0n?toBlock-BigInt(net.lookback):0n;
  // Incremental refresh: with the same verified pool set, only blocks after the previous confirmed window are read.
@@ -242,29 +301,38 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  let reads=0;const counterMeta=new Map(),txCount=new Map();
  for(const r of rows)txCount.set(r.l.transactionHash,(txCount.get(r.l.transactionHash)||0)+1);
  const ethPrice=pools.some(p=>ETH_PRICED[network]?.[p.counter])?await ethUsd(network,rpc,pinned,ethRpcFn):null;
- const trades=[];
- for(const r of top){
-  const bkey=network+':'+r.l.blockNumber;let blk=blockCache.get(bkey);
-  if(!blk){if(reads>=MAX_ROW_READS)break;reads++;const b=await rpc.call('eth_getBlockByNumber',[r.l.blockNumber,false]).catch(()=>null);
-   if(b?.hash)blk=remember(blockCache,bkey,{hash:String(b.hash).toLowerCase(),timestamp:Number(BigInt(b.timestamp))},4000);}
-  if(!blk||blk.hash!==String(r.l.blockHash).toLowerCase())continue;   // unbound or reorged: never displayed
+ // Per-row block binding and sender, bounded concurrency (4); results kept in event order.
+ const rowsOut=new Array(top.length).fill(null);let cursor=0;
+ const blockRead=async n=>{const bkey=network+':'+n;let blk=blockCache.get(bkey);if(blk)return blk;if(reads>=MAX_ROW_READS)return null;reads++;
+  const b=await rpc.call('eth_getBlockByNumber',[n,false]).catch(()=>null);return b?.hash?remember(blockCache,bkey,{hash:String(b.hash).toLowerCase(),timestamp:Number(BigInt(b.timestamp))},4000):null;};
+ const pendingBlocks=new Map(),blockOnce=n=>{if(!pendingBlocks.has(n))pendingBlocks.set(n,blockRead(n));return pendingBlocks.get(n);};
+ async function one(i){
+  const r=top[i];const blk=await blockOnce(r.l.blockNumber);
+  if(!blk||blk.hash!==String(r.l.blockHash).toLowerCase())return;   // unbound or reorged: never displayed
   const tkey=network+':'+String(r.l.transactionHash).toLowerCase();let tx=txCache.get(tkey);
-  if(!tx){if(reads>=MAX_ROW_READS)break;reads++;const t=await rpc.call('eth_getTransactionByHash',[r.l.transactionHash]).catch(()=>null);
+  if(!tx){if(reads>=MAX_ROW_READS)return;reads++;const t=await rpc.call('eth_getTransactionByHash',[r.l.transactionHash]).catch(()=>null);
    if(t?.from&&String(t.blockHash||'').toLowerCase()===blk.hash)tx=remember(txCache,tkey,{from:String(t.from).toLowerCase(),to:String(t.to||'').toLowerCase()},4000);}
-  if(!tx)continue;
-  if(!counterMeta.has(r.p.counter))counterMeta.set(r.p.counter,await tokenMeta(network,rpc,r.p.counter,pinned).catch(()=>null));
-  const cm=counterMeta.get(r.p.counter);if(!cm)continue;
+  if(!tx)return;
+  if(!counterMeta.has(r.p.counter))counterMeta.set(r.p.counter,tokenMeta(network,rpc,r.p.counter,pinned).catch(()=>null));
+  const cm=await counterMeta.get(r.p.counter);if(!cm)return;
   const tokenAbs=r.d.tokenPool<0n?-r.d.tokenPool:r.d.tokenPool,counterAbs=r.d.counterPool<0n?-r.d.counterPool:r.d.counterPool;
   const usd=usdOf(network,r.p.counter,counterAbs,ethPrice);
   const route=(txCount.get(r.l.transactionHash)||0)>1?'MULTI_HOP':(tx.to&&tx.to!==r.p.emitter)?'ROUTER':'DIRECT';
-  trades.push({side:r.d.side,tokenAmount:units(tokenAbs,meta.decimals),counterAmount:units(counterAbs,cm.decimals),counterSymbol:cm.symbol,counter:r.p.counter,
+  rowsOut[i]={side:r.d.side,tokenAmount:units(tokenAbs,meta.decimals),counterAmount:units(counterAbs,cm.decimals),counterSymbol:cm.symbol,counter:r.p.counter,
    usd:usd.usd,usdStatus:usd.usdStatus,usdBasis:usd.usdBasis,wallet:tx.from,route,txHash:String(r.l.transactionHash).toLowerCase(),logIndex:r.logIndex,
    block:r.block.toString(),blockHash:blk.hash,timestamp:new Date(blk.timestamp*1000).toISOString(),pool:r.p.pool,poolKind:r.p.kind,protocol:r.p.protocol,
-   explorerUrl:cfg.explorer+'/tx/'+String(r.l.transactionHash).toLowerCase(),verification:'ONCHAIN_VERIFIED'});
+   explorerUrl:cfg.explorer+'/tx/'+String(r.l.transactionHash).toLowerCase(),verification:'ONCHAIN_VERIFIED'};
  }
+ await Promise.all(Array.from({length:Math.min(ROW_CONCURRENCY,top.length)},async()=>{while(cursor<top.length)await one(cursor++);}));
+ const trades=rowsOut.filter(Boolean);
+ // Honest window: the oldest block actually scanned (the log budget can stop before the intended lookback).
+ const scannedFrom=mode==='INCREMENTAL'?(prev.scannedFrom??scanFrom):state.lowest!==undefined?state.lowest:toBlock;
+ {const e=incremental.get(incKey);if(e)e.scannedFrom=scannedFrom;}
+ let scannedSince=null;if(!trades.length&&scannedFrom<=toBlock){const b=await blockRead('0x'+scannedFrom.toString(16));if(b)scannedSince=new Date(b.timestamp*1000).toISOString();}
  const live=headAgeS<=net.maxHeadAgeS;
- return {...base,status:trades.length?(live?'LIVE':'DELAYED'):'NO_RECENT_SWAPS',reasonCode:trades.length?null:'NO_SWAPS_IN_WINDOW',
-  window:{fromBlock:from.toString(),scanFrom:scanFrom.toString(),toBlock:toBlock.toString(),mode,logCalls:state.logCalls,finalSpan:state.span},ethUsd:ethPrice,trades,cost:{rpcCalls:rpc.calls.n}};
+ const status=trades.length?(live?'LIVE':'DELAYED'):activeExcluded.length?'COVERAGE_INCOMPLETE':'NO_RECENT_SWAPS';
+ return {...base,coverage,status,reasonCode:trades.length?null:activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':'NO_SWAPS_IN_WINDOW',lastTradeAt:trades[0]?.timestamp||null,
+  window:{fromBlock:from.toString(),scanFrom:scanFrom.toString(),scannedFromBlock:scannedFrom.toString(),scannedSince,toBlock:toBlock.toString(),mode,logCalls:state.logCalls,finalSpan:state.span,lookbackComplete:scannedFrom<=from},ethUsd:ethPrice,trades,cost:{rpcCalls:rpc.calls.n}};
 }
 function classify(e){
  const code=/^[A-Z][A-Z0-9_]{2,63}$/.test(e?.code||'')?e.code:/429/.test(String(e?.message))?'RPC_RATE_LIMITED':/GeckoTerminal/.test(String(e?.message))?'POOL_SOURCE_UNAVAILABLE':'PROVIDER_UNAVAILABLE';
@@ -281,5 +349,5 @@ async function cached({network,address},run=analyze,now=Date.now){
   catch(e){return classify(e);}finally{running--;inflight.delete(key);}})();
  inflight.set(key,task);return task;
 }
-module.exports={analyze,KEEP_LOGS,cached,classify,decodeSwap,identifyPool,usdOf,units,TOPIC,NET,USD_STABLES,MAX_ROWS,
- _reset:()=>{for(const m of [cache,inflight,incremental,identityCache,metaCache,txCache,blockCache])m.clear();running=0;}};
+module.exports={analyze,KEEP_LOGS,TRADE_VENUES,CANONICAL_V3,maskCode,cached,classify,decodeSwap,identifyPool,usdOf,units,TOPIC,NET,USD_STABLES,MAX_ROWS,
+ _reset:()=>{for(const m of [cache,inflight,incremental,identityCache,metaCache,txCache,blockCache,canonicalRef])m.clear();running=0;}};
