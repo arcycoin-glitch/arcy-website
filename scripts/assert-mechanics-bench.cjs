@@ -59,7 +59,10 @@ for(let i=0;i<before.rows.length;i++){
  assert.ok(a.net.rpc-probe-siblingCalls-reviewed-customRole-restriction-(a.net.augBinding||0)<=b.net.rpc,'New RPC usage for '+id);
  assert.ok(binding<=BINDING_BUDGET,'Proxy-binding read budget exceeded for '+id+' ('+binding+'>'+BINDING_BUDGET+')');
  // Eligible only where main proved delegation for an UNBOUND outer runtime and this branch binds it to reviewed source.
- if(binding)assert.ok(/· delegation proven$/.test(b.f.contractArchitecture.value||'')&&!/· delegation proven$/.test(a.f.contractArchitecture.value||''),'Proxy-binding reads spent on a contract that was not newly bound: '+id);
+ // A contract that was not newly bound may only use these kinds to replace requests main ALSO made but could not replay
+ // (its own pre-existing replay misses); everything above that needs the new reviewed binding.
+ const newlyBound=/· delegation proven$/.test(b.f.contractArchitecture.value||'')&&!/· delegation proven$/.test(a.f.contractArchitecture.value||'');
+ if(binding>(b.net.replayMiss||0))assert.ok(newlyBound,'Proxy-binding reads spent on a contract that was not newly bound: '+id);
  if(binding){budgets.binding+=binding;budgets.bindingContracts++;}
  assert.ok(restriction<=RESTRICTION_BUDGET,'Transfer-restriction state read budget exceeded for '+id+' ('+restriction+'>'+RESTRICTION_BUDGET+')');
  if(restriction)assert.ok(!b.f.transferRestrictions?.ok,'Restriction reads spent on an already verified restriction row: '+id);

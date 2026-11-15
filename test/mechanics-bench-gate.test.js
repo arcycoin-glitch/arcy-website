@@ -107,3 +107,10 @@ test('V5: proxy-binding reads <=8, only for a contract newly bound from a delega
  const over=gate(b,spend(a,2,9));assert.equal(over.ok,false);assert.match(over.out,/Proxy-binding read budget exceeded/);
  const notBound=gate(rows(),spend(rows(),2,1));assert.equal(notBound.ok,false);assert.match(notBound.out,/not newly bound/);
 });
+
+test('V5: a not-newly-bound contract may use binding kinds only to replace its own pre-existing replay misses',()=>{
+ const b=rows(),a=rows();b[3].net.replayMiss=2;a[3].net.replayMiss=0;a[3].net.rpc+=2;a[3].net.augBinding=2;
+ assert.equal(gate(b,a).ok,true);
+ const b2=rows(),a2=rows();b2[3].net.replayMiss=1;a2[3].net.replayMiss=0;a2[3].net.rpc+=2;a2[3].net.augBinding=2;
+ assert.match(gate(b2,a2).out,/not newly bound/);
+});
