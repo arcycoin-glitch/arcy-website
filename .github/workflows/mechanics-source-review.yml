@@ -22,5 +22,5 @@ jobs:
         run: BENCH_SAMPLES_ONLY=1 node scripts/bench-mechanics.cjs samples
       - name: Source review excerpts (read-only)
         env:
-          PROBE_FULL: '18e674,7da4c5,2a3f1a,95ad61,4c0d2c74,8ed97a,b8c774'
+          PROBE_FULL: '4fabb145,8ed97a,68749665,ece5ca,faba6f,e0f63a'
         run: node scripts/probe-mechanics-sources.cjs mechanics-samples.json scripts/mechanics-probe-extra.json

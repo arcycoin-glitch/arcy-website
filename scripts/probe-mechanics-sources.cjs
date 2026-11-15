@@ -15,7 +15,7 @@ const samples=[...JSON.parse(fs.readFileSync(process.argv[2]||'mechanics-samples
 if(process.argv[3]&&fs.existsSync(process.argv[3]))samples.push(...JSON.parse(fs.readFileSync(process.argv[3],'utf8')));
 const FULL=(process.env.PROBE_FULL||'').toLowerCase().split(',').filter(Boolean);
 const full=(...xs)=>xs.some(x=>FULL.some(p=>p==='all'||String(x||'').slice(2).startsWith(p)));
-const PATH_FNS=/^(transfer|transferFrom|_transfer|_update|_beforeTokenTransfer|_afterTokenTransfer|_transferFrom)$/;
+const PATH_FNS=/^(transfer|transferFrom|_transfer|_update|_beforeTokenTransfer|_afterTokenTransfer|_transferFrom|_transferTokens|_moveDelegates|removeLimits)$/;
 const PRIV=/mint|issue|pause|freeze|blacklist|blocklist|allowlist|whitelist|frozen|fee|tax|limit|max|owner|admin|role|upgrade|supplyController|assetProtection|rescue|wipe|seize|burn/i;
 const SLOT={impl:'0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc',legacy:'0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3',beacon:'0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50'};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -59,7 +59,8 @@ function excerpt(src,full){
    const tmpl=src?oz.diagnose(src.d.sources,{lib:require('../search/server/lib/oz-library-hashes'),main:src.d.compilation?.name}):null;
    console.log('SRC '+JSON.stringify({net,group:s.group,a,kind,target,block,outer:{status:outer.status,match:outer.match,invalid:outer.invalid,digest:outer.digest},inner:target===a?'same':{status:inner.status,match:inner.match,invalid:inner.invalid,digest:inner.digest},main:src?.d.compilation?.name||null,profile,template:tmpl?(tmpl.ok?'OK:'+tmpl.mint:tmpl.reason):null}));
    if(src&&(!profile||full(a,target))){for(const line of excerpt(src.d,full(a,target)))console.log('  FN '+line);}
-   else if(src&&profile){for(const line of excerpt(src.d,false).filter(l=>/\.(f:(transfer|transferFrom|_transfer|_update|_beforeTokenTransfer|_transferFrom)\(|m:)/.test(l)))console.log('  FN '+line);}
+   if(outer.d&&target!==a&&full(a))for(const line of excerpt(outer.d,true))console.log('  OUTER '+line);
+   else if(src&&profile){for(const line of excerpt(src.d,false).filter(l=>/\.(f:(transfer|transferFrom|_transfer|_update|_beforeTokenTransfer|_transferFrom|_transferTokens|removeLimits)\(|m:)/.test(l)))console.log('  FN '+line);}
   }catch(e){console.log('SRC '+JSON.stringify({net,a,error:String(e.message||e).slice(0,160)}));}
  }
 })();
