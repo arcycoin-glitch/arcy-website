@@ -144,9 +144,9 @@ async function review(target){
  const list=(targets.length?targets:DEFAULT_TARGETS).slice(0,12),dir=path.join(process.cwd(),'review-out');fs.mkdirSync(dir,{recursive:true});
  const summary=[];
  for(const t of list){
-  let r;try{r=await review(t);}catch(error){r={target:t,state:'FAILED',error:String(error.message).slice(0,60)};}
+  let r;try{r=await review(t);}catch(error){r={target:t,state:'FAILED',error:String(error.stack||error.message).slice(0,300)};}
   fs.writeFileSync(path.join(dir,t.replace(':','-')+'.json'),JSON.stringify(r,null,1));
-  const line={target:t,block:r.block||null,identity:r.identity||null,missing:r.missing||[r.state||r.error],complete:Boolean(r.machineEvidenceComplete),
+  const line={target:t,block:r.block||null,identity:r.identity||null,missing:r.missing||[r.state,r.error],complete:Boolean(r.machineEvidenceComplete),
    token:r.tokenSource&&{status:r.tokenSource.status,runtimeMatch:r.tokenSource.runtimeMatch,creationMatch:r.tokenSource.creationMatch,equal:r.tokenSource.bytecodeEqualsOnchain,contract:r.tokenSource.contract,compiler:r.tokenSource.compiler,files:r.tokenSource.sources.length,transformations:r.tokenSource.transformations},
    implementation:r.implementationSource&&{status:r.implementationSource.status,runtimeMatch:r.implementationSource.runtimeMatch,creationMatch:r.implementationSource.creationMatch,equal:r.implementationSource.bytecodeEqualsOnchain,contract:r.implementationSource.contract,compiler:r.implementationSource.compiler,files:r.implementationSource.sources.length,transformations:r.implementationSource.transformations},
    operators:(r.operators||[]).map(o=>o.operator+(o.error?':'+o.error:'')),mintSelector:r.operators?.[0]?.mintSelectorInExecutingCode??null};
