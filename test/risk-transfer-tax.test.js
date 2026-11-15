@@ -17,7 +17,7 @@ beforeEach(()=>observer._resetHealth());
 
 function sim(over={}){
  const calls=[];
- const base={chainId:'0x1',hash:HASH,slot:3,poolBal:10n**24n,supply:10n**27n,taxBps:500,burn:false,noop:false,noEvents:false,revert:false,retFalse:false,reflectBonus:0n,...over};
+ const base={chainId:'0x1',hash:HASH,slot:3,poolBal:10n**24n,uint96:false,supply:10n**27n,taxBps:500,burn:false,noop:false,noEvents:false,revert:false,retFalse:false,reflectBonus:0n,...over};
  const fetcher=async(url,init)=>{
   const host=new URL(url).hostname,q=JSON.parse(init.body),b={...base,...(over.hosts?.[host]||{})};calls.push({host,method:q.method,params:q.params});
   const ok=result=>new Response(JSON.stringify({jsonrpc:'2.0',id:q.id,result}));
@@ -32,7 +32,7 @@ function sim(over={}){
    if(to===TOKEN&&s===sel('balanceOf(address)')){
     const who='0x'+data.slice(34,74);
     if(who===PAIR)return ok(W(b.poolBal));
-    if(who===FRESH&&ov){const v=b.slot===null?null:ov[TOKEN]?.stateDiff?.[tax._internals.slotKey(FRESH,b.slot,'solidity')];return ok(v||W(0));}
+    if(who===FRESH&&ov){const v=b.slot===null?null:ov[TOKEN]?.stateDiff?.[tax._internals.slotKey(FRESH,b.slot,'solidity')];return ok(v?(b.uint96?W(BigInt(v)&((1n<<96n)-1n)):v):W(0));}
     return ok(W(0));
    }
    return revert();
@@ -143,4 +143,8 @@ test('reflection bonuses are a zero deduction and a pool balance that falls is n
  const bonus=await run(sim({taxBps:0,reflectBonus:5n}));
  assert.equal(bonus.operators[0].outcome.result.deduction,'0');assert.equal(bonus.operators[0].outcome.result.deductionBps,0);
  const drain=await run(sim({poolDrain:true}));assert.equal(rec(drain).reasonCode,'POOL_BALANCE_DECREASED');assert.notEqual(finding(drain).status,'CONFIRMED');
+});
+
+test('uint96-packed balances (UNI, ONDO style) are found by the balance slot probe',async()=>{
+ const r=await run(sim({uint96:true}));assert.equal(rec(r).state,'VERIFIED_ONCHAIN');assert.deepEqual(r.operators[0].outcome.slot,{slot:3,layout:'solidity'});
 });
