@@ -81,6 +81,8 @@
 .live-trading-card .lt-time{text-align:right;color:#93a6b5;font-size:11px}
 .live-trading-card .lt-table a{color:inherit;text-decoration:none}
 .live-trading-card .lt-table a:hover,.live-trading-card .lt-table a:focus-visible{color:#80d9ee;text-decoration:underline}
+.live-trading-card .lt-wallet-cell a.lt-wallet{display:inline-flex;align-items:center;max-width:100%;min-height:32px;touch-action:manipulation;cursor:pointer;color:#9bb9c7}
+.live-trading-card .lt-wallet-cell a.lt-wallet:focus-visible{outline:2px solid #49d6ea;outline-offset:2px;border-radius:3px}
 .live-trading-card .lt-buy .lt-side{color:#2fd38a}
 .live-trading-card .lt-sell .lt-side{color:#ff6b6b}
 .live-trading-card .lt-swap .lt-side{color:#9fb3c3}
