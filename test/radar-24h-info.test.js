@@ -102,3 +102,11 @@ test('tap toggles, hover shows, keyboard Enter/Space toggles, Escape closes; cli
  for(const f of docListeners.click)f({target:new Node('div')});
  assert.equal(pop.hidden,true,'outside tap closes');
 });
+test('Data Engine V2: a short visible reason sits beside the dash; the value is never derived',async()=>{
+ for(const [code,label,extra] of [['SOURCES_DISAGREE','Kaynak uyuşmazlığı'],['POOL_LESS_THAN_24H_OLD','Havuz çok yeni',{poolAgeHours:3}],['SOURCE_24H_CHANGE_UNAVAILABLE','Geçmiş yok'],['SOMETHING_NEW','Doğrulanamadı']]){
+  const {detail,calls}=await mount([mk(code,extra)]);
+  const cell=detail.querySelector('[data-overview="robinhood"]').querySelector('.arcy-radar-overview-change');
+  assert.equal(cell.querySelector('.arcy-radar-dash-reason').textContent,label,code);
+  assert.match(cell.textContent,/—/);assert.doesNotMatch(cell.textContent,/%/);assert.equal(calls(),4);
+ }
+});

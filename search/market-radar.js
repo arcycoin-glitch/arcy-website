@@ -102,6 +102,14 @@ const change24hReason=item=>{
   if(code==='SOURCE_24H_CHANGE_UNAVAILABLE')return 'Hiçbir kaynak bu token için 24 saatlik değişim bildirmedi.';
   return 'Bu token için 24 saatlik değişim doğrulanamadı.';
  };
+ // Data Engine V2: a short visible reason beside the dash (full text stays in the info popover). No value is derived.
+ const change24hShort=item=>{
+  const f=item&&item.fields&&item.fields.change24hPct,code=f&&f.reasonCode;
+  if(code==='SOURCES_DISAGREE'||f?.sourcesDisagree===true)return 'Kaynak uyuşmazlığı';
+  if(code==='POOL_LESS_THAN_24H_OLD')return 'Havuz çok yeni';
+  if(code==='SOURCE_24H_CHANGE_UNAVAILABLE')return 'Geçmiş yok';
+  return 'Doğrulanamadı';
+ };
  // Keep the actual 24h field unverified for young pools. A separately
  // labelled since-launch reading can still be displayed from the preserved
  // exact-pool source evidence; it is NOT used in ranking or the 24h score.
@@ -167,7 +175,7 @@ const change24hReason=item=>{
    metric.append(value,el('small','arcy-radar-partial-label','Açılıştan beri'));
    metric.title=partial.source+' kaynaklı, havuz açılışından beri kısmi değişim. Tam 24 saatlik değişim değildir.';
    wrap.append(metric);
-  }else wrap.append(el('span','',cell.textContent));
+  }else{wrap.append(el('span','',cell.textContent));const why=el('small','arcy-radar-dash-reason',change24hShort(item));why.setAttribute('aria-hidden','true');wrap.append(why);}
   cell.textContent='';wrap.append(infoIcon(item));cell.append(wrap);
  };
  const infoIcon=item=>{
