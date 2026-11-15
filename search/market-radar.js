@@ -242,6 +242,37 @@ const change24hReason=item=>{
   freshness.textContent=verified?(data.freshness==='STALE'?'ÖNBELLEK':hasData?'DOĞRULANDI':'PENCERE BOŞ'):loading?'KONTROL EDİLİYOR':'KAYNAK ERİŞİLEMİYOR';
   freshness.classList.toggle('is-stale',!hasData||data.freshness==='STALE');
   total.textContent=hasData?allCount+' gözlemlenen token · Veriler yalnızca kaynakların döndürdüğü havuz ve tokenlarla sınırlıdır':verified?'Bu veri penceresinde sıralanabilir token yok':loading?'Kaynaklar kontrol ediliyor…':'Token listesi şu anda doğrulanamıyor';
+
+  // Arc's candidate window is not a census of all token contracts.
+  const coverageMethod=card.querySelector('.arcy-radar-coverage-method');
+  coverageMethod.hidden=!(verified&&network==='arc');
+  if(!coverageMethod.hidden){
+   const seen=Number.isInteger(data.discovery?.uniqueCandidates)?data.discovery.uniqueCandidates:null;
+   const used=Number.isInteger(data.coverage?.ranked)?data.coverage.ranked:allCount;
+   coverageMethod.textContent=(seen===null?'Sınırlı kaynak penceresi':seen+' farklı token adayı')+
+    ' · '+used+' keşif sıralamasına girdi. Arc şartları: en az $5.000 / 24s hacim, $20.000 likidite ve 24 saatlik havuz. Tüm ağ taranmıyor; dışarıda kalmak güvensizlik kanıtı değildir.';
+  }
+  const moversSection=card.querySelector('.arcy-radar-observed-movers');
+  const movers=network==='arc'&&verified&&Array.isArray(data.watchlist)?data.watchlist.slice(0,5):[];
+  moversSection.replaceChildren();
+  moversSection.hidden=!movers.length;
+  if(movers.length){
+   moversSection.append(el('strong','arcy-radar-observed-heading','⚡ Düşük hacimli piyasa hareketleri · sıralama dışı'));
+   moversSection.append(el('p','arcy-radar-observed-caption','En az %20 fiyat hareketi gözlemlendi; 24 saatlik hacim $5.000 eşiğinin altında. Bu bir yatırım veya güvenlik sinyali değildir. Yalnızca taranan havuzlardaki kontratlar gösterilir.'));
+   for(const item of movers){
+    if(!/^0x[0-9a-f]{40}$/i.test(item?.address||'')||!Number.isFinite(item.change24hPct)||
+       item.watchReason!=='VOLUME_BELOW_NETWORK_FLOOR')continue;
+    const row=el('a','arcy-radar-observed-row');
+    row.href='/search/token/arc/'+item.address;
+    const ticker=el('span','arcy-radar-observed-ticker',item.symbol||item.address.slice(0,9));
+    ticker.translate=false;
+    const change=el('strong','arcy-radar-observed-change '+(item.change24hPct>=0?'positive':'negative'),pct(item.change24hPct));
+    const volume=el('small','arcy-radar-observed-meta','24s hacim '+money(item.volume24hUsd)+' · Likidite '+money(item.liquidityUsd));
+    const basis=el('small','arcy-radar-observed-basis',
+     item.fields?.change24hPct?.status==='CROSS_VERIFIED'?'İki kaynakla doğrulandı':'Tek kaynak bildirimi');
+    row.append(ticker,change,volume,basis);moversSection.append(row);
+   }
+  }
   const action=card.querySelector('.arcy-radar-overview-action');
   const wait=Math.max(0,(overviewRetryAt.get(network)||0)-Date.now());
   action.disabled=loading||(!hasData&&verified)||wait>0;
@@ -348,6 +379,8 @@ const change24hReason=item=>{
   head.append(mark,headingCopy,headerMeta);
   const count=el('p','arcy-radar-overview-count','Kaynaklar kontrol ediliyor…');
   const list=el('div','arcy-radar-overview-list');
+  const coverageMethod=el('p','arcy-radar-coverage-method');coverageMethod.hidden=true;
+  const moversSection=el('section','arcy-radar-observed-movers');moversSection.hidden=true;
   const discoveryNote=el('p','arcy-radar-discovery-note','ARCY Discovery Score veriye dayalı keşif önceliğidir; güvenlik puanı, alım sinyali veya kazanç garantisi değildir. Liste tüm zinciri kapsamaz.');
   discoveryNote.hidden=true;
   const action=el('button','arcy-radar-overview-action','Tümünü Gör →');
@@ -358,7 +391,7 @@ const change24hReason=item=>{
    for(const node of overview.children)node.classList.toggle('is-expanded',node.dataset.overview===expandedNetwork);
    action.setAttribute('aria-expanded',String(expandedNetwork===id));
   });
-  action.setAttribute('aria-expanded','false');card.append(head,count,list,discoveryNote,action);overview.append(card);
+  action.setAttribute('aria-expanded','false');card.append(head,count,coverageMethod,list,discoveryNote,moversSection,action);overview.append(card);
  }
 
  // Network headings control ONE full-width premium card at a time.
