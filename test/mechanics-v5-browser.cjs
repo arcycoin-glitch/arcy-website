@@ -25,7 +25,7 @@ try{await new Promise((r,j)=>{server.stdout.once('data',r);server.once('error',j
   await page.locator('#deepResearch').evaluate(e=>e.open=true);
   await page.evaluate(d=>render(d,{preserve:true}),data);
   const card='#cards [data-card-id="mechanics"]';
-  assert.equal(await page.locator('#cards .card').count(),5,'five cards');
+  assert.equal(await page.locator('#cards .card').count(),6,'five analysis cards + Live Trading');
   assert.equal(await page.locator(card+' > .metric').count(),4,'four mechanics rows');
   assert.match(await page.locator('#evidenceCount').innerText(),/\/20 |20 checks|of 20/,'20-check tally unchanged');
   assert.match(await page.locator(card).innerText(),/Verified source unavailable\./,'short reason');

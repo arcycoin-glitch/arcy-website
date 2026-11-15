@@ -89,7 +89,8 @@ test('USD only from reviewed anchors; Robinhood and unknown counters stay USD NO
  assert.equal(lt.usdOf('arc','0x3600000000000000000000000000000000000000',1_000_000n,null).usd,1);
  assert.equal(lt.usdOf('ethereum',WETH,10n**18n,{price:3000,source:'x'}).usd,3000);
  assert.equal(lt.usdOf('ethereum',WETH,10n**18n,null).usdStatus,'USD_NOT_VERIFIED','no oracle answer -> no USD');
- assert.equal(lt.usdOf('robinhood','0x0bd7d308f8e1639fab988df18a8011f41eacad73',10n**18n,{price:3000}).usdStatus,'USD_NOT_VERIFIED');
+ // Final Engine: Robinhood ETH/WETH is valued with the Ethereum Chainlink ETH/USD reference and labelled as such.
+ assert.equal(lt.usdOf('robinhood','0x0bd7d308f8e1639fab988df18a8011f41eacad73',10n**18n,{price:3000}).usdStatus,'ORACLE_PRICED_ETH_REFERENCE');
  assert.equal(lt.usdOf('ethereum','0x'+'7'.repeat(40),1n,null).usd,null);
 });
 test('V4: PoolKey must hash to the PoolId and contain the token; Ethereum has no reviewed V4 manager',async()=>{
@@ -130,4 +131,14 @@ test('Ethereum WETH counter is priced only through the pinned Chainlink ETH/USD 
  assert.equal(typeof om.inspect,'function');
  const src=require('node:fs').readFileSync(require.resolve('../search/server/lib/live-trades'),'utf8');
  assert.match(src,/f\?\.priceUsd/);
+});
+test('USD rules: stablecoin-quoted, same-chain oracle, labelled Ethereum reference for Robinhood ETH/WETH, otherwise NOT VERIFIED',()=>{
+ const one=10n**18n,p={price:3000,source:'Chainlink ETH/USD on Ethereum (pinned block)'};
+ assert.deepEqual(lt.usdOf('ethereum',WETH,one,{...p,crossChain:false}).usdStatus,'ORACLE_PRICED');
+ const rh=lt.usdOf('robinhood','0x0bd7d308f8e1639fab988df18a8011f41eacad73',one,{...p,crossChain:true});
+ assert.equal(rh.usd,3000);assert.equal(rh.usdStatus,'ORACLE_PRICED_ETH_REFERENCE');assert.match(rh.usdBasis,/cross-chain reference/);
+ assert.equal(lt.usdOf('robinhood','0x'+'7'.repeat(40),one,{...p,crossChain:true}).usdStatus,'USD_NOT_VERIFIED','unknown counter asset');
+ assert.equal(lt.usdOf('robinhood','0x0bd7d308f8e1639fab988df18a8011f41eacad73',one,null).usdStatus,'USD_NOT_VERIFIED','no oracle answer: no value');
+ assert.equal(lt.usdOf('arc','0x3600000000000000000000000000000000000000',2500000n,null).usd,2.5);
+ assert.equal(lt.usdOf('arc','0x'+'8'.repeat(40),one,p).usdStatus,'USD_NOT_VERIFIED','Arc has no ETH reference');
 });

@@ -43,7 +43,11 @@ const USD_STABLES=Object.freeze({
   '0x6b175474e89094c44da98b954eedeac495271d0f':{symbol:'DAI',decimals:18}}),
  robinhood:Object.freeze({})
 });
-const ETH_PRICED=Object.freeze({ethereum:Object.freeze({[ZERO]:{symbol:'ETH',decimals:18},'0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2':{symbol:'WETH',decimals:18}})});
+// ETH-denominated counter assets priced by the pinned Chainlink ETH/USD reader on Ethereum. On Robinhood Chain the
+// native gas token is ETH and 0x0bd7… is the reviewed WETH (same contract the Risk Engine tax producer quotes against);
+// those values are labelled as an Ethereum-mainnet reference price, not a same-chain USD anchor.
+const ETH_PRICED=Object.freeze({ethereum:Object.freeze({[ZERO]:{symbol:'ETH',decimals:18},'0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2':{symbol:'WETH',decimals:18}}),
+ robinhood:Object.freeze({[ZERO]:{symbol:'ETH',decimals:18},'0x0bd7d308f8e1639fab988df18a8011f41eacad73':{symbol:'WETH',decimals:18}})});
 const NATIVE=Object.freeze({arc:{symbol:'USDC',decimals:18},ethereum:{symbol:'ETH',decimals:18},robinhood:{symbol:'ETH',decimals:18}});
 const NET=Object.freeze({
  // window: first span per log query (grows x2 on empty answers up to maxSpan, halves on provider range/size errors);
@@ -162,24 +166,29 @@ async function logsFor(rpc,pool,from,to,state,maxSpan){
  return out;
 }
 // ---- 6. USD -----------------------------------------------------------------------------------------------------
-async function ethUsd(network,rpc,block){
- if(network!=='ethereum')return null;
- const key='ethusd';const hit=metaCache.get(key);if(hit&&hit.at>Date.now()-60000)return hit.value;
+async function ethUsd(network,rpc,block,ethRpcFn=null){
+ if(!ETH_PRICED[network])return null;
+ const key='ethusd';const hit=metaCache.get(key);if(hit&&hit.at>Date.now()-60000)return hit.value?{...hit.value,crossChain:network!=='ethereum'}:null;
  try{
-  const f=await require('./oracle-market').inspect('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',block,{rpcCall:(m,p)=>rpc.call(m,p)});
-  const q=f?.priceUsd;const value=q?.dataState==='DATA_FOUND'&&Number.isFinite(q.value)?{price:q.value,source:'Chainlink ETH/USD (pinned block)',block,updatedAt:q.evidence?.[0]?.updatedAt||null}:null;
-  remember(metaCache,key,{at:Date.now(),value});return value;
+  // Same-chain pinned read on Ethereum; for Robinhood a separately pinned Ethereum block (bounded, 60 s cached).
+  const call=network==='ethereum'?(m,p)=>rpc.call(m,p):(ethRpcFn||require('./eth').rpc);
+  const at=network==='ethereum'?block:await call('eth_blockNumber',[]);
+  const f=await require('./oracle-market').inspect('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',at,{rpcCall:call});
+  const q=f?.priceUsd;const value=q?.dataState==='DATA_FOUND'&&Number.isFinite(q.value)?{price:q.value,source:'Chainlink ETH/USD on Ethereum (pinned block)',block:at,chainId:1,updatedAt:q.evidence?.[0]?.updatedAt||null}:null;
+  remember(metaCache,key,{at:Date.now(),value});return value?{...value,crossChain:network!=='ethereum'}:null;
  }catch{return null;}
 }
 function usdOf(network,counter,counterAbs,ethPrice){
  const stable=USD_STABLES[network]?.[counter];
  if(stable)return {usd:toNumber(counterAbs,stable.decimals),usdStatus:'STABLECOIN_QUOTED',usdBasis:stable.symbol+' = $1 (counter asset)'};
  const eth=ETH_PRICED[network]?.[counter];
- if(eth&&ethPrice){const n=toNumber(counterAbs,eth.decimals);return n===null?null:{usd:Number((n*ethPrice.price).toFixed(2)),usdStatus:'ORACLE_PRICED',usdBasis:ethPrice.source};}
+ // The label follows the chain, never a caller flag: any non-Ethereum ETH price is an Ethereum-mainnet reference.
+ if(eth&&ethPrice){const cross=network!=='ethereum',n=toNumber(counterAbs,eth.decimals);return n===null?null:{usd:Number((n*ethPrice.price).toFixed(2)),usdStatus:cross?'ORACLE_PRICED_ETH_REFERENCE':'ORACLE_PRICED',
+  usdBasis:cross?eth.symbol+' × Chainlink ETH/USD on Ethereum (cross-chain reference price)':ethPrice.source};}
  return {usd:null,usdStatus:'USD_NOT_VERIFIED',usdBasis:'No reviewed USD anchor for the counter asset on this chain'};
 }
 // ---- main -------------------------------------------------------------------------------------------------------
-async function analyze({network,address,rpcFn=null,pools:poolsOverride=null,now=Date.now}={}){
+async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOverride=null,now=Date.now}={}){
  if(!Object.hasOwn(NET,network))throw fail('UNSUPPORTED_CHAIN');
  const token=String(address||'').toLowerCase();if(!ADDRESS.test(token))throw fail('VALID_TOKEN_REQUIRED');
  const cfg=chain(network),net=NET[network],rpc=budget(network,rpcFn||net.rpc());
@@ -232,7 +241,7 @@ async function analyze({network,address,rpcFn=null,pools:poolsOverride=null,now=
  // 5. per-row block binding and sender (bounded, cached; reorg = hash mismatch -> dropped)
  let reads=0;const counterMeta=new Map(),txCount=new Map();
  for(const r of rows)txCount.set(r.l.transactionHash,(txCount.get(r.l.transactionHash)||0)+1);
- const ethPrice=pools.some(p=>ETH_PRICED[network]?.[p.counter])?await ethUsd(network,rpc,pinned):null;
+ const ethPrice=pools.some(p=>ETH_PRICED[network]?.[p.counter])?await ethUsd(network,rpc,pinned,ethRpcFn):null;
  const trades=[];
  for(const r of top){
   const bkey=network+':'+r.l.blockNumber;let blk=blockCache.get(bkey);
