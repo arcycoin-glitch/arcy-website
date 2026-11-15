@@ -1038,3 +1038,20 @@
 /* Data Engine V2: short visible reason for an unavailable 24h change */
 .arcy-radar-dash{flex-wrap:wrap;column-gap:4px;max-width:100%;min-width:0}
 .arcy-radar-dash-reason{display:block;flex-basis:100%;order:3;max-width:100%;margin-top:2px;font-size:10px;line-height:1.25;font-weight:600;color:#8ea4b4;white-space:normal;overflow-wrap:anywhere;letter-spacing:0;text-transform:none}
+/* Data Engine V2: collapsed coverage categories */
+.arcy-radar-categories{margin:10px 0 2px;border:1px solid rgba(120,170,200,.16);border-radius:10px;background:rgba(6,20,30,.35);font-size:12px;color:#b9cad6}
+.arcy-radar-categories[hidden]{display:none}
+.arcy-radar-categories-summary{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;padding:9px 12px;cursor:pointer;list-style:none}
+.arcy-radar-categories-summary::-webkit-details-marker{display:none}
+.arcy-radar-categories-summary::after{content:'▾';margin-left:auto;color:#7f97a7}
+.arcy-radar-categories[open]>.arcy-radar-categories-summary::after{content:'▴'}
+.arcy-radar-categories-label{font-weight:750;color:#e2eef5;letter-spacing:.04em;text-transform:uppercase;font-size:10.5px}
+.arcy-radar-categories-counts{color:#9fb4c2;min-width:0;overflow-wrap:anywhere}
+.arcy-radar-categories-funnel,.arcy-radar-categories-note{margin:0 12px 8px;color:#8ea4b4;font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+.arcy-radar-categories-group{margin:0 8px 8px;padding-top:6px;border-top:1px solid rgba(120,170,200,.1)}
+.arcy-radar-categories-title{display:block;margin:0 4px 4px;font-size:11px;color:#d6e4ec}
+.arcy-radar-categories-row{display:grid;grid-template-columns:minmax(56px,auto) 1fr;gap:2px 10px;padding:6px 4px;border-radius:6px;color:inherit;text-decoration:none;min-width:0}
+.arcy-radar-categories-row:hover,.arcy-radar-categories-row:focus-visible{background:rgba(79,216,232,.06)}
+.arcy-radar-categories-ticker{font-weight:700;color:#e8f2f8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arcy-radar-categories-meta{color:#9fb4c2;overflow-wrap:anywhere;min-width:0}
+.arcy-radar-categories-flags{grid-column:2;color:#ffcc82;overflow-wrap:anywhere}

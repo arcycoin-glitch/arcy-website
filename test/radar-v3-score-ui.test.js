@@ -314,3 +314,16 @@ test('Arc coverage is explained and unranked movers are isolated from the Discov
  assert.equal(calls.length,4,'no extra endpoint calls or cross-network coupling');
  assert.match(css,/arcy-radar-observed-row:focus-visible/);
 });
+test('Data Engine V2: collapsed Kapsam categories render from the API field and stay hidden without it',async()=>{
+ const withCats=data('arc',{engine:'arcy-radar-v3'});
+ withCats.categories={version:'data-engine-v2',qualified:{count:6},emerging:{count:27,items:[{address:'0x'+'7'.repeat(40),symbol:'bill',volume24hUsd:24436,liquidityUsd:1200,ageHours:6.2,anomalies:['FEW_WALLETS_MANY_TRADES']}]},
+  momentumWatch:{count:0,items:[]},lowLiquidityHighRisk:{count:4,items:[]},insufficientEvidence:{count:3,items:[]},funnel:{text:'45 candidates inspected → 27 POOL_UNDER_24H → 6 ranked'}};
+ const {detail,calls}=await mount({overrides:{arc:withCats}});
+ const box=panel(detail,'arc').querySelector('.arcy-radar-categories');
+ assert.equal(box.hidden,false);
+ assert.match(box.querySelector('.arcy-radar-categories-counts').textContent,/6 nitelikli · 27 yeni havuz \(<24s\) · 0 ivme izleme · 4 düşük likidite · 3 yetersiz kanıt/);
+ assert.match(box.querySelector('.arcy-radar-categories-flags').textContent,/az cüzdan/);
+ assert.equal(box.querySelector('.arcy-radar-categories-row').href,'/search/token/arc/0x'+'7'.repeat(40));
+ assert.equal(calls.length,4,'no extra request');
+ assert.equal(panel(detail,'ethereum').querySelector('.arcy-radar-categories').hidden,true,'absent field → hidden');
+});
