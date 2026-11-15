@@ -248,3 +248,23 @@ test('harness: a reorg during the reads fails that operator; equal values with a
   pick:o=>({value:o.v*1000}),signature:o=>JSON.stringify(o)});
  assert.equal(r.state,'SINGLE_SOURCE');assert.equal(r.observations.length,1);
 });
+
+test('concentration candidates: Arc uses the worker holder index; Robinhood tries Blockscout PRO only with a key, never leaking it',async()=>{
+ const analyzer=require('../lib/risk-engine/analyze');
+ const seen=[];
+ const out=await analyzer.analyze({network:'arc',token:TOKEN,block:BLOCK,env:FAST,now:()=>NOW,log:()=>{},
+  producers:{concentration:async a=>{seen.push(a);return {records:[],reasonCode:'X',cost:{rpcCalls:0,ms:0}};}},holderCandidates:async t=>{assert.equal(t,TOKEN);return [EOA(1),EOA(2)];}});
+ assert.equal(out.state,'COMPLETE');assert.deepEqual(seen[0].candidateList,[EOA(1),EOA(2)]);assert.equal(seen[0].candidateSource,'ARC_HOLDER_INDEX');
+ // No index (or an error reading it): the producer falls back to its own explorer source.
+ seen.length=0;await analyzer.analyze({network:'arc',token:TOKEN,block:BLOCK,env:FAST,now:()=>NOW,log:()=>{},producers:{concentration:async a=>{seen.push(a);return {records:[],cost:{rpcCalls:0,ms:0}};}},holderCandidates:async()=>{throw Error('no index');}});
+ assert.equal(seen[0].candidateList,undefined);
+ // Ethereum never uses the Arc index.
+ seen.length=0;await analyzer.analyze({network:'ethereum',token:TOKEN,block:BLOCK,env:FAST,now:()=>NOW,log:()=>{},producers:{concentration:async a=>{seen.push(a);return {records:[],cost:{rpcCalls:0,ms:0}};}},holderCandidates:async()=>{throw Error('must not be called');}});
+ assert.equal(seen[0].candidateList,undefined);
+ // Robinhood: public explorer 403, PRO with key answers.
+ const urls=[],fetcher=async url=>{urls.push(url);if(url.includes('api.blockscout.com'))return new Response(JSON.stringify({items:[{address:{hash:EOA(3)}}]}));return new Response('x',{status:403});};
+ const noKey=await conc.candidates('robinhood',TOKEN,{fetcher,env:{}});assert.equal(noKey.reasonCode,'CANDIDATE_SOURCE_HTTP_403');assert.ok(!urls.some(u=>u.includes('api.blockscout.com')));
+ const withKey=await conc.candidates('robinhood',TOKEN,{fetcher,env:{BLOCKSCOUT_API_KEY:'secret-key-123'}});
+ assert.deepEqual({s:withKey.state,a:withKey.addresses,src:withKey.source},{s:'OK',a:[EOA(3)],src:'EXPLORER_PRO'});
+ assert.doesNotMatch(JSON.stringify(withKey),/secret-key-123/);
+});

@@ -1,0 +1,25 @@
+name: Risk simulation capability probe (read-only)
+# eth_call state overrides and eth_simulateV1 against public endpoints only; nothing is signed or sent.
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-risk-simulation.cjs'
+      - 'scripts/probe-risk-sell-tax.cjs'
+      - 'lib/risk-engine/producers/transfer-tax.js'
+      - '.github/workflows/risk-simulation-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-risk-simulation.cjs
+      - run: test ! -f scripts/probe-risk-sell-tax.cjs || node scripts/probe-risk-sell-tax.cjs

@@ -132,6 +132,6 @@ test('status: failing and in-progress jobs expose reason codes and phases only, 
   {address:'0x'+'ef'.repeat(20),phase:'TAIL',lastState:'BUILDING',lastReason:'RPC_COOLDOWN_YIELD',lastAdvanced:5,slices:1,idleMs:1}
  ]}),NOW);
  assert.equal(w.reasonCode,'HOLDER_JOBS_FAILED');assert.equal(w.backlog.failing,2);
- assert.deepEqual(w.jobs,{failingReasons:{GETTER_REVERTED:1,UNSPECIFIED:1},failingPhases:{READ:1,DISCOVER:1},failingSlicesMax:9,failingIdleSecondsMin:4,inProgressReasons:{RPC_COOLDOWN_YIELD:1},inProgressPhases:{TAIL:1}});
+ assert.deepEqual(w.jobs,{failingReasons:{GETTER_REVERTED:1,UNSPECIFIED:1},failingPhases:{READ:1,DISCOVER:1},failingSlicesMax:9,failingSpanMaxBlocks:null,failingSpanLimitBlocks:null,failingIdleSecondsMin:4,inProgressReasons:{RPC_COOLDOWN_YIELD:1},inProgressPhases:{TAIL:1}});
  assert.doesNotMatch(JSON.stringify(w),/0x[0-9a-f]{40}/i);
 });

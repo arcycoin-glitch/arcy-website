@@ -9,7 +9,7 @@
 //  * an authority confirmation outside the reviewed registry routes (same review id of the same capability on every
 //    operator, Ethereum only)
 //  * a concentration confirmation below 5000 bps, or any producer record failing the strict MetricEvidence contract
-//  * a pool-scoped record on a network without a reviewed USD anchor
+//  * a USD-valued pool record on a network without a reviewed USD anchor, or a transfer-tax record on Arc
 //  * worker: the job does not complete, the snapshot is missing after a store re-open, or a restarted worker re-runs a
 //    job that is not due
 //  * Search with the engine flag ON: any producer RPC in the request path, a changed report shape, or riskFindings
@@ -32,6 +32,7 @@ const COHORT=[
  {network:'ethereum',name:'USDon',address:'0xace8e719899f6e91831b18ae746c9a965c2119f1'},
  {network:'ethereum',name:'PEPE',address:'0x6982508145454ce325ddbe47a25d4ec3d2311933'},
  {network:'ethereum',name:'SHIB',address:'0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce'},
+ {network:'ethereum',name:'STA',address:'0xa7de087329bfcda5639247f96140f9dabe3deed1'},
  {network:'arc',name:'ARCY',address:'0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b'},
  {network:'arc',name:'snapshot-171a',address:'0x171a4217b86a807a64eb94757db6849fb4bdbaa0'},
  {network:'arc',name:'snapshot-1ed9',address:'0x1ed9306725b8b4ca1a1a56d32970e49e64c51dde'},
@@ -50,7 +51,9 @@ async function head(network){
 function check(t,r,hard){
  const records=new Map(r.records.map(x=>[x.metricId,x]));
  for(const x of r.records){try{evidence.parseMetricEvidence(x);}catch(e){hard.push(t.name+' '+x.metricId+' contract '+e.message);}}
- if(t.network!=='ethereum'&&r.records.some(x=>x.scope))hard.push(t.name+' pool record without a reviewed USD anchor');
+ // USD-valued pool metrics need a reviewed anchor (Ethereum only); the transfer-tax simulation needs no price.
+ if(t.network!=='ethereum'&&r.records.some(x=>x.metricId==='risk.pool-liquidity'||x.metricId==='risk.exit-impact'))hard.push(t.name+' USD pool record without a reviewed USD anchor');
+ if(t.network==='arc'&&r.records.some(x=>x.metricId==='risk.sell-transfer-tax'))hard.push(t.name+' transfer-tax record on Arc (no simulation method)');
  for(const f of r.findings){
   const metric={'admin-upgrade-authority':'risk.upgrade-authority','privileged-minting':'risk.mint-authority','high-exit-impact':'risk.exit-impact','low-pool-liquidity':'risk.pool-liquidity','sell-transfer-tax':'risk.sell-transfer-tax','top-ten-holder-concentration':'risk.top-ten-concentration'}[f.ruleId];
   if(f.status==='NOT_CONFIRMED'&&f.ruleId!=='low-pool-liquidity')hard.push(t.name+' '+f.ruleId+' NOT_CONFIRMED without a reviewed negative producer');
@@ -82,6 +85,7 @@ function check(t,r,hard){
     values:Object.fromEntries(r.records.map(x=>[x.metricId,x.state+'|'+(x.value??'')+'|'+x.reasonCode])),
     authority:auth.map(o=>o.operator+':'+o.state+':'+[o.outcome?.upgrade?.reviewId||o.outcome?.upgrade?.reasonCode||'',o.outcome?.mint?.reviewId||o.outcome?.mint?.reasonCode||''].join('/')),
     pool:(r.operators.pool||[]).map(o=>o.operator+':'+o.state+':'+(o.reasonCode||'')+(o.failedAt?'@'+o.failedAt+'#'+o.rpcError:'')),
+    tax:(r.operators.tax||[]).map(o=>o.operator+':'+o.state+':'+(o.reasonCode||'')+(o.result?':'+o.result.deductionBps+'bps':'')),
     concentration:(r.operators.concentration||[]).map(o=>o.operator+':'+o.state+':'+(o.reasonCode||'')+(o.failedAt?'@'+o.failedAt+'#'+o.rpcError:'')),
     gaps:r.evidenceGaps,rpcCalls:r.cost.byProducer,ms:r.cost.totalMs});
   }catch(e){row.error=String(e?.message||e).slice(0,160);}
