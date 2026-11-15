@@ -22,12 +22,35 @@ test('on-chain discovery: V4 Initialize + V3 PoolCreated, base token = non-quote
  assert.equal(r.tokens[0].address,T1);assert.equal(r.tokens[0].pools.length,2);assert.deepEqual(new Set(r.tokens[0].pools.map(p=>p.dex)),new Set(['uniswap-v4','synthra-arc']));
  assert.equal(r.tokens[0].pools.find(p=>p.dex==='synthra-arc').sourceStatus,'DISCOVERY_ONLY_UNREVIEWED');
  assert.equal(r.tokens[0].symbol,'NEW');
- assert.ok(r.scanned.calls<=op.MAX_LOG_CALLS+2+op.MAX_SYMBOLS);assert.equal(r.status,'OK');
+ assert.ok(r.scanned.calls<=op.MAX_LOG_CALLS+2+op.MAX_SYMBOLS);
+ assert.equal(r.status,'PARTIAL_WINDOW','the bounded Arc budget must disclose that it cannot cover the entire intended window');
 });
 test('on-chain discovery: provider range errors narrow the span; unknown networks are explicit',async()=>{
  const m=mock({fail:2});const r=await op.discover('arc',m.fn);
  assert.ok(['OK','PARTIAL_WINDOW'].includes(r.status));assert.ok(r.scanned.errors>=2);
  assert.equal((await op.discover('pons',m.fn)).status,'NOT_CONFIGURED');
+});
+test('on-chain discovery counts a repeated factory event only once',async()=>{
+ const T1=A(1),event=v4('0x'+'c'.repeat(64),USDC,T1,199000);
+ const m=mock({logs:[event,event]});
+ const r=await op.discover('arc',m.fn);
+ assert.equal(r.poolCount,1);
+ assert.equal(r.bySource['uniswap-v4'],1);
+ assert.equal(r.tokens.length,1);
+ assert.equal(r.tokens[0].pools.length,1);
+});
+test('Arc factory scan reads events on an RPC that rejects ranges above 7,500 blocks',async()=>{
+ const T1=A(1),m=mock({logs:[v4('0x'+'d'.repeat(64),USDC,T1,199000)]});
+ const rpc=async(method,params)=>{
+  if(method==='eth_getLogs'){
+   const f=params[0],span=BigInt(f.toBlock)-BigInt(f.fromBlock)+1n;
+   if(span>7500n)throw Error('requested range too large');
+  }
+  return m.fn(method,params);
+ };
+ const r=await op.discover('arc',rpc);
+ assert.equal(r.scanned.errors,0);
+ assert.equal(r.tokens[0].address,T1);
 });
 test('parse rejects malformed creation events',()=>{
  const src={kind:'V3'};assert.equal(op.parse(src,{topics:[op.TOPICS.V3_POOL_CREATED],data:'0x'}),null);

@@ -16,7 +16,7 @@ function reach(entry){
    for(const c of [base,base+'.js',base+'.cjs',base+'.json',path.join(base,'index.js')])if(fs.existsSync(c)&&fs.statSync(c).isFile()){stack.push(c);break;}
   }
  }
- return [...seen].map(f=>path.relative(ROOT,f));
+ return [...seen].map(f=>path.relative(ROOT,f).split(path.sep).join('/'));
 }
 const entries=fs.readdirSync(path.join(ROOT,'api'),{recursive:true}).filter(f=>/\.(c?js)$/.test(f)).map(f=>path.join(ROOT,'api',f));
 test('no Vercel API function bundles risk producers, the risk analyzer or the risk worker',()=>{
