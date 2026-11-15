@@ -21,8 +21,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm ci --ignore-scripts
+      - name: Install pinned isolated Chromium automation
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
       - name: Mechanics V5 rendering on arc/ethereum/robinhood at 320/390/800/1440 px (mocked fixtures)
         env:
-          ARCY_BROWSER_CHANNEL: chrome
+          ARCY_BROWSER_CHANNEL: chromium
         run: node test/mechanics-v5-browser.cjs
