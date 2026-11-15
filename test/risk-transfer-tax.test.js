@@ -52,7 +52,7 @@ function sim(over={}){
      if(b.retFalse){out.push({status:'0x1',returnData:W(0),logs:[]});continue;}
      const logs=[];
      if(!b.noop){
-      const t=amount*BigInt(b.taxBps)/10000n;fresh-=amount;pool+=amount-t+b.reflectBonus;
+      const t=amount*BigInt(b.taxBps)/10000n;fresh-=amount;pool+=amount-t+b.reflectBonus-(b.poolDrain?amount*3n:0n);
       if(b.burn)supply-=t;
       if(!b.noEvents){logs.push({address:TOKEN,topics:[TOPIC,A(FRESH),A(PAIR)],data:W(amount-t)});if(t>0n)logs.push({address:TOKEN,topics:[TOPIC,A(FRESH),A(b.burn?'0x'+'0'.repeat(40):TAXW)],data:W(t)});}
      }
@@ -137,4 +137,10 @@ test('pool identity is verified for the chosen candidate; an unverifiable funded
  // With the pool producer's pool, discovery is skipped (fewer calls) and the result is the same.
  const a=sim(),b=sim();await run(a);const pref=await run(b,{preferredPool:PAIR});
  assert.equal(pref.pool,PAIR);assert.ok(b.calls.length<a.calls.length,b.calls.length+' < '+a.calls.length);
+});
+
+test('reflection bonuses are a zero deduction and a pool balance that falls is never interpreted',async()=>{
+ const bonus=await run(sim({taxBps:0,reflectBonus:5n}));
+ assert.equal(bonus.operators[0].outcome.result.deduction,'0');assert.equal(bonus.operators[0].outcome.result.deductionBps,0);
+ const drain=await run(sim({poolDrain:true}));assert.equal(rec(drain).reasonCode,'POOL_BALANCE_DECREASED');assert.notEqual(finding(drain).status,'CONFIRMED');
 });
