@@ -142,3 +142,82 @@ test('USD rules: stablecoin-quoted, same-chain oracle, labelled Ethereum referen
  assert.equal(lt.usdOf('arc','0x3600000000000000000000000000000000000000',2500000n,null).usd,2.5);
  assert.equal(lt.usdOf('arc','0x'+'8'.repeat(40),one,p).usdStatus,'USD_NOT_VERIFIED','Arc has no ETH reference');
 });
+test('Data Engine V2: an active pool on an unreviewed DEX makes the result COVERAGE_INCOMPLETE, never "no swaps"',async()=>{
+ lt._reset();
+ const m=rpcMock({factory:'0x'+'9'.repeat(40)});
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:m.fn,pools:[{pool:POOL,dex:'synthra',reserveUsd:30000,trades24h:45,volume24hUsd:4900}]});
+ assert.equal(r.status,'COVERAGE_INCOMPLETE');assert.equal(r.reasonCode,'ACTIVE_POOLS_UNSUPPORTED');assert.deepEqual(r.trades,[]);
+ assert.equal(r.coverage.complete,false);assert.equal(r.coverage.excludedActivePools,1);assert.equal(r.excludedPools[0].providerTrades24h,45);
+ lt._reset();
+ const quiet=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:rpcMock({factory:'0x'+'9'.repeat(40)}).fn,pools:[{pool:POOL,dex:'x',reserveUsd:5,trades24h:0}]});
+ assert.equal(quiet.status,'UNSUPPORTED','an excluded pool without reported activity is plain unsupported');
+});
+test('Data Engine V2: the reported window is the oldest block actually scanned, with its timestamp; budget exhaustion is disclosed',async()=>{
+ lt._reset();
+ const blocks={};for(let b=0;b<=9000;b+=1)if(b%500===0||b===8998)blocks['0x'+b.toString(16)]={hash:'0xh'+b,timestamp:'0x'+(1700000000+b*12).toString(16)};
+ const m=rpcMock({registered:POOL,logs:[],head:9000});
+ const fn=async(meth,p)=>meth==='eth_getBlockByNumber'&&p[0]!=='latest'?(blocks[p[0]]||{hash:'0xh',timestamp:'0x6553f100'}):m.fn(meth,p);
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:fn,pools:[{pool:POOL,reserveUsd:1}]});
+ assert.equal(r.status,'NO_RECENT_SWAPS');
+ assert.ok(BigInt(r.window.scannedFromBlock)>=BigInt(r.window.fromBlock));
+ assert.equal(r.window.lookbackComplete,BigInt(r.window.scannedFromBlock)<=BigInt(r.window.fromBlock));
+ assert.ok(r.window.logCalls<=10);assert.match(r.window.scannedSince||'',/^\d{4}-/);
+});
+test('Data Engine V2: concurrent row reads keep newest-first order and share block reads',async()=>{
+ lt._reset();
+ const logs=[swapLog(990,1,'0x'+[-10n,5n,1n<<96n,1000n,0n].map(w).join('')),swapLog(990,2,'0x'+[10n,-5n,1n<<96n,1000n,0n].map(w).join(''),{tx:'0x'+'2'.repeat(64)}),swapLog(980,1,'0x'+[-1n,1n,1n<<96n,1000n,0n].map(w).join(''))];
+ const blocks={'0x3de':{hash:'0xbh990',timestamp:'0x6553f100'},'0x3d4':{hash:'0xbh980',timestamp:'0x6553f000'}};
+ const txs={};for(const l of logs)txs[l.transactionHash]={from:'0x'+'e'.repeat(40),to:POOL,blockHash:l.blockHash};
+ const m=rpcMock({registered:POOL,logs,blocks,txs});let blockReads=0;
+ const fn=async(meth,p)=>{if(meth==='eth_getBlockByNumber'&&p[0]!=='latest')blockReads++;return m.fn(meth,p);};
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:fn,pools:[{pool:POOL,reserveUsd:1}]});
+ assert.deepEqual(r.trades.map(t=>t.block+':'+t.logIndex),['990:2','990:1','980:1']);
+ assert.equal(blockReads,2,'one read per distinct block');assert.equal(r.lastTradeAt,r.trades[0].timestamp);
+});
+test('Data Engine V2 venues: ShibaSwap getPair and Ramses tickSpacing registration; unregistered pools excluded',async()=>{
+ const P='0x'+'c'.repeat(40);
+ const venueRpc=({factory,registered,tickSpacing=null})=>({call:async(m,p)=>{const d=p[0].data,s=d.slice(0,10);
+  if(s===sel('token0()'))return aw(TOKEN);if(s===sel('token1()'))return aw(WETH);if(s===sel('factory()'))return aw(factory);
+  if(s===sel('fee()'))return tickSpacing===null?null:'0x'+w(3000);if(s===sel('tickSpacing()'))return '0x'+w(tickSpacing);
+  if(s===sel('getPair(address,address)'))return aw(registered);
+  if(s===sel('getPool(address,address,int24)')){assert.equal(d.slice(-64),w(tickSpacing),'registration keyed by tickSpacing');return aw(registered);}
+  return null;}});
+ lt._reset();
+ const shiba=await lt.identifyPool('ethereum',venueRpc({factory:'0x115934131916c8b277dd010ee02de363c09d037c',registered:P}),TOKEN,{pool:P,dex:'shibaswap'},'0x10');
+ assert.equal(shiba.kind,'V2');assert.equal(shiba.protocol,'shibaswap');
+ lt._reset();
+ const ramses=await lt.identifyPool('robinhood',venueRpc({factory:'0xe0c4ceb92d08ca985bb70fe0a22feb121a9854a8',registered:P,tickSpacing:60}),TOKEN,{pool:P},'0x10');
+ assert.equal(ramses.kind,'V3');assert.equal(ramses.protocol,'ramses-v3');
+ lt._reset();
+ const fake=await lt.identifyPool('robinhood',venueRpc({factory:'0xe0c4ceb92d08ca985bb70fe0a22feb121a9854a8',registered:'0x'+'d'.repeat(40),tickSpacing:60}),TOKEN,{pool:P},'0x10');
+ assert.equal(fake.excluded,'FACTORY_DOES_NOT_REGISTER_POOL');
+ lt._reset();
+ assert.equal((await lt.identifyPool('ethereum',venueRpc({factory:'0xe0c4ceb92d08ca985bb70fe0a22feb121a9854a8',registered:P,tickSpacing:60}),TOKEN,{pool:P},'0x10')).excluded,'UNREVIEWED_FACTORY','venues are chain-specific');
+});
+test('Data Engine V2: unreviewed-factory pool accepted only if its runtime equals the verified canonical UniswapV3Pool (immutables masked)',async()=>{
+ const REF=lt.CANONICAL_V3.reference.arc,P='0x'+'c'.repeat(40);
+ const base='60806040'+'00'.repeat(40)+'aa'.repeat(32)+'5b'.repeat(8),refCode='0x'+base.replace('aa'.repeat(32),'11'.repeat(32)),same='0x'+base.replace('aa'.repeat(32),'22'.repeat(32)),other='0x'+base.replace('5b'.repeat(8),'5c'.repeat(8));
+ const record=(digestOk=true)=>({chainId:'5042',address:REF,runtimeMatch:'exact_match',abi:[],sources:{'UniswapV3Pool.sol':{content:digestOk?'canonical':'tampered'}},compilation:{},
+  runtimeBytecode:{onchainBytecode:refCode,immutableReferences:{'1':[{start:44,length:32}]}}});
+ const deep=require('../search/server/lib/mechanics-deep');const realDigest=deep.digest;
+ const saved=global.fetch;
+ const rpcFor=code=>({call:async(m,p)=>{if(m==='eth_getCode')return p[0]===REF?refCode:code;const s=p[0].data.slice(0,10);
+  if(s===sel('token0()'))return aw(TOKEN);if(s===sel('token1()'))return aw(WETH);if(s===sel('factory()'))return aw('0x'+'f'.repeat(40));if(s===sel('fee()'))return '0x'+w(3000);return null;}});
+ try{
+  // digest of the mocked record is not the canonical digest -> rejected (fail closed)
+  global.fetch=async()=>new Response(JSON.stringify(record()),{status:200});lt._reset();
+  assert.equal((await lt.identifyPool('arc',rpcFor(same),TOKEN,{pool:P},'0x10')).excluded,'UNREVIEWED_FACTORY','non-canonical digest');
+  // with the canonical digest the masked runtime decides
+  const canonical=lt.CANONICAL_V3.digest;
+  const v=require('../search/server/lib/mechanics-deep');const orig=v.validateSource;
+  v.validateSource=(d,ctx)=>({...orig(d,ctx),digest:canonical});
+  try{
+   lt._reset();const ok=await lt.identifyPool('arc',rpcFor(same),TOKEN,{pool:P},'0x10');
+   assert.equal(ok.kind,'V3');assert.equal(ok.protocol,'uniswap-v3-canonical-runtime');assert.match(ok.method,/factory is not reviewed/);
+   lt._reset();assert.equal((await lt.identifyPool('arc',rpcFor(other),TOKEN,{pool:P},'0x10')).excluded,'UNREVIEWED_FACTORY','different code');
+   global.fetch=async()=>new Response('{}',{status:404});lt._reset();
+   assert.equal((await lt.identifyPool('arc',rpcFor(same),TOKEN,{pool:P},'0x10')).excluded,'UNREVIEWED_FACTORY','reference unavailable: fail closed');
+  }finally{v.validateSource=orig;}
+ }finally{global.fetch=saved;}
+ assert.equal(lt.maskCode('0xzz',[]),null);assert.equal(typeof realDigest,'function');
+});

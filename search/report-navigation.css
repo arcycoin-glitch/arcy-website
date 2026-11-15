@@ -97,3 +97,10 @@
  .live-trading-card .lt-table th:last-child,.live-trading-card .lt-table td:last-child{width:42px}
  .live-trading-card .lt-time{font-size:10.5px}
 }
+/* Data Engine V2 additions on the compact trade tape (#244): coverage states and collapsed Evidence Details. */
+.live-trading-card .lt-coverage_incomplete,.live-trading-card .lt-no_recent_swaps{border-color:#ffcc82;color:#ffcc82}
+.live-trading-card .lt-evidence{margin-top:8px;border-top:1px solid #12293a;padding-top:4px}
+.live-trading-card .lt-evidence>summary{cursor:pointer;min-height:36px;display:flex;align-items:center;font-size:11px;font-weight:600;color:#7fdcf0}
+.live-trading-card .lt-evidence>summary:focus-visible{outline:2px solid #ff984b;outline-offset:2px}
+.live-trading-card .lt-ev-line{margin:3px 0;font-size:10.5px;line-height:1.45;color:#9bb2c3;overflow-wrap:anywhere}
+.live-trading-card .lt-ev-line strong{color:#b5d3e1;font-weight:600}

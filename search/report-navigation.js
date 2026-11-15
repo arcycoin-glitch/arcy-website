@@ -22,36 +22,59 @@ window.ARCYLiveTrading=(()=>{
  const short=a=>typeof a==='string'&&a.length>12?a.slice(0,6)+'…'+a.slice(-4):String(a||'');
  const shortWallet=a=>/^0x[0-9a-f]{40}$/i.test(a||'')?'0x…'+a.slice(-4):short(a);
  const amount=v=>{if(v===null||v===undefined||v==='')return '—';const n=Number(v);if(!Number.isFinite(n))return String(v||'—');return n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(2)+'K':n>=1?n.toFixed(2):n.toPrecision(3);};
- const ago=iso=>{const ts=Date.parse(iso);if(!Number.isFinite(ts))return '—';const s=Math.max(0,Math.round((Date.now()-ts)/1000));return s<60?s+'s':s<3600?Math.round(s/60)+'m':s<86400?Math.round(s/3600)+'h':Math.round(s/86400)+'d';};
- const STATUS={LIVE:'LIVE',DELAYED:'DELAYED',NO_RECENT_SWAPS:'NO RECENT SWAPS',UNSUPPORTED:'LIMITED COVERAGE',UNAVAILABLE:'UNAVAILABLE',BUSY:'LOADING'};
- const REASON={
-  NO_VERIFIED_POOL:'No reviewed pool available for this token.',
-  NO_POOL_CANDIDATES:'No supported pool found for this token.',
-  NO_SWAPS_IN_WINDOW:'No swaps in the scanned verified pools.',
-  LIVE_TRADES_BUSY:'Trade feed busy. Retrying.',
-  RPC_RATE_LIMITED:'Data provider busy. Retrying.',
-  POOL_SOURCE_UNAVAILABLE:'Pool source unavailable.',
-  RPC_HEAD_UNAVAILABLE:'Chain data unavailable.'
+ // Visible text follows the page language: English (PR #244 wording) by default; Turkish when the page is shown in Turkish
+ // (e.g. browser translation sets <html lang="tr">). API status codes are unchanged; data cells are marked translate="no".
+ const TEXT={
+  en:{title:'Live Trading',status:{LIVE:'LIVE',DELAYED:'DELAYED',NO_RECENT_SWAPS:'NO RECENT SWAPS',COVERAGE_INCOMPLETE:'COVERAGE INCOMPLETE',UNSUPPORTED:'LIMITED COVERAGE',UNAVAILABLE:'UNAVAILABLE',BUSY:'LOADING'},
+   reason:{NO_VERIFIED_POOL:'No reviewed pool available for this token.',NO_POOL_CANDIDATES:'No supported pool found for this token.',NO_SWAPS_IN_WINDOW:'No swaps in the scanned verified pools.',
+    ACTIVE_POOLS_UNSUPPORTED:'Active pools use DEX contracts not yet reviewed; their trades are not shown.',
+    LIVE_TRADES_BUSY:'Trade feed busy. Retrying.',RPC_RATE_LIMITED:'Data provider busy. Retrying.',POOL_SOURCE_UNAVAILABLE:'Pool source unavailable.',RPC_HEAD_UNAVAILABLE:'Chain data unavailable.'},
+   usd:{STABLECOIN_QUOTED:'Stablecoin-quoted',ORACLE_PRICED:'Chainlink ETH/USD',ORACLE_PRICED_ETH_REFERENCE:'ETH x Chainlink (Ethereum reference)',USD_NOT_VERIFIED:'USD not verified'},
+   side:{BUY:'Buy',SELL:'Sell',SWAP:'Swap'},cols:['Trade','Wallet','Amount','Time'],caption:'Recent verified swaps, newest first',view:'view verified transaction',
+   delayed:'Last verified trades may be delayed.',last:t=>'Last trade '+t+' ago',since:t=>'No verified swaps since '+t+'.',partial:'Partial coverage',
+   evidence:'Evidence Details',ev:{chain:'Network',head:'Head block',window:'Scanned blocks',pools:'Verified pools',excluded:'Not covered',
+    method:'Rows are pool Swap events bound to their block hash; wallet = transaction sender. USD only from a stablecoin counter asset or Chainlink ETH/USD. Not every venue or route; not investment advice.'},
+   reported:n=>n+' trades/24h reported',unit:{s:'s',m:'m',h:'h',d:'d'}},
+  tr:{title:'Canlı İşlemler',status:{LIVE:'CANLI',DELAYED:'GECİKMELİ',NO_RECENT_SWAPS:'SON İŞLEM YOK',COVERAGE_INCOMPLETE:'KAPSAM EKSİK',UNSUPPORTED:'SINIRLI KAPSAM',UNAVAILABLE:'ERİŞİLEMİYOR',BUSY:'YÜKLENİYOR'},
+   reason:{NO_VERIFIED_POOL:'Bu token için incelenmiş havuz yok.',NO_POOL_CANDIDATES:'Bu token için desteklenen havuz bulunamadı.',NO_SWAPS_IN_WINDOW:'Taranan doğrulanmış havuzlarda işlem yok.',
+    ACTIVE_POOLS_UNSUPPORTED:'Aktif havuzlar henüz incelenmemiş DEX kontratlarında; bu işlemler gösterilmiyor.',
+    LIVE_TRADES_BUSY:'İşlem akışı yoğun. Yeniden deneniyor.',RPC_RATE_LIMITED:'Veri sağlayıcı yoğun. Yeniden deneniyor.',POOL_SOURCE_UNAVAILABLE:'Havuz kaynağı erişilemiyor.',RPC_HEAD_UNAVAILABLE:'Zincir verisi erişilemiyor.'},
+   usd:{STABLECOIN_QUOTED:'Stablecoin karşılığı',ORACLE_PRICED:'Chainlink ETH/USD',ORACLE_PRICED_ETH_REFERENCE:'ETH x Chainlink (Ethereum referansı)',USD_NOT_VERIFIED:'USD doğrulanmadı'},
+   side:{BUY:'Alış',SELL:'Satış',SWAP:'Takas'},cols:['İşlem','Cüzdan','Tutar','Zaman'],caption:'Son doğrulanmış işlemler, en yeni önce',view:'doğrulanmış işlemi görüntüle',
+   delayed:'Son doğrulanmış işlemler gecikmeli olabilir.',last:t=>'Son işlem '+t+' önce',since:t=>'Son dönemde doğrulanmış işlem bulunamadı ('+t+' itibarıyla).',partial:'Kısmi kapsam',
+   evidence:'Kanıt Ayrıntıları',ev:{chain:'Ağ',head:'Zincir başı',window:'Taranan bloklar',pools:'Doğrulanmış havuzlar',excluded:'Kapsam dışı',
+    method:'Satırlar blok hash’ine bağlı havuz Swap olaylarıdır; cüzdan = işlemi gönderen. USD yalnızca stablecoin karşı varlıktan veya Chainlink ETH/USD’den. Tüm piyasalar değildir; yatırım tavsiyesi değildir.'},
+   reported:n=>'24 saatte '+n+' işlem bildirildi',unit:{s:' sn',m:' dk',h:' sa',d:' gün'}}
  };
- const USD={STABLECOIN_QUOTED:'Stablecoin-quoted',ORACLE_PRICED:'Chainlink ETH/USD',ORACLE_PRICED_ETH_REFERENCE:'ETH x Chainlink (Ethereum reference)',USD_NOT_VERIFIED:'USD not verified'};
+ const lang=()=>/^tr\b/i.test(document.documentElement.lang||'')?'tr':'en',T=()=>TEXT[lang()];
+ const ago=iso=>{const ts=Date.parse(iso);if(!Number.isFinite(ts))return '—';const s=Math.max(0,Math.round((Date.now()-ts)/1000)),u=T().unit;return s<60?s+u.s:s<3600?Math.round(s/60)+u.m:s<86400?Math.round(s/3600)+u.h:Math.round(s/86400)+u.d;};
+ const nt=n=>{n.setAttribute('translate','no');n.classList.add('notranslate');return n;};
+ let lastData=null;
  let node=null,key=null,timer=null,delay=30000,controller=null,report=null,generation=0;
  function build(){
   node=el('section','card live-trading-card');node.dataset.cardId='trades';node.style.setProperty('--accent','#22d4ff');
-  const h=el('h2','lt-title');h.append(icon(19),document.createTextNode(' Live Trading'));
+  const h=el('h2','lt-title');h.append(icon(19),el('span','lt-title-text'));
   const st=el('div','lt-status');st.setAttribute('role','status');st.setAttribute('aria-live','polite');
   const wrap=el('div','lt-table-wrap');wrap.tabIndex=0;wrap.setAttribute('aria-label','Recent verified trades');
   const table=el('table','lt-table'),cap=el('caption','lt-sr','Recent verified swaps, newest first');
   const thead=el('thead','lt-table-head'),tr=el('tr');
   for(const label of ['Trade','Wallet','Amount','Time']){const th=el('th',null,label);th.scope='col';tr.append(th);}
   thead.append(tr);table.append(cap,thead,el('tbody'));wrap.append(table);
-  node.append(h,st,wrap);return node;
+  // Technical evidence stays available but collapsed (Data Engine V2).
+  const ev=el('details','lt-evidence'),sum=el('summary','lt-evidence-summary'),body=el('div','lt-evidence-body');ev.append(sum,body);ev.hidden=true;
+  node.append(h,st,wrap,ev);labels();return node;
+ }
+ function labels(){
+  const t=T();node.querySelector('.lt-title-text').textContent=' '+t.title;node.querySelector('.lt-table-wrap').setAttribute('aria-label',t.caption);
+  node.querySelector('caption').textContent=t.caption;node.querySelectorAll('thead th').forEach((th,i)=>{th.textContent=t.cols[i];});node.querySelector('.lt-evidence-summary').textContent=t.evidence;
  }
  function setStatus(state,detail){
   const st=node.querySelector('.lt-status');st.replaceChildren();
-  st.append(el('span','lt-badge lt-'+String(state).toLowerCase(),STATUS[state]||state));
+  st.append(el('span','lt-badge lt-'+String(state).toLowerCase(),T().status[state]||state));
   if(detail)st.append(el('span','lt-note',detail));
  }
  function paint(data){
+  lastData=data;labels();const tx=T();
   const tbody=node.querySelector('tbody'),wrap=node.querySelector('.lt-table-wrap');tbody.replaceChildren();
   const trades=Array.isArray(data?.trades)?data.trades.slice(0,30):[];
   wrap.hidden=!trades.length;
@@ -59,31 +82,46 @@ window.ARCYLiveTrading=(()=>{
    const side=t.side==='BUY'?'BUY':t.side==='SELL'?'SELL':'SWAP';
    const row=el('tr','lt-row lt-'+side.toLowerCase());
    const sideCell=el('td','lt-side-cell');
-   sideCell.append(el('span','lt-side',side==='BUY'?'Buy':side==='SELL'?'Sell':'Swap'));
+   sideCell.append(el('span','lt-side',tx.side[side]));
    row.append(sideCell);
    const txUrl=safeUrl(t.explorerUrl),base=txUrl?txUrl.replace(/\/tx\/0x[0-9a-f]{64}$/i,''):null;
    const walletCell=el('td','lt-wallet-cell');
    if(base&&/^0x[0-9a-f]{40}$/i.test(t.wallet||'')){
-    const wallet=el('a','lt-wallet',shortWallet(t.wallet));
+    const wallet=nt(el('a','lt-wallet',shortWallet(t.wallet)));
     wallet.href=base+'/address/'+t.wallet;wallet.target='_blank';wallet.rel='noopener noreferrer';
     wallet.title=t.wallet+' · Open wallet in block explorer';
     wallet.setAttribute('aria-label','Open wallet '+t.wallet+' in block explorer');
     walletCell.append(wallet);
-   }else{const wallet=el('span','lt-wallet',shortWallet(t.wallet));wallet.title=t.wallet||'';walletCell.append(wallet);}
+   }else{const wallet=nt(el('span','lt-wallet',shortWallet(t.wallet)));wallet.title=t.wallet||'';walletCell.append(wallet);}
    row.append(walletCell);
    const hasUsd=Number.isFinite(t.usd)&&t.usd>=0;
    const valueText=hasUsd?'$'+t.usd.toLocaleString('en-US',{maximumFractionDigits:t.usd<1?4:2}):amount(t.counterAmount)+(t.counterSymbol?' '+t.counterSymbol:'');
-   const valcell=el('td','lt-value-cell'),val=el(txUrl?'a':'span','lt-value'+(hasUsd?'':' lt-unverified'),valueText);
-   const description=(USD[t.usdStatus]||t.usdStatus||'')+(t.usdBasis?' · '+t.usdBasis:'');
+   const valcell=el('td','lt-value-cell'),val=nt(el(txUrl?'a':'span','lt-value'+(hasUsd?'':' lt-unverified'),valueText));
+   const description=(tx.usd[t.usdStatus]||t.usdStatus||'')+(t.usdBasis?' · '+t.usdBasis:'');
    val.title=[description,t.tokenAmount+' '+(data.tokenSymbol||''),t.txHash].filter(Boolean).join(' · ');
-   if(txUrl){val.href=txUrl;val.target='_blank';val.rel='noopener noreferrer';val.setAttribute('aria-label',valueText+' — view verified transaction');}
+   if(txUrl){val.href=txUrl;val.target='_blank';val.rel='noopener noreferrer';val.setAttribute('aria-label',valueText+' — '+tx.view);}
    valcell.append(val);row.append(valcell);
    const time=el('td','lt-time',ago(t.timestamp));time.title=(t.timestamp||'')+(t.block?' · block '+t.block:'');row.append(time);
    tbody.append(row);
   }
-  if(data?.status==='LIVE')setStatus('LIVE');
-  else if(data?.status==='DELAYED')setStatus('DELAYED','Last verified trades may be delayed.');
-  else setStatus(data?.status||'UNAVAILABLE',REASON[data?.reasonCode]||'');
+  // Evidence Details (collapsed): network, head, actual scanned window, verified and uncovered pools, method.
+  const body=node.querySelector('.lt-evidence-body');body.replaceChildren();
+  const line=(k,v)=>{if(v===null||v===undefined||v==='')return;const p=el('p','lt-ev-line');p.append(el('strong',null,k+': '),nt(el('span',null,String(v))));body.append(p);};
+  const activeEx=(data?.excludedPools||[]).filter(x=>(x.providerTrades24h||0)>0);
+  if(data?.ok){
+   line(tx.ev.chain,{arc:'Arc 5042',ethereum:'Ethereum 1',robinhood:'Robinhood 4663'}[data.network]||data.network);
+   if(data.headBlock)line(tx.ev.head,data.headBlock);
+   if(data.window)line(tx.ev.window,(data.window.scannedFromBlock||data.window.fromBlock)+'–'+data.window.toBlock+(data.window.scannedSince?' · '+data.window.scannedSince:''));
+   if(Array.isArray(data.pools))line(tx.ev.pools,data.pools.map(p=>(p.protocol||p.kind)+' '+short(p.pool)).join(', ')||'0');
+   if(activeEx.length)line(tx.ev.excluded,activeEx.map(x=>(x.dex||'?')+' '+short(x.pool)+' ('+tx.reported(x.providerTrades24h)+')').join(', '));
+   body.append(el('p','lt-ev-line lt-ev-method',tx.ev.method));
+  }
+  node.querySelector('.lt-evidence').hidden=!body.childElementCount;
+  const partial=activeEx.length&&trades.length?' · '+tx.partial:'';
+  if(data?.status==='LIVE')setStatus('LIVE',(data.lastTradeAt?tx.last(ago(data.lastTradeAt)):'')+partial);
+  else if(data?.status==='DELAYED')setStatus('DELAYED',tx.delayed);
+  else if(data?.status==='NO_RECENT_SWAPS'&&data.window?.scannedSince)setStatus('NO_RECENT_SWAPS',tx.since(new Date(data.window.scannedSince).toLocaleString(lang()==='tr'?'tr-TR':'en-GB',{dateStyle:'medium',timeStyle:'short'})));
+  else setStatus(data?.status||'UNAVAILABLE',tx.reason[data?.reasonCode]||'');
  }
  function schedule(ok){
   clearTimeout(timer);delay=ok?30000:Math.min(300000,delay*2);
@@ -107,6 +145,7 @@ window.ARCYLiveTrading=(()=>{
   if(!cards.contains(node))cards.prepend(node);
   return node;
  }
+ new MutationObserver(()=>{if(!node)return;if(lastData)paint(lastData);else labels();}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&node&&key&&(!report||report.open)){clearTimeout(timer);load();}});
  return {ensure,icon,route,_paint:d=>{if(!node)build();paint(d);return node;}};
 })();
