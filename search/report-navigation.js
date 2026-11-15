@@ -40,8 +40,8 @@ window.ARCYLiveTrading=(()=>{
   const st=el('div','lt-status');st.setAttribute('role','status');st.setAttribute('aria-live','polite');
   const wrap=el('div','lt-table-wrap');wrap.tabIndex=0;wrap.setAttribute('aria-label','Recent verified trades');
   const table=el('table','lt-table'),cap=el('caption','lt-sr','Recent verified swaps, newest first');
-  const thead=el('thead','lt-sr'),tr=el('tr');
-  for(const label of ['Side and wallet address','Trade amount','Time'])tr.append(el('th',null,label));
+  const thead=el('thead','lt-table-head'),tr=el('tr');
+  for(const label of ['Trade','Wallet','Amount','Time']){const th=el('th',null,label);th.scope='col';tr.append(th);}
   thead.append(tr);table.append(cap,thead,el('tbody'));wrap.append(table);
   node.append(h,st,wrap);return node;
  }
@@ -57,15 +57,17 @@ window.ARCYLiveTrading=(()=>{
   for(const t of trades){
    const side=t.side==='BUY'?'BUY':t.side==='SELL'?'SELL':'SWAP';
    const row=el('tr','lt-row lt-'+side.toLowerCase());
-   const left=el('td','lt-trade-cell'),entry=el('span','lt-entry');
-   entry.append(el('span','lt-side',side==='BUY'?'Buy':side==='SELL'?'Sell':'Swap'));
+   const sideCell=el('td','lt-side-cell');
+   sideCell.append(el('span','lt-side',side==='BUY'?'Buy':side==='SELL'?'Sell':'Swap'));
+   row.append(sideCell);
    const txUrl=safeUrl(t.explorerUrl),base=txUrl?txUrl.replace(/\/tx\/0x[0-9a-f]{64}$/i,''):null;
+   const walletCell=el('td','lt-wallet-cell');
    if(base&&/^0x[0-9a-f]{40}$/i.test(t.wallet||'')){
     const wallet=el('a','lt-wallet',short(t.wallet));
     wallet.href=base+'/address/'+t.wallet;wallet.target='_blank';wallet.rel='noopener noreferrer';wallet.title=t.wallet;
-    entry.append(wallet);
-   }else{const wallet=el('span','lt-wallet',short(t.wallet));wallet.title=t.wallet||'';entry.append(wallet);}
-   left.append(entry);row.append(left);
+    walletCell.append(wallet);
+   }else{const wallet=el('span','lt-wallet',short(t.wallet));wallet.title=t.wallet||'';walletCell.append(wallet);}
+   row.append(walletCell);
    const hasUsd=Number.isFinite(t.usd)&&t.usd>=0;
    const valueText=hasUsd?'$'+t.usd.toLocaleString('en-US',{maximumFractionDigits:t.usd<1?4:2}):amount(t.counterAmount)+(t.counterSymbol?' '+t.counterSymbol:'');
    const valcell=el('td','lt-value-cell'),val=el(txUrl?'a':'span','lt-value'+(hasUsd?'':' lt-unverified'),valueText);
