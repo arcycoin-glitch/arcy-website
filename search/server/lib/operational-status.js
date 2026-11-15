@@ -67,6 +67,9 @@ function holderWorker(diag,now){
  const failed=tokens.filter(t=>t&&t.lastState==='FAILED'),active=tokens.filter(open);
  const jobs={failingReasons:histogram(failed),failingPhases:Object.fromEntries(Object.entries(failed.reduce((m,t)=>{const k=code(t.phase)||'UNKNOWN';m[k]=(m[k]||0)+1;return m;},{})).slice(0,8)),
   failingSlicesMax:failed.length?Math.max(...failed.map(t=>finite(t.slices)?t.slices:0)):null,
+  // Cost-bound discovery failures: the largest measured span and the bound it exceeded (blocks), to size the bound.
+  failingSpanMaxBlocks:failed.filter(t=>finite(t.span)).length?Math.max(...failed.filter(t=>finite(t.span)).map(t=>t.span)):null,
+  failingSpanLimitBlocks:failed.filter(t=>finite(t.maxSpan)).length?Math.max(...failed.filter(t=>finite(t.maxSpan)).map(t=>t.maxSpan)):null,
   failingIdleSecondsMin:failed.filter(t=>finite(t.idleMs)).length?Math.round(Math.min(...failed.filter(t=>finite(t.idleMs)).map(t=>t.idleMs))/1000):null,
   inProgressReasons:histogram(active),inProgressPhases:Object.fromEntries(Object.entries(active.reduce((m,t)=>{const k=code(t.phase)||'UNKNOWN';m[k]=(m[k]||0)+1;return m;},{})).slice(0,8))};
  const states=last&&last.states&&typeof last.states==='object'?Object.fromEntries(Object.entries(last.states).filter(([k,v])=>code(k)&&finite(v)).slice(0,12)):null;

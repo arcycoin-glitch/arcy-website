@@ -127,3 +127,14 @@ test('Arc has no simulation method: no request, explicit reason; the preferred p
  assert.equal((await run(sim(),{preferredPool:'0x'+'99'.repeat(20)})).pool,PAIR);
  assert.equal(tax.FRESH,'0x'+keccak(Buffer.from('arcy-risk-sim-holder-v1')).slice(-40));
 });
+
+test('pool identity is verified for the chosen candidate; an unverifiable funded pool is never used',async()=>{
+ // The pair reports a different factory: it is not a reviewed pool.
+ const bad=sim();const orig=bad.fetcher;
+ bad.fetcher=async(url,init)=>{const q=JSON.parse(init.body);if(q.method==='eth_call'&&q.params[0].to===PAIR&&q.params[0].data===sel('factory()'))return new Response(JSON.stringify({jsonrpc:'2.0',id:q.id,result:A('0x'+'99'.repeat(20))}));return orig(url,init);};
+ const r=await run(bad);assert.equal(r.reasonCode,'POOL_IDENTITY_UNVERIFIED');assert.equal(r.records.length,0);
+ assert.ok(!bad.calls.some(c=>c.method==='eth_simulateV1'));
+ // With the pool producer's pool, discovery is skipped (fewer calls) and the result is the same.
+ const a=sim(),b=sim();await run(a);const pref=await run(b,{preferredPool:PAIR});
+ assert.equal(pref.pool,PAIR);assert.ok(b.calls.length<a.calls.length,b.calls.length+' < '+a.calls.length);
+});

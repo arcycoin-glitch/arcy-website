@@ -38,7 +38,7 @@ async function head(network){const url=observer.endpoints(network,{}).endpoints[
      result:o.outcome?.result&&{bps:o.outcome.result.deductionBps??null,debited:o.outcome.result.debited,credited:o.outcome.result.credited,burned:o.outcome.result.burned,events:o.outcome.result.transferEvents,to:o.outcome.result.destination},calls:o.rpcCalls,ms:o.ms})),
     rpcCalls:r.cost.rpcCalls,ms:r.cost.ms});
   }catch(e){row.error=String(e.message).slice(0,160);}
-  notice('tax-'+network+'-'+name,row);await sleep(network==='ethereum'?8000:3000);
+  notice('tax-'+network+'-'+name,row);await sleep(network==='ethereum'?15000:3000);
  }
  notice('tax-counts',counts);
  if(hard.length){for(const h of hard)console.error('::error::'+h);process.exit(1);}

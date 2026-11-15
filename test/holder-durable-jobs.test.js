@@ -89,3 +89,13 @@ test('the index is re-read at most every 10 minutes and explicit-address runs ne
   refresh._resetDurableSync();await refresh.run({limit:1,budgetMs:2000,addresses:[]}).catch(()=>{});assert.equal(reads,1);}
  finally{storage.jobIndex=old;}
 });
+
+test('a cost-bound discovery failure keeps its measured span (no address) through restarts',async()=>{
+ await storage.enqueue(A,later());
+ await storage.setJob(A,{state:'FAILED',reasonCode:'HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED',retryAt:later(),span:21500000,maxSpan:10000000});
+ P._reset();refresh._resetDurableSync();await run();
+ const d=diag();d.worker.tokens=P.snapshot().tokens.map(t=>({address:t.address,phase:t.phase,lastState:t.lastState,lastReason:t.lastReason,lastAdvanced:t.lastAdvanced,slices:t.slices,idleMs:t.idleMs,span:t.span,maxSpan:t.maxSpan}));
+ const w=status.holderWorker(d,Date.now());
+ assert.equal(w.jobs.failingSpanMaxBlocks,21500000);assert.equal(w.jobs.failingSpanLimitBlocks,10000000);
+ assert.doesNotMatch(JSON.stringify(w),/0x[0-9a-f]{40}/i);
+});
