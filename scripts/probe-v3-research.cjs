@@ -69,6 +69,20 @@ async function transferProbe(){
  try{const all=await arc('eth_getLogs',[{fromBlock:b,toBlock:b}]);out.allLogsInBlock=all.filter(x=>x.transactionHash===a.tx_hash).map(l=>[l.address.slice(0,10),l.topics[0].slice(0,10),l.topics.length]);}catch(e){out.allLogsInBlock={error:String(e.message).slice(0,140)};}
  note('xfer-probe',out);
 }
-(async()=>{try{await transferProbe();}catch(e){note('xfer-error',{error:String(e.stack||e).slice(0,300)});}
+async function decodeProbe(){
+ const t=await J('https://api.geckoterminal.com/api/v2/networks/arc/pools/'+POOL+'/trades');const T='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+ const sgn=h=>{const v=BigInt('0x'+h);return v>=(1n<<255n)?v-(1n<<256n):v;};const P='0x'+'0'.repeat(24)+POOL.slice(2);
+ for(const a of (t.json?.data||[]).slice(0,4).map(x=>x.attributes)){
+  const b='0x'+Number(a.block_number).toString(16);
+  const sw=(await arc('eth_getLogs',[{address:POOL,fromBlock:b,toBlock:b}])).filter(l=>l.transactionHash===a.tx_hash);
+  const tr=(await arc('eth_getLogs',[{address:['0x3600000000000000000000000000000000000000',POLL],topics:[T],fromBlock:b,toBlock:b}])).filter(l=>l.transactionHash===a.tx_hash&&(l.topics[1]===P||l.topics[2]===P));
+  note('decode',{tx:a.tx_hash.slice(0,12),gecko:{kind:a.kind,from_amount:a.from_token_amount,to_amount:a.to_token_amount,usd:a.volume_in_usd},
+   swaps:sw.map(l=>{const d=l.data.slice(2);return {topic0:l.topics[0].slice(0,10),nTopics:l.topics.length,words:d.length/64,w:[0,1,2,3,4,5,6].map(i=>d.length>=(i+1)*64?sgn(d.slice(i*64,(i+1)*64)).toString():null)};}),
+   transfers:tr.map(l=>({token:l.address.slice(0,8),dir:l.topics[2]===P?'IN':'OUT',value:BigInt(l.data).toString()}))});
+  await sleep(500);
+ }
+}
+(async()=>{try{await decodeProbe();}catch(e){note('decode-error',{error:String(e.stack||e).slice(0,300)});}
+ try{await transferProbe();}catch(e){note('xfer-error',{error:String(e.stack||e).slice(0,300)});}
  try{await synthra();}catch(e){note('synthra-error',{error:String(e.stack||e).slice(0,400)});}
  })();
