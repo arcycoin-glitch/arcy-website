@@ -98,3 +98,12 @@ test('V5: delegation-proven architecture may only become the reviewed proxy bind
  assert.equal(gate(arch('Legacy OpenZeppelin proxy slot · delegation proven'),arch('EIP-1967 implementation')).ok,false);
  assert.equal(gate(arch('NON-PROXY · runtime verified'),arch('Legacy implementation slot')).ok,false);
 });
+test('V5: proxy-binding reads <=8, only for a contract newly bound from a delegation-proven architecture',()=>{
+ const arch=(b,a)=>[rows(32,(r,i)=>{if(i===2)r.f.contractArchitecture={...field(true),value:b};}),rows(32,(r,i)=>{if(i===2)r.f.contractArchitecture={...field(true),value:a};})];
+ const spend=(rs,i,n)=>{rs[i].net.rpc+=n;rs[i].net.augBinding=n;return rs;};
+ let [b,a]=arch('Legacy OpenZeppelin proxy slot · delegation proven','Legacy implementation slot');
+ assert.equal(gate(b,spend(a,2,6)).ok,true);
+ [b,a]=arch('Legacy OpenZeppelin proxy slot · delegation proven','Legacy implementation slot');
+ const over=gate(b,spend(a,2,9));assert.equal(over.ok,false);assert.match(over.out,/Proxy-binding read budget exceeded/);
+ const notBound=gate(rows(),spend(rows(),2,1));assert.equal(notBound.ok,false);assert.match(notBound.out,/not newly bound/);
+});

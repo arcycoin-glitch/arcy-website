@@ -36,7 +36,8 @@ const SPX_SLOTS=Object.freeze({packed:6,initialBuy:7,initialSell:8,finalBuy:9,fi
 const TORCH_GETTERS=Object.freeze(['BUY_TAX_BPS()','buyTaxBps()','FEE_ROUTER()']);
 const PAXOS_GETTERS=Object.freeze(['supplyController()','assetProtectionRole()']);
 // Every selector a reviewed profile may read beyond the generic verified-source pass (benchmark kind "augReviewed").
-const REVIEWED_GETTERS=Object.freeze([...TORCH_GETTERS,...PAXOS_GETTERS]);
+// owner(): legacy (pre-0.4.21) ABIs carry no stateMutability, so the generic getter pass skips it and the BNB profile reads it.
+const REVIEWED_GETTERS=Object.freeze([...TORCH_GETTERS,...PAXOS_GETTERS,'owner()']);
 const REVIEWED_BUDGET=8;
 const slotKey=i=>'0x'+i.toString(16).padStart(64,'0');
 const ZERO='0x'+'0'.repeat(40);
