@@ -335,3 +335,12 @@ test('Data Engine V2: Radar shows Search exact-contract artwork paths only; othe
   assert.equal(Boolean(img),ok,url);if(ok)assert.equal(img.src,url);
  }
 });
+test('V3: on-chain new pools group renders with honest flags',async()=>{
+ const d=data('arc',{engine:'arcy-radar-v3'});
+ d.categories={version:'data-engine-v2',qualified:{count:6},emerging:{count:0,items:[]},momentumWatch:{count:0,items:[]},lowLiquidityHighRisk:{count:0,items:[]},insufficientEvidence:{count:0,items:[]},
+  newPools:{count:3,items:[{address:'0x'+'e'.repeat(40),symbol:'NEW',dexes:['synthra-arc'],lastSeenBlock:31400000,inProviderWindow:false,sourceStatus:['DISCOVERY_ONLY_UNREVIEWED']}]}};
+ const {detail}=await mount({overrides:{arc:d}});
+ const box=panel(detail,'arc').querySelector('.arcy-radar-categories');
+ assert.match(box.querySelector('.arcy-radar-categories-counts').textContent,/3 zincirde yeni havuz/);
+ assert.match(box.querySelector('.arcy-radar-categories-flags').textContent,/sağlayıcı listesinde yok · incelenmemiş factory/);
+});

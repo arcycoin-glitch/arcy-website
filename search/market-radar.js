@@ -105,8 +105,8 @@ const change24hReason=item=>{
  // Data Engine V2 categories: a collapsed coverage summary built only from candidates the server already inspected.
  // Nothing here is ranked, scored or called safe; anomaly flags are indicators only.
  const CAT_FLAGS={DUPLICATE_TICKER_IN_WINDOW:'aynı ticker',VOLUME_FAR_ABOVE_LIQUIDITY:'hacim ≫ likidite',FEW_WALLETS_MANY_TRADES:'az cüzdan · çok işlem',ONE_SIDED_FLOW:'tek yönlü akış'};
- const CAT_ORDER=[['qualified','nitelikli'],['emerging','yeni havuz (<24s)'],['momentumWatch','ivme izleme'],['lowLiquidityHighRisk','düşük likidite'],['insufficientEvidence','yetersiz kanıt']];
- const CAT_TITLE={emerging:'Yeni projeler · havuz 24 saatten genç, tek kaynak, sıralanmaz',momentumWatch:'İvme izleme · yalnızca gözlem',lowLiquidityHighRisk:'Düşük likidite / yüksek risk',insufficientEvidence:'Yetersiz kanıt · alanlar eksik veya kaynaklar ayrışıyor'};
+ const CAT_ORDER=[['qualified','nitelikli'],['emerging','yeni havuz (<24s)'],['momentumWatch','ivme izleme'],['lowLiquidityHighRisk','düşük likidite'],['insufficientEvidence','yetersiz kanıt'],['newPools','zincirde yeni havuz']];
+ const CAT_TITLE={emerging:'Yeni projeler · havuz 24 saatten genç, tek kaynak, sıralanmaz',momentumWatch:'İvme izleme · yalnızca gözlem',lowLiquidityHighRisk:'Düşük likidite / yüksek risk',insufficientEvidence:'Yetersiz kanıt · alanlar eksik veya kaynaklar ayrışıyor',newPools:'Zincirde yeni havuzlar · factory olaylarından keşif; güvenlik sinyali değildir'};
  const renderCategories=(box,network,c)=>{
   if(!box)return;box.replaceChildren();
   const ok=c&&c.version==='data-engine-v2'&&c.qualified&&Number.isFinite(c.qualified.count);
@@ -115,7 +115,7 @@ const change24hReason=item=>{
   sum.append(el('span','arcy-radar-categories-label','Kapsam'),el('span','arcy-radar-categories-counts',CAT_ORDER.map(([k,l])=>(Number.isFinite(c[k]?.count)?c[k].count:0)+' '+l).join(' · ')));
   box.append(sum);
   if(typeof c.funnel?.text==='string'){const f=el('p','arcy-radar-categories-funnel',c.funnel.text);f.translate=false;box.append(f);}
-  for(const key of ['emerging','momentumWatch','lowLiquidityHighRisk','insufficientEvidence']){
+  for(const key of ['emerging','momentumWatch','lowLiquidityHighRisk','insufficientEvidence','newPools']){
    const items=Array.isArray(c[key]?.items)?c[key].items.filter(x=>/^0x[0-9a-f]{40}$/i.test(x?.address||'')).slice(0,5):[];
    if(!items.length)continue;
    const group=el('section','arcy-radar-categories-group');group.append(el('strong','arcy-radar-categories-title',CAT_TITLE[key]));
@@ -124,9 +124,10 @@ const change24hReason=item=>{
     const t=el('span','arcy-radar-categories-ticker',x.symbol||x.address.slice(0,9));t.translate=false;
     const facts=[Number.isFinite(x.volume24hUsd)?'24s '+money(x.volume24hUsd):null,Number.isFinite(x.liquidityUsd)?'Lik. '+money(x.liquidityUsd):null,
      Number.isFinite(x.ageHours)?x.ageHours+' sa':null,Number.isFinite(x.momentum?.volumeUsd?.h1)?'1s '+money(x.momentum.volumeUsd.h1):null,
-     Number.isFinite(x.change24hPct)?pct(x.change24hPct):null].filter(Boolean);
+     Number.isFinite(x.change24hPct)?pct(x.change24hPct):null,Array.isArray(x.dexes)?x.dexes.slice(0,3).join(', '):null,Number.isFinite(x.lastSeenBlock)?'blok '+x.lastSeenBlock:null].filter(Boolean);
     row.append(t,el('small','arcy-radar-categories-meta',facts.join(' · ')));
     const flags=(x.anomalies||[]).map(a=>CAT_FLAGS[a]).filter(Boolean);
+    if(key==='newPools'){if(x.inProviderWindow===false)flags.push('sağlayıcı listesinde yok');if((x.sourceStatus||[]).includes('DISCOVERY_ONLY_UNREVIEWED'))flags.push('incelenmemiş factory');}
     if(flags.length)row.append(el('small','arcy-radar-categories-flags','⚠ '+flags.join(' · ')));
     group.append(row);
    }

@@ -613,3 +613,18 @@ test('Data Engine V2 logo identity: Radar reuses Search exact-contract artwork (
  assert.ok(uni,'fixture token present');assert.deepEqual(uni.logo,{url:'/search/assets/token-icons/uni.svg',source:'ARCY Search exact-contract artwork'});
  assert.ok(out.tokens.filter(t=>t.address!==UNI).every(t=>!t.logo||t.logo.url.startsWith('https://')),'other contracts keep provider artwork rules');
 });
+
+test('V3 Follow-the-DEX: newPools joins on-chain creation events with the provider window; failures never break Radar',async()=>{
+ const net='arc',body=geckoBody(net,{count:14});
+ const f=router([...CG(net,body),[/dexscreener\.com/,()=>resp(dexBody(net,body))]]);
+ const PM='0x8366a39cc670b4001a1121b8f6a443a643e40951',w=a=>'0x'+'0'.repeat(24)+a.slice(2),NEW='0x'+'e'.repeat(40);
+ const rpc=async(m,p)=>{if(m==='eth_getBlockByNumber')return {number:p[0]==='latest'?'0x30d40':p[0],timestamp:'0x6553f100'};
+  if(m==='eth_getLogs')return BigInt(p[0].toBlock)>=199000n&&BigInt(p[0].fromBlock)<=199000n?[{address:PM,topics:['0xdd466e674ea557f56295e2d0218a125ea4b4f0f6f3307b95f85e6110838d6438','0x'+'c'.repeat(64),w('0x3600000000000000000000000000000000000000'),w(NEW)],data:'0x',blockNumber:'0x309d8',transactionHash:'0x'+'a'.repeat(64)}]:[];
+  if(m==='eth_call')return '0x';throw Error(m);};
+ const out=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true,discoverRpc:rpc});
+ const np=out.categories.newPools;
+ assert.equal(np.count,1);assert.equal(np.items[0].address,NEW);assert.equal(np.items[0].inProviderWindow,false);assert.equal(np.notInProviderWindow,1);
+ assert.equal(np.items[0].status,'ONCHAIN_CREATION_EVENT');assert.equal(out.tokens.length,10,'ranking unchanged');
+ const down=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true,discoverRpc:async()=>{throw Error('down');}});
+ assert.equal(down.ok,true);assert.equal(down.categories.newPools.status,'UNAVAILABLE');assert.equal(down.tokens.length,10);
+});
