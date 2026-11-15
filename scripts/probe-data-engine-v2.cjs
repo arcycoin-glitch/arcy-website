@@ -31,7 +31,7 @@ let fail=0;const check=(ok,what)=>{if(!ok){fail++;console.log('::error title=che
    rpc:d.cost?.rpcCalls??null,window:d.window&&{mode:d.window.mode,from:d.window.scannedFromBlock,to:d.window.toBlock}});
  }
  for(const [q,chain] of [['poll','ethereum'],['poll','arc'],['pepe','ethereum']]){
-  const r=await get(BASE+'/api/search?action=discover&chain='+chain+'&q='+q),d=r.json||{},items=d.results||d.items||d.tokens||[];
+  const r=await get(BASE+'/api/search?action=discover&chain='+chain+'&q='+q),d=r.json||{},items=d.matches||d.results||[];
   const urls=new Map();for(const x of items)if(x.logoUrl&&!x.logoUrl.startsWith('/')){const k=x.logoUrl;urls.set(k,new Set([...(urls.get(k)||[]),(x.chainId||x.network)+':'+String(x.address).toLowerCase()]));}
   const shared=[...urls.values()].filter(s=>s.size>1).length;
   note('search-logos-'+q+'-'+chain,{status:r.status,ms:r.ms,keys:Object.keys(d).slice(0,12),results:items.length,withLogo:items.filter(x=>x.logoUrl).length,withheld:items.filter(x=>x.logoWithheld).length,sharedAcrossContracts:shared,
