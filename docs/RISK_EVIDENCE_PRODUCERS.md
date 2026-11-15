@@ -103,10 +103,10 @@ Shadow output carries `evidenceGaps`: for every `UNKNOWN` rule, the producer's o
 | `privileged-minting` | authority v4, confirm-only | `NO_REVIEWED_EXECUTION_ROUTE` | 2 reviewed MINTER_ROLE routes (USDY, OUSG) | `NO_REVIEWED_EXECUTION_ROUTE` |
 | `high-exit-impact` (rule v2) | pool v1, confirm-only | `PRICE_ANCHOR_NOT_REVIEWED` | reviewed V2 pools with a USDC/WETH/USDT pair | `PRICE_ANCHOR_NOT_REVIEWED` |
 | `low-pool-liquidity` | pool v1, both verdicts for the scoped pool | `PRICE_ANCHOR_NOT_REVIEWED` | reviewed V2 pools with a USDC/WETH/USDT pair | `PRICE_ANCHOR_NOT_REVIEWED` |
-| `sell-transfer-tax` | none | `TRANSFER_DEDUCTION_NOT_ISOLATED` | `TRANSFER_DEDUCTION_NOT_ISOLATED` | `TRANSFER_DEDUCTION_NOT_ISOLATED` |
+| `sell-transfer-tax` (rule v2) | transfer-tax v1, confirm-only | `SIMULATION_METHOD_UNSUPPORTED` | simulated transfer into the reviewed pool | simulated transfer into the reviewed V3 pool |
 | `top-ten-holder-concentration` (rule v2) | concentration v1, confirm-only | explorer candidates + Circle/QuickNode | explorer candidates + Allnodes/dRPC | explorer candidates + official/dRPC |
 
-`sell-transfer-tax` stays UNKNOWN. A tax needs balance deltas across a simulated sell transfer, separated from pool fee and price impact, including account-dependent exemptions. That requires a reviewed `eth_call` state-override (helper-contract) simulation on two operators. None exists yet, and a quote is never used as evidence of a tax.
+`sell-transfer-tax`: see the transfer-tax producer section below. Arc: `SIMULATION_METHOD_UNSUPPORTED` (neither Arc operator offers `eth_simulateV1`).
 
 ## Evidence lifecycle
 
