@@ -89,7 +89,12 @@ function budget(network,rpcFn){
  const call=async(method,params)=>{
   calls.n++;
   if(cfg.paceMs){const wait=last+cfg.paceMs-Date.now();if(wait>0)await new Promise(r=>setTimeout(r,wait));last=Date.now();}
-  return rpcFn(method,params);
+  // V3: bounded retry (2 attempts, 0.8 s / 1.6 s backoff) ONLY for provider rate limits; any other error surfaces unchanged.
+  for(let attempt=0;;attempt++){
+   try{return await rpcFn(method,params);}
+   catch(e){if(attempt>=2||!/429|rate.?limit|too many requests/i.test(String(e?.message||'')+' '+String(e?.code||'')))throw e;
+    calls.retries=(calls.retries||0)+1;await new Promise(r=>setTimeout(r,800*(attempt+1)));}
+  }
  };
  return {call,calls};
 }
@@ -195,6 +200,36 @@ function decodeSwap(pool,log){
  const side=tokenPool<0n&&counterPool>0n?'BUY':tokenPool>0n&&counterPool<0n?'SELL':'SWAP';
  return {side,tokenPool,counterPool};
 }
+// V3: verified pools are scanned in GROUPS — all V2/V3 pools in one filter (address array, OR-ed Swap topics) and V4 pools per
+// PoolManager (poolIds OR-ed in topic1). Same events, same per-log checks, a fraction of the eth_getLogs calls.
+function groupsOf(pools){
+ const plain=pools.filter(p=>p.kind!=='V4'),out=[];
+ if(plain.length)out.push({pools:plain,filter:{address:plain.map(p=>p.emitter),topics:[[...new Set(plain.map(p=>TOPIC[p.kind]))]]}});
+ const byMgr=new Map();for(const p of pools.filter(p=>p.kind==='V4')){if(!byMgr.has(p.emitter))byMgr.set(p.emitter,[]);byMgr.get(p.emitter).push(p);}
+ for(const [mgr,list] of byMgr)out.push({pools:list,filter:{address:mgr,topics:[TOPIC.V4,list.map(p=>p.pool)]}});
+ return out;
+}
+function poolOfLog(group,l){
+ const emitter=String(l?.address||'').toLowerCase(),t=(l?.topics||[]).map(x=>String(x).toLowerCase());
+ return group.pools.find(p=>p.emitter===emitter&&t[0]===TOPIC[p.kind]&&(p.kind!=='V4'||t[1]===p.pool))||null;
+}
+async function logsForGroup(rpc,group,from,to,state,maxSpan){
+ const out=[];let hi=to;
+ while(hi>=from&&state.logCalls<MAX_LOG_CALLS&&out.length<MAX_ROWS){
+  let span=state.span,lo=hi-BigInt(span-1)<from?from:hi-BigInt(span-1);
+  try{
+   state.logCalls++;
+   const logs=await rpc.call('eth_getLogs',[{...group.filter,fromBlock:'0x'+lo.toString(16),toBlock:'0x'+hi.toString(16)}]);
+   if(!Array.isArray(logs))throw fail('RPC_MALFORMED_RESPONSE');
+   for(const l of logs){if(l?.removed===true)continue;const p=poolOfLog(group,l);if(p)out.push({p,l});}
+   hi=lo-1n;state.lowest=state.lowest===undefined||lo<state.lowest?lo:state.lowest;
+   if(!logs.length)state.span=Math.min(maxSpan,state.span*2);
+  }catch(e){
+   if(state.span<=64)throw e;state.span=Math.max(64,Math.floor(state.span/2));
+  }
+ }
+ return out;
+}
 async function logsFor(rpc,pool,from,to,state,maxSpan){
  const filter=pool.kind==='V4'?{address:pool.emitter,topics:[TOPIC.V4,pool.pool]}:{address:pool.pool,topics:[TOPIC[pool.kind]]};
  const out=[];let hi=to;
@@ -288,8 +323,8 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
   mode='INCREMENTAL';scanFrom=prev.toBlock+1n;
   const byPool=new Map(pools.map(p=>[p.pool,p]));
   found=prev.logs.filter(x=>byPool.has(x.pool)&&BigInt(x.l.blockNumber)>=from).map(x=>({p:byPool.get(x.pool),l:x.l}));
-  if(scanFrom<=toBlock)for(const p of pools){state.span=net.maxSpan;for(const l of await logsFor(rpc,p,scanFrom,toBlock,state,net.maxSpan))found.push({p,l});}
- }else for(const p of pools){state.span=net.window;for(const l of await logsFor(rpc,p,from,toBlock,state,net.maxSpan))found.push({p,l});}
+  if(scanFrom<=toBlock)for(const g of groupsOf(pools)){state.span=net.maxSpan;found.push(...await logsForGroup(rpc,g,scanFrom,toBlock,state,net.maxSpan));}
+ }else for(const g of groupsOf(pools)){state.span=net.window;found.push(...await logsForGroup(rpc,g,from,toBlock,state,net.maxSpan));}
  const seen=new Set(),rows=[];
  for(const {p,l} of found){
   const key=String(l.transactionHash).toLowerCase()+':'+String(l.logIndex);if(seen.has(key))continue;seen.add(key);
@@ -309,12 +344,16 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
   const b=await rpc.call('eth_getBlockByNumber',[n,false]).catch(()=>null);return b?.hash?remember(blockCache,bkey,{hash:String(b.hash).toLowerCase(),timestamp:Number(BigInt(b.timestamp))},4000):null;};
  const pendingBlocks=new Map(),blockOnce=n=>{if(!pendingBlocks.has(n))pendingBlocks.set(n,blockRead(n));return pendingBlocks.get(n);};
  async function one(i){
-  const r=top[i];const blk=await blockOnce(r.l.blockNumber);
-  if(!blk||blk.hash!==String(r.l.blockHash).toLowerCase())return;   // unbound or reorged: never displayed
+  const r=top[i],logHash=String(r.l.blockHash||'').toLowerCase();
+  // V3 binding: the node's own transaction record must place the tx in the SAME block hash as the log (reorg -> dropped).
+  // A separate block read is only needed when the log does not carry its block timestamp.
   const tkey=network+':'+String(r.l.transactionHash).toLowerCase();let tx=txCache.get(tkey);
   if(!tx){if(reads>=MAX_ROW_READS)return;reads++;const t=await rpc.call('eth_getTransactionByHash',[r.l.transactionHash]).catch(()=>null);
-   if(t?.from&&String(t.blockHash||'').toLowerCase()===blk.hash)tx=remember(txCache,tkey,{from:String(t.from).toLowerCase(),to:String(t.to||'').toLowerCase()},4000);}
-  if(!tx)return;
+   if(t?.from&&t.blockHash)tx=remember(txCache,tkey,{from:String(t.from).toLowerCase(),to:String(t.to||'').toLowerCase(),blockHash:String(t.blockHash).toLowerCase()},4000);}
+  if(!tx||tx.blockHash!==logHash)return;   // unbound or reorged: never displayed
+  const lts=/^0x[0-9a-f]{1,16}$/i.test(r.l.blockTimestamp||'')?Number(BigInt(r.l.blockTimestamp)):null;
+  const blk=lts?{hash:logHash,timestamp:lts}:await blockOnce(r.l.blockNumber);
+  if(!blk||blk.hash!==logHash)return;
   if(!counterMeta.has(r.p.counter))counterMeta.set(r.p.counter,tokenMeta(network,rpc,r.p.counter,pinned).catch(()=>null));
   const cm=await counterMeta.get(r.p.counter);if(!cm)return;
   const tokenAbs=r.d.tokenPool<0n?-r.d.tokenPool:r.d.tokenPool,counterAbs=r.d.counterPool<0n?-r.d.counterPool:r.d.counterPool;
@@ -352,4 +391,4 @@ async function cached({network,address},run=analyze,now=Date.now){
  inflight.set(key,task);return task;
 }
 module.exports={analyze,KEEP_LOGS,TRADE_VENUES,CANONICAL_V3,maskCode,cached,classify,decodeSwap,identifyPool,usdOf,units,TOPIC,NET,USD_STABLES,MAX_ROWS,
- _reset:()=>{for(const m of [cache,inflight,incremental,identityCache,metaCache,txCache,blockCache,canonicalRef])m.clear();running=0;}};
+ _groupsOf:groupsOf,_reset:()=>{for(const m of [cache,inflight,incremental,identityCache,metaCache,txCache,blockCache,canonicalRef])m.clear();running=0;}};
