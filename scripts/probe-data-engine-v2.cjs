@@ -13,7 +13,7 @@ let fail=0;const check=(ok,what)=>{if(!ok){fail++;console.log('::error title=che
   const flagged=c?[...(c.emerging?.items||[]),...(c.momentumWatch?.items||[])].map(x=>[x.symbol,x.signal||null,(x.anomalies||[]).join('|'),x.ageHours??null,x.momentum?.volumeUsd?.h1??null]):[];
   const logos=(d.tokens||[]).map(t=>t.logo?.url?(t.logo.url.startsWith('/')?'LOCAL':'CDN'):'NONE');
   const dupLogo=(()=>{const m=new Map();for(const t of d.tokens||[])if(t.logo?.url)m.set(t.logo.url,(m.get(t.logo.url)||0)+1);return [...m.values()].filter(n=>n>1).length;})();
-  note('radar-'+chain,{status:r.status,ms:r.ms,ranked:(d.tokens||[]).length,counts,funnel:c?.funnel?.text,flagged,logos,dupLogoUrls:dupLogo,
+  note('radar-'+chain,{status:r.status,ms:r.ms,error:d.error||null,reasonCode:d.reasonCode||null,keys:r.status!==200?Object.keys(d).slice(0,12):undefined,ranked:(d.tokens||[]).length,counts,funnel:c?.funnel?.text,flagged,logos,dupLogoUrls:dupLogo,
    change24hMissing:(d.tokens||[]).filter(t=>t.change24hPct===null).map(t=>[t.symbol,t.fields?.change24hPct?.reasonCode])});
   if(r.status===200){check(c?.version==='data-engine-v2','categories on '+chain);check(dupLogo===0,'no shared logo URL in '+chain+' radar');}
   await new Promise(s=>setTimeout(s,4000));
@@ -30,11 +30,11 @@ let fail=0;const check=(ok,what)=>{if(!ok){fail++;console.log('::error title=che
    verified:(d.pools||[]).map(p=>p.dex+':'+p.pool.slice(0,10)+':'+(p.providerTrades24h??'')),uncovered:(d.excludedPools||[]).filter(x=>x.providerTrades24h>0).map(x=>x.dex+':'+x.reasonCode+':'+x.providerTrades24h),
    rpc:d.cost?.rpcCalls??null,window:d.window&&{mode:d.window.mode,from:d.window.scannedFromBlock,to:d.window.toBlock}});
  }
- for(const q of ['poll','pepe']){
-  const r=await get(BASE+'/api/search?action=discover&q='+q),d=r.json||{},items=d.results||d.items||d.tokens||[];
+ for(const [q,chain] of [['poll','ethereum'],['poll','arc'],['pepe','ethereum']]){
+  const r=await get(BASE+'/api/search?action=discover&chain='+chain+'&q='+q),d=r.json||{},items=d.results||d.items||d.tokens||[];
   const urls=new Map();for(const x of items)if(x.logoUrl&&!x.logoUrl.startsWith('/')){const k=x.logoUrl;urls.set(k,new Set([...(urls.get(k)||[]),(x.chainId||x.network)+':'+String(x.address).toLowerCase()]));}
   const shared=[...urls.values()].filter(s=>s.size>1).length;
-  note('search-logos-'+q,{status:r.status,ms:r.ms,results:items.length,withLogo:items.filter(x=>x.logoUrl).length,withheld:items.filter(x=>x.logoWithheld).length,sharedAcrossContracts:shared,
+  note('search-logos-'+q+'-'+chain,{status:r.status,ms:r.ms,keys:Object.keys(d).slice(0,12),results:items.length,withLogo:items.filter(x=>x.logoUrl).length,withheld:items.filter(x=>x.logoWithheld).length,sharedAcrossContracts:shared,
    sample:items.slice(0,8).map(x=>[x.symbol,x.network||x.chainId,String(x.address).slice(0,10),x.logoUrl?(x.logoUrl.startsWith('/')?'LOCAL':'CDN'):x.logoWithheld||'NONE'])});
   if(r.status===200)check(shared===0,'search "'+q+'" has no logo shared by different contracts');
  }
