@@ -1,19 +1,16 @@
 'use strict';
-// Read-only probe: log-range limits, V4 Initialize full-range lookup, tx lookup (design input for Live Trading).
-const RPC={ethereum:require('../search/server/lib/eth').rpc,arc:require('../search/server/lib/arc-rpc').rpc,robinhood:require('../search/server/lib/robinhood-rpc').rpc};
-const V3='0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67',V4='0x40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f',INIT='0xdd466e674ea557f56295e2d0218a125ea4b4f0f6f3307b95f85e6110838d6438';
-const PM={ethereum:'0x000000000004444c5dc75cb358380d2e3de08a90',arc:'0x8366a39cc670b4001a1121b8f6a443a643e40951',robinhood:'0x8366a39cc670b4001a1121b8f6a443a643e40951'};
-const V3POOL={arc:'0x162df51c504e7b83',ethereum:'0x1d42064fc4beb5f8'};
-const hex=n=>'0x'+n.toString(16);
+// Read-only live probe of search/server/lib/live-trades.js on real tokens (three chains). Prints evidence summaries.
+const lt=require('../search/server/lib/live-trades');
+const SAMPLES=[['arc','0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b','ARCY'],['arc','0xece5ca8bf9220718e5727754026757512212cb3c','ARGUS-TAX'],['arc','0xbc43ce8dec648ea298c4275559b81d6261c90b67','TOLLY'],
+ ['ethereum','0x6982508145454Ce325dDbE47a25d4ec3d2311933','PEPE'],['ethereum','0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984','UNI'],['ethereum','0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE','SHIB'],
+ ['robinhood','0x6dbe95076584f869dd09a44131e9a3c13f34d7d6','PONS-V2'],['robinhood','0x18e674231a58c239dc7daedcffe15ec3a24cff5c','UERC20'],['robinhood','0x39dbed3a2bd333467115de45665cc57f813c4571','PONS-L']];
 (async()=>{
- for(const net of ['arc','robinhood','ethereum']){
-  const rpc=RPC[net];const head=BigInt(await rpc('eth_blockNumber',[]));
-  // recent V4 swaps on the PoolManager: spans
-  for(const span of [200n,2000n,10000n,50000n]){const t=Date.now();try{const logs=await rpc('eth_getLogs',[{address:PM[net],fromBlock:hex(head-span),toBlock:hex(head),topics:[V4]}]);console.log('SPAN '+JSON.stringify({net,span:String(span),n:logs.length,ms:Date.now()-t}));
-    if(span===200n&&logs[0]){const id=logs[0].topics[1];
-     const t2=Date.now();try{const init=await rpc('eth_getLogs',[{address:PM[net],fromBlock:'0x0',toBlock:hex(head),topics:[INIT,id]}]);console.log('INIT '+JSON.stringify({net,id:id.slice(0,12),n:init.length,ms:Date.now()-t2,c0:init[0]?.topics[2]?.slice(26),c1:init[0]?.topics[3]?.slice(26),blk:init[0]?parseInt(init[0].blockNumber,16):null}));}catch(e){console.log('INIT '+JSON.stringify({net,err:String(e.message).slice(0,140)}));}
-     try{const tx=await rpc('eth_getTransactionByHash',[logs[0].transactionHash]);console.log('TX '+JSON.stringify({net,from:tx?.from?.slice(0,10),to:tx?.to?.slice(0,10),blk:tx?.blockNumber}));}catch(e){console.log('TX '+JSON.stringify({net,err:String(e.message).slice(0,140)}));}
-    }
-  }catch(e){console.log('SPAN '+JSON.stringify({net,span:String(span),err:String(e.message).slice(0,140),ms:Date.now()-t}));}}
+ for(const [network,address,label] of SAMPLES){
+  const t=Date.now();let r;try{r=await lt.analyze({network,address});}catch(e){r=lt.classify(e);r.err=String(e.message).slice(0,120);}
+  const sides={};for(const x of r.trades||[])sides[x.side]=(sides[x.side]||0)+1;
+  console.log('LT '+JSON.stringify({label,network,ms:Date.now()-t,status:r.status,reason:r.reasonCode,err:r.err,headAge:r.headAgeSeconds,pools:(r.pools||[]).map(p=>p.kind+':'+p.protocol+':'+p.pool.slice(0,10)),
+   excluded:(r.excludedPools||[]).map(p=>(p.dex||'')+':'+p.reasonCode),n:(r.trades||[]).length,sides,window:r.window,cost:r.cost,
+   sample:(r.trades||[]).slice(0,3).map(x=>[x.side,x.tokenAmount.slice(0,12),x.counterAmount.slice(0,10)+' '+x.counterSymbol,x.usd,x.usdStatus,x.route,x.wallet.slice(0,8),x.timestamp,x.txHash.slice(0,10)])}));
+  await new Promise(r=>setTimeout(r,7000));
  }
 })();
