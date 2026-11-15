@@ -1,0 +1,23 @@
+name: Production six-card + Live Trading verification (read-only)
+on:
+  # Dispatch after a Production deployment; it checks the live site, so it is not a pre-merge PR gate.
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pinned Playwright library on the runner's Google Chrome
+        run: npm install --no-save --no-package-lock playwright@1.56.1
+      - name: Real Production pages and data (no mocks)
+        env:
+          ARCY_BROWSER_CHANNEL: chrome
+        run: node scripts/verify-production-six-card.cjs
