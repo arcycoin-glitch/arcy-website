@@ -11,6 +11,7 @@
 // 2026-11-15 owner-requested Data Engine V2 Phase 5 Radar exception: a short visible reason ('Kaynak uyuşmazlığı' / 'Havuz çok yeni' / 'Geçmiş yok' / 'Doğrulanamadı') beside the unavailable 24h dash. market-radar.js/.css only; reasonCode already served, 24h value stays null, no score/data/policy change.
 // 2026-11-15 owner-requested Data Engine V2 Phase 2 Radar exception: collapsed 'Kapsam' categories panel (Qualified / Emerging / Momentum Watch / Low Liquidity / Insufficient Evidence) rendered from the additive `categories` API field. market-radar.js/.css only; ranking, score and calls unchanged.
 // 2026-11-15 owner-requested Data Engine V2 Phase 4 logo exception: Radar accepts Search's same-origin exact-contract artwork (fixed /search/assets/token-icons/*.svg and /assets/hero-arcy.png paths only). market-radar.js only.
+// 2026-11-15 owner-requested V3 Follow-the-DEX Radar exception: 'zincirde yeni havuz' group in the existing Kapsam panel (on-chain creation events). market-radar.js only.
 // 2026-10-31 owner-approved UI exception (PR #121): source-rendered single Synthra CTA
 // replaces the duplicate community card with a premium Synthra destination panel and scoped footer/layout CSS.
 // Owner-authorized retirement of the news module updates index.html, premium.css and v8-premium.js only; unrelated protected Search and Radar assets remain pinned.
@@ -35,7 +36,7 @@ const BASELINE = Object.freeze({
   // 2026-11-07 owner-authorized Radar SCORE display repair: accept the existing
   // discovery-2 backend schema and hide absent rationales; no HTML/CSS/skeleton,
   // provider, ranking or other-page changes. Reviewed in PR #177.
-  "search/market-radar.js": "20ae50f3250730e6d19112ee99e65d0b795d9eca",
+  "search/market-radar.js": "9ab1d79ec72bd4d0ba1944a93953cb815eda802e",
   "search/market-radar.css": "929b37c5e0a233ea850ffb9c5122d5a87aa006c4",
   "search/assets/arc-network-mark.svg": "164d2a27c837cd58e42cf12d5d9a89ad4a546225",
   "search/assets/ethereum-mark.svg": "b92e033331b638dc4e2904aaa96b9f7e20917eb7",
