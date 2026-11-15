@@ -93,6 +93,26 @@ Limits of a positive claim: it shows that at that block the reviewed code would 
 - **Below 50%** → `NOT_VERIFIED / BELOW_THRESHOLD_NEGATIVE_NOT_REVIEWED`. A negative verdict needs a complete two-operator census, which does not exist.
 - If candidate balances plus burns exceed supply → `SUPPLY_RECONCILIATION_FAILED`.
 
+### Transfer-tax producer v1 (`lib/risk-engine/producers/transfer-tax.js`), Ethereum and Robinhood, positive only
+- **Method.** `eth_simulateV1` on top of the pinned block, with block number = block + 1 and time = block time + 12 on both operators. No swap and no quote: pool fee, price impact and gas cannot appear.
+- **Sender.** A fresh key-less address with no code, so it is on no exemption list. Its balance is set by a storage override of the token's balance mapping. The slot is found by override probing: Solidity 0..11, Vyper 0..5, or the OpenZeppelin v5 ERC-7201 namespace.
+- **Calls in one simulated block:** balances of pool and sender, then total supply, then `transfer(pool, 0.01% of the pool's token balance)`, then the same three reads again.
+- **Fail closed when:** any call fails; `transfer` returns false or reverts (closed trading, limits); the sender is not debited exactly the amount (no-op or fake success); the Transfer events from the sender do not sum to the amount; or the pool balance decreases.
+- **Result.** `deduction = amount - pool credit`, reported as burned (supply fell) or sent elsewhere. Below 1% → `BELOW_THRESHOLD_NEGATIVE_NOT_REVIEWED`: exemptions and dynamic taxes make a 0% result non-conclusive.
+- **Pool.** The pool producer's pool when there is one; otherwise the funded reviewed V2/V3 pool holding the most of the token. Identity (factory and exact pair) is verified before use.
+- **Live (#236).** STA (Statera, documented 1% burn): 100 bps, burned, identical on both Ethereum operators. Robinhood PONS and TSLA: 0 bps measured on both operators, reported as UNKNOWN by design.
+- **Arc.** Neither operator (Circle, QuickNode) offers `eth_simulateV1` → `SIMULATION_METHOD_UNSUPPORTED`. Both support `eth_call` overrides, but a helper-contract method is not reviewed.
+
+### Coverage work and remaining blockers (#236)
+- **Arc concentration.** Candidates come from the worker's own complete, supply-reconciled holder index on the `/data` volume (`ARC_HOLDER_INDEX`); balances are re-read on two operators. Public Arc explorers answer 403 or are unreachable for automated clients.
+- **Robinhood concentration.** The public Blockscout answers 403 to GitHub Actions. Blockscout PRO (`BLOCKSCOUT_API_KEY`, already used by the Robinhood holder rank) is tried when the key is configured; the key is never output.
+- **Robinhood stock tokens (beacon).**
+  - The beacon is `AccessControlsRegistry` (Sourcify exact match). `upgradeTo` requires `BEACON_UPGRADER_ROLE`.
+  - The implementation is `Stock` (exact match). `mint` requires `MINTER_ROLE`, checked through the registry.
+  - The roles are not enumerable. A full-range `eth_getLogs` for `RoleGranted` is rejected by both operators (`RPC_ERROR`, HTTP 400).
+  - So the actors cannot be found without a bounded, chunked log scan from the registry's deployment block on a chain above 113 M blocks, which is not implemented. Status: `BEACON_PROXY_UNSUPPORTED`.
+- **USD anchors.** No reviewed on-chain USD feed on Arc or Robinhood; pool liquidity and exit impact stay `PRICE_ANCHOR_NOT_REVIEWED`. Arc pools are Uniswap v4, which the pool producer does not model.
+
 ## Capability / evidence matrix (`lib/risk-engine/capability-matrix.js`)
 
 Shadow output carries `evidenceGaps`: for every `UNKNOWN` rule, the producer's own reason where one ran, otherwise the blocker below.
