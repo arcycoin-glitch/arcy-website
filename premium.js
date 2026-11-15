@@ -25,7 +25,7 @@
    timer=setTimeout(()=>burnScene.classList.remove('energy-updated'),1600);
   }).observe(burned,{childList:true,characterData:true,subtree:true});
  }
- const ids=['hero','search','burn','unlocks','pulse','buy'];
+ const ids=['hero','search','burn','unlocks','buy'];
  const sections=ids.map(id=>document.getElementById(id)).filter(Boolean);
  if(!sections.length)return;
  const links=[...document.querySelectorAll('.nav .links a[href^="#"]')];

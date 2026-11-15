@@ -47,7 +47,7 @@ async function get(name,path,check){
  console.log(JSON.stringify(summary));
  for(const f of failed)console.log('::error title=ARCY health '+f.name+'::'+f.detail);
  if(status?.components){const c=status.components,w=c.holderWorker||{},parts=['worker='+w.state+(w.reasonCode?'/'+w.reasonCode:'')+' heartbeatAge='+(w.heartbeat?.ageSeconds??'-')+'s',
-  ...['arc','ethereum','robinhood'].map(k=>'pulse.'+k+'='+(c.pulse?.[k]?.state||'-')),'unlocks='+(c.unlocks?.state||'-'),'version.match='+status.version?.match];
+'unlocks='+(c.unlocks?.state||'-'),'version.match='+status.version?.match];
   console.log('::'+(status.overall==='HEALTHY'?'notice':'warning')+' title=ARCY pipeline '+status.overall+'::'+parts.join(' · '));}
  process.exitCode=failed.length?1:0;
 })();
