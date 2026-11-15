@@ -89,7 +89,12 @@ function budget(network,rpcFn){
  const call=async(method,params)=>{
   calls.n++;
   if(cfg.paceMs){const wait=last+cfg.paceMs-Date.now();if(wait>0)await new Promise(r=>setTimeout(r,wait));last=Date.now();}
-  return rpcFn(method,params);
+  // V3: bounded retry (2 attempts, 0.8 s / 1.6 s backoff) ONLY for provider rate limits; any other error surfaces unchanged.
+  for(let attempt=0;;attempt++){
+   try{return await rpcFn(method,params);}
+   catch(e){if(attempt>=2||!/429|rate.?limit|too many requests/i.test(String(e?.message||'')+' '+String(e?.code||'')))throw e;
+    calls.retries=(calls.retries||0)+1;await new Promise(r=>setTimeout(r,800*(attempt+1)));}
+  }
  };
  return {call,calls};
 }

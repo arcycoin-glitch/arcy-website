@@ -258,3 +258,16 @@ test('V3 RPC: V2/V3 pools share one grouped eth_getLogs filter; V4 pools group p
  assert.deepEqual(g[0].filter.address,[POOL,P2]);assert.deepEqual(g[0].filter.topics[0].sort(),[lt.TOPIC.V2,lt.TOPIC.V3].sort());
  assert.deepEqual(g[1].filter.topics[1],['0x'+'1'.repeat(64),'0x'+'2'.repeat(64)]);
 });
+test('V3: provider 429 gets a bounded retry; persistent rate limiting still surfaces as RPC_RATE_LIMITED',async()=>{
+ lt._reset();
+ const logs=[swapLog(990,1,v3data(-2n*10n**18n,5_000_000n))];const blocks={'0x3de':{hash:'0xbh990',timestamp:'0x6553f100'}};
+ const txs={[logs[0].transactionHash]:{from:'0x'+'e'.repeat(40),to:POOL,blockHash:'0xbh990'}};
+ const base=rpcMock({registered:POOL,logs,blocks,txs});let fails=1;
+ const flaky=async(m,p)=>{if(m==='eth_getLogs'&&fails-->0)throw Error('HTTP 429 Too Many Requests');return base.fn(m,p);};
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:flaky,pools:[{pool:POOL,dex:'uniswap_v3',reserveUsd:5}]});
+ assert.equal(r.trades.length,1,'one 429 is absorbed');
+ lt._reset();
+ const dead=async(m,p)=>{if(m==='eth_getBlockByNumber')throw Error('HTTP 429');return base.fn(m,p);};
+ const c=await lt.cached({network:'ethereum',address:TOKEN},()=>lt.analyze({network:'ethereum',address:TOKEN,rpcFn:dead,pools:[{pool:POOL,dex:'uniswap_v3',reserveUsd:5}]}));
+ assert.equal(c.status,'UNAVAILABLE');assert.equal(c.reasonCode,'RPC_RATE_LIMITED','never presented as success');
+});
