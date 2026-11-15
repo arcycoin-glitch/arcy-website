@@ -149,6 +149,12 @@ async function identifyPool(network,rpc,token,candidate,block){
    }else if(CANONICAL_V3.reference[network]&&await canonicalV3Runtime(network,rpc,candidate.pool,block)){
     out={kind:'V3',pool:candidate.pool,emitter:candidate.pool,protocol:'uniswap-v3-canonical-runtime',token0,token1,factory,
      method:'Pool runtime equals the Sourcify-verified canonical UniswapV3Pool (immutables masked); its factory is not reviewed'};
+   }else if(fee!==null&&fee<1000000n&&addr(await ethCall(rpc,factory,S.getPool+pad(token0)+pad(token1)+fee.toString(16).padStart(64,'0'),block).catch(()=>null))===candidate.pool){
+    // V3: an unreviewed V3-interface DEX (e.g. Synthra on Arc). Its factory's on-chain registry proves the pool, but its source is
+    // unpublished, so the Swap sign convention is NOT trusted: every displayed row must reconcile EXACTLY with the two tokens' own
+    // ERC-20 Transfer events into/out of the pool in the same transaction. Unreconciled rows are never shown.
+    out={kind:'V3',pool:candidate.pool,emitter:candidate.pool,protocol:'v3-interface-transfer-reconciled',token0,token1,fee:Number(fee),factory,reconcile:true,
+     method:'factory.getPool(token0,token1,fee) == pool (unreviewed source); every row reconciled with token Transfer events'};
    }else return {excluded:'UNREVIEWED_FACTORY',factory};
   }
  }else return {excluded:'POOL_ID_INVALID'};
@@ -199,6 +205,33 @@ function decodeSwap(pool,log){
  }
  const side=tokenPool<0n&&counterPool>0n?'BUY':tokenPool>0n&&counterPool<0n?'SELL':'SWAP';
  return {side,tokenPool,counterPool};
+}
+const TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+const topicAddr=a=>'0x'+'0'.repeat(24)+a.slice(2);
+async function reconcileTransfers(rpc,rows,state){
+ const pools=[...new Map(rows.map(r=>[r.p.pool,r.p])).values()],tokens=[...new Set(pools.flatMap(p=>[p.token0,p.token1]))];
+ let lo=rows[0].block,hi=rows[0].block;for(const r of rows){if(r.block<lo)lo=r.block;if(r.block>hi)hi=r.block;}
+ const range={fromBlock:'0x'+lo.toString(16),toBlock:'0x'+hi.toString(16)},net=new Map(),ok=new Set();let calls=0;
+ try{
+  for(const dir of ['out','in']){
+   calls++;state.logCalls++;
+   const topics=dir==='out'?[TRANSFER,pools.map(p=>topicAddr(p.pool))]:[TRANSFER,null,pools.map(p=>topicAddr(p.pool))];
+   const logs=await rpc.call('eth_getLogs',[{address:tokens,topics,...range}]);
+   for(const l of Array.isArray(logs)?logs:[]){
+    if(l?.removed===true||(l.topics||[]).length!==3||String(l.data||'').length!==66)continue;
+    const pool='0x'+String(l.topics[dir==='out'?1:2]).slice(26).toLowerCase(),key=String(l.transactionHash).toLowerCase()+':'+pool+':'+String(l.address).toLowerCase();
+    const v=BigInt(l.data);net.set(key,(net.get(key)||0n)+(dir==='in'?v:-v));
+   }
+  }
+ }catch{return {ok,calls,status:'TRANSFER_LOGS_UNAVAILABLE'};}
+ // Sum the decoded pool deltas per tx+pool, then require BOTH token legs to match the Transfer ledger exactly.
+ const want=new Map();
+ for(const r of rows){const k=String(r.l.transactionHash).toLowerCase()+':'+r.p.pool;const w=want.get(k)||{p:r.p,d0:0n,d1:0n};
+  const tokenIs0=r.p.token0===r.p.token;w.d0+=tokenIs0?r.d.tokenPool:r.d.counterPool;w.d1+=tokenIs0?r.d.counterPool:r.d.tokenPool;want.set(k,w);}
+ for(const [k,w] of want){
+  if(w.d0!==0n&&w.d1!==0n&&(net.get(k+':'+w.p.token0)||0n)===w.d0&&(net.get(k+':'+w.p.token1)||0n)===w.d1)ok.add(k);
+ }
+ return {ok,calls,status:'OK',checked:want.size,matched:ok.size};
 }
 // V3: verified pools are scanned in GROUPS — all V2/V3 pools in one filter (address array, OR-ed Swap topics) and V4 pools per
 // PoolManager (poolIds OR-ed in topic1). Same events, same per-log checks, a fraction of the eth_getLogs calls.
@@ -306,7 +339,7 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  const meta=await tokenMeta(network,rpc,token,pinned);
  const base={ok:true,readOnly:true,network:cfg.id,chainId:cfg.chainId,token,tokenSymbol:meta.symbol,headBlock:headNumber.toString(),toBlock:toBlock.toString(),
   headTimestamp:new Date(headTs*1000).toISOString(),headAgeSeconds:headAgeS,confirmations:net.confirmations,observedAt:new Date(now()).toISOString(),
-  pools:pools.map(p=>({pool:p.pool,kind:p.kind,protocol:p.protocol,dex:p.dex,counter:p.counter,identity:'ONCHAIN_VERIFIED',method:p.method,providerTrades24h:p.providerTrades24h??null})),excludedPools:excluded,
+  pools:pools.map(p=>({pool:p.pool,kind:p.kind,protocol:p.protocol,dex:p.dex,counter:p.counter,identity:p.reconcile?'REGISTRY_PROVEN_TRANSFER_RECONCILED':'ONCHAIN_VERIFIED',method:p.method,providerTrades24h:p.providerTrades24h??null})),excludedPools:excluded,
   scope:'Swaps emitted by on-chain-verified pools of this exact contract in a bounded recent block window. Not every venue or aggregator route; not investment advice.'};
  // Provider-reported activity on pools we cannot verify: never silently treated as "no swaps".
  const activeExcluded=excluded.filter(x=>(x.providerTrades24h||0)>0);
@@ -333,7 +366,13 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  }
  rows.sort((a,b)=>a.block===b.block?b.logIndex-a.logIndex:(b.block>a.block?1:-1));
  remember(incremental,incKey,{toBlock,poolsKey,logs:rows.slice(0,KEEP_LOGS).map(r=>({pool:r.p.pool,l:r.l}))},200);
- const top=rows.slice(0,MAX_ROWS);
+ let top=rows.slice(0,MAX_ROWS);
+ // Transfer reconciliation for unreviewed V3-interface pools (two eth_getLogs calls cover every such row).
+ const rec=top.filter(r=>r.p.reconcile);let reconciled=null;
+ if(rec.length){
+  reconciled=await reconcileTransfers(rpc,rec,state);
+  top=top.filter(r=>!r.p.reconcile||reconciled.ok.has(String(r.l.transactionHash).toLowerCase()+':'+r.p.pool));
+ }
  // 5. per-row block binding and sender (bounded, cached; reorg = hash mismatch -> dropped)
  let reads=0;const counterMeta=new Map(),txCount=new Map();
  for(const r of rows)txCount.set(r.l.transactionHash,(txCount.get(r.l.transactionHash)||0)+1);
@@ -362,7 +401,7 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
   rowsOut[i]={side:r.d.side,tokenAmount:units(tokenAbs,meta.decimals),counterAmount:units(counterAbs,cm.decimals),counterSymbol:cm.symbol,counter:r.p.counter,
    usd:usd.usd,usdStatus:usd.usdStatus,usdBasis:usd.usdBasis,wallet:tx.from,route,txHash:String(r.l.transactionHash).toLowerCase(),logIndex:r.logIndex,
    block:r.block.toString(),blockHash:blk.hash,timestamp:new Date(blk.timestamp*1000).toISOString(),pool:r.p.pool,poolKind:r.p.kind,protocol:r.p.protocol,
-   explorerUrl:cfg.explorer+'/tx/'+String(r.l.transactionHash).toLowerCase(),verification:'ONCHAIN_VERIFIED'};
+   explorerUrl:cfg.explorer+'/tx/'+String(r.l.transactionHash).toLowerCase(),verification:r.p.reconcile?'ONCHAIN_TRANSFER_RECONCILED':'ONCHAIN_VERIFIED'};
  }
  await Promise.all(Array.from({length:Math.min(ROW_CONCURRENCY,top.length)},async()=>{while(cursor<top.length)await one(cursor++);}));
  const trades=rowsOut.filter(Boolean);
@@ -372,6 +411,7 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  let scannedSince=null;if(!trades.length&&scannedFrom<=toBlock){const b=await blockRead('0x'+scannedFrom.toString(16));if(b)scannedSince=new Date(b.timestamp*1000).toISOString();}
  const live=headAgeS<=net.maxHeadAgeS;
  const status=trades.length?(live?'LIVE':'DELAYED'):activeExcluded.length?'COVERAGE_INCOMPLETE':'NO_RECENT_SWAPS';
+ if(reconciled)base.reconciliation={status:reconciled.status,checked:reconciled.checked??0,matched:reconciled.matched??0,method:'Swap deltas must equal the tokens\' own Transfer events into/out of the pool in the same tx'};
  return {...base,coverage,status,reasonCode:trades.length?null:activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':'NO_SWAPS_IN_WINDOW',lastTradeAt:trades[0]?.timestamp||null,
   window:{fromBlock:from.toString(),scanFrom:scanFrom.toString(),scannedFromBlock:scannedFrom.toString(),scannedSince,toBlock:toBlock.toString(),mode,logCalls:state.logCalls,finalSpan:state.span,lookbackComplete:scannedFrom<=from},ethUsd:ethPrice,trades,cost:{rpcCalls:rpc.calls.n}};
 }

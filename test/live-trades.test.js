@@ -270,4 +270,27 @@ test('V3: provider 429 gets a bounded retry; persistent rate limiting still surf
  const dead=async(m,p)=>{if(m==='eth_getBlockByNumber')throw Error('HTTP 429');return base.fn(m,p);};
  const c=await lt.cached({network:'ethereum',address:TOKEN},()=>lt.analyze({network:'ethereum',address:TOKEN,rpcFn:dead,pools:[{pool:POOL,dex:'uniswap_v3',reserveUsd:5}]}));
  assert.equal(c.status,'UNAVAILABLE');assert.equal(c.reasonCode,'RPC_RATE_LIMITED','never presented as success');
+test('V3 Synthra-style adapter: unreviewed V3-interface pool proven by factory registry; rows shown ONLY when token Transfers reconcile exactly',async()=>{
+ lt._reset();
+ const T='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',U='0x'+'9'.repeat(40),pt=a=>'0x'+'0'.repeat(24)+a.slice(2);
+ const good=swapLog(990,1,v3data(-2n*10n**18n,5_000_000n)),bad=swapLog(995,3,v3data(10n**18n,-2_500_000n));
+ const xfer=(tx,token,from,to,v)=>({address:token,topics:[T,pt(from),pt(to)],data:'0x'+v.toString(16).padStart(64,'0'),transactionHash:tx,blockNumber:'0x3de'});
+ const transfers=[xfer(good.transactionHash,TOKEN,POOL,U,2n*10n**18n),xfer(good.transactionHash,USDC,U,POOL,5_000_000n),
+  xfer(bad.transactionHash,TOKEN,U,POOL,10n**18n),xfer(bad.transactionHash,USDC,POOL,U,2_400_000n)];   // USDC leg does not match the Swap
+ const blocks={'0x3de':{hash:'0xbh990',timestamp:'0x6553f100'},'0x3e3':{hash:'0xbh995',timestamp:'0x6553f200'}};
+ const txs={};for(const l of [good,bad])txs[l.transactionHash]={from:U,to:'0x'+'f'.repeat(40),blockHash:l.blockHash};
+ const base=rpcMock({factory:'0x'+'7'.repeat(40),registered:POOL,logs:[good,bad],blocks,txs});
+ const fn=async(m,p)=>{
+  if(m==='eth_getLogs'&&p[0].topics?.[0]===T){const [,from,to]=p[0].topics;
+   return transfers.filter(x=>p[0].address.includes(x.address)&&(!from||from.includes(x.topics[1]))&&(!to||to.includes(x.topics[2])));}
+  return base.fn(m,p);};
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:fn,pools:[{pool:POOL,dex:'synthra',reserveUsd:5,trades24h:45}]});
+ assert.equal(r.pools[0].protocol,'v3-interface-transfer-reconciled');assert.equal(r.pools[0].identity,'REGISTRY_PROVEN_TRANSFER_RECONCILED');
+ assert.equal(r.trades.length,1,'only the reconciled swap is shown');
+ assert.equal(r.trades[0].side,'BUY');assert.equal(r.trades[0].verification,'ONCHAIN_TRANSFER_RECONCILED');
+ assert.deepEqual({checked:r.reconciliation.checked,matched:r.reconciliation.matched},{checked:2,matched:1});
+ // factory that does NOT register the pool stays excluded
+ lt._reset();
+ const r2=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:rpcMock({factory:'0x'+'7'.repeat(40)}).fn,pools:[{pool:POOL,dex:'synthra',reserveUsd:5,trades24h:45}]});
+ assert.equal(r2.pools.length,0);assert.equal(r2.excludedPools[0].reasonCode,'UNREVIEWED_FACTORY');
 });
