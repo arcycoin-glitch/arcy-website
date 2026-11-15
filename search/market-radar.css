@@ -1009,3 +1009,28 @@
 .arcy-radar-partial-conflict .arcy-radar-partial-value{font-size:clamp(9px,.82vw,12px);line-height:1}
 .arcy-radar-partial-conflict .arcy-radar-partial-label{font-size:clamp(6px,.57vw,8px);letter-spacing:-.015em;text-align:center;white-space:nowrap}
 @media(max-width:520px){.arcy-radar-partial-conflict .arcy-radar-partial-value{font-size:9px}.arcy-radar-partial-conflict .arcy-radar-partial-label{font-size:7px}}
+
+/* Radar V3: transparent Arc candidate window and unranked below-floor 24h movers.
+   These rows are deliberately separate from the Discovery Score ranking. */
+#tokenDetail .arcy-radar-coverage-method{margin:9px 12px 8px;color:#a8c8d8;font-size:11px;line-height:1.55}
+#tokenDetail .arcy-radar-coverage-method[hidden],#tokenDetail .arcy-radar-observed-movers[hidden]{display:none!important}
+#tokenDetail .arcy-radar-observed-movers{display:flex;flex-direction:column;gap:7px;margin:13px 10px 4px;padding:12px;border:1px solid rgba(70,199,235,.34);border-radius:12px;background:rgba(4,20,31,.54)}
+#tokenDetail .arcy-radar-observed-heading{font-size:13px;font-weight:800;color:#e4f5ff;line-height:1.4}
+#tokenDetail .arcy-radar-observed-caption{margin:0 0 3px;color:#a8c7d7;font-size:11px;line-height:1.5}
+#tokenDetail .arcy-radar-observed-row{display:grid;grid-template-columns:minmax(75px,1fr)90px minmax(160px,2fr)120px;gap:10px;align-items:center;text-decoration:none!important;color:#e6f4ff;padding:10px;border:1px solid rgba(70,199,235,.16);border-radius:8px;background:rgba(1,13,25,.5);min-width:0}
+#tokenDetail .arcy-radar-observed-row:hover{border-color:#38c7e6;background:rgba(30,170,205,.10)}
+#tokenDetail .arcy-radar-observed-row:focus-visible{outline:2px solid #54ddf7;outline-offset:2px}
+#tokenDetail .arcy-radar-observed-ticker{font-weight:800;font-size:12px;overflow-wrap:anywhere}
+#tokenDetail .arcy-radar-observed-change{font-size:12px;font-variant-numeric:tabular-nums}
+#tokenDetail .arcy-radar-observed-change.positive{color:#48e8ae}
+#tokenDetail .arcy-radar-observed-change.negative{color:#ff7c8d}
+#tokenDetail .arcy-radar-observed-meta,#tokenDetail .arcy-radar-observed-basis{color:#b3cbd9;font-size:10px;line-height:1.5}
+@media(max-width:640px){
+ #tokenDetail .arcy-radar-observed-row{grid-template-columns:minmax(70px,1fr)65px minmax(90px,1.8fr);gap:6px}
+ #tokenDetail .arcy-radar-observed-basis{grid-column:1/-1}
+ #tokenDetail .arcy-radar-observed-meta{font-size:9px}
+}
+@media(max-width:390px){
+ #tokenDetail .arcy-radar-observed-row{grid-template-columns:minmax(64px,1fr)66px;gap:5px}
+ #tokenDetail .arcy-radar-observed-meta{grid-column:1/-1}
+}
