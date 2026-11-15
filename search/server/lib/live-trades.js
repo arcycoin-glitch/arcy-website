@@ -258,7 +258,9 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
   candidates=gecko.normalizePools(body,network,token).map(p=>{const t=p.attributes?.transactions?.h24||{};return {pool:p.pool,dex:p.dex,reserveUsd:Number(p.attributes?.reserve_in_usd)||0,
    volume24hUsd:Number(p.attributes?.volume_usd?.h24)||0,trades24h:(Number(t.buys)||0)+(Number(t.sells)||0)};});
  }
- candidates=[...candidates].sort((a,b)=>(b.reserveUsd||0)-(a.reserveUsd||0)).slice(0,8);
+ // Live Trading shows recent swaps, so the most ACTIVE pools (provider-reported 24h trades) are verified first; reserve breaks ties.
+ // Ordering only: every pool still has to pass the same on-chain identity checks.
+ candidates=[...candidates].sort((a,b)=>(b.trades24h||0)-(a.trades24h||0)||(b.reserveUsd||0)-(a.reserveUsd||0)).slice(0,8);
  // 2. identity (bounded: stop after MAX_POOLS verified pools)
  const pools=[],excluded=[];
  for(const c of candidates){

@@ -221,3 +221,12 @@ test('Data Engine V2: unreviewed-factory pool accepted only if its runtime equal
  }finally{global.fetch=saved;}
  assert.equal(lt.maskCode('0xzz',[]),null);assert.equal(typeof realDigest,'function');
 });
+
+test('V2: pools are verified in order of provider-reported activity, reserve only breaks ties', async()=>{
+ lt._reset();
+ const P=i=>'0x'+String(i).repeat(40);
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:rpcMock({factory:'0x'+'9'.repeat(40)}).fn,
+  pools:[{pool:P(1),reserveUsd:9e6,trades24h:3},{pool:P(2),reserveUsd:1e4,trades24h:491},{pool:P(3),reserveUsd:5e4,trades24h:3}]});
+ assert.deepEqual(r.excludedPools.map(x=>x.pool),[P(2),P(1),P(3)]);
+ assert.ok(r.excludedPools.every(x=>x.reasonCode),'each uncovered pool carries its reason code');
+});
