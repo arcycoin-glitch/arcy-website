@@ -102,6 +102,38 @@ const change24hReason=item=>{
   if(code==='SOURCE_24H_CHANGE_UNAVAILABLE')return 'Hiçbir kaynak bu token için 24 saatlik değişim bildirmedi.';
   return 'Bu token için 24 saatlik değişim doğrulanamadı.';
  };
+ // Data Engine V2 categories: a collapsed coverage summary built only from candidates the server already inspected.
+ // Nothing here is ranked, scored or called safe; anomaly flags are indicators only.
+ const CAT_FLAGS={DUPLICATE_TICKER_IN_WINDOW:'aynı ticker',VOLUME_FAR_ABOVE_LIQUIDITY:'hacim ≫ likidite',FEW_WALLETS_MANY_TRADES:'az cüzdan · çok işlem',ONE_SIDED_FLOW:'tek yönlü akış'};
+ const CAT_ORDER=[['qualified','nitelikli'],['emerging','yeni havuz (<24s)'],['momentumWatch','ivme izleme'],['lowLiquidityHighRisk','düşük likidite'],['insufficientEvidence','yetersiz kanıt']];
+ const CAT_TITLE={emerging:'Yeni projeler · havuz 24 saatten genç, tek kaynak, sıralanmaz',momentumWatch:'İvme izleme · yalnızca gözlem',lowLiquidityHighRisk:'Düşük likidite / yüksek risk',insufficientEvidence:'Yetersiz kanıt · alanlar eksik veya kaynaklar ayrışıyor'};
+ const renderCategories=(box,network,c)=>{
+  if(!box)return;box.replaceChildren();
+  const ok=c&&c.version==='data-engine-v2'&&c.qualified&&Number.isFinite(c.qualified.count);
+  box.hidden=!ok;if(!ok)return;
+  const sum=el('summary','arcy-radar-categories-summary');
+  sum.append(el('span','arcy-radar-categories-label','Kapsam'),el('span','arcy-radar-categories-counts',CAT_ORDER.map(([k,l])=>(Number.isFinite(c[k]?.count)?c[k].count:0)+' '+l).join(' · ')));
+  box.append(sum);
+  if(typeof c.funnel?.text==='string'){const f=el('p','arcy-radar-categories-funnel',c.funnel.text);f.translate=false;box.append(f);}
+  for(const key of ['emerging','momentumWatch','lowLiquidityHighRisk','insufficientEvidence']){
+   const items=Array.isArray(c[key]?.items)?c[key].items.filter(x=>/^0x[0-9a-f]{40}$/i.test(x?.address||'')).slice(0,5):[];
+   if(!items.length)continue;
+   const group=el('section','arcy-radar-categories-group');group.append(el('strong','arcy-radar-categories-title',CAT_TITLE[key]));
+   for(const x of items){
+    const row=el('a','arcy-radar-categories-row');row.href='/search/token/'+TOKEN_NET[network]+'/'+x.address;
+    const t=el('span','arcy-radar-categories-ticker',x.symbol||x.address.slice(0,9));t.translate=false;
+    const facts=[Number.isFinite(x.volume24hUsd)?'24s '+money(x.volume24hUsd):null,Number.isFinite(x.liquidityUsd)?'Lik. '+money(x.liquidityUsd):null,
+     Number.isFinite(x.ageHours)?x.ageHours+' sa':null,Number.isFinite(x.momentum?.volumeUsd?.h1)?'1s '+money(x.momentum.volumeUsd.h1):null,
+     Number.isFinite(x.change24hPct)?pct(x.change24hPct):null].filter(Boolean);
+    row.append(t,el('small','arcy-radar-categories-meta',facts.join(' · ')));
+    const flags=(x.anomalies||[]).map(a=>CAT_FLAGS[a]).filter(Boolean);
+    if(flags.length)row.append(el('small','arcy-radar-categories-flags','⚠ '+flags.join(' · ')));
+    group.append(row);
+   }
+   box.append(group);
+  }
+  box.append(el('p','arcy-radar-categories-note','Yalnızca bu istekte taranan adaylar. Kategoriler sıralamayı değiştirmez; güvenlik veya alım sinyali değildir.'));
+ };
  // Data Engine V2: a short visible reason beside the dash (full text stays in the info popover). No value is derived.
  const change24hShort=item=>{
   const f=item&&item.fields&&item.fields.change24hPct,code=f&&f.reasonCode;
@@ -281,6 +313,7 @@ const change24hReason=item=>{
     row.append(ticker,change,volume,basis);moversSection.append(row);
    }
   }
+  renderCategories(card.querySelector('.arcy-radar-categories'),network,verified?data.categories:null);
   const action=card.querySelector('.arcy-radar-overview-action');
   const wait=Math.max(0,(overviewRetryAt.get(network)||0)-Date.now());
   action.disabled=loading||(!hasData&&verified)||wait>0;
@@ -399,7 +432,7 @@ const change24hReason=item=>{
    for(const node of overview.children)node.classList.toggle('is-expanded',node.dataset.overview===expandedNetwork);
    action.setAttribute('aria-expanded',String(expandedNetwork===id));
   });
-  action.setAttribute('aria-expanded','false');card.append(head,count,coverageMethod,list,discoveryNote,moversSection,action);overview.append(card);
+  action.setAttribute('aria-expanded','false');const categories=el('details','arcy-radar-categories');categories.hidden=true;card.append(head,count,coverageMethod,list,discoveryNote,moversSection,categories,action);overview.append(card);
  }
 
  // Network headings control ONE full-width premium card at a time.

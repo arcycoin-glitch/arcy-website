@@ -577,3 +577,29 @@ test('Pons membership RPC outage serves the last verified Pons ranking as bounde
  now=T0+4*3600*1000;http._resetCooldowns();
  await assert.rejects(radar.load('pons',options),{code:'RADAR_PONS_MEMBERSHIP_UNAVAILABLE'},'beyond the 3 h bound the outage is reported, not hidden');
 });
+
+// ── Data Engine V2: categories from already-inspected candidates (no extra calls, ranking unchanged) ──────────
+test('Data Engine V2 categories: emerging/momentum/anomaly flags come from the same payload; ranking and call count unchanged',async()=>{
+ const net='ethereum',body=geckoBody(net,{count:14});
+ // two young pools: one wash-like (few wallets, one-sided, volume >> liquidity) sharing a ticker with a ranked token, one accelerating
+ const young=geckoBody(net,{count:2,start:600,created:()=>new Date(T0-3*3600000).toISOString()});
+ young.data[0].attributes.reserve_in_usd='1000';young.data[0].attributes.volume_usd={h24:'500000',h6:'400000',h1:'50000',m5:'1000'};
+ young.data[0].attributes.transactions={h24:{buys:400,sells:2,buyers:20,sellers:2},h1:{buys:30,sells:0}};
+ young.included.find(x=>x.attributes.address===young.data[0].relationships.base_token.data.id.split('_')[1]).attributes.symbol='T0';
+ young.data[1].attributes.volume_usd={h24:'200000',h6:'190000',h1:'120000',m5:'9000'};young.data[1].attributes.transactions={h24:{buys:60,sells:55,buyers:50,sellers:40},h1:{buys:20,sells:15}};
+ const merged={data:[...body.data,...young.data],included:[...body.included,...young.included]};
+ const f=router([...CG(net,merged),[/dexscreener\.com/,()=>resp(dexBody(net,body))]]);
+ const out=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
+ assert.equal(out.tokens.length,10,'ranking unchanged');
+ assert.equal(f.calls.filter(c=>/coingecko\.com|dexscreener\.com/.test(c.url)).length,5,'no extra provider calls');
+ const c=out.categories;assert.equal(c.version,'data-engine-v2');assert.equal(c.qualified.count,10);
+ assert.equal(c.emerging.count,2);assert.equal(c.emerging.items[0].status,'SOURCE_REPORTED');assert.equal(c.emerging.items[0].ageHours,3);
+ const wash=c.emerging.items.find(x=>x.symbol==='T0');
+ assert.deepEqual(wash.anomalies.sort(),['DUPLICATE_TICKER_IN_WINDOW','FEW_WALLETS_MANY_TRADES','ONE_SIDED_FLOW','VOLUME_FAR_ABOVE_LIQUIDITY']);
+ assert.deepEqual(wash.momentum.volumeUsd,{m5:1000,h1:50000,h6:400000,h24:500000});
+ assert.ok(c.momentumWatch.items.some(x=>x.signal==='LAST_HOUR_ACCELERATION'&&x.momentum.volumeUsd.h1===120000));
+ assert.ok(!c.momentumWatch.items.some(x=>x.symbol==='T0'),'50k/500k last hour is not acceleration');
+ assert.match(c.funnel.text,/candidates inspected → .*POOL_UNDER_24H.* → 10 ranked/);
+ assert.ok(out.excluded.every(x=>!('momentum' in x)),'public excluded list stays compact');
+ assert.ok(out.tokens.every(t=>!('momentum' in t)&&!('categories' in t)),'ranked rows unchanged');
+});
