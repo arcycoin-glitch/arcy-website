@@ -87,14 +87,14 @@
   const upcoming=category==='UPCOMING';
   const targetExpires=dateOnly(event.targetAt)?Date.parse(event.targetAt)+86400000:instant(event.targetAt);
   const targetWindow=event.targetStatus==='TENTATIVE'&&typeof event.targetWindow==='string'&&/^Q[1-4] 20\d{2}$/.test(event.targetWindow)?event.targetWindow:null;
-  if(upcoming?(!Object.hasOwn(plans,event.targetStatus)||(!targetWindow&&!Number.isFinite(targetExpires))):
+  if(upcoming?(!Object.hasOwn(plans,event.targetStatus)||(!targetWindow&&!Number.isFinite(targetExpires)&&!['ANNOUNCED','PROPOSED'].includes(event.targetStatus))):
       (event.targetStatus!==null||event.targetAt!==null))return null;
   if(upcoming&&event.targetAt!==null&&targetExpires<=Date.now())return null;
   used.add(source);
   const body=node('dl',null,'pulse-project-details');
   if(upcoming){
    body.append(node('dt','Plan status'),node('dd',plans[event.targetStatus]),node('dt','Announced target'));
-   const target=node('dd');target.append(targetWindow||time(event.targetAt,!dateOnly(event.targetAt)));body.append(target);
+   const target=node('dd');target.append(targetWindow||(Number.isFinite(targetExpires)?time(event.targetAt,!dateOnly(event.targetAt)):'Date not provided'));body.append(target);
   }
   if(category==='RISK_ALERT'&&Object.hasOwn(incidents,event.incidentStatus))body.append(node('dt','Publisher status'),node('dd',incidents[event.incidentStatus]));
   if(cleanText(event.reference)&&event.reference.length<=100)body.append(node('dt','Source reference'),node('dd',event.reference));
@@ -116,21 +116,37 @@
   if(lastSuccessfulAt)desc.append(' Last successful check ',time(lastSuccessfulAt,true),'.');
   for(const [slot,category] of categories.entries()){
    const card=grid.children[slot],item=projectCards[slot];
+   const name=chains[index][2];
    let state=status||item?.state;
    const eligible=!status&&item?.category===category&&state==='VERIFIED'&&(freshness==='FRESH'||freshness==='PARTIAL');
    const parts=eligible?eventParts(item.event,category,used,Date.parse(checkedAt)):null;
-   if(!parts&&(!Object.hasOwn(messages,state)||(!status&&item?.category!==category)))state='SOURCE_UNAVAILABLE';
+   const watch=!status&&slot===2&&state==='WATCH'&&(freshness==='FRESH'||freshness==='PARTIAL')&&
+    Array.isArray(item.projects)&&item.projects.length>0&&item.projects.length<=3&&
+    item.projects.every(project=>primaryUrl(project.url)&&cleanText(project.project)&&cleanText(project.title)&&
+      cleanText(project.summary)&&cleanText(project.implication)&&cleanText(project.limitation)&&
+      Number.isFinite(instant(project.publishedAt))&&instant(project.publishedAt)<=Date.parse(checkedAt));
+   const watchParts=watch?[node('small',name,'pulse-owner'),node('h4','Weekly project watch'),
+    node('p','Recent activity from reviewed primary sources. This is a research list, not an investment ranking.')]:null;
+   if(watchParts)for(const project of item.projects){
+    const row=node('div',null,'pulse-watch-row');
+    const link=node('a',project.project+' · '+project.title);link.href=primaryUrl(project.url);link.target='_blank';link.rel='noopener noreferrer';
+    row.append(link,node('small',project.summary),node('small',project.implication),node('small',project.limitation),
+      node('small',project.publisher+' · '+project.publishedAt.slice(0,10)+' · '+
+      (project.updateCount>1?project.updateCount+' verified source updates':project.evidenceGrade==='PUBLISHED_RELEASE'?'Published release':'Project publication')));
+    watchParts.push(row);
+   }
+   if(!parts&&!watchParts&&(!Object.hasOwn(messages,state)||(!status&&item?.category!==category)))state='SOURCE_UNAVAILABLE';
    if(!parts&&status!=='LOADING'&&freshness==='STALE')state='STALE';
    if(!parts&&freshness==='UNAVAILABLE'&&state!=='LOADING')state='SOURCE_UNAVAILABLE';
-   const name=chains[index][2],reason=item?.state===state?item?.reasonCode:null;
+   const reason=item?.state===state?item?.reasonCode:null;
    const description=Object.hasOwn(reasons,reason)?reasons[reason]:messages[state]?.[1];
-   const content=parts||[node('small',name,'pulse-owner'),node('h4',messages[state][0]),node('p',description)];
-   if(!parts&&category==='RISK_ALERT'&&state!=='LOADING')content.push(node('p','Coverage is limited to reviewed sources.'));
+   const content=parts||watchParts||[node('small',name,'pulse-owner'),node('h4',messages[state][0]),node('p',description)];
+   if(!parts&&!watchParts&&category==='RISK_ALERT'&&state!=='LOADING')content.push(node('p','Coverage is limited to reviewed sources.'));
    card.dataset.pulseState=state;
    if(state==='LOADING')card.setAttribute('aria-busy','true');else card.removeAttribute('aria-busy');
    const label=node('span'),icon=node('span',null,'v8-pulse-icon');icon.setAttribute('aria-hidden','true');
    const glyph=node('img');glyph.className='pulse-category-glyph';glyph.src='/assets/pulse-'+categoryIcons[slot]+'.svg';glyph.alt='';glyph.width=25;glyph.height=25;icon.append(glyph);
-   label.append(icon,node('span',category));
+   label.append(icon,node('span',slot===0?'LATEST DEVELOPMENTS':slot===1?'ANNOUNCED & NEXT':watchParts?'WEEKLY PROJECT WATCH':category));
    const children=[label,...content],art=card.querySelector(':scope > img[aria-hidden="true"]');
    if(art)children.push(art);
    if(children.length!==card.children.length||children.some((child,i)=>!child.isEqualNode(card.children[i])))card.replaceChildren(...children);

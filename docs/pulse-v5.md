@@ -1,0 +1,7 @@
+# Pulse V5 project intelligence
+
+The existing signed V2 worker snapshot remains the authority. The first card selects a dated completed development. The second accepts an attributed future project announcement without an invented target date. An undated plan expires 30 days after publication. A scheduled plan still needs a future target, and expired or contradictory targets remain ineligible.
+
+The third card gives a current official risk report priority. Otherwise it derives up to three project rows from distinct signed source events in the current UTC week. It excludes the articles already used by the other cards, requires a healthy source in the current scan, and displays only dated published activity. The score is two points per distinct update, capped at three updates, plus two for a published stable release and one for a completed development. Score is used only for deterministic ordering. Ties use publication time then project name. No market or investment score is implied.
+
+All three cards use the original fixed grid, tabs and carousel. A missing project update yields the existing coverage state. The existing 15-minute worker cadence, 45-minute expiry, signing key, V1/V2 persistence, source allowlist and request limits remain in effect. This change adds no source endpoint or RPC use. Weekly selection is recalculated from the signed snapshot and retained event history after a restart. Roll back by restoring the previous worker and website deployment. The published V2 snapshot remains readable by V4.

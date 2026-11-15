@@ -9,6 +9,7 @@ const origin = 'http://127.0.0.1:3187';
 const NOW = Date.parse('2026-11-14T12:00:00.000Z');
 const MINUTE = 60000;
 const categories = ['ACHIEVED', 'UPCOMING', 'RISK_ALERT'];
+const visibleCategories = ['LATEST DEVELOPMENTS', 'ANNOUNCED & NEXT', 'RISK_ALERT'];
 const chains = { arc: [5042, 'Arc'], ethereum: [1, 'Ethereum'], robinhood: [4663, 'Robinhood Chain'] };
 const editionCard = { kind: 'week', title: 'Historical Pulse #003 fixture', summary: 'This is an archived article.', url: 'https://www.circle.com/' };
 const legacy = { ok: true, number: 3, take: 'Archived research fixture', cards: [
@@ -86,7 +87,7 @@ async function verifyRefresh(browser) {
     await grid.getByRole('heading', { name: 'Sources unavailable' }).nth(2).waitFor();
     assert.equal(requests, 2);
     assert.equal(await grid.getByRole('link').count(), 0);
-    assert.deepEqual(await grid.locator('.pulse-card > span > span:last-child').allTextContents(), categories);
+    assert.deepEqual(await grid.locator('.pulse-card > span > span:last-child').allTextContents(), visibleCategories);
     await page.evaluate(() => { window.setVisibilityFixture(true); window.setVisibilityFixture(false); });
     await page.clock.fastForward(MINUTE);
     assert.equal(requests, 2);
@@ -128,7 +129,7 @@ async function main() {
         await panel.locator('.pulse-card[data-pulse-state="VERIFIED"]').nth(2).waitFor();
         const cards = panel.locator('.pulse-card');
         assert.equal(await cards.count(), 3);
-        assert.deepEqual(await cards.locator(':scope > span > span:last-child').allTextContents(), categories);
+        assert.deepEqual(await cards.locator(':scope > span > span:last-child').allTextContents(), visibleCategories);
         const marks = cards.locator('.pulse-category-glyph');
         await marks.first().evaluate(img => img.decode());
         assert.deepEqual(await marks.evaluateAll(items => items.map(img => [img.getAttribute('src'), img.alt,

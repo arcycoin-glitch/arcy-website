@@ -26,6 +26,10 @@
 #pulse .pulse-project-source{display:grid;gap:4px;margin-top:auto;font-size:12px;color:#b9cfdc}
 #pulse .pulse-project-source a{width:fit-content;color:var(--accent);padding:8px 0;font-weight:800;font-size:12px}
 #pulse .pulse-project-source a:focus-visible{outline:2px solid #ff984b;outline-offset:3px}
+#pulse .pulse-watch-row{display:grid;gap:5px;padding:11px 0;border-top:1px solid rgba(170,197,219,.18)}
+#pulse .pulse-watch-row a{color:#dceefa;font-weight:700;text-decoration:none;line-height:1.35}
+#pulse .pulse-watch-row a:hover,#pulse .pulse-watch-row a:focus-visible{text-decoration:underline}
+#pulse .pulse-watch-row small{color:#a2c3d3;font-size:11px}
 @media(min-width:761px){#pulse .pulse-grid:has(> .pulse-project-card){grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){
  #pulse .pulse-grid{

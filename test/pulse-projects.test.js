@@ -58,6 +58,25 @@ test('new publication, completed release, future plan and official security repo
   assert.match(newsView(next, 'ethereum', { now: NOW + HOUR }).projectCards[0].event.title, /1\.17\.13/);
 });
 
+test('an official undated plan remains an announcement and weekly watch uses signed project activity', async () => {
+  const undated = { ...post, title: 'Ethereum mainnet protocol upgrade plan',
+    summary: 'The Ethereum Foundation plans to activate the protocol upgrade on Ethereum mainnet.',
+    url: 'https://blog.ethereum.org/en/2026/11/13/undated-upgrade-plan' };
+  const snapshot = await scanNews({ now: NOW, fetcher: sourceFixture({ articles: [undated], advisories: [],
+    releases: [gethRelease('v1.17.12'), gethRelease('v1.17.11')] }) });
+  assert.ok(validSnapshot(snapshot));
+  const view = newsView(snapshot, 'ethereum', { now: NOW });
+  assert.equal(view.projectCards[1].event.targetAt, null);
+  assert.equal(view.projectCards[1].event.targetStatus, 'ANNOUNCED');
+  assert.equal(view.projectCards[2].state, 'WATCH');
+  assert.equal(view.projectCards[2].projects.length, 1);
+  assert.equal(view.projectCards[2].projects[0].project, 'Go Ethereum');
+  assert.equal(view.projectCards[2].projects[0].evidenceGrade, 'PUBLISHED_RELEASE');
+  assert.notEqual(view.projectCards[2].projects[0].url, view.projectCards[0].event.url);
+  const compromised = await scanNews({ now: NOW, fetcher: sourceFixture({ articles: [undated] }) });
+  assert.equal(newsView(compromised, 'ethereum', { now: NOW }).projectCards[2].state, 'VERIFIED');
+});
+
 test('undated, expired, future publication, closed target and conflicting completion claims are withheld', async () => {
   const article = (slug, title, summary, date = checkDate) => ({ title, summary, date,
     url: `https://blog.ethereum.org/en/2026/11/13/${slug}` });
