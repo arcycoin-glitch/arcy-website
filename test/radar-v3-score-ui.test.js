@@ -327,3 +327,11 @@ test('Data Engine V2: collapsed Kapsam categories render from the API field and 
  assert.equal(calls.length,4,'no extra request');
  assert.equal(panel(detail,'ethereum').querySelector('.arcy-radar-categories').hidden,true,'absent field → hidden');
 });
+test('Data Engine V2: Radar shows Search exact-contract artwork paths only; other relative/foreign URLs are rejected',async()=>{
+ for(const [url,ok] of [['/search/assets/token-icons/uni.svg',true],['/assets/hero-arcy.png',true],['/search/assets/token-icons/../x.svg',false],['//evil.example/x.svg',false],['/api/x.svg',false],['http://cdn.dexscreener.com/cms/images/a.png',false]]){
+  const d=data('ethereum');d.tokens[0].logo={url,source:'x'};
+  const {detail}=await mount({overrides:{ethereum:d}});
+  const img=panel(detail,'ethereum').querySelector('.arcy-radar-overview-token-logo');
+  assert.equal(Boolean(img),ok,url);if(ok)assert.equal(img.src,url);
+ }
+});

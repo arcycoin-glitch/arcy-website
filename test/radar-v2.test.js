@@ -603,3 +603,13 @@ test('Data Engine V2 categories: emerging/momentum/anomaly flags come from the s
  assert.ok(out.excluded.every(x=>!('momentum' in x)),'public excluded list stays compact');
  assert.ok(out.tokens.every(t=>!('momentum' in t)&&!('categories' in t)),'ranked rows unchanged');
 });
+
+test('Data Engine V2 logo identity: Radar reuses Search exact-contract artwork (chain + contract), never by ticker',async()=>{
+ const net='ethereum',UNI='0x1f9840a85d5af5bf1d1762f925bdaddc4201f984';
+ const body=JSON.parse(JSON.stringify(geckoBody(net,{count:14})).split(addr(1)).join(UNI));
+ const f=router([...CG(net,body),[/dexscreener\.com/,()=>resp(dexBody(net,body))]]);
+ const out=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true});
+ const uni=out.tokens.find(t=>t.address===UNI);
+ assert.ok(uni,'fixture token present');assert.deepEqual(uni.logo,{url:'/search/assets/token-icons/uni.svg',source:'ARCY Search exact-contract artwork'});
+ assert.ok(out.tokens.filter(t=>t.address!==UNI).every(t=>!t.logo||t.logo.url.startsWith('https://')),'other contracts keep provider artwork rules');
+});
