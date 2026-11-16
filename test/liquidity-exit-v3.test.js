@@ -155,5 +155,5 @@ test('dispatcher routes by reviewed factory and still refuses an unknown one',as
  assert.equal((await code(world({poolFactory:UNI2.factory}).route())).reasonCode,'NOT_V2_COMPATIBLE_POOL');
  assert.deepEqual(router.supported('ethereum'),{v2:['uniswap-v2','sushiswap-v2'],v3:['uniswap-v3'],v4:[]});
  assert.deepEqual(router.supported('robinhood'),{v2:[],v3:['uniswap-v3'],v4:['uniswap-v4']});
- const none=world();assert.equal((await code(none.route({network:'arc'}))).reasonCode,'FACTORY_NOT_REVIEWED');assert.ok(none.calls.length>0);
+ const none=world();assert.equal((await code(none.route({network:'arc'}))).reasonCode,'FACTORY_NOT_REVIEWED');assert.equal(none.calls.length,0,'#262: decided without RPC when the chain has no reviewed V2/V3 engine');
 });
