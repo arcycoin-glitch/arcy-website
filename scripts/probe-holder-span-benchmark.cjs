@@ -5,15 +5,15 @@
 // pinned block, and EXACT equality sum(balances) == totalSupply(). Anything less is reported as not reconciled.
 const TOKEN=String(process.env.BENCH_TOKEN||'0x178b01f61cbea1d2a5581fe1621be607835ec349').toLowerCase();
 const RPCS=['https://rpc.mainnet.arc.io','https://rpc.quicknode.mainnet.arc.io'];
-const TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',WINDOW=2000,CONC=4;
+const TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',WINDOW=2000,CONC=2,PACE_MS=120;
 const hex=n=>'0x'+n.toString(16),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let calls=0;
 async function rpc(method,params){
- for(let attempt=0;attempt<6;attempt++){
-  const url=RPCS[attempt%RPCS.length];calls++;
+ for(let attempt=0;attempt<10;attempt++){
+  const url=RPCS[attempt%RPCS.length];calls++;await sleep(PACE_MS);
   try{const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(20000)});
    const d=await r.json();if(d.error)throw Error(JSON.stringify(d.error).slice(0,120));return d.result;}
-  catch(e){if(attempt===5)throw e;await sleep(400*(attempt+1));}
+  catch(e){if(attempt===9)throw e;await sleep(/rate limit|-32005|429/i.test(String(e.message))?3000*(attempt+1):500*(attempt+1));}
  }
 }
 const log=(k,v)=>console.log('BENCH '+k+' '+JSON.stringify(v));
