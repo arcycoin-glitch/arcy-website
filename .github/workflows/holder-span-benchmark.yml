@@ -1,0 +1,21 @@
+name: 'Holder span benchmark (read-only, #262)'
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-holder-span-benchmark.cjs'
+      - '.github/workflows/holder-span-benchmark.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-holder-span-benchmark.cjs
