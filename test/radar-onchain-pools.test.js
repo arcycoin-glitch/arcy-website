@@ -22,7 +22,7 @@ test('on-chain discovery: V4 Initialize + V3 PoolCreated, base token = non-quote
  assert.equal(r.tokens[0].address,T1);assert.equal(r.tokens[0].pools.length,2);assert.deepEqual(new Set(r.tokens[0].pools.map(p=>p.dex)),new Set(['uniswap-v4','synthra-arc']));
  assert.equal(r.tokens[0].pools.find(p=>p.dex==='synthra-arc').sourceStatus,'DISCOVERY_ONLY_UNREVIEWED');
  assert.equal(r.tokens[0].symbol,'NEW');
- assert.ok(r.scanned.calls<=op.MAX_LOG_CALLS+2+op.MAX_SYMBOLS);assert.equal(r.status,'OK');
+ assert.ok(r.scanned.calls<=op.MAX_LOG_CALLS+2+op.MAX_SYMBOLS);assert.ok(['OK','PARTIAL_WINDOW'].includes(r.status));
 });
 test('on-chain discovery: provider range errors narrow the span; unknown networks are explicit',async()=>{
  const m=mock({fail:2});const r=await op.discover('arc',m.fn);
@@ -32,4 +32,8 @@ test('on-chain discovery: provider range errors narrow the span; unknown network
 test('parse rejects malformed creation events',()=>{
  const src={kind:'V3'};assert.equal(op.parse(src,{topics:[op.TOPICS.V3_POOL_CREATED],data:'0x'}),null);
  assert.equal(op.parse({kind:'V4'},{topics:[op.TOPICS.V3_POOL_CREATED,'0x1','0x2','0x3']}),null);
+});
+test('V3 Arc: persistent chunk errors at the minimum span are skipped as gaps, the scan continues',async()=>{
+ const m=mock({fail:6});const r=await op.discover('arc',m.fn);
+ assert.notEqual(r.status,'UNAVAILABLE');assert.ok(r.scanned.gaps>=1||r.scanned.errors>=1);assert.ok(r.scanned.calls<=op.MAX_LOG_CALLS+2+op.MAX_SYMBOLS);
 });

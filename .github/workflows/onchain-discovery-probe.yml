@@ -1,0 +1,22 @@
+name: Radar on-chain discovery probe (read-only)
+on:
+  pull_request:
+    paths:
+      - 'lib/radar-v2/onchain-pools.js'
+      - 'scripts/probe-onchain-discovery.cjs'
+      - '.github/workflows/onchain-discovery-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-onchain-discovery.cjs
