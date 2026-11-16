@@ -37,3 +37,9 @@ test('V3 Arc: persistent chunk errors at the minimum span are skipped as gaps, t
  const m=mock({fail:6});const r=await op.discover('arc',m.fn);
  assert.notEqual(r.status,'UNAVAILABLE');assert.ok(r.scanned.gaps>=1||r.scanned.errors>=1);assert.ok(r.scanned.calls<=op.MAX_LOG_CALLS+2+op.MAX_SYMBOLS);
 });
+test('#262: duplicate creation logs (overlapping/retried chunks) count once; Arc span never exceeds the verified 7.5k',async()=>{
+ const T1=A(1),log=v4('0x'+'c'.repeat(64),USDC,T1,199000);
+ const m=mock({logs:[log,{...log}]});const r=await op.discover('arc',m.fn);
+ assert.equal(r.poolCount,1);assert.equal(r.tokens[0].pools.length,1);
+ assert.ok(op.WINDOW.arc.maxSpan<=7500&&op.WINDOW.arc.span<=7500);
+});
