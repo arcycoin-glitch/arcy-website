@@ -4,7 +4,8 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
 const BASE=process.env.ARCY_BASE||'https://www.arcyusdc.xyz';
 const TOKENS=[['ethereum','0x6982508145454ce325ddbe47a25d4ec3d2311933','PEPE'],['robinhood','0x18e674231a58c239dc7daedcffe15ec3a24cff5c','UERC20'],['arc','0xece5ca8bf9220718e5727754026757512212cb3c','ARGUS-TAX'],['arc','0xf76b1d00bd3d63a37246b5f512074e864010e33d','POLL']];
 // Third-party embeds (the GeckoTerminal chart iframe) are reported separately; they are not ARCY page errors.
-const THIRD_PARTY=/geckoterminal\.com|cables\.geckoterminal/i;
+// ARCY registers no service worker; ServiceWorker/script-fetch errors come only from the embedded third-party chart iframe.
+const THIRD_PARTY=/geckoterminal\.com|cables\.geckoterminal|ServiceWorker|bad HTTP response code \(403\) was received when fetching the script/i;
 const ORDER=['Live Trading','Liquidity & Trading','Holder & Whale','Contract & Mechanics','Supply & Burn','Market Activity'];
 (async()=>{const browser=await chromium.launch({headless:true,channel:process.env.ARCY_BROWSER_CHANNEL||'chrome'});let fail=0;
  for(const width of[1440,390])for(const [network,address,label] of TOKENS){
