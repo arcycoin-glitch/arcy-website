@@ -331,3 +331,12 @@ test('V3 Synthra real-trade reconciliation (Arc tx 0x5a01…): fee-skim transfer
  const r2=await lt.analyze({network:'ethereum',address:POLLT,rpcFn:fn2,pools:[{pool:POOL,dex:'synthra-arc',reserveUsd:5,trades24h:45}]});
  assert.equal(r2.trades.length,0,'a swap whose payout transfer is missing is never shown');assert.equal(r2.status,'COVERAGE_INCOMPLETE');
 });
+test('#262: a Swap event with zero researched-token delta is never displayed as a trade',async()=>{
+ lt._reset();
+ const logs=[swapLog(990,1,v3data(0n,0n)),swapLog(995,3,v3data(10n**18n,-2_500_000n))];
+ const blocks={'0x3de':{hash:'0xbh990',timestamp:'0x6553f100'},'0x3e3':{hash:'0xbh995',timestamp:'0x6553f200'}};
+ const txs={};for(const l of logs)txs[l.transactionHash]={from:'0x'+'e'.repeat(40),to:POOL,blockHash:l.blockHash};
+ const m=rpcMock({registered:POOL,logs,blocks,txs});
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:m.fn,pools:[{pool:POOL,dex:'uniswap_v3',reserveUsd:5}]});
+ assert.equal(r.trades.length,1);assert.equal(r.trades[0].side,'SELL');assert.ok(r.trades.every(t=>t.tokenAmount!=='0'));
+});

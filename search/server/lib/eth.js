@@ -75,7 +75,7 @@ async function inspect(address){
   if(Number(BigInt(chain))!==CHAIN_ID)throw Error('RPC chain ID is not Ethereum mainnet');
   const block=await rpc('eth_blockNumber',[]);
   const code=await rpc('eth_getCode',[normalized,block]);
-  if(code==='0x')throw Error('No contract deployed at this address');
+  if(code==='0x')throw Object.assign(Error('No contract deployed at this address'),{code:'NO_CONTRACT_CODE'});
   if(typeof code!=='string'||!/^0x[0-9a-fA-F]+$/.test(code))throw Error('Invalid contract bytecode');
   const call=data=>rpc('eth_call',[{to:normalized,data},block]);
   // All getters use the already verified chain, code and pinned block.

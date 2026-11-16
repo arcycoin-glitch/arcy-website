@@ -374,6 +374,9 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  for(const {p,l} of found){
   const key=String(l.transactionHash).toLowerCase()+':'+String(l.logIndex);if(seen.has(key))continue;seen.add(key);
   const d=decodeSwap(p,l);if(!d)continue;
+  // #262: a Swap event that moved none of the researched token (e.g. a zero-delta V4 hook/donate path) is not a trade of it.
+  // Production showed such a row as 'SWAP 0 · 0 PGA'. It is skipped, never displayed as a trade.
+  if(d.tokenPool===0n)continue;
   rows.push({p,l,d,block:BigInt(l.blockNumber),logIndex:Number(BigInt(l.logIndex))});
  }
  rows.sort((a,b)=>a.block===b.block?b.logIndex-a.logIndex:(b.block>a.block?1:-1));
