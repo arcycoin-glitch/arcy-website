@@ -108,7 +108,7 @@ const section=(network,tokens,over={})=>({ok:true,network,chainId:{arc:5042,ethe
 const goodExit=async()=>({ok:true,executableUsd:25000,verifiedSizes:3,model:'TEST_REVIEWED_MODEL',block:1});
 async function runOne({w=world(),routes=githubRoutes(),reg=registryDoc(),rows=[row()],exitAnalyzer=goodExit,limits={}}={}){
  F._reset();E._clearCache();OC._resetMemo();
- return E.run({sections:{ethereum:section('ethereum',rows)},now:NOW,env:{},fetcher:http(routes),rpc:{ethereum:w.rpc},registryDoc:reg,exitAnalyzer,limits:{concurrency:1,...limits}});
+ return E.run({sections:{ethereum:section('ethereum',rows)},now:NOW,env:{},fetcher:http(routes),rpc:{ethereum:w.rpc},registryDoc:reg,exitAnalyzer,limits:{concurrency:1,pace:false,...limits}});
 }
 const only=r=>r.networks.ethereum.all[0];
 
@@ -171,7 +171,7 @@ test('one-whale wash activity is not organic demand',async()=>{
 });
 test('router hops are followed to the final buyer (router is not counted as a buyer)',async()=>{
  const w=world({buyers:20});
- const d=await OC.demand({rpc:w.rpc,network:'ethereum',candidate:row(),now:NOW,budget:{max:100,used:0}});
+ const d=await OC.demand({rpc:w.rpc,network:'ethereum',candidate:row(),now:NOW,budget:{max:100,used:0,pace:false}});
  assert.equal(d.distinctBuyers,20);assert.equal(d.window.complete,true);assert.ok(d.topBuyerShare<=0.06);
 });
 test('critical risk vetoes regardless of score: sell blocked, unlimited mint, blacklist privilege',async()=>{
@@ -294,7 +294,7 @@ test('budgets: per-network RPC budget is enforced and reported; on-chain work is
 });
 test('warm cache: a second run inside TTL spends no new HTTP or history RPC calls',async()=>{
  const w=world();F._reset();E._clearCache();OC._resetMemo();
- const opts={sections:{ethereum:section('ethereum',[row()])},now:NOW,env:{},fetcher:http(githubRoutes()),rpc:{ethereum:w.rpc},registryDoc:registryDoc(),exitAnalyzer:goodExit,limits:{concurrency:1}};
+ const opts={sections:{ethereum:section('ethereum',[row()])},now:NOW,env:{},fetcher:http(githubRoutes()),rpc:{ethereum:w.rpc},registryDoc:registryDoc(),exitAnalyzer:goodExit,limits:{concurrency:1,pace:false}};
  const a=await E.run(opts);const before=w.calls.n;const b=await E.run(opts);
  assert.ok(b.cost.cacheHits>=5);assert.equal(b.cost.httpUsed,0);assert.ok(w.calls.n-before<=6,'only pool identity + decimals re-read: '+(w.calls.n-before));
  assert.equal(a.networks.ethereum.all[0].decisionHash,b.networks.ethereum.all[0].decisionHash);
@@ -386,6 +386,6 @@ test('live-probe regression: block-at-time converges from below on irregular blo
 test('live-probe regression: unreadable Transfer logs are NOT reported as zero verified buyers',async()=>{
  const w=world();
  const rpc=async(m,p)=>{if(m==='eth_getLogs')throw Object.assign(Error('response too large'),{code:'RPC_RESPONSE_TOO_LARGE'});return w.rpc(m,p);};
- const d=await OC.demand({rpc,network:'ethereum',candidate:row(),now:NOW,budget:{max:100,used:0}});
+ const d=await OC.demand({rpc,network:'ethereum',candidate:row(),now:NOW,budget:{max:100,used:0,pace:false}});
  assert.deepEqual(d,{ok:false,reason:'TRANSFER_LOGS_UNREADABLE'});
 });
