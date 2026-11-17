@@ -1,0 +1,20 @@
+name: Mechanics source evidence probe (read-only)
+on:
+  pull_request:
+    paths:
+      - scripts/probe-mechanics-gta6.cjs
+      - .github/workflows/mechanics-source-probe.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  gta6-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Probe GTA6 candidates and verified runtime sources without keys
+        run: node scripts/probe-mechanics-gta6.cjs
