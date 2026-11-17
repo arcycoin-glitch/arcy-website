@@ -4,6 +4,7 @@ const identity=require('../search/server/lib/token-identity');
 const FLOKI='0xcf0c122c6b73ff809c693db761e7baebe62b6a2e';
 const ARC_USDC='0x3600000000000000000000000000000000000000';
 const ARCARG='0x7d10b4331a990017938d66542f43fa4a72aacb73';
+const ARGUS='0xece5ca8bf9220718e5727754026757512212cb3c';
 test('Official issuer records are exact chain plus contract; no ticker-based verification',()=>{
  const f=identity.verified('ethereum',FLOKI);
  assert.equal(f.status,'OFFICIAL_CONTRACT_MATCHED');
@@ -15,10 +16,11 @@ test('Official issuer records are exact chain plus contract; no ticker-based ver
  assert.equal(circle.status,'OFFICIAL_CONTRACT_MATCHED');
  assert.equal(circle.issuer,'Circle');
  assert.equal(identity.verified('ethereum',ARC_USDC),null);
- const argus=identity.verified('arc',ARCARG);
+ const argus=identity.verified('arc',ARGUS);
  assert.equal(argus.status,'OFFICIAL_CONTRACT_MATCHED');
  assert.equal(argus.issuer,'Argus');
- assert.equal(identity.verified('ethereum',ARCARG),null);
+ assert.equal(identity.verified('arc',ARCARG),null,'a launchpad listing is not issuer authentication');
+ assert.equal(identity.verified('ethereum',ARGUS),null);
 });
 test('Exact FLOKI issuer match ranks first ahead of lookalike with same ticker',()=>{
  const fakes=[{network:'ethereum',chainId:1,address:'0x'+'a'.repeat(40),
@@ -37,12 +39,14 @@ test('Arc USDC official first-party source ranks ahead of similarly named candid
  assert.equal(ranked[0].identity.status,'OFFICIAL_CONTRACT_MATCHED');
  assert.equal(ranked[1].identity.status,'NOT_VERIFIED');
 });
-test('Arc ARGUS name search returns the first-party ARCARG contract without changing its ticker',()=>{
- const ranked=identity.rank('arc','ARGUS',[]);
- assert.equal(ranked.length,1);
- assert.equal(ranked[0].address,ARCARG);
- assert.equal(ranked[0].name,'angel of arc argus');
- assert.equal(ranked[0].symbol,'ARCARG');
+test('Arc ARGUS search ranks the documented platform token; unrelated ARCARG stays indexed',()=>{
+ const ranked=identity.rank('arc','ARGUS',[{network:'arc',chainId:5042,
+  address:ARCARG,name:'angel of arc argus',symbol:'ARCARG',source:'Explorer index'}]);
+ assert.equal(ranked[0].address,ARGUS);
+ assert.equal(ranked[0].name,'Argus');
+ assert.equal(ranked[0].symbol,'ARGUS');
  assert.equal(ranked[0].identity.status,'OFFICIAL_CONTRACT_MATCHED');
+ assert.equal(ranked[1].address,ARCARG);
+ assert.equal(ranked[1].identity.status,'NOT_VERIFIED');
  assert.equal(Boolean(ranked[0].logoUrl),false);
 });

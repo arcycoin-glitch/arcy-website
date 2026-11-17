@@ -165,3 +165,13 @@ test('Data Engine V2 wrong-logo security: one image URL shared by different cont
  const same=await logos.enhance('ethereum',[{network:'ethereum',chainId:1,address:P3,logoUrl:OWN},{network:'ethereum',chainId:1,address:P3.toUpperCase().replace('0X','0x'),logoUrl:OWN}],{fetchImpl});
  assert.equal(same[0].logoUrl,OWN);assert.equal(same[1].logoUrl,OWN);
 });
+
+test('discovery returns candidates before slow images, and a bounded separate artwork action is available',()=>{
+ const service=fs.readFileSync(path.join(__dirname,'..','search/server/lib/multichain-service.js'),'utf8');
+ const route=fs.readFileSync(path.join(__dirname,'..','api/search/index.js'),'utf8');
+ const timeout=/withTimeout\(logos\.enhance\(network,ranked\),(\d+),'Optional discovery artwork deadline'\)/.exec(service);
+ assert.ok(timeout,'initial Search retains optional enrichment');
+ assert.ok(Number(timeout[1])<=400,'foreground Search must not wait for slow thumbnail verification');
+ assert.match(route,/artwork:require\('\.\.\/\.\.\/search\/server\/api\/artwork'\)/);
+ assert.match(route,/artwork:\['chain','addresses'\]/);
+});

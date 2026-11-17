@@ -92,7 +92,7 @@
   option.addEventListener('click',()=>{
    if(selected===id)return;
    setNetwork(id);
-   results.replaceChildren();results.hidden=true;
+   cancelArtwork();results.replaceChildren();results.hidden=true;
    scheduleSuggestions();
    state.textContent=id==='all'?'One search across Arc, Ethereum and Robinhood.':'Searching '+label+' only. Enter a token name, ticker or exact contract.';
   });
@@ -113,6 +113,63 @@
  const submit=document.createElement('button');submit.type='submit';submit.className='home-search-submit';submit.textContent='SEARCH / SCAN  →';form.append(inputWrap,picker,submit);
  const state=document.createElement('p');state.className='home-search-state';state.id='homeSearchState';state.setAttribute('role','status');state.setAttribute('aria-live','polite');state.textContent='';
  const results=document.createElement('div');results.className='home-search-results';results.hidden=true;results.setAttribute('aria-label','Matching tokens');
+ // Decorative images load AFTER the exact-contract result list. The existing
+ // server validator still checks chain, source CDN, bytes and image dimensions.
+ let artworkController=null,artworkRevision=0;
+ function cancelArtwork(){
+  artworkRevision++;
+  if(artworkController){artworkController.abort();artworkController=null;}
+ }
+ const safeArtwork=url=>{
+  if(typeof url!=='string'||url.length>500)return null;
+  if(/^\/search\/assets\/token-icons\/[a-z0-9-]+\.svg$/i.test(url)||url==='/assets/hero-arcy.png')return url;
+  try{
+   const u=new URL(url);
+   if(u.protocol!=='https:'||u.username||u.password||u.port||u.hash)return null;
+   if(u.hostname==='cdn.dexscreener.com'&&/^\/(?:cms\/images|ds-data\/tokens|token-images|images)\/[a-z0-9_.\-/%]+$/i.test(u.pathname))return url;
+   if(u.hostname==='dd.dexscreener.com'&&/^\/ds-data\/tokens\/[a-z0-9_.\-/%]+$/i.test(u.pathname))return url;
+   if(u.hostname==='cdn-icons.blockscout.com'&&/^\/[a-z0-9_.\-/%]+$/i.test(u.pathname))return url;
+  }catch(_){}
+  return null;
+ };
+ function hydrateArtwork(){
+  cancelArtwork();
+  const byChain=new Map(),revision=artworkRevision;
+  for(const row of results.querySelectorAll('a.home-search-result')){
+   if(row.querySelector('.home-token-placeholder img'))continue;
+   const network=row.dataset.logoNetwork,address=row.dataset.logoAddress;
+   if(!['arc','ethereum','robinhood'].includes(network)||!addressPattern.test(address||''))continue;
+   if(!byChain.has(network))byChain.set(network,new Map());
+   const batch=byChain.get(network);
+   if(batch.size<8)batch.set(address.toLowerCase(),row);
+  }
+  if(!byChain.size)return;
+  const controller=new AbortController();artworkController=controller;
+  const timer=setTimeout(()=>controller.abort(),5500);
+  Promise.allSettled([...byChain].map(async([network,rows])=>{
+   const url='/api/search?action=artwork&chain='+encodeURIComponent(network)+
+    '&addresses='+encodeURIComponent([...rows.keys()].join(','));
+   const response=await fetch(url,{credentials:'same-origin',signal:controller.signal,headers:{accept:'application/json'}});
+   if(!response.ok)return;
+   const data=await response.json();
+   if(revision!==artworkRevision||data?.ok!==true||data.network!==network||
+      data.chainId!==SUGGEST_CHAIN_IDS[network]||!Array.isArray(data.items))return;
+   for(const item of data.items){
+    const address=typeof item?.address==='string'?item.address.toLowerCase():'';
+    const row=rows.get(address),src=safeArtwork(item?.logoUrl);
+    if(!row||!src||!row.isConnected||row.parentElement!==results||
+       row.querySelector('.home-token-placeholder img'))continue;
+    const placeholder=row.querySelector('.home-token-placeholder');if(!placeholder)continue;
+    const img=document.createElement('img');img.src=src;img.alt='';
+    img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
+    img.addEventListener('error',()=>img.remove(),{once:true});
+    placeholder.append(img);
+   }
+  })).finally(()=>{
+   clearTimeout(timer);
+   if(artworkController===controller)artworkController=null;
+  });
+ }
 
  const attribution=document.createElement('p');attribution.className='home-search-attribution home-market-pending';attribution.textContent='When enabled, market prices, liquidity and volume are source-reported from cited pools and may be incomplete. Unsupported checks remain NOT VERIFIED.';
  const robinhoodNotice=document.createElement('p');robinhoodNotice.className='home-search-disclaimer';robinhoodNotice.textContent='Independent research tool. Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.';
@@ -156,6 +213,8 @@
  }
  function addCandidate(candidate,network){
   const button=document.createElement('a');button.className='home-search-result';button.href=detailPath(network,candidate.address);
+  button.dataset.logoNetwork=network;
+  button.dataset.logoAddress=String(candidate.address||'').toLowerCase();
   const officialStockArt=network==='robinhood'&&candidate.network==='robinhood'&&
    candidate.chainId===4663&&candidate.registryMatched===true&&
    candidate.identity?.status==='REGISTRY_MATCHED'&&
@@ -202,7 +261,7 @@
   if(id?.status==='OFFICIAL_CONTRACT_MATCHED'&&id.issuer){
    const proof=document.createElement('small');proof.className='home-result-proof';
    proof.textContent='Issuer: '+String(id.issuer).slice(0,55)+' · exact network + contract';
-   if(typeof id.proofUrl==='string'&&id.proofUrl.startsWith('https://'))proof.title='First-party contract source: '+id.proofUrl;
+   if(typeof id.proofUrl==='string'&&id.proofUrl.startsWith('https://'))proof.title='Published contract evidence: '+id.proofUrl;
    copy.append(proof);
   }
   const address=document.createElement('code');address.textContent=candidate.address;
@@ -210,8 +269,9 @@
   return button;
  }
 
- // Instant Google-style discovery suggestions. Every pinned entry is an
- // already issuer-documented exact chain + contract (see token-identity.js).
+ // Instant Google-style discovery suggestions. Pinned contracts are reviewed
+ // against token-identity.js by exact chain/address, not by matching ticker.
+ // A launchpad token listing does not prove the token is issued by the launchpad.
  // Live results stay scoped to the selected network; neither type-ahead nor
  // artwork is allowed to claim that an arbitrary ticker match is official.
  const OFFICIAL_SUGGESTIONS=Object.freeze([
@@ -220,7 +280,7 @@
   ['ethereum','0xc944e90c64b2c07662a292be6244bdf05cda44a7','Graph Token','GRT'],
   ['arc','0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b','ARCY','ARCY'],
   ['arc','0x3600000000000000000000000000000000000000','USD Coin','USDC'],
-  ['arc','0x7d10b4331a990017938d66542f43fa4a72aacb73','angel of arc argus','ARCARG'],
+  ['arc','0xece5ca8bf9220718e5727754026757512212cb3c','Argus','ARGUS'],
   ['ethereum','0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9','Aave','AAVE'],
   ['ethereum','0x0d8775f648430679a709e98d2b0cb6250d2887ef','Basic Attention Token','BAT'],
   ['ethereum','0xd533a949740bb3306d119cc777fa900ba034cd52','Curve DAO Token','CRV'],
@@ -320,7 +380,7 @@
   },340);
  }
  input.addEventListener('input',()=>{
-  results.replaceChildren();results.hidden=true;
+  cancelArtwork();results.replaceChildren();results.hidden=true;
   scheduleSuggestions();
  });
  input.addEventListener('keydown',event=>{
@@ -338,7 +398,7 @@
  });
 
  form.addEventListener('submit',async event=>{
-  event.preventDefault();cancelSuggestions();hideSuggestions();results.replaceChildren();results.hidden=true;const query=input.value.trim();
+  event.preventDefault();cancelArtwork();cancelSuggestions();hideSuggestions();results.replaceChildren();results.hidden=true;const query=input.value.trim();
   if(!query){state.textContent='Enter a token name, symbol or full contract address.';input.focus();return}
   if(addressPattern.test(query)){
    if(selected!=='all'){location.assign(detailPath(selected,query));return}
@@ -363,6 +423,7 @@
     results.append(addCandidate(candidate,candidate.network));
    }
    results.hidden=results.childElementCount===0;state.textContent=results.hidden?'No valid contract candidates returned.':'Select a chain-labeled contract to open its exact-network research page.'+(body.providerError?' Some optional indexers are unavailable.':'');
+   if(!results.hidden)hydrateArtwork();
   }catch(error){state.textContent=error.name==='AbortError'?'Search timed out. Try again shortly.':'Search unavailable: '+String(error.message||'upstream error').slice(0,130)}
   finally{clearTimeout(timeout);submit.disabled=false;input.disabled=false}
  });

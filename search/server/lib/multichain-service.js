@@ -122,6 +122,9 @@ async function discover({network='ethereum',query}){
  ];
  const ranked=identities.rank(network,query,candidates);
  let matches;
+ // Keep the first Search response fast: slow/unavailable images never hold
+ // exact-contract results hostage. The homepage hydrates art independently,
+ // using the same image-validation pipeline via action=artwork.
  try{matches=await require('./timeout').withTimeout(logos.enhance(network,ranked),350,'Optional discovery artwork deadline')}
  catch{matches=ranked.map(item=>({...item,logoUrl:logos.localLogo(network,item.address),logoSource:null}))}
 
