@@ -342,11 +342,13 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  }
  // Live Trading shows recent swaps, so the most ACTIVE pools (provider-reported 24h trades) are verified first; reserve breaks ties.
  // Ordering only: every pool still has to pass the same on-chain identity checks.
- candidates=[...candidates].sort((a,b)=>(b.trades24h||0)-(a.trades24h||0)||(b.reserveUsd||0)-(a.reserveUsd||0)).slice(0,8);
+ const orderedCandidates=[...candidates].sort((a,b)=>(b.trades24h||0)-(a.trades24h||0)||(b.reserveUsd||0)-(a.reserveUsd||0));
+ candidates=orderedCandidates.slice(0,8);
  // 2. identity (bounded: stop after MAX_POOLS verified pools)
- const pools=[],excluded=[];
+ const pools=[],excluded=[];let inspectedCandidates=0;
  for(const c of candidates){
   if(pools.length>=MAX_POOLS)break;
+  inspectedCandidates++;
   let r;try{r=await identifyPool(network,rpc,token,c,pinned);}catch(e){r={excluded:e.code||'RPC_READ_FAILED'};}
   if(r.excluded)excluded.push({pool:c.pool,dex:c.dex||null,reasonCode:r.excluded,providerTrades24h:c.trades24h??null,providerVolume24hUsd:c.volume24hUsd??null});else pools.push({...r,providerTrades24h:c.trades24h??null});
  }
@@ -355,12 +357,21 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
   headTimestamp:new Date(headTs*1000).toISOString(),headAgeSeconds:headAgeS,confirmations:net.confirmations,observedAt:new Date(now()).toISOString(),
   pools:pools.map(p=>({pool:p.pool,kind:p.kind,protocol:p.protocol,dex:p.dex,counter:p.counter,identity:p.reconcile?'REGISTRY_PROVEN_TRANSFER_RECONCILED':'ONCHAIN_VERIFIED',method:p.method,providerTrades24h:p.providerTrades24h??null})),excludedPools:excluded,
   scope:'Swaps emitted by on-chain-verified pools of this exact contract in a bounded recent block window. Not every venue or aggregator route; not investment advice.'};
- // Provider-reported activity on pools we cannot verify: never silently treated as "no swaps".
+ // Provider-reported activity in excluded OR uninspected pools cannot be silently treated as "no swaps".
+ // Bounded identity verification stops after three verified pools; the first-page candidate cap is eight.
+ // Both limits must remain visible in evidence coverage even if no RPC is spent on omitted candidates.
+ const uninspected=orderedCandidates.slice(inspectedCandidates);
+ const activeUninspected=uninspected.filter(x=>(x.trades24h||0)>0);
  const activeExcluded=excluded.filter(x=>(x.providerTrades24h||0)>0);
  const coverage={verifiedPools:pools.length,excludedPools:excluded.length,excludedActivePools:activeExcluded.length,
+  uninspectedPools:uninspected.length,uninspectedActivePools:activeUninspected.length,
+  providerTrades24hUninspected:activeUninspected.reduce((n,x)=>n+(x.trades24h||0),0),
   providerTrades24hExcluded:activeExcluded.reduce((n,x)=>n+(x.providerTrades24h||0),0),providerTrades24hVerified:pools.reduce((n,p)=>n+(p.providerTrades24h||0),0),
-  complete:activeExcluded.length===0,note:activeExcluded.length?'Some active pools use DEX contracts that are not yet reviewed; their swaps are not shown.':null};
- if(!pools.length)return {...base,coverage,status:activeExcluded.length?'COVERAGE_INCOMPLETE':'UNSUPPORTED',reasonCode:activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':candidates.length?'NO_VERIFIED_POOL':'NO_POOL_CANDIDATES',trades:[],cost:{rpcCalls:rpc.calls.n}};
+  complete:pools.length>0&&activeExcluded.length===0&&activeUninspected.length===0,
+  note:[activeExcluded.length?'Some active pools use DEX contracts that are not yet reviewed; their swaps are not shown.':null,
+   activeUninspected.length?'Provider reports activity in pools not inspected due to the bounded verification budget; their swaps are not shown.':null].filter(Boolean).join(' ')||null};
+ if(!pools.length)return {...base,coverage,status:activeExcluded.length||activeUninspected.length?'COVERAGE_INCOMPLETE':'UNSUPPORTED',
+  reasonCode:activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':activeUninspected.length?'ACTIVE_POOLS_UNINSPECTED':candidates.length?'NO_VERIFIED_POOL':'NO_POOL_CANDIDATES',trades:[],cost:{rpcCalls:rpc.calls.n}};
  // 3. logs
  const state={span:net.window,logCalls:0},from=toBlock-BigInt(net.lookback)>0n?toBlock-BigInt(net.lookback):0n;
  // Incremental refresh: with the same verified pool set, only blocks after the previous confirmed window are read.
@@ -431,7 +442,9 @@ async function analyze({network,address,rpcFn=null,ethRpcFn=null,pools:poolsOver
  const droppedUnreconciled=reconciled&&reconciled.status!=='OK'&&rec.length>0,unmatched=reconciled&&reconciled.status==='OK'&&rec.length>(reconciled.matched||0);
  const reportedOnVerified=pools.reduce((n,p)=>n+(p.providerTrades24h||0),0);
  const windowShort=!(scannedFrom<=from)&&reportedOnVerified>0;
- const incompleteReason=activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':droppedUnreconciled?'RECONCILIATION_UNAVAILABLE':unmatched?'SWAPS_NOT_RECONCILED':windowShort?'SCAN_WINDOW_INCOMPLETE':null;
+ const incompleteReason=activeExcluded.length?'ACTIVE_POOLS_UNSUPPORTED':activeUninspected.length?'ACTIVE_POOLS_UNINSPECTED':droppedUnreconciled?'RECONCILIATION_UNAVAILABLE':unmatched?'SWAPS_NOT_RECONCILED':windowShort?'SCAN_WINDOW_INCOMPLETE':null;
+ if(droppedUnreconciled||unmatched){coverage.complete=false;coverage.note=[coverage.note,'Some observed Swap events could not be reconciled to token Transfers.'].filter(Boolean).join(' ');}
+ if(windowShort){coverage.complete=false;coverage.note=[coverage.note,'The scanned block window is shorter than intended while the provider reports activity.'].filter(Boolean).join(' ');}
  const status=trades.length?(live?'LIVE':'DELAYED'):incompleteReason?'COVERAGE_INCOMPLETE':'NO_RECENT_SWAPS';
  if(reconciled)base.reconciliation={status:reconciled.status,checked:reconciled.checked??0,matched:reconciled.matched??0,...(reconciled.error?{error:reconciled.error}:{}),method:'Each swap leg must equal an individual token Transfer into/out of the pool in the same tx'};
  return {...base,coverage,status,reasonCode:trades.length?null:incompleteReason||'NO_SWAPS_IN_WINDOW',lastTradeAt:trades[0]?.timestamp||null,
