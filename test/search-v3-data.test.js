@@ -50,7 +50,7 @@ test('case-variant duplicate wallets never fabricate complete holder population'
 test('Robinhood reconciliations remain pinned and limit concurrent RPC calls to four',async()=>{
  const rank=require('../search/server/lib/robinhood-holder-rank');let active=0,max=0;
  const rows=Array.from({length:20},(_,i)=>({address:{hash:'0x'+(i+1).toString(16).padStart(40,'0')},value:'1'}));
- const result=await rank.fetchRank(A,{block:'0x123',totalSupplyRaw:'20',fetcher:async()=>Response.json({items:rows}),rpcCall:async(_,p)=>{assert.equal(p[1],'0x123');active++;max=Math.max(max,active);await new Promise(r=>setTimeout(r,2));active--;return '0x'+'1'.padStart(64,'0');}});
+ const result=await rank.fetchRank(A,{block:'0x123',totalSupplyRaw:'20',reportedHolderCount:20,fetcher:async()=>Response.json({items:rows}),rpcCall:async(_,p)=>{assert.equal(p[1],'0x123');active++;max=Math.max(max,active);await new Promise(r=>setTimeout(r,2));active--;return '0x'+'1'.padStart(64,'0');}});
  assert.ok(max<=4);assert.equal(result.holderCount.value,20);assert.equal(result.top20Pct.value,100);
 });
 test('production permission gates stay closed with no operator approval; no new restricted provider',async()=>{
