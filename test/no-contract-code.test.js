@@ -28,3 +28,52 @@ test('report API: NO_CONTRACT_CODE -> 404 explicit; any other failure keeps the 
   const b=await call();assert.equal(b.code,502);assert.equal(b.body.error,'CHAIN_SCAN_UNAVAILABLE');
  }finally{service.report=orig;}
 });
+
+test('progress API: terminal NDJSON error preserves exact-chain 404 identity and 502 provider reason after streaming starts',async()=>{
+ const service=require('../search/server/lib/multichain-service'),original=service.report;
+ const handler=require('../search/server/api/progress');
+ let counter=0;
+ const invoke=async(code)=>{
+  const lines=[];
+  const res={headers:{},statusCode:200,writableEnded:false,
+   setHeader(key,value){this.headers[key]=value;},
+   once(){},
+   flushHeaders(){this.flushed=true;},
+   write(line){lines.push(JSON.parse(line));},
+   end(){this.writableEnded=true;},
+   status(status){this.statusCode=status;return this;},
+   json(body){this.payload=body;return body;}
+  };
+  service.report=async({network,address,onProgress})=>{
+   assert.equal(network,'ethereum');assert.equal(address,ADDR);
+   onProgress({phase:'identity',report:{network,address,chainId:1}});
+   if(code==='NO_CONTRACT_CODE')throw Object.assign(Error('No code'),{code});
+   throw Error('Simulated RPC outage');
+  };
+  await handler({
+   method:'GET',
+   query:{address:ADDR,chain:'ethereum'},
+   headers:{},
+   socket:{remoteAddress:'203.0.113.'+(210+(counter++))}
+  },res);
+  assert.equal(res.statusCode,200,'headers were already flushed for NDJSON');
+  assert.equal(res.flushed,true);
+  assert.match(res.headers['Content-Type'],/application\\/x-ndjson/);
+  assert.equal(res.writableEnded,true);
+  assert.equal(lines[0].phase,'identity');
+  assert.equal(lines[1].phase,'error');
+  assert.equal(lines.length,2);
+  assert.equal(lines[1].network,'ethereum');
+  assert.equal(lines[1].chainId,1);
+  assert.equal(lines[1].address,ADDR);
+  return lines[1];
+ };
+ try{
+  const missing=await invoke('NO_CONTRACT_CODE');
+  assert.equal(missing.error,'NO_CONTRACT_CODE');
+  assert.match(missing.reason,/No contract bytecode/);
+  const unavailable=await invoke('RPC_UNAVAILABLE');
+  assert.equal(unavailable.error,'CHAIN_SCAN_UNAVAILABLE');
+  assert.match(unavailable.reason,/required contract evidence/);
+ }finally{service.report=original;}
+});
