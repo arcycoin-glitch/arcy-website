@@ -333,6 +333,8 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
    // Delivered through the optional onSupplementary callback (mechanics-coverage), never as a fifth card field.
    if(restriction&&typeof onSupplementary==='function')onSupplementary({transferRestrictions:fact(restriction.value,restriction.method,{...proof,...restriction.extra,coverage:'TOKEN_TRANSFER_PATH',scope:restriction.scope},restriction.status)});
   }
+  // Exact source + deployed runtime matched; this detector is scoped to one reviewed implementation.
+  require('./mechanics-exact-gta6').apply({network,address,source,fields,details,fact});
  }
  // Source/ABI-matched owner getter returning the zero address: recorded as a diagnostic observation ONLY. Project policy (see
  // 'ABI zero owner cannot establish absence of all privileges') is that it never becomes the displayed owner/admin fact.
