@@ -145,7 +145,7 @@
   }
   if(!byChain.size)return;
   const controller=new AbortController();artworkController=controller;
-  const timer=setTimeout(()=>controller.abort(),9700);
+  const timer=setTimeout(()=>controller.abort(),13900);
   Promise.allSettled([...byChain].map(async([network,rows])=>{
    const url='/api/search?action=artwork&chain='+encodeURIComponent(network)+
     '&addresses='+encodeURIComponent([...rows.keys()].join(','));

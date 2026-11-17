@@ -34,10 +34,13 @@ const {readJson}=require('./http');
 const {chain}=require('./chains');
 const CACHE=new Map(), PENDING=new Map();
 // Additional exact-contract explorer metadata fallback, strictly limited.
+// Explorer search p50 ~2.7s and p95 ~6.4s in existing CI observations:
+// a 1.4s logo-only timeout discarded viable responses. Four bounded calls
+// may run concurrently without delaying the primary 350ms search response.
 // A logo is display-only; metadata neither verifies the issuer nor the token.
 const EXPLORER_CACHE=new Map(), EXPLORER_PENDING=new Map();
 const POSITIVE_TTL=15*60*1000, NEGATIVE_TTL=90*1000;
-const EXPLORER_MAX_PER_BATCH=4, EXPLORER_CONCURRENCY=2;
+const EXPLORER_MAX_PER_BATCH=4, EXPLORER_CONCURRENCY=4;
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
 function marketArtwork(pairs,network,addresses){
  const wanted=new Set(addresses),found=new Map();
@@ -116,7 +119,7 @@ async function explorerArtwork(network,addresses,{fetchImpl=global.fetch,now=Dat
      try{
       const endpoint=new URL('/api/v2/tokens/'+address,base);
       const r=await fetchImpl(endpoint.href,{headers:{accept:'application/json'},
-       credentials:'omit',redirect:'error',signal:AbortSignal.timeout(1400)});
+       credentials:'omit',redirect:'error',signal:AbortSignal.timeout(6000)});
       if(!r?.ok||r.redirected||r.url&&r.url!==endpoint.href)throw Error('Explorer token unavailable');
       const body=await readJson(r,96*1024);
       if(!body||typeof body!=='object'||Array.isArray(body))throw Error('Invalid explorer token');

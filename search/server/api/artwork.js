@@ -33,7 +33,7 @@ module.exports=async function(req,res){
   address,symbol:'',logoUrl:null,registryMatched:false,
   identity:{status:'NOT_VERIFIED'}}));
  try{
-  const items=await withTimeout(logos.enhance(p.network,candidates),8500,'Artwork lookup deadline');
+  const items=await withTimeout(logos.enhance(p.network,candidates),12800,'Artwork lookup deadline');
   return res.status(200).json({ok:true,network:p.network,chainId:cfg.chainId,
    items:items.filter(x=>x.logoUrl).map(x=>({address:x.address,logoUrl:x.logoUrl,
     source:x.logoSource||'Decorative artwork, not issuer evidence'}))});

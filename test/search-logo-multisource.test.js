@@ -107,3 +107,17 @@ test('429/503 on exact-token explorer metadata is fail-closed and never changes 
   assert.equal(result.logoUrl,null);assert.equal(result.identity.status,'NOT_VERIFIED');
  }
 });
+
+test('deferred source time budget accommodates actual explorer latency without delaying first search',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const root=path.join(__dirname,'..');
+ const source=fs.readFileSync(path.join(root,'search/server/lib/search-logo.js'),'utf8');
+ const handler=fs.readFileSync(path.join(root,'search/server/api/artwork.js'),'utf8');
+ const home=fs.readFileSync(path.join(root,'search-upgrade.js'),'utf8');
+ const discovery=fs.readFileSync(path.join(root,'search/server/lib/multichain-service.js'),'utf8');
+ assert.match(source,/EXPLORER_MAX_PER_BATCH=4, EXPLORER_CONCURRENCY=4/);
+ assert.match(source,/signal:AbortSignal\.timeout\(6000\)/);
+ assert.match(handler,/withTimeout\(logos\.enhance\(p\.network,candidates\),12800/);
+ assert.match(home,/controller\.abort\(\),13900/);
+ assert.match(discovery,/withTimeout\(logos\.enhance\(network,ranked\),350/);
+});
