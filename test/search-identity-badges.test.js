@@ -60,3 +60,12 @@ test('Argus search prioritizes the actual ARGUS platform token, not an unrelated
   'searching the third-party token by exact ticker must not restore a bogus issuer badge');
  assert.equal(identity.knownMatches('arc','ARGUS')[0].address,OFFICIAL);
 });
+
+test('homepage suggestions and API canonical issuer registry use the same true Argus contract',()=>{
+ const home=load('search-upgrade.js');
+ const match=/\['arc','(0x[0-9a-f]{40})','Argus','ARGUS'\]/i.exec(home);
+ assert.ok(match,'homepage has exact-contract Argus suggestion');
+ assert.equal(match[1].toLowerCase(),'0xece5ca8bf9220718e5727754026757512212cb3c');
+ assert.doesNotMatch(home,/\['arc','0x7d10b4331a990017938d66542f43fa4a72aacb73','angel of arc argus','ARCARG'\]/i);
+ assert.match(home,/Published contract evidence:/);
+});

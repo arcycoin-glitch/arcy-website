@@ -202,7 +202,7 @@
   if(id?.status==='OFFICIAL_CONTRACT_MATCHED'&&id.issuer){
    const proof=document.createElement('small');proof.className='home-result-proof';
    proof.textContent='Issuer: '+String(id.issuer).slice(0,55)+' · exact network + contract';
-   if(typeof id.proofUrl==='string'&&id.proofUrl.startsWith('https://'))proof.title='First-party contract source: '+id.proofUrl;
+   if(typeof id.proofUrl==='string'&&id.proofUrl.startsWith('https://'))proof.title='Published contract evidence: '+id.proofUrl;
    copy.append(proof);
   }
   const address=document.createElement('code');address.textContent=candidate.address;
@@ -210,8 +210,9 @@
   return button;
  }
 
- // Instant Google-style discovery suggestions. Every pinned entry is an
- // already issuer-documented exact chain + contract (see token-identity.js).
+ // Instant Google-style discovery suggestions. Pinned contracts are reviewed
+ // against token-identity.js by exact chain/address, not by matching ticker.
+ // A launchpad token listing does not prove the token is issued by the launchpad.
  // Live results stay scoped to the selected network; neither type-ahead nor
  // artwork is allowed to claim that an arbitrary ticker match is official.
  const OFFICIAL_SUGGESTIONS=Object.freeze([
@@ -220,7 +221,7 @@
   ['ethereum','0xc944e90c64b2c07662a292be6244bdf05cda44a7','Graph Token','GRT'],
   ['arc','0x73e5f588d27d6b5ec89c89c82692d1e7fecbd38b','ARCY','ARCY'],
   ['arc','0x3600000000000000000000000000000000000000','USD Coin','USDC'],
-  ['arc','0x7d10b4331a990017938d66542f43fa4a72aacb73','angel of arc argus','ARCARG'],
+  ['arc','0xece5ca8bf9220718e5727754026757512212cb3c','Argus','ARGUS'],
   ['ethereum','0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9','Aave','AAVE'],
   ['ethereum','0x0d8775f648430679a709e98d2b0cb6250d2887ef','Basic Attention Token','BAT'],
   ['ethereum','0xd533a949740bb3306d119cc777fa900ba034cd52','Curve DAO Token','CRV'],

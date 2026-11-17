@@ -165,3 +165,13 @@ test('Data Engine V2 wrong-logo security: one image URL shared by different cont
  const same=await logos.enhance('ethereum',[{network:'ethereum',chainId:1,address:P3,logoUrl:OWN},{network:'ethereum',chainId:1,address:P3.toUpperCase().replace('0X','0x'),logoUrl:OWN}],{fetchImpl});
  assert.equal(same[0].logoUrl,OWN);assert.equal(same[1].logoUrl,OWN);
 });
+
+test('cold public Search discovery allows enough time for bounded exact-contract art lookup and image validation',()=>{
+ const service=fs.readFileSync(path.join(__dirname,'..','search/server/lib/multichain-service.js'),'utf8');
+ // 2.5s DEX batch + 1s raster validation. This was previously a 350ms
+ // outer deadline, causing the whole valid icon batch to be discarded.
+ const timeout=/withTimeout\(logos\.enhance\(network,ranked\),(\d+),'Optional discovery artwork deadline'\)/.exec(service);
+ assert.ok(timeout,'bounded optional logo enrichment is called from Search');
+ assert.ok(Number(timeout[1])>=3500&&Number(timeout[1])<=5000,'outer deadline covers existing bounded provider+image validation');
+ assert.match(service,/catch\{matches=ranked\.map\(item=>\(\{\.\.\.item,logoUrl:logos\.localLogo/);
+});
