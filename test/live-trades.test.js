@@ -296,6 +296,8 @@ test('V3 Synthra-style adapter: unreviewed V3-interface pool proven by factory r
  assert.equal(r.trades.length,1,'only the reconciled swap is shown');
  assert.equal(r.trades[0].side,'BUY');assert.equal(r.trades[0].verification,'ONCHAIN_TRANSFER_RECONCILED');
  assert.deepEqual({checked:r.reconciliation.checked,matched:r.reconciliation.matched},{checked:2,matched:1});
+ assert.equal(r.coverage.complete,false,'an unmatched swap leaves coverage incomplete even when a verified trade exists');
+ assert.match(r.coverage.note,/could not be reconciled/);
  // factory that does NOT register the pool stays excluded
  lt._reset();
  const r2=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:rpcMock({factory:'0x'+'7'.repeat(40)}).fn,pools:[{pool:POOL,dex:'synthra',reserveUsd:5,trades24h:45}]});
