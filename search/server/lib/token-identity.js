@@ -22,13 +22,20 @@ const OFFICIAL=Object.freeze([
   name:'USD Coin',symbol:'USDC',issuer:'Circle',
   proofUrl:'https://developers.circle.com/stablecoins/usdc-contract-addresses'
  }),
- // First-party Argus token page plus the live Arc RPC metadata call confirms
- // this name, symbol and contract. The token's actual ticker is ARCARG (not
- // ARGUS); the name match supports searching for "Argus" without relabelling it.
+ // The public Argus launchpad displays MANY creator-issued tokens. A token
+ // page on argus.world (such as ARCARG at 0x7d10...) confirms that listing's
+ // exact address, NOT that Argus issued it as its own ARGUS platform token.
+ // Never promote a launchpad listing to OFFICIAL_CONTRACT_MATCHED.
+ //
+ // Argus (ARGUS) on Arc 5042: Gate's spot listing explicitly binds this
+ // contract to Argus and argus.world; CoinMarketCap separately indexes the
+ // same exact address. This claim is source-backed by those PUBLIC third-party
+ // references, not an inference from a ticker or a launchpad token page.
  Object.freeze({
-  network:'arc',chainId:5042,address:'0x7d10b4331a990017938d66542f43fa4a72aacb73',
-  name:'angel of arc argus',symbol:'ARCARG',issuer:'Argus',
-  proofUrl:'https://argus.world/token/0x7D10b4331A990017938d66542f43fa4A72AACB73'
+  network:'arc',chainId:5042,address:'0xece5ca8bf9220718e5727754026757512212cb3c',
+  name:'Argus',symbol:'ARGUS',issuer:'Argus',
+  source:'Gate exchange exact-contract listing; independently catalogued by CoinMarketCap',
+  proofUrl:'https://www.gate.com/learn/articles/what-is-argus-argus-guide-to-the-meme-token-and-arc-launchpad'
  }),
  // Exact Ethereum ERC-20 addresses from first-party project publications.
  // Logos are community-created CC0 artwork, not issuer verification evidence.
@@ -100,7 +107,7 @@ function verified(network,address){
  if(typeof network!=='string'||typeof address!=='string'||!ADDRESS.test(address))return null;
  const token=OFFICIAL.find(x=>x.network===network&&x.address===address.toLowerCase());
  return token?{status:'OFFICIAL_CONTRACT_MATCHED',type:'TOKEN',chainId:token.chainId,
-  address:token.address,issuer:token.issuer,source:'Official issuer contract documentation',
+  address:token.address,issuer:token.issuer,source:token.source||'Official issuer contract documentation',
   proofUrl:token.proofUrl}:null;
 }
 function knownMatches(network,query){
@@ -113,7 +120,7 @@ function knownMatches(network,query){
  const matches=exact.length?exact:prefix.length?prefix:inNetwork.filter(x=>
   x.symbol.toLowerCase().includes(q)||x.name.toLowerCase().includes(q));
  return matches.map(x=>({address:x.address,network:x.network,chainId:x.chainId,
-  name:x.name,symbol:x.symbol,source:'Official issuer contract documentation',
+  name:x.name,symbol:x.symbol,source:x.source||'Official issuer contract documentation',
   identity:verified(network,x.address),identityVerified:true}));
 }
 function rank(network,query,candidates){
@@ -149,7 +156,7 @@ function rank(network,query,candidates){
   ordered.set(address,{address,network,chainId:item.chainId,
    name:canonical?.name||String(item.name||'').slice(0,90),
    symbol:canonical?.symbol||String(item.symbol||'').slice(0,30),
-   source:canonical?'Official issuer contract documentation':String(item.source||'').slice(0,100),
+   source:canonical?(canonical.source||'Official issuer contract documentation'):String(item.source||'').slice(0,100),
    registryMatched:stock,logoUrl:stockArt||(!stock?safeLogoUrl(item.logoUrl):null),identityVerified:identity.status==='OFFICIAL_CONTRACT_MATCHED'||identity.status==='REGISTRY_MATCHED',identity});
  }
  const rows=[...ordered.values()];
