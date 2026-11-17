@@ -267,7 +267,7 @@ const change24hReason=item=>{
   card.querySelector('.arcy-radar-discovery-note').hidden=data?.engine!=='arcy-radar-v3';
   list.replaceChildren();
   const headings=el('div','arcy-radar-overview-columns');
-  for(const text of ['Token','Fiyat (USD)','24s Değişim','24s Hacim (USD)','Discovery Score','Neden seçildi?','']){
+  for(const text of ['Token','Fiyat (USD)','24s Değişim','24s Hacim (USD)','Discovery Score','Info','']){
    headings.append(el('span','',text));
   }
   list.append(headings);
@@ -379,14 +379,22 @@ const change24hReason=item=>{
    const hasReason=scoreOk&&typeof d.reason==='string'&&!!d.reason.trim();
    const why=hasReason?explainDiscovery(d.reason):null;
    const reasonCell=el('span','arcy-radar-overview-reason');
-   if(why&&why.short!=='NOT VERIFIED'){
-    reasonCell.append(el('small','arcy-radar-overview-reason-label','NEDEN SEÇİLDİ?'));
-    reasonCell.append(el('span','arcy-radar-overview-reason-text',why.short));
-    reasonCell.title=why.full;
-    reasonCell.setAttribute('aria-label','Neden seçildi: '+why.full);
-    if(Array.isArray(d.flags)&&d.flags.length)reasonCell.classList.add('has-alert');
+   if(why&&why.full!=='NOT VERIFIED'){
+    // Owner UI lock #272: preserve the existing row/grid, replace the permanent
+    // "NEDEN SEÇİLDİ?" paragraph with only a compact on-demand Info disclosure.
+    // Reuse the already shipped fixed-position Radar info popup; no new request or section.
+    const info=el('span','arcy-radar-info arcy-radar-overview-reason-info','ⓘ Info');
+    info.setAttribute('role','button');info.tabIndex=0;
+    info.setAttribute('aria-label',(item.symbol||'Token')+' neden seçildi?');
+    info.setAttribute('aria-expanded','false');
+    info.dataset.reason=why.full;
+    const stop=e=>{e.preventDefault();e.stopPropagation();};
+    const toggle=e=>{stop(e);if(infoOwner===info&&infoPinned)closeInfo();else openInfo(info,true);};
+    info.addEventListener('click',toggle);
+    info.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ' )toggle(e);});
+    reasonCell.append(info);
    }else{
-    // No fabricated explanation and no tall empty "NOT VERIFIED" reason section.
+    // No fabricated selection rationale or empty reason disclosure.
     reasonCell.style.display='none';
    }
    row.append(identity,priceLabel,change,volume,scoreCell,reasonCell,arrow);list.append(row);

@@ -26,7 +26,9 @@ class Node{
  append(...xs){for(let x of xs){if(typeof x==='string')x=new Text(x);x.parent=this;this.children.push(x);}}
  prepend(...xs){for(let x of [...xs].reverse()){if(typeof x==='string')x=new Text(x);x.parent=this;this.children.unshift(x);}}
  replaceChildren(...xs){this.children=[];this._text='';this.append(...xs);}
- getBoundingClientRect(){return {top:0};}
+ getBoundingClientRect(){return {top:0,bottom:30,left:10,width:60};}
+ get offsetHeight(){return 45;}
+ focus(){this.focused=true;}
  setAttribute(k,v){this.attrs[k]=String(v);}
  getAttribute(k){return this.attrs[k]||null;}
  removeAttribute(k){delete this.attrs[k];}
@@ -60,20 +62,23 @@ const data=(network,{engine='arcy-radar-v3',score=72.5,empty=false}={})=>({
 });
 async function mount({overrides={},http={},fetcher}={}){
  const detail=new Node('section');detail.id='tokenDetail';const calls=[];
+ const body=new Node('body'),docListeners={};
  const document={
   createElement:tag=>new Node(tag),
   createTextNode:s=>new Text(s),
-  getElementById:id=>id==='tokenDetail'?detail:null
+  getElementById:id=>id==='tokenDetail'?detail:null,
+  body,documentElement:{clientWidth:390},
+  addEventListener:(name,fn)=>{(docListeners[name]||(docListeners[name]=[])).push(fn);}
  };
  const responses={robinhood:data('robinhood'),arc:data('arc',{engine:'arcy-radar-v2'}),ethereum:data('ethereum',{score:105}),pons:data('pons',{empty:true}),...overrides};
  const ctx={document,Intl,Date,URL,AbortController,setTimeout,clearTimeout,
-  window:{scrollY:0,scrollTo(){}},
+  window:{scrollY:0,innerHeight:900,scrollTo(){},addEventListener(){}},
   fetch:async url=>{const network=new URL(url,'https://example.com').searchParams.get('chain');calls.push(network);return fetcher?fetcher(network):{ok:http[network]!==false,json:async()=>responses[network]};}
  };
  vm.runInNewContext(js,ctx);
  // Wait for all four immediate fetches, JSON reads and Promise.all() callback.
  for(let i=0;i<5;i++)await Promise.resolve();
- return {detail,calls,responses,http};
+ return {detail,body,docListeners,calls,responses,http};
 }
 const panel=(detail,net)=>detail.querySelector('[data-overview="'+net+'"]');
 test('JS parses and V3 score/rationale use the existing verified API, without extra calls',async()=>{
@@ -85,15 +90,51 @@ test('JS parses and V3 score/rationale use the existing verified API, without ex
  assert.equal(rob.querySelector('.arcy-radar-overview-score-value').textContent,'72.5');
  assert.equal(rob.querySelector('.arcy-radar-overview-score-unit').textContent,'/100');
  const why=rob.querySelector('.arcy-radar-overview-reason');
- assert.match(why.textContent,/Yeni havuz \(2 gün\)/);
- assert.match(why.textContent,/24s hacim \$55k/);
- assert.match(why.title,/İki bağımsız kaynakla karşılaştırıldı/);
+ const info=why.querySelector('.arcy-radar-overview-reason-info');
+ assert.ok(info,'only a compact Info control replaces the permanent rationale');
+ assert.equal(why.textContent,'ⓘ Info','no selection explanation appears until tapped');
+ assert.equal(info.getAttribute('role'),'button');
+ assert.equal(info.tabIndex,0);
+ assert.equal(info.getAttribute('aria-expanded'),'false');
+ assert.match(info.dataset.reason,/Yeni havuz \(2 gün\)/);
+ assert.match(info.dataset.reason,/24s hacim \$55k/);
+ assert.match(info.dataset.reason,/İki bağımsız kaynakla karşılaştırıldı/);
+ assert.equal(rob.querySelector('.arcy-radar-overview-reason-text'),null);
+ assert.equal(rob.querySelector('.arcy-radar-overview-reason-label'),null);
  assert.equal(rob.querySelector('.arcy-radar-discovery-note').hidden,false);
  assert.match(rob.querySelector('.arcy-radar-discovery-note').textContent,/kazanç garantisi değildir/);
  const row=rob.querySelector('.arcy-radar-overview-token');
  assert.equal(row.href,'/search/token/robinhood/'+address);
  assert.equal(rob.querySelector('.arcy-radar-overview-columns').children.length,7);
 });
+test('selection Info opens only on tap/keyboard; closes on tap, outside click or Escape without navigation',async()=>{
+ const {detail,body,docListeners,calls}=await mount();
+ const info=panel(detail,'robinhood').querySelector('.arcy-radar-overview-reason-info');
+ assert.ok(info);
+ const event=(key)=>({key,defaultPrevented:false,propagationStopped:false,
+  preventDefault(){this.defaultPrevented=true;},stopPropagation(){this.propagationStopped=true;}});
+ assert.equal(body.children.length,0,'no popup before user interaction');
+ const click=event();info.events.click[0](click);
+ assert.equal(click.defaultPrevented,true,'inner Info must not navigate the token link');
+ assert.equal(click.propagationStopped,true);
+ const pop=body.children[0];
+ assert.equal(pop.hidden,false);
+ assert.match(pop.textContent,/Yeni havuz/);
+ assert.equal(info.getAttribute('aria-expanded'),'true');
+ info.events.click[0](event());
+ assert.equal(pop.hidden,true);
+ info.events.keydown[0](event('Enter'));
+ assert.equal(pop.hidden,false);
+ for(const fn of docListeners.keydown||[])fn({key:'Escape'});
+ assert.equal(pop.hidden,true);
+ assert.equal(info.focused,true);
+ info.events.keydown[0](event(' '));
+ assert.equal(pop.hidden,false);
+ for(const fn of docListeners.click||[])fn({target:new Node('div')});
+ assert.equal(pop.hidden,true);
+ assert.equal(calls.length,4,'information reuses existing data without extra API calls');
+});
+
 test('V2 or invalid V3 data renders a neutral score placeholder, without fabricating a reason',async()=>{
  const {detail}=await mount();
  const arc=panel(detail,'arc'),eth=panel(detail,'ethereum');
@@ -220,6 +261,8 @@ test('unverified or conflicting 24h observations are never replaced by partial v
 });
 test('responsive mobile slots and truthful copy are present',()=>{
  assert.match(css,/grid-template-areas:\s*"token token score"\s*"price change volume"\s*"reason reason reason"/);
+ assert.match(css,/\.arcy-radar-overview-reason-info\{/,'only the Info button is styled');
+ assert.doesNotMatch(js,/reasonCell\.append\(el\('small','arcy-radar-overview-reason-label'/);
  assert.match(css,/@media\(max-width:390px\)/);
  assert.match(css,/\.arcy-radar-overview-columns\{display:none!important\}/);
  assert.match(js,/discovery\.reason|explainDiscovery\(d\.reason\)/);

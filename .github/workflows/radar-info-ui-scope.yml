@@ -1,0 +1,26 @@
+name: Radar Info UI scope QA
+on:
+  pull_request:
+    paths:
+      - 'search/market-radar.js'
+      - 'search/market-radar.css'
+      - 'test/radar-v3-score-ui.test.js'
+      - 'test/data-engine-ui-lock.test.js'
+      - '.github/workflows/radar-info-ui-scope.yml'
+permissions:
+  contents: read
+jobs:
+  radar-ui:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify existing Radar and immutable skeleton scope
+        run: |
+          node --test test/radar-v3-score-ui.test.js test/radar-24h-info.test.js test/radar-reference-ui.test.js test/data-engine-ui-lock.test.js
+          node --test test/radar-change24h.test.js test/radar-provisional-score.test.js

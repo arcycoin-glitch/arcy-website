@@ -41,8 +41,13 @@ const BASELINE = Object.freeze({
   // discovery-2 backend schema and hide absent rationales; no HTML/CSS/skeleton,
   // provider, ranking or other-page changes. Reviewed in PR #177.
   // Issue #263: Radar discovery scope and empty ranking wording only.
-  "search/market-radar.js": "ff6209f7040a0cc4b771b45fb54a0670bc695ab3",
-  "search/market-radar.css": "929b37c5e0a233ea850ffb9c5122d5a87aa006c4",
+  // Issue #272: explicit owner-approved presentation-only swap of the existing
+  // NEDEN SEÇİLDİ? paragraph for one Info button in the SAME reason grid slot.
+  // Existing token fields, score logic, skeleton, card count, network navigation
+  // and API contracts remain unchanged. This is a specifically authorized UI edit,
+  // not an authorization to alter any other protected file.
+  "search/market-radar.js": "478220679f6f8ee077f3fadba09e009d6650cf8b",
+  "search/market-radar.css": "32926c5f7374c013734b86067124b75f7b15dc59",
   "search/assets/arc-network-mark.svg": "164d2a27c837cd58e42cf12d5d9a89ad4a546225",
   "search/assets/ethereum-mark.svg": "b92e033331b638dc4e2904aaa96b9f7e20917eb7",
   "search/assets/robinhood-chain-mark.svg": "3cb7faadf2cd29c1b158065283c688f424079a8e"
