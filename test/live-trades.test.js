@@ -93,7 +93,7 @@ test('USD only from reviewed anchors; Robinhood and unknown counters stay USD NO
  assert.equal(lt.usdOf('robinhood','0x0bd7d308f8e1639fab988df18a8011f41eacad73',10n**18n,{price:3000}).usdStatus,'ORACLE_PRICED_ETH_REFERENCE');
  assert.equal(lt.usdOf('ethereum','0x'+'7'.repeat(40),1n,null).usd,null);
 });
-test('V4: PoolKey must hash to the PoolId and contain the token; Ethereum has no reviewed V4 manager',async()=>{
+test('V4: PoolKey must hash to the PoolId and contain the token; Ethereum uses the reviewed official deployment',async()=>{
  lt._reset();
  const key={currency0:'0x0000000000000000000000000000000000000000',currency1:TOKEN,fee:3000,tickSpacing:60,hooks:'0x0000000000000000000000000000000000000000'};
  const id=v4.poolIdForKey(key);
@@ -103,7 +103,13 @@ test('V4: PoolKey must hash to the PoolId and contain the token; Ethereum has no
  assert.equal(ok.kind,'V4');assert.equal(ok.emitter,v4.protocols('robinhood')[0].poolManager);assert.equal(ok.counter,key.currency0);
  lt._reset();
  const wrong=await lt.identifyPool('robinhood',rpc,TOKEN,{pool:'0x'+'d'.repeat(64)},'0x10');assert.equal(wrong.excluded,'V4_POOL_ID_MISMATCH');
- assert.equal((await lt.identifyPool('ethereum',rpc,TOKEN,{pool:id},'0x10')).excluded,'NO_REVIEWED_V4_POOL_MANAGER');
+ // #262: Ethereum uses the reviewed official V4 deployment; the same PoolKey/PoolId proof applies.
+ lt._reset();const eth=await lt.identifyPool('ethereum',rpc,TOKEN,{pool:id,dex:'uniswap-v4-ethereum'},'0x10');
+ assert.equal(eth.kind,'V4');assert.equal(eth.emitter,'0x000000000004444c5dc75cb358380d2e3de08a90');
+ // Swap return-delta hook permissions require additional accounting and are conservatively excluded on Ethereum.
+ const hooked={...key,hooks:'0x0000000000000000000000000000000000000008'},hid=v4.poolIdForKey(hooked);
+ const hraw='0x'+[aw(hooked.currency0).slice(2),aw(hooked.currency1).slice(2),w(3000),w(60),aw(hooked.hooks).slice(2)].join('');
+ lt._reset();assert.equal((await lt.identifyPool('ethereum',{call:async()=>hraw},TOKEN,{pool:hid},'0x10')).excluded,'V4_HOOK_RETURNS_DELTA_UNREVIEWED');
 });
 test('cached(): single-flight, short cache, provider failure is UNAVAILABLE (never empty-success)',async()=>{
  lt._reset();let runs=0;const run=async()=>{runs++;await new Promise(r=>setTimeout(r,20));return {ok:true,status:'LIVE',trades:[{side:'BUY'}]};};
@@ -290,6 +296,8 @@ test('V3 Synthra-style adapter: unreviewed V3-interface pool proven by factory r
  assert.equal(r.trades.length,1,'only the reconciled swap is shown');
  assert.equal(r.trades[0].side,'BUY');assert.equal(r.trades[0].verification,'ONCHAIN_TRANSFER_RECONCILED');
  assert.deepEqual({checked:r.reconciliation.checked,matched:r.reconciliation.matched},{checked:2,matched:1});
+ assert.equal(r.coverage.complete,false,'an unmatched swap leaves coverage incomplete even when a verified trade exists');
+ assert.match(r.coverage.note,/could not be reconciled/);
  // factory that does NOT register the pool stays excluded
  lt._reset();
  const r2=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:rpcMock({factory:'0x'+'7'.repeat(40)}).fn,pools:[{pool:POOL,dex:'synthra',reserveUsd:5,trades24h:45}]});
@@ -304,6 +312,8 @@ test('V3 honesty: unreconcilable swaps or a short scan window with provider acti
  const fn=async(m,p)=>{if(m==='eth_getLogs'&&p[0].topics?.[0]===T)throw Error('filter not supported');return base.fn(m,p);};
  const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:fn,pools:[{pool:POOL,dex:'synthra',reserveUsd:5,trades24h:45}]});
  assert.equal(r.trades.length,0);assert.equal(r.status,'COVERAGE_INCOMPLETE');assert.equal(r.reasonCode,'RECONCILIATION_UNAVAILABLE');
+ assert.equal(r.coverage.complete,false,'failed Transfer reconciliation is incomplete coverage');
+ assert.match(r.coverage.note,/could not be reconciled/);
  assert.equal(r.reconciliation.status,'TRANSFER_LOGS_UNAVAILABLE');assert.match(r.reconciliation.error,/filter not supported/);
  assert.equal(lt.classify(Error('GeckoTerminal HTTP 429')).reasonCode,'POOL_SOURCE_RATE_LIMITED');
  assert.equal(lt.classify(Error('HTTP 429')).reasonCode,'RPC_RATE_LIMITED');
@@ -330,4 +340,56 @@ test('V3 Synthra real-trade reconciliation (Arc tx 0x5a01…): fee-skim transfer
  const fn2=async(m,p)=>{if(m==='eth_getLogs'&&p[0].topics?.[0]===T)return missingOut.filter(t=>p[0].address.includes(t.address));return fn(m,p);};
  const r2=await lt.analyze({network:'ethereum',address:POLLT,rpcFn:fn2,pools:[{pool:POOL,dex:'synthra-arc',reserveUsd:5,trades24h:45}]});
  assert.equal(r2.trades.length,0,'a swap whose payout transfer is missing is never shown');assert.equal(r2.status,'COVERAGE_INCOMPLETE');
+});
+test('#262: a Swap event with zero researched-token delta is never displayed as a trade',async()=>{
+ lt._reset();
+ const logs=[swapLog(990,1,v3data(0n,0n)),swapLog(995,3,v3data(10n**18n,-2_500_000n))];
+ const blocks={'0x3de':{hash:'0xbh990',timestamp:'0x6553f100'},'0x3e3':{hash:'0xbh995',timestamp:'0x6553f200'}};
+ const txs={};for(const l of logs)txs[l.transactionHash]={from:'0x'+'e'.repeat(40),to:POOL,blockHash:l.blockHash};
+ const m=rpcMock({registered:POOL,logs,blocks,txs});
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:m.fn,pools:[{pool:POOL,dex:'uniswap_v3',reserveUsd:5}]});
+ assert.equal(r.trades.length,1);assert.equal(r.trades[0].side,'SELL');assert.ok(r.trades.every(t=>t.tokenAmount!=='0'));
+});
+
+test('#269: an active pool outside the three-verified-pool budget never becomes NO_RECENT_SWAPS or complete coverage',async()=>{
+ lt._reset();
+ const poolIds=[POOL,'0x'+'c'.repeat(40),'0x'+'d'.repeat(40),'0x'+'e'.repeat(40)];
+ const fees=[3000,500,10000,100];
+ const base=rpcMock({registered:POOL});
+ const rpc=async(method,params)=>{
+  if(method==='eth_call'){
+   const {to,data}=params[0],selector=data.slice(0,10);
+   if(selector===sel('fee()'))return '0x'+w(fees[poolIds.indexOf(to)]??3000);
+   if(selector===sel('getPool(address,address,uint24)')){
+    const fee=Number(BigInt('0x'+data.slice(-64))),idx=fees.indexOf(fee);
+    return aw(idx===-1?'0x'+'0'.repeat(40):poolIds[idx]);
+   }
+  }
+  return base.fn(method,params);
+ };
+ const candidates=poolIds.map((pool,i)=>({pool,dex:'uniswap-v3',reserveUsd:1000,trades24h:100-i*10}));
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:rpc,pools:candidates});
+ assert.equal(r.pools.length,3,'the existing budget remains bounded to three verified pools');
+ assert.equal(r.excludedPools.length,0,'none of the examined pools is excluded');
+ assert.equal(r.coverage.uninspectedPools,1);
+ assert.equal(r.coverage.uninspectedActivePools,1);
+ assert.equal(r.coverage.providerTrades24hUninspected,70);
+ assert.equal(r.coverage.complete,false);
+ assert.match(r.coverage.note,/not inspected/);
+ assert.equal(r.status,'COVERAGE_INCOMPLETE','missing activity must not become NO_RECENT_SWAPS');
+ assert.equal(r.reasonCode,'ACTIVE_POOLS_UNINSPECTED');
+ assert.deepEqual(r.trades,[]);
+});
+
+test('#269: candidate cap preserves the number and reported activity of omitted pool candidates',async()=>{
+ lt._reset();
+ const names=Array.from({length:9},(_,i)=>'0x'+(10+i).toString(16).padStart(40,'0'));
+ const candidates=names.map((pool,i)=>({pool,dex:'unreviewed',reserveUsd:50,trades24h:100-i}));
+ const r=await lt.analyze({network:'ethereum',address:TOKEN,rpcFn:rpcMock({factory:'0x'+'9'.repeat(40)}).fn,pools:candidates});
+ assert.equal(r.excludedPools.length,8,'the provider candidate identity cap is unchanged');
+ assert.equal(r.coverage.uninspectedPools,1);
+ assert.equal(r.coverage.uninspectedActivePools,1);
+ assert.equal(r.coverage.providerTrades24hUninspected,92);
+ assert.equal(r.coverage.complete,false);
+ assert.equal(r.status,'COVERAGE_INCOMPLETE');
 });

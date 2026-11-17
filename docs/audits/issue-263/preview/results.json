@@ -1,0 +1,348 @@
+{
+  "base": "https://arcy-official-jf2goy8i8-arcy3.vercel.app",
+  "measuredAt": "2026-11-17T06:04:13.911Z",
+  "browser": "Playwright Chromium 1.56.1",
+  "conditions": "4x CPU, 1.6 Mbps down, 750ms RTT, no reduced motion, cold browser context for each measurement",
+  "widths": [
+    {
+      "width": 320,
+      "overflow": 0,
+      "owl": 1,
+      "search": 1,
+      "nav": 8,
+      "touchTargets": [
+        {
+          "id": "Toggle navigation",
+          "width": 44,
+          "height": 44,
+          "visible": true,
+          "label": "Toggle navigation"
+        },
+        {
+          "id": "All 3 Networks",
+          "width": 268,
+          "height": 44,
+          "visible": true,
+          "label": "All 3 Networks"
+        },
+        {
+          "id": "Arc",
+          "width": 86,
+          "height": 44,
+          "visible": true,
+          "label": "Arc"
+        },
+        {
+          "id": "Ethereum",
+          "width": 86,
+          "height": 44,
+          "visible": true,
+          "label": "Ethereum"
+        },
+        {
+          "id": "Robinhood Chain",
+          "width": 86,
+          "height": 44,
+          "visible": true,
+          "label": "Robinhood Chain"
+        },
+        {
+          "id": "unlockPrev",
+          "width": 44,
+          "height": 44,
+          "visible": true,
+          "label": "Previous unlock page"
+        },
+        {
+          "id": "unlockNext",
+          "width": 44,
+          "height": 44,
+          "visible": true,
+          "label": "Next unlock page"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "overflow": 0,
+      "owl": 1,
+      "search": 1,
+      "nav": 8,
+      "touchTargets": [
+        {
+          "id": "Toggle navigation",
+          "width": 44,
+          "height": 44,
+          "visible": true,
+          "label": "Toggle navigation"
+        },
+        {
+          "id": "All 3 Networks",
+          "width": 334,
+          "height": 44,
+          "visible": true,
+          "label": "All 3 Networks"
+        },
+        {
+          "id": "Arc",
+          "width": 108,
+          "height": 44,
+          "visible": true,
+          "label": "Arc"
+        },
+        {
+          "id": "Ethereum",
+          "width": 108,
+          "height": 44,
+          "visible": true,
+          "label": "Ethereum"
+        },
+        {
+          "id": "Robinhood Chain",
+          "width": 108,
+          "height": 44,
+          "visible": true,
+          "label": "Robinhood Chain"
+        },
+        {
+          "id": "unlockPrev",
+          "width": 44,
+          "height": 44,
+          "visible": true,
+          "label": "Previous unlock page"
+        },
+        {
+          "id": "unlockNext",
+          "width": 44,
+          "height": 44,
+          "visible": true,
+          "label": "Next unlock page"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 800,
+      "overflow": 0,
+      "owl": 1,
+      "search": 1,
+      "nav": 8,
+      "touchTargets": [
+        {
+          "id": "Toggle navigation",
+          "width": 44,
+          "height": 44,
+          "visible": true,
+          "label": "Toggle navigation"
+        },
+        {
+          "id": "All 3 Networks",
+          "width": 734,
+          "height": 44,
+          "visible": true,
+          "label": "All 3 Networks"
+        },
+        {
+          "id": "Arc",
+          "width": 241,
+          "height": 44,
+          "visible": true,
+          "label": "Arc"
+        },
+        {
+          "id": "Ethereum",
+          "width": 241,
+          "height": 44,
+          "visible": true,
+          "label": "Ethereum"
+        },
+        {
+          "id": "Robinhood Chain",
+          "width": 241,
+          "height": 44,
+          "visible": true,
+          "label": "Robinhood Chain"
+        },
+        {
+          "id": "unlockPrev",
+          "width": 44,
+          "height": 44,
+          "visible": true,
+          "label": "Previous unlock page"
+        },
+        {
+          "id": "unlockNext",
+          "width": 44,
+          "height": 44,
+          "visible": true,
+          "label": "Next unlock page"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 1024,
+      "overflow": 0,
+      "owl": 1,
+      "search": 1,
+      "nav": 8,
+      "touchTargets": [
+        {
+          "id": "Toggle navigation",
+          "width": 0,
+          "height": 0,
+          "visible": false,
+          "label": "Toggle navigation"
+        },
+        {
+          "id": "All 3 Networks",
+          "width": 858,
+          "height": 47,
+          "visible": true,
+          "label": "All 3 Networks"
+        },
+        {
+          "id": "Arc",
+          "width": 283,
+          "height": 47,
+          "visible": true,
+          "label": "Arc"
+        },
+        {
+          "id": "Ethereum",
+          "width": 283,
+          "height": 47,
+          "visible": true,
+          "label": "Ethereum"
+        },
+        {
+          "id": "Robinhood Chain",
+          "width": 283,
+          "height": 47,
+          "visible": true,
+          "label": "Robinhood Chain"
+        },
+        {
+          "id": "unlockPrev",
+          "width": 36,
+          "height": 36,
+          "visible": true,
+          "label": "Previous unlock page"
+        },
+        {
+          "id": "unlockNext",
+          "width": 36,
+          "height": 36,
+          "visible": true,
+          "label": "Next unlock page"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "overflow": 0,
+      "owl": 1,
+      "search": 1,
+      "nav": 8,
+      "touchTargets": [
+        {
+          "id": "Toggle navigation",
+          "width": 0,
+          "height": 0,
+          "visible": false,
+          "label": "Toggle navigation"
+        },
+        {
+          "id": "All 3 Networks",
+          "width": 1213,
+          "height": 47,
+          "visible": true,
+          "label": "All 3 Networks"
+        },
+        {
+          "id": "Arc",
+          "width": 401,
+          "height": 47,
+          "visible": true,
+          "label": "Arc"
+        },
+        {
+          "id": "Ethereum",
+          "width": 401,
+          "height": 47,
+          "visible": true,
+          "label": "Ethereum"
+        },
+        {
+          "id": "Robinhood Chain",
+          "width": 401,
+          "height": 47,
+          "visible": true,
+          "label": "Robinhood Chain"
+        },
+        {
+          "id": "unlockPrev",
+          "width": 36,
+          "height": 36,
+          "visible": true,
+          "label": "Previous unlock page"
+        },
+        {
+          "id": "unlockNext",
+          "width": 36,
+          "height": 36,
+          "visible": true,
+          "label": "Next unlock page"
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "mobileRuns": [
+    {
+      "run": 1,
+      "http": 200,
+      "wallMs": 23414,
+      "lcp": {
+        "startTime": 6688,
+        "size": 146088,
+        "element": "IMG",
+        "url": "https://arcy-official-jf2goy8i8-arcy3.vercel.app/assets/arcy-hero-video-poster-v8.webp"
+      },
+      "cls": 0.07349607128643987,
+      "domContentLoaded": 6978,
+      "load": 20848.19999998808
+    },
+    {
+      "run": 2,
+      "http": 200,
+      "wallMs": 23191,
+      "lcp": {
+        "startTime": 6504,
+        "size": 146088,
+        "element": "IMG",
+        "url": "https://arcy-official-jf2goy8i8-arcy3.vercel.app/assets/arcy-hero-video-poster-v8.webp"
+      },
+      "cls": 0.07349607128643987,
+      "domContentLoaded": 6921.5,
+      "load": 20650.80000001192
+    },
+    {
+      "run": 3,
+      "http": 200,
+      "wallMs": 22886,
+      "lcp": {
+        "startTime": 5964,
+        "size": 146088,
+        "element": "IMG",
+        "url": "https://arcy-official-jf2goy8i8-arcy3.vercel.app/assets/arcy-hero-video-poster-v8.webp"
+      },
+      "cls": 0.07349607128643987,
+      "domContentLoaded": 6469.5,
+      "load": 20293.30000001192
+    }
+  ],
+  "mobileLcpMedianMs": 6504
+}

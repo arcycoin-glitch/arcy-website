@@ -16,7 +16,12 @@ module.exports=async function handler(req,res){
  try{network=service.parseChain(p.chain)}catch{return res.status(400).json({ok:false,error:'UNSUPPORTED_CHAIN'})}
  if(!enforce(req,res))return;
  try{return res.status(200).json(await service.report({network,address,onProgress:req.onSearchProgress}))}
- catch{return res.status(502).json({ok:false,chainId:require('../lib/chains').chain(network).chainId,network,
+ catch(e){
+  // #262: no bytecode at this address on the selected chain (wrong chain / EOA / not deployed) is deterministic: 404, not a
+  // retryable provider outage. Every other failure keeps the existing 502 CHAIN_SCAN_UNAVAILABLE contract.
+  if(e?.code==='NO_CONTRACT_CODE')return res.status(404).json({ok:false,chainId:require('../lib/chains').chain(network).chainId,network,
+   address:address.toLowerCase(),error:'NO_CONTRACT_CODE',reason:'No contract bytecode at this address on the selected network.'});
+  return res.status(502).json({ok:false,chainId:require('../lib/chains').chain(network).chainId,network,
   address:address.toLowerCase(),error:'CHAIN_SCAN_UNAVAILABLE',
   reason:'Mainnet RPC or required contract evidence could not be verified.'})}
 };

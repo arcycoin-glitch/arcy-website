@@ -49,13 +49,16 @@ test('shared per-minute gate and provider cooldown (real redis)',{skip:!have&&'r
   for(let i=0;i<50;i++){try{if(await c('ping')==='PONG')break;}catch{}await new Promise(r=>setTimeout(r,100));}
   const store=require('../lib/quota-store');
   const fetchImpl=async(url,o)=>{const cmd=JSON.parse(o.body);const out=await c(...cmd);return {ok:true,json:async()=>({result:out.split('\n').map(Number)})};};
+  // Root cause of the CI flake (6 granted instead of 5): the gate is a fixed per-minute window keyed by floor(now/60000).
+  // With the real clock, ten concurrent reserves could straddle a minute boundary and land in two windows. Pin the clock.
+  const T0=Date.parse('2026-10-30T12:00:30Z'),now=()=>T0;
   const cfg={url:'http://x',token:'t'},M='2026-10';
-  const res=await Promise.all(Array.from({length:10},()=>store.apply({month:M,mode:'reserve',credits:4,cap:1000,perMinute:20},{fetchImpl,config:cfg})));
+  const res=await Promise.all(Array.from({length:10},()=>store.apply({month:M,mode:'reserve',credits:4,cap:1000,perMinute:20},{fetchImpl,config:cfg,now})));
   assert.equal(res.filter(r=>r.granted).length,5,'20/min gate admits exactly 5 x4 credits');
   const th=res.find(r=>r.reason==='MINUTE_CAP');assert.ok(th&&th.retryInMs>=1000);
   assert.equal(Number(await c('GET','arcy:radar:credits:'+M)),20,'throttled reserves do not count');
-  await store.apply({month:M,mode:'cooldown',ms:30000},{fetchImpl,config:cfg});
-  const cd=await store.apply({month:M,mode:'reserve',credits:1,cap:1000},{fetchImpl,config:cfg});
+  await store.apply({month:M,mode:'cooldown',ms:30000},{fetchImpl,config:cfg,now});
+  const cd=await store.apply({month:M,mode:'reserve',credits:1,cap:1000},{fetchImpl,config:cfg,now});
   assert.equal(cd.reason,'COOLDOWN');assert.ok(cd.retryInMs>0&&cd.retryInMs<=30000);
   assert.equal(Number(await c('GET','arcy:radar:credits:'+M)),20,'cooldown reserve does not count');
  }finally{srv.kill();}

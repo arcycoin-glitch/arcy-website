@@ -628,3 +628,17 @@ test('V3 Follow-the-DEX: newPools joins on-chain creation events with the provid
  const down=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true,discoverRpc:async()=>{throw Error('down');}});
  assert.equal(down.ok,true);assert.equal(down.categories.newPools.status,'UNAVAILABLE');assert.equal(down.tokens.length,10);
 });
+test('#262: on-chain discovered tokens using major tickers are flagged MAJOR_TICKER_WITHOUT_IDENTITY_PROOF (never ranked)',async()=>{
+ const net='ethereum',body=geckoBody(net,{count:14});
+ const f=router([...CG(net,body),[/dexscreener\.com/,()=>resp(dexBody(net,body))]]);
+ const w=a=>'0x'+'0'.repeat(24)+a.slice(2),FAKE='0x'+'a1'.repeat(20),OK='0x'+'b2'.repeat(20);
+ const sym=s=>'0x'+'0'.repeat(62)+'20'+'0'.repeat(63)+s.length+Buffer.from(s).toString('hex').padEnd(64,'0');
+ const rpc=async(m,p)=>{if(m==='eth_getBlockByNumber')return {number:p[0]==='latest'?'0x30d40':p[0],timestamp:'0x6553f100'};
+  if(m==='eth_getLogs')return BigInt(p[0].toBlock)>=199900n&&BigInt(p[0].fromBlock)<=199900n?[FAKE,OK].map((t,i)=>({address:'0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f',topics:['0x0d3648bd0f6ba80134a33ba9275ac585d9d315f0ad8355cddefde31afa28d0e9',w(t),w('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2')],data:'0x'+w('0x'+String(i+3).repeat(40)).slice(2)+'0'.repeat(63)+'1',blockNumber:'0x30cdc',transactionHash:'0x'+'a'.repeat(64)})):[];
+  if(m==='eth_call')return sym(p[0].to===FAKE?'XRP':'NEWCOIN');throw Error(m);};
+ const out=await radar.load(net,{env:{...DEMO,VERCEL:undefined,DEXSCREENER_PUBLIC_DISPLAY_APPROVED:'true'},fetcher:f,now:()=>T0,disableCache:true,discoverRpc:rpc});
+ const items=out.categories.newPools.items;
+ assert.equal(items.find(x=>x.address===FAKE).identityFlag,'MAJOR_TICKER_WITHOUT_IDENTITY_PROOF');
+ assert.equal(items.find(x=>x.address===OK).identityFlag,null);
+ assert.ok(!out.tokens.some(t=>t.address===FAKE));
+});
