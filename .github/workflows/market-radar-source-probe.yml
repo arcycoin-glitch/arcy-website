@@ -62,9 +62,23 @@ jobs:
           name: change24h-report
           path: change24h-report.json
           if-no-files-found: ignore
+  # Split the slow keyless live source probe into its own timed job.
+  # The original all-in-one 20-minute job was cancelled after 17 successful steps,
+  # before this last probe could complete; no assertions are disabled.
+  radar-v2-live:
+    needs: live-source-probe
+    if: ${{ always() && needs.live-source-probe.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Radar V2 live source probe (paced, keyless, CI only)
         run: node scripts/probe-radar-v2.cjs
-        continue-on-error: true
       - name: Publish results A (arc, ethereum)
         if: always()
         run: node scripts/emit-radar-annotations.cjs arc,ethereum
