@@ -315,15 +315,63 @@ test('Robinhood: a copy-cat of an official pons launch ticker is a look-alike; t
  ];
  const out=await run('robinhood',specs,{rpc:rpcFor([OFFICIAL])});
  const syms=out.tokens.map(t=>t.symbol);
- assert.ok(!syms.includes('WETH'));assert.equal(syms.filter(s=>s==='PONS').length,1);assert.equal(out.tokens.find(t=>t.symbol==='PONS').address,OFFICIAL);
+ assert.ok(!syms.includes('WETH'));assert.equal(syms.filter(s=>s==='PONS').length,0,'factory-verified launches belong only in Pons Launch');
+ assert.ok(!out.tokens.some(t=>t.address===OFFICIAL),'the exact Pons contract is excluded from general Robinhood rankings');
+ assert.equal(out.discovery.excludedCounts.PONS_LAUNCH_SEPARATE_SECTION,1);
+ const ponsOnly=await run('pons',specs,{rpc:rpcFor([OFFICIAL])});
+ assert.ok(ponsOnly.tokens.some(t=>t.address===OFFICIAL),'the official contract remains discoverable on its Pons tab');
+ assert.ok(!ponsOnly.tokens.some(t=>t.address===FAKE),'same-ticker impostor is never a Pons factory launch');
  assert.equal(out.excluded.find(x=>x.address===FAKE).reason,'UNVERIFIED_LOOKALIKE');
  assert.equal(out.excluded.find(x=>x.address===addr(82)).reason,'WRAPPED_BASE_ASSET','second WETH has a price consistent with the official WETH reference');
  assert.ok(out.tokens.filter(t=>t.discovery.kind==='TOKENIZED_EQUITY').length<=2);
  assert.ok(syms.includes('FRESH'));
 });
+test('Robinhood and Pons are separate views for factory-confirmed contracts without an extra source call',async()=>{
+ const PONS=addr(198),NON_PONS=addr(199);
+ const specs=[{a:PONS,s:'PNXX',n:'Verified Pons launch',vol:9e5,liq:8e5,age:3,buys:250,sells:220},
+              {a:NON_PONS,s:'GEN',n:'Robinhood independent token',vol:6e5,liq:7e5,age:5,buys:190,sells:170}];
+ const robin=await run('robinhood',specs,{rpc:rpcFor([PONS])});
+ assert.deepEqual(robin.tokens.map(t=>t.address),[NON_PONS],'Robinhood shows only independent contracts');
+ assert.equal(robin.discovery.excludedCounts.PONS_LAUNCH_SEPARATE_SECTION,1);
+ assert.equal(robin.coverage.ponsLookalikeCheck,'OK');
+ const ponsResult=await run('pons',specs,{rpc:rpcFor([PONS])});
+ assert.deepEqual(ponsResult.tokens.map(t=>t.address),[PONS],'Pons Launch retains the official factory token');
+ assert.equal(new Set([...robin.tokens,...ponsResult.tokens].map(t=>t.address)).size,2,'no duplicate exact contract across tabs');
+ assert.ok(ponsResult.tokens[0].launch.status==='ONCHAIN_VERIFIED','Pons provenance is still source-backed');
+});
 test('Robinhood without a working RPC still ranks; the look-alike check just reports it could not run',async()=>{
  const out=await run('robinhood',[{a:addr(100),s:'AAA',vol:5e5,liq:6e5}],{rpc:async()=>({ok:false,status:500,headers:new Headers(),text:async()=>''})});
  assert.equal(out.tokens.length,1);assert.match(out.coverage.ponsLookalikeCheck,/PONS_MEMBERSHIP_UNAVAILABLE/);
+});
+test('Robinhood uses only an authenticated, recent Pons snapshot as backup when factory RPC is unavailable',async()=>{
+ const PON=addr(660),GEN=addr(661),specs=[
+  {a:PON,s:'PNBACK',n:'Factory-proven Pons',vol:8e5,liq:8e5,age:3,buys:300,sells:200},
+  {a:GEN,s:'RHBACK',n:'Non-Pons',vol:5e5,liq:6e5,age:4,buys:250,sells:200}
+ ];
+ const snapshot={ok:true,version:2,engine:'arcy-radar-v3',network:'pons',chainId:4663,
+  freshness:'FRESH',asOf:new Date(T0).toISOString(),coverage:{ponsConfirmed:1},
+  tokens:[{rank:1,address:PON,symbol:'PNBACK',name:'Factory-proven Pons',
+   fields:{},launch:{status:'ONCHAIN_VERIFIED',factory:sources.PONS.factories[0]}}]};
+ const env={...ENV,RADAR_PONS_DURABLE_CACHE_ENABLED:'true',
+  ARC_HOLDER_QUEUE_URL:'https://worker.example/',ARC_HOLDER_QUEUE_TOKEN:'in-test-only'};
+ const requests=[],f=router([
+  [/^https:\/\/worker\.example\//,(url,o)=>{requests.push({url,method:o.method});return {ok:true,status:200,
+   json:async()=>({ok:true,hit:true,snapshot})};}],
+  [/tokens\/multi/,()=>resp(multi('robinhood',specs))],
+  [/coingecko\.com/,()=>resp(page('robinhood',specs))],
+  [/rpc\.example/,async()=>({ok:false,status:500,headers:new Headers(),text:async()=>''})]
+ ]);
+ const result=await radar.load('robinhood',{env,fetcher:f,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
+ assert.deepEqual(result.tokens.map(x=>x.address),[GEN]);
+ assert.equal(result.discovery.excludedCounts.PONS_LAUNCH_SEPARATE_SECTION,1);
+ assert.match(result.coverage.ponsLookalikeCheck,/PONS_MEMBERSHIP_UNAVAILABLE.*VERIFIED_PONS_CACHE/);
+ assert.equal(requests.length,1,'only one read from existing authenticated worker backup');
+ assert.equal(requests[0].method,'POST');
+ // Invalid membership/issuer claim cannot be used to suppress a Robinhood token.
+ snapshot.tokens[0].launch.factory=addr(900);
+ const second=await radar.load('robinhood',{env,fetcher:f,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
+ assert.ok(second.tokens.some(x=>x.address===PON),'an invalid cache edition is ignored, never called trusted');
+ assert.match(second.coverage.ponsLookalikeCheck,/PONS_MEMBERSHIP_UNAVAILABLE/);
 });
 test('Pons: only factory-confirmed launches are ranked — a PONS-ticker impostor with huge volume is not',async()=>{
  const OFFICIAL=addr(110),FAKE=addr(111);
@@ -338,12 +386,12 @@ test('Pons: zero confirmed candidates is reported honestly with the number check
  const out=await run('pons',[{a:addr(120),s:'AAA'},{a:addr(121),s:'BBB'}],{rpc:rpcFor([])});
  assert.equal(out.tokens.length,0);assert.equal(out.coverage.ponsChecked,2);assert.equal(out.coverage.ponsConfirmed,0);
 });
-test('quota: a full uncached refresh of all four sections stays inside the Demo plan arithmetic (13 provider credits)',async()=>{
+test('quota: Pons-only Robinhood routing saves one Demo token lookup without increasing four-section calls',async()=>{
  const specs=[{a:addr(130),s:'AAA',vol:5e5,liq:6e5}];
  const mk=net=>router([[/tokens\/multi/,()=>resp(multi(net,specs))],[/coingecko\.com/,()=>resp(page(net,specs))],[/rpc\.example/,rpcFor([addr(130)])]]);
  let credits=0;const shared=router([[/tokens\/multi/,(u)=>{credits++;return resp(multi('arc',specs));}],[/coingecko\.com/,(u)=>{credits++;return resp(page(/networks\/eth\//.test(u)?'ethereum':/networks\/arc\//.test(u)?'arc':'robinhood',specs));}],[/rpc\.example/,rpcFor([addr(130)])]]);
  for(const n of ['arc','ethereum','robinhood','pons'])await radar.load(n,{env:ENV,fetcher:shared,now:()=>T0,rpcUrl:'https://rpc.example/'});
- assert.equal(credits,sources.demoBudget(3600e3).callsPerCycle);
+ assert.equal(credits,sources.demoBudget(3600e3).callsPerCycle-1,'factory-confirmed Pons is removed from Robinhood before a redundant token/multi lookup; exactly one provider credit saved');
  const before=credits;for(const n of ['arc','ethereum','robinhood','pons'])await radar.load(n,{env:ENV,fetcher:shared,now:()=>T0+30*60000,rpcUrl:'https://rpc.example/'});
  assert.equal(credits,before,'second pass inside the TTL costs nothing');
 });
@@ -428,6 +476,19 @@ test('Pons V2: graduated V2 tokens from the provider window AND a factory-event-
  assert.equal(g.launch.factoryVersion,'v2');assert.equal(g.launch.phase,2);assert.equal(g.graduation.graduated,true);assert.equal(g.graduation.phaseName,'GRADUATED_POOL');
  const bc=out.coverage.bondingCurve;assert.equal(bc.count,1);assert.equal(bc.items[0].token,CURVE_TOK);assert.equal(bc.items[0].progressPct,40);assert.equal(bc.items[0].priceUsd.status,'NOT_VERIFIED');
  assert.equal(out.coverage.factoryEvents.perFactory[V2F].logs,2);
+});
+test('Robinhood excludes Pons V2 graduated contracts and keeps a distinct non-Pons token',async()=>{
+ const GRAD=addr(670),GEN=addr(671),specs=[
+  {a:GRAD,s:'V2G',n:'Graduated Pons V2',vol:5e5,liq:7e5,age:5,buys:450,sells:440},
+  {a:GEN,s:'RHC',n:'Robinhood native project',vol:3e5,liq:4e5,age:9,buys:230,sells:200}
+ ];
+ const rpc=rpcV2({[GRAD]:{curve:addr(672),phase:2}});
+ const robin=await run('robinhood',specs,{rpc});
+ assert.deepEqual(robin.tokens.map(t=>t.address),[GEN]);
+ assert.equal(robin.discovery.excludedCounts.PONS_LAUNCH_SEPARATE_SECTION,1);
+ const ponsOut=await run('pons',specs,{rpc:rpcV2({[GRAD]:{curve:addr(672),phase:2}})});
+ assert.deepEqual(ponsOut.tokens.map(t=>t.address),[GRAD]);
+ assert.equal(ponsOut.tokens[0].launch.factoryVersion,'v2');
 });
 test('Pons V2: tokens announced by the PoolGraduated event are accepted only if the V2 factory also reports phase 2 and ranked; still-on-curve ones are not',async()=>{
  const launches=[],members={};
