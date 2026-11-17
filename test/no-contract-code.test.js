@@ -58,7 +58,7 @@ test('progress API: terminal NDJSON error preserves exact-chain 404 identity and
   },res);
   assert.equal(res.statusCode,200,'headers were already flushed for NDJSON');
   assert.equal(res.flushed,true);
-  assert.match(res.headers['Content-Type'],/application\\/x-ndjson/);
+  assert.ok(res.headers['Content-Type'].startsWith('application/x-ndjson'));
   assert.equal(res.writableEnded,true);
   assert.equal(lines[0].phase,'identity');
   assert.equal(lines[1].phase,'error');
