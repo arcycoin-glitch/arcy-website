@@ -55,7 +55,7 @@ test('site keeps exactly the approved sections and exposes refresh handlers',()=
 });
 function harness(){
  const actionCalls=[],handlers={};
- for(const name of ['health','token','report','progress','discover','chart']){
+ for(const name of ['health','token','report','progress','discover','artwork','chart','radar','status','privileges','onchain','exitquote','trades']){
   handlers[name]=async (req,res)=>{actionCalls.push({name,query:req.query,method:req.method});
    return res.status(200).json({ok:true,action:name,query:req.query})};
  }
@@ -94,6 +94,7 @@ test('production rewrite query metadata is removed without relaxing address or c
   {action:'report',chain:'arc',address},
   {action:'token',chain:'arc',address},
   {action:'discover',chain:'robinhood',q:'Pons'},
+  {action:'artwork',chain:'arc',addresses:address},
   {action:'chart',chain:'ethereum',address,range:'1W'}
  ];
  for(const wanted of scenarios){
