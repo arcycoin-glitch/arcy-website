@@ -1,0 +1,348 @@
+{
+  "base": "https://www.arcyusdc.xyz",
+  "measuredAt": "2026-11-17T06:06:25.181Z",
+  "browser": "Playwright Chromium 1.56.1",
+  "conditions": "4x CPU, 1.6 Mbps down, 750ms RTT, no reduced motion, cold browser context for each measurement",
+  "widths": [
+    {
+      "width": 320,
+      "overflow": 0,
+      "owl": 1,
+      "search": 1,
+      "nav": 8,
+      "touchTargets": [
+        {
+          "id": "Toggle navigation",
+          "width": 38,
+          "height": 37,
+          "visible": true,
+          "label": "Toggle navigation"
+        },
+        {
+          "id": "All 3 Networks",
+          "width": 268,
+          "height": 39,
+          "visible": true,
+          "label": "All 3 Networks"
+        },
+        {
+          "id": "Arc",
+          "width": 86,
+          "height": 41,
+          "visible": true,
+          "label": "Arc"
+        },
+        {
+          "id": "Ethereum",
+          "width": 86,
+          "height": 41,
+          "visible": true,
+          "label": "Ethereum"
+        },
+        {
+          "id": "Robinhood Chain",
+          "width": 86,
+          "height": 41,
+          "visible": true,
+          "label": "Robinhood Chain"
+        },
+        {
+          "id": "unlockPrev",
+          "width": 27,
+          "height": 30,
+          "visible": true,
+          "label": null
+        },
+        {
+          "id": "unlockNext",
+          "width": 27,
+          "height": 30,
+          "visible": true,
+          "label": null
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "overflow": 0,
+      "owl": 1,
+      "search": 1,
+      "nav": 8,
+      "touchTargets": [
+        {
+          "id": "Toggle navigation",
+          "width": 38,
+          "height": 37,
+          "visible": true,
+          "label": "Toggle navigation"
+        },
+        {
+          "id": "All 3 Networks",
+          "width": 334,
+          "height": 39,
+          "visible": true,
+          "label": "All 3 Networks"
+        },
+        {
+          "id": "Arc",
+          "width": 108,
+          "height": 40,
+          "visible": true,
+          "label": "Arc"
+        },
+        {
+          "id": "Ethereum",
+          "width": 108,
+          "height": 40,
+          "visible": true,
+          "label": "Ethereum"
+        },
+        {
+          "id": "Robinhood Chain",
+          "width": 108,
+          "height": 40,
+          "visible": true,
+          "label": "Robinhood Chain"
+        },
+        {
+          "id": "unlockPrev",
+          "width": 27,
+          "height": 30,
+          "visible": true,
+          "label": null
+        },
+        {
+          "id": "unlockNext",
+          "width": 27,
+          "height": 30,
+          "visible": true,
+          "label": null
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 800,
+      "overflow": 0,
+      "owl": 1,
+      "search": 1,
+      "nav": 8,
+      "touchTargets": [
+        {
+          "id": "Toggle navigation",
+          "width": 38,
+          "height": 37,
+          "visible": true,
+          "label": "Toggle navigation"
+        },
+        {
+          "id": "All 3 Networks",
+          "width": 734,
+          "height": 39,
+          "visible": true,
+          "label": "All 3 Networks"
+        },
+        {
+          "id": "Arc",
+          "width": 241,
+          "height": 39,
+          "visible": true,
+          "label": "Arc"
+        },
+        {
+          "id": "Ethereum",
+          "width": 241,
+          "height": 39,
+          "visible": true,
+          "label": "Ethereum"
+        },
+        {
+          "id": "Robinhood Chain",
+          "width": 241,
+          "height": 39,
+          "visible": true,
+          "label": "Robinhood Chain"
+        },
+        {
+          "id": "unlockPrev",
+          "width": 36,
+          "height": 36,
+          "visible": true,
+          "label": null
+        },
+        {
+          "id": "unlockNext",
+          "width": 36,
+          "height": 36,
+          "visible": true,
+          "label": null
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 1024,
+      "overflow": 0,
+      "owl": 1,
+      "search": 1,
+      "nav": 8,
+      "touchTargets": [
+        {
+          "id": "Toggle navigation",
+          "width": 0,
+          "height": 0,
+          "visible": false,
+          "label": "Toggle navigation"
+        },
+        {
+          "id": "All 3 Networks",
+          "width": 858,
+          "height": 47,
+          "visible": true,
+          "label": "All 3 Networks"
+        },
+        {
+          "id": "Arc",
+          "width": 283,
+          "height": 47,
+          "visible": true,
+          "label": "Arc"
+        },
+        {
+          "id": "Ethereum",
+          "width": 283,
+          "height": 47,
+          "visible": true,
+          "label": "Ethereum"
+        },
+        {
+          "id": "Robinhood Chain",
+          "width": 283,
+          "height": 47,
+          "visible": true,
+          "label": "Robinhood Chain"
+        },
+        {
+          "id": "unlockPrev",
+          "width": 36,
+          "height": 36,
+          "visible": true,
+          "label": null
+        },
+        {
+          "id": "unlockNext",
+          "width": 36,
+          "height": 36,
+          "visible": true,
+          "label": null
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "overflow": 0,
+      "owl": 1,
+      "search": 1,
+      "nav": 8,
+      "touchTargets": [
+        {
+          "id": "Toggle navigation",
+          "width": 0,
+          "height": 0,
+          "visible": false,
+          "label": "Toggle navigation"
+        },
+        {
+          "id": "All 3 Networks",
+          "width": 1213,
+          "height": 47,
+          "visible": true,
+          "label": "All 3 Networks"
+        },
+        {
+          "id": "Arc",
+          "width": 401,
+          "height": 47,
+          "visible": true,
+          "label": "Arc"
+        },
+        {
+          "id": "Ethereum",
+          "width": 401,
+          "height": 47,
+          "visible": true,
+          "label": "Ethereum"
+        },
+        {
+          "id": "Robinhood Chain",
+          "width": 401,
+          "height": 47,
+          "visible": true,
+          "label": "Robinhood Chain"
+        },
+        {
+          "id": "unlockPrev",
+          "width": 36,
+          "height": 36,
+          "visible": true,
+          "label": null
+        },
+        {
+          "id": "unlockNext",
+          "width": 36,
+          "height": 36,
+          "visible": true,
+          "label": null
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "mobileRuns": [
+    {
+      "run": 1,
+      "http": 200,
+      "wallMs": 20370,
+      "lcp": {
+        "startTime": 5844,
+        "size": 146088,
+        "element": "IMG",
+        "url": "https://www.arcyusdc.xyz/assets/arcy-hero-video-poster-v8.webp"
+      },
+      "cls": 0.07349607128643987,
+      "domContentLoaded": 6232.299999952316,
+      "load": 17771.599999964237
+    },
+    {
+      "run": 2,
+      "http": 200,
+      "wallMs": 20420,
+      "lcp": {
+        "startTime": 5264,
+        "size": 146088,
+        "element": "IMG",
+        "url": "https://www.arcyusdc.xyz/assets/arcy-hero-video-poster-v8.webp"
+      },
+      "cls": 0.07349607128643987,
+      "domContentLoaded": 5435.600000023842,
+      "load": 17753
+    },
+    {
+      "run": 3,
+      "http": 200,
+      "wallMs": 20278,
+      "lcp": {
+        "startTime": 5996,
+        "size": 146088,
+        "element": "IMG",
+        "url": "https://www.arcyusdc.xyz/assets/arcy-hero-video-poster-v8.webp"
+      },
+      "cls": 0.07349607128643987,
+      "domContentLoaded": 6419.399999976158,
+      "load": 17684.899999976158
+    }
+  ],
+  "mobileLcpMedianMs": 5844
+}

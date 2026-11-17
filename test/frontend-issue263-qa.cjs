@@ -6,6 +6,8 @@ const fs=require('node:fs/promises');
 const path=require('node:path');
 
 const base=process.env.ARCY_QA_BASE||'https://www.arcyusdc.xyz';
+const home=new URL('/',base);
+if(process.env.ARCY_QA_SHARE)home.searchParams.set('_vercel_share',process.env.ARCY_QA_SHARE);
 const out=path.resolve(process.env.ARCY_QA_OUT||path.join(__dirname,'..','frontend-issue263-qa'));
 const widths=[320,390,800,1024,1440];
 const runs=Math.max(1,Math.min(5,Number(process.env.ARCY_QA_RUNS)||3));
@@ -24,7 +26,7 @@ const init=()=>{
    const context=await browser.newContext({viewport:{width,height:900},deviceScaleFactor:1,reducedMotion:'no-preference'});
    const page=await context.newPage();
    const errors=[];page.on('pageerror',e=>errors.push(String(e.message).slice(0,160)));
-   await page.goto(base+'/',{waitUntil:'domcontentloaded',timeout:45000});
+   await page.goto(home.href,{waitUntil:'domcontentloaded',timeout:45000});
    await page.waitForTimeout(1000);
    const dom=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth-innerWidth,owl:document.querySelectorAll('.owl img[alt="ARCY owl"]').length,search:document.querySelectorAll('.home-search').length,nav:document.querySelectorAll('nav a').length,
     touchTargets:[...document.querySelectorAll('.menu-toggle,.home-network-option,#unlockPrev,#unlockNext')].map(e=>{const r=e.getBoundingClientRect();return {id:e.id||e.getAttribute('aria-label'),width:Math.round(r.width),height:Math.round(r.height),visible:r.width>0&&r.height>0,label:e.getAttribute('aria-label')};})}));
@@ -50,7 +52,7 @@ const init=()=>{
    await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:750,downloadThroughput:200000,uploadThroughput:100000});
    await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
    const started=Date.now();
-   const response=await page.goto(base+'/',{waitUntil:'load',timeout:90000});
+   const response=await page.goto(home.href,{waitUntil:'load',timeout:90000});
    await page.waitForTimeout(2500);
    const vitals=await page.evaluate(()=>({lcp:window.__arcyVitals.lcp.at(-1)||null,cls:window.__arcyVitals.cls,domContentLoaded:performance.getEntriesByType('navigation')[0]?.domContentLoadedEventEnd||null,load:performance.getEntriesByType('navigation')[0]?.loadEventEnd||null}));
    result.mobileRuns.push({run:i+1,http:response?.status(),wallMs:Date.now()-started,...vitals});
