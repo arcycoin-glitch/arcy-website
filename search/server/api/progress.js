@@ -21,7 +21,7 @@ module.exports=async function(req,res){
   json(body){
    if(closed||res.writableEnded)return body;
    if(!started)return res.json(body);
-   send(body.ok?{phase:'complete',report:body}:{phase:'error',error:body.error||'CHAIN_SCAN_UNAVAILABLE'});
+   send(body.ok?{phase:'complete',report:body}:{phase:'error',error:body.reason||body.error||'CHAIN_SCAN_UNAVAILABLE'});
    if(!closed)res.end();return body;
   }
  };
