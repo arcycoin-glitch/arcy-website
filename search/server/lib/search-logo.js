@@ -33,7 +33,11 @@ const {safeLogoUrl}=require('./token-image');
 const {readJson}=require('./http');
 const {chain}=require('./chains');
 const CACHE=new Map(), PENDING=new Map();
+// Additional exact-contract explorer metadata fallback, strictly limited.
+// A logo is display-only; metadata neither verifies the issuer nor the token.
+const EXPLORER_CACHE=new Map(), EXPLORER_PENDING=new Map();
 const POSITIVE_TTL=15*60*1000, NEGATIVE_TTL=90*1000;
+const EXPLORER_MAX_PER_BATCH=4, EXPLORER_CONCURRENCY=2;
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
 function marketArtwork(pairs,network,addresses){
  const wanted=new Set(addresses),found=new Map();
@@ -87,7 +91,64 @@ async function marketBatch(network,addresses,{fetchImpl=global.fetch,now=Date.no
  for(const [address,logo] of await task)found.set(address,logo);
  return found;
 }
-async function enhance(network,items,{fetchImpl=global.fetch,now=Date.now()}={}){
+// Blockscout /api/v2/tokens/:address is an exact-contract record. Fetch only
+// already validated addresses against the explorer origin fixed in chains.js.
+// We deliberately DO NOT follow token metadata image URLs outside the current
+// safeLogoUrl allowlist; third-party logos do not authenticate project identity.
+async function explorerArtwork(network,addresses,{fetchImpl=global.fetch,now=Date.now()}={}){
+ const found=new Map();
+ if(!['arc','ethereum','robinhood'].includes(network)||!Array.isArray(addresses))return found;
+ const wanted=[...new Set(addresses.map(a=>typeof a==='string'?a.toLowerCase():''))]
+  .filter(a=>ADDRESS.test(a)).slice(0,EXPLORER_MAX_PER_BATCH);
+ if(!wanted.length)return found;
+ const base=new URL(chain(network).explorer);
+ let cursor=0;
+ await Promise.all(Array.from({length:Math.min(EXPLORER_CONCURRENCY,wanted.length)},async()=>{
+  for(;;){
+   const i=cursor++;if(i>=wanted.length)return;
+   const address=wanted[i],key=network+':'+address;
+   const hit=fetchImpl===global.fetch?EXPLORER_CACHE.get(key):null;
+   if(hit&&hit.until>now){if(hit.url)found.set(address,hit.url);continue;}
+   let task=fetchImpl===global.fetch?EXPLORER_PENDING.get(key):null;
+   if(!task){
+    task=(async()=>{
+     let url=null,failed=false;
+     try{
+      const endpoint=new URL('/api/v2/tokens/'+address,base);
+      const r=await fetchImpl(endpoint.href,{headers:{accept:'application/json'},
+       credentials:'omit',redirect:'error',signal:AbortSignal.timeout(1400)});
+      if(!r?.ok||r.redirected||r.url&&r.url!==endpoint.href)throw Error('Explorer token unavailable');
+      const body=await readJson(r,96*1024);
+      if(!body||typeof body!=='object'||Array.isArray(body))throw Error('Invalid explorer token');
+      const rawAddress=body.address_hash||body.address?.hash||body.address;
+      // Some Blockscout versions omit the address in the token-details body;
+      // the request URL is already bound to this exact contract. If supplied,
+      // however, its address MUST match.
+      if(rawAddress!==undefined&&String(rawAddress).toLowerCase()!==address)throw Error('Wrong-contract token metadata');
+      const kind=String(body.type||body.token_type||'ERC-20').toUpperCase();
+      if(!['ERC-20','ERC-8056'].includes(kind))throw Error('Not a fungible token');
+      url=safeLogoUrl(body.icon_url);
+     }catch{failed=true;}
+     const value={url,until:Date.now()+(url?POSITIVE_TTL:failed?30000:5*60*1000)};
+     if(fetchImpl===global.fetch){
+      EXPLORER_CACHE.set(key,value);
+      while(EXPLORER_CACHE.size>1000)EXPLORER_CACHE.delete(EXPLORER_CACHE.keys().next().value);
+     }
+     return url;
+    })();
+    if(fetchImpl===global.fetch){
+     EXPLORER_PENDING.set(key,task);
+     task.finally(()=>{if(EXPLORER_PENDING.get(key)===task)EXPLORER_PENDING.delete(key)}).catch(()=>{});
+    }
+   }
+   const url=await task;
+   if(url)found.set(address,url);
+  }
+ }));
+ return found;
+}
+async function enhance(network,items,{fetchImpl=global.fetch,now=Date.now(),
+ enableExplorer=process.env.VERCEL==='1'}={}){
  if(!Array.isArray(items))return [];
  const scoped=items.slice(0,24);
  const cfg=chain(network);
@@ -99,6 +160,12 @@ async function enhance(network,items,{fetchImpl=global.fetch,now=Date.now()}={})
  // Unit-test runs do not contact public services implicitly; mocks can be injected.
  const remote=(fetchImpl!==global.fetch||process.env.VERCEL==='1')?
   await marketBatch(network,addresses,{fetchImpl,now}):new Map();
+ // Query Blockscout only for contracts still missing DEX/indexed artwork.
+ // No ticker-based joins, price-based logos, arbitrary hosts, extra Vercel
+ // functions or uncapped explorer scans.
+ const missing=addresses.filter(address=>!remote.has(address));
+ const extra=enableExplorer&&missing.length?
+  await explorerArtwork(network,missing,{fetchImpl,now}):new Map();
  const decorated=scoped.map(item=>{
   const matched=item&&item.network===network&&(item.chainId===undefined||item.chainId===cfg.chainId)&&ADDRESS.test(item.address||'');
   const local=matched?localLogo(network,item.address):null;
@@ -107,10 +174,13 @@ async function enhance(network,items,{fetchImpl=global.fetch,now=Date.now()}={})
     require('./robinhood-assets').registryLogo(item.logoUrl,item.address):null;
   const thirdParty=matched&&(network!=='robinhood'||item.registryMatched!==true);
   const indexed=thirdParty?safeLogoUrl(item.logoUrl):null;
-  const provider=thirdParty?(indexed||remote.get(item.address.toLowerCase())):null;
+  const address=item?.address?.toLowerCase?.()||'';
+  const fromExplorer=thirdParty&&!indexed&&!remote.has(address)&&extra.has(address);
+  const provider=thirdParty?(indexed||remote.get(address)||extra.get(address)):null;
   const logo=local||registry||provider||null;
   const logoSource=local?(local.endsWith('/hero-arcy.png')?'ARCY site-owned mascot':'CC0 cryptocurrency-icons; exact contract'):
    registry?'Robinhood official asset registry (chain 4663); artwork only':
+   fromExplorer?'Blockscout exact-contract metadata artwork; NOT issuer verification':
    provider?'Source-indexed decorative token image; NOT issuer verification':null;
   return {...item,logoUrl:logo,logoSource};
  });
@@ -123,8 +193,12 @@ async function enhance(network,items,{fetchImpl=global.fetch,now=Date.now()}={})
  for(const item of decorated)if(item.logoUrl&&!item.logoUrl.startsWith('/')&&owners.get(item.logoUrl)?.size>1){item.logoUrl=null;item.logoSource=null;item.logoWithheld='SHARED_BY_MULTIPLE_CONTRACTS';}
  // Optional art is bounded independently; slow thumbnails cannot hold data
  // for an unbounded period. Exact-contract local CC0 files need no hotlink.
- const deadline=Date.now()+1000;let cursor=0;
- await Promise.all(Array.from({length:Math.min(3,decorated.length)},async()=>{
+ // In an 8-token deferred batch a ONE-second aggregate window with only
+ // three concurrent validations could silently skip five eligible images.
+ // Preserve the fast first Search response (separate 350ms cap) and permit
+ // four concurrent bounded raster checks with 2.7s aggregate deadline here.
+ const deadline=Date.now()+2700;let cursor=0;
+ await Promise.all(Array.from({length:Math.min(4,decorated.length)},async()=>{
   for(;;){const i=cursor++;if(i>=decorated.length)return;const item=decorated[i];
    if(!item.logoUrl||item.logoUrl.startsWith('/'))continue;
    const images=require('./logo-validation'),options={address:item.address,
@@ -134,11 +208,11 @@ async function enhance(network,items,{fetchImpl=global.fetch,now=Date.now()}={})
    const warm=fetchImpl===global.fetch?images.cached(item.logoUrl,options):undefined;
    const remaining=deadline-Date.now();
    const valid=warm!==undefined?warm:remaining>0?await images.validate(item.logoUrl,{
-    ...options,fetcher:fetchImpl,timeoutMs:remaining}):null;
+    ...options,fetcher:fetchImpl,timeoutMs:Math.min(1500,remaining)}):null;
    if(!valid){item.logoUrl=null;item.logoSource=null;}
   }
  }));
  return decorated;
 }
 module.exports={imageFromPairs:()=>null,contractLogo:async(network,address)=>localLogo(network,address),
- localLogo,marketArtwork,marketBatch,enhance};
+ localLogo,marketArtwork,marketBatch,explorerArtwork,enhance};
