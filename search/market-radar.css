@@ -991,6 +991,18 @@
 .arcy-radar-info:focus-visible{outline:2px solid #70dfbf;outline-offset:2px}
 .arcy-radar-info-pop{position:fixed;z-index:2147483000;box-sizing:border-box;padding:9px 11px;border:1px solid #2a4658;border-radius:10px;background:#07131d;color:#dbe8f2;font:500 12px/1.45 system-ui,sans-serif;text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.45);pointer-events:none}
 .arcy-radar-info-pop[hidden]{display:none}
+/* #272: compact Info replaces the always-visible discovery rationale.
+   Existing overview grid areas, mobile card structure and token links are unchanged. */
+#tokenDetail .arcy-radar-overview-reason-info{
+ width:auto;min-width:58px;height:29px;margin-left:0;padding:0 8px;gap:4px;
+ border-radius:7px;font:750 11px/1 system-ui,sans-serif;font-style:normal;
+ color:#9fc3d8;background:rgba(13,36,52,.45);
+ cursor:pointer;white-space:nowrap;
+}
+#tokenDetail .arcy-radar-overview-reason-info::after{inset:-5px}
+
+.arcy-radar-dash{display:inline-flex;align-items:center;white-space:nowrap}
+
 .arcy-radar-dash{display:inline-flex;align-items:center;white-space:nowrap}
 
 /* Young-pool context: a source-reported SINCE-LAUNCH value, never a 24h figure. */
