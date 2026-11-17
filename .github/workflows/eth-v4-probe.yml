@@ -1,0 +1,21 @@
+name: 'Ethereum Uniswap V4 probe (read-only, #262)'
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-eth-v4.cjs'
+      - '.github/workflows/eth-v4-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-eth-v4.cjs
