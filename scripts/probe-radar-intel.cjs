@@ -36,6 +36,16 @@ async function main(){
  const brief={};for(const [n,x] of Object.entries(report.networks))brief[n]={...x.counts,history:x.historyCoverage,top:x.researchQueue.slice(0,3).map(r=>({symbol:r.symbol,conf:r.evidenceConfidence.score,missing:r.missingProof,notes:r.notes.slice(0,6)})),
   excluded:x.excluded.map(r=>({symbol:r.symbol,reasons:r.reasons.filter(z=>!/NOT_VERIFIED/.test(z))}))};
  console.log(JSON.stringify({asOf:report.asOf,registry:report.registry,cost:report.cost,probe:report.probe,notes:report.notes,networks:brief},null,1));
+ // CI: compact check-run annotations (readable through the REST check-runs API without artifact downloads).
+ if(process.env.GITHUB_ACTIONS==='true'){
+  const esc=s=>String(s).replace(/%/g,'%25').replace(/\r/g,'%0D').replace(/\n/g,'%0A');
+  console.log('::notice title=radar-intel cost::'+esc(JSON.stringify({asOf:report.asOf,registry:{v:report.registry.version,approved:report.registry.approvedProjects},cost:report.cost,probe:report.probe,providers:report.providers,notes:report.notes})));
+  for(const [n,x] of Object.entries(report.networks)){
+   const rows=x.all.map(a=>[a.symbol,a.eligibility,a.evidenceConfidence?.score,a.runup?.history,a.runup?.historyReason,(a.reasons||[]).filter(z=>!/NOT_VERIFIED/.test(z)).join('+'),
+    (a.notes||[]).join('+'),a.evidenceSummary?JSON.stringify({h:a.evidenceSummary.history,d:a.evidenceSummary.demand,x:a.evidenceSummary.exit,r:a.evidenceSummary.risk}):'']);
+   console.log('::notice title=radar-intel '+n+'::'+esc(JSON.stringify({source:x.source,counts:x.counts,history:x.historyCoverage,reasons:x.reasonCounts,rows})).slice(0,60000));
+  }
+ }
 }
 if(require.main===module){
  if(process.env.RADAR_INTEL_PROBE!=='1'){console.error('Probe is OFF. Set RADAR_INTEL_PROBE=1 for one bounded read-only run.');process.exitCode=2;}
