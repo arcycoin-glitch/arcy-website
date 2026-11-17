@@ -24,19 +24,24 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const BASELINE = Object.freeze({
+  // 2026-11-16 owner-authorized frontend hardening (#263): only intrinsic/lazy/low-priority image
+  // hints on the original owl and Unlocks art, plus accessible labels on the existing pager.
+  // All cards, metrics, navigation, token data and API contracts remain unchanged.
   // 2026-11-07 scoped mobile-performance exception (PR #186): exact original 1400x787 below-fold WebP
   // moved byte-for-byte from data URI to an external lazy-loaded asset; existing hero poster preloaded.
   // Section order, text, styles, layout, JavaScript, token content, and all other protected files unchanged.
-    "index.html": "c4a27c26577ab3fc4bebc724c67519a413b38e17",
+    "index.html": "ef6ee8bd0ed4b8d60f844873d72a80837837ca51",
   "premium.css": "9fb533e474f912e7ea3c0bd7a45eed9dde36af0a",
   "v8-premium.js": "7b2e9c36ca6bbaab9beb75a59e5affc121f2b522",
   "hero-video.js": "40942f382f1650b90d1d7572d0d1874217d4a3c0",
-  "search/index.html": "39cedc0b6f962c1e0755818be077ac9060c1f102",
+  // Issue #263: evidence labels and exact-chain missing-contract error presentation; API and metrics unchanged.
+  "search/index.html": "f6296dbfb39f2ecbd0e461187951f19aa12087d9",
   // 2026-11-01 owner-requested Pons availability exception: truthful source states and controlled manual retry; layout/CSS unchanged.
   // 2026-11-07 owner-authorized Radar SCORE display repair: accept the existing
   // discovery-2 backend schema and hide absent rationales; no HTML/CSS/skeleton,
   // provider, ranking or other-page changes. Reviewed in PR #177.
-  "search/market-radar.js": "9ab1d79ec72bd4d0ba1944a93953cb815eda802e",
+  // Issue #263: Radar discovery scope and empty ranking wording only.
+  "search/market-radar.js": "ff6209f7040a0cc4b771b45fb54a0670bc695ab3",
   "search/market-radar.css": "929b37c5e0a233ea850ffb9c5122d5a87aa006c4",
   "search/assets/arc-network-mark.svg": "164d2a27c837cd58e42cf12d5d9a89ad4a546225",
   "search/assets/ethereum-mark.svg": "b92e033331b638dc4e2904aaa96b9f7e20917eb7",

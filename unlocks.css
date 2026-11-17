@@ -11,3 +11,6 @@
  #unlocks .unlock-tools{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
  #unlocks #unlockSearch{flex:1 1 180px;min-width:0}
 }
+@media (max-width:1023px) {
+ #unlocks .unlock-pager button {width:44px;height:44px}
+}

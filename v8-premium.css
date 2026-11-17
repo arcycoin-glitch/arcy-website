@@ -91,3 +91,6 @@ body>.nav .v8-nav-search{color:#28dbef;font-size:inherit;letter-spacing:-.04em}
  #hero>div:first-child>p{grid-row:5;margin:0;max-width:100%;font-size:13px;line-height:1.6;text-align:center}
  #hero.hero-welcome .hero-energy,#hero.hero-welcome h1,#hero.hero-welcome h2,#hero.hero-welcome>div:first-child>p,#hero.hero-welcome>div:first-child>.actions{animation:none}
 }
+@media (max-width:850px) {
+ .nav .menu-toggle {min-width:44px;min-height:44px}
+}

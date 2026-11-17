@@ -118,6 +118,8 @@ async function identifyPool(network,rpc,token,candidate,block){
   const raw=await ethCall(rpc,protocol.positionManager,v4.poolKeyData(candidate.pool),block);
   let k;try{k=v4.decodePoolKey(raw,candidate.pool);}catch(e){return {excluded:e.code||'V4_POOL_KEY_UNAVAILABLE'};}
   if(![k.currency0,k.currency1].includes(token))return {excluded:'POOL_DOES_NOT_CONTAIN_TOKEN'};
+  // #262: Ethereum V4 return-delta hooks can change user-facing amounts; exclude without reviewed accounting.
+  if(network==='ethereum'&&(Number(BigInt(k.hooks)&0x3fffn)&0b1100))return {excluded:'V4_HOOK_RETURNS_DELTA_UNREVIEWED'};
   out={kind:'V4',pool:candidate.pool,emitter:protocol.poolManager,protocol:protocol.id,token0:k.currency0,token1:k.currency1,fee:k.fee,hooks:k.hooks,
    method:'Reviewed PositionManager.poolKeys(bytes25) + keccak256(PoolKey) == PoolId'};
  }else if(POOL20.test(candidate.pool)){

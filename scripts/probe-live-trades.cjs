@@ -4,7 +4,8 @@
 const lt=require(process.env.LT_ROOT?require('node:path').join(process.env.LT_ROOT,'search/server/lib/live-trades'):'../search/server/lib/live-trades');const TAG=process.env.LT_TAG||'after';
 const SAMPLES=[['arc','0xf76b1d00bd3d63a37246b5f512074e864010e33d','POLL'],['arc','0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b','ARCY'],['arc','0xece5ca8bf9220718e5727754026757512212cb3c','ARGUS-TAX'],['arc','0xbc43ce8dec648ea298c4275559b81d6261c90b67','TOLLY'],
  ['ethereum','0x6982508145454Ce325dDbE47a25d4ec3d2311933','PEPE'],['ethereum','0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984','UNI'],['ethereum','0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE','SHIB'],
- ['robinhood','0x6dbe95076584f869dd09a44131e9a3c13f34d7d6','PONS-V2'],['robinhood','0x18e674231a58c239dc7daedcffe15ec3a24cff5c','UERC20'],['robinhood','0x39dbed3a2bd333467115de45665cc57f813c4571','PONS-L']];
+ ['robinhood','0x6dbe95076584f869dd09a44131e9a3c13f34d7d6','PONS-V2'],['robinhood','0x18e674231a58c239dc7daedcffe15ec3a24cff5c','UERC20'],['robinhood','0x39dbed3a2bd333467115de45665cc57f813c4571','PONS-L'],
+ ['ethereum','0x0f08046cf0f51616be643f8434232c51c2189edc','WASTED-ETH-V4']];
 (async()=>{
  for(const [network,address,label] of SAMPLES){
   const runs=[];

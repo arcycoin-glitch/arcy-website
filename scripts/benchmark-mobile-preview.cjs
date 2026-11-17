@@ -26,10 +26,10 @@ async function probe(url){
  const initial={};for(const [k,u] of Object.entries(targets)){
   const html=await probe(u);
   if(!html.includes('ARCY SEARCH'))throw Error(k+' is not ARCY SEARCH');
-  initial[k]={bytes:Buffer.byteLength(html),externalCommunity:html.includes('src="/assets/arcy-community-illustration.webp"'),embeddedCommunity:html.includes('data:image/webp;base64,')};
+  initial[k]={bytes:Buffer.byteLength(html),originalOwl:html.includes('alt="ARCY owl"'),search:html.includes('id="search"')&&html.includes('src="/search-upgrade.js"')};
  }
- if(!(initial.candidate.bytes<initial.baseline.bytes))throw Error('Expected smaller candidate HTML');
- if(!(initial.candidate.externalCommunity||initial.candidate.embeddedCommunity))throw Error('Community artwork missing after page cleanup');
+ if(!initial.baseline.originalOwl||!initial.candidate.originalOwl||!initial.baseline.search||!initial.candidate.search)
+  throw Error('Original owl or homepage Search missing from paired comparison');
  const records={baseline:[],candidate:[]};
  for(let n=1;n<=runs;n++)for(const [k,url] of Object.entries(targets)){
   const file='mobile-'+k+'-'+n+'.json';

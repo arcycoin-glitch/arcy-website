@@ -93,7 +93,7 @@ test('USD only from reviewed anchors; Robinhood and unknown counters stay USD NO
  assert.equal(lt.usdOf('robinhood','0x0bd7d308f8e1639fab988df18a8011f41eacad73',10n**18n,{price:3000}).usdStatus,'ORACLE_PRICED_ETH_REFERENCE');
  assert.equal(lt.usdOf('ethereum','0x'+'7'.repeat(40),1n,null).usd,null);
 });
-test('V4: PoolKey must hash to the PoolId and contain the token; Ethereum has no reviewed V4 manager',async()=>{
+test('V4: PoolKey must hash to the PoolId and contain the token; Ethereum uses the reviewed official deployment',async()=>{
  lt._reset();
  const key={currency0:'0x0000000000000000000000000000000000000000',currency1:TOKEN,fee:3000,tickSpacing:60,hooks:'0x0000000000000000000000000000000000000000'};
  const id=v4.poolIdForKey(key);
@@ -103,7 +103,13 @@ test('V4: PoolKey must hash to the PoolId and contain the token; Ethereum has no
  assert.equal(ok.kind,'V4');assert.equal(ok.emitter,v4.protocols('robinhood')[0].poolManager);assert.equal(ok.counter,key.currency0);
  lt._reset();
  const wrong=await lt.identifyPool('robinhood',rpc,TOKEN,{pool:'0x'+'d'.repeat(64)},'0x10');assert.equal(wrong.excluded,'V4_POOL_ID_MISMATCH');
- assert.equal((await lt.identifyPool('ethereum',rpc,TOKEN,{pool:id},'0x10')).excluded,'NO_REVIEWED_V4_POOL_MANAGER');
+ // #262: Ethereum uses the reviewed official V4 deployment; the same PoolKey/PoolId proof applies.
+ lt._reset();const eth=await lt.identifyPool('ethereum',rpc,TOKEN,{pool:id,dex:'uniswap-v4-ethereum'},'0x10');
+ assert.equal(eth.kind,'V4');assert.equal(eth.emitter,'0x000000000004444c5dc75cb358380d2e3de08a90');
+ // Swap return-delta hook permissions require additional accounting and are conservatively excluded on Ethereum.
+ const hooked={...key,hooks:'0x0000000000000000000000000000000000000008'},hid=v4.poolIdForKey(hooked);
+ const hraw='0x'+[aw(hooked.currency0).slice(2),aw(hooked.currency1).slice(2),w(3000),w(60),aw(hooked.hooks).slice(2)].join('');
+ lt._reset();assert.equal((await lt.identifyPool('ethereum',{call:async()=>hraw},TOKEN,{pool:hid},'0x10')).excluded,'V4_HOOK_RETURNS_DELTA_UNREVIEWED');
 });
 test('cached(): single-flight, short cache, provider failure is UNAVAILABLE (never empty-success)',async()=>{
  lt._reset();let runs=0;const run=async()=>{runs++;await new Promise(r=>setTimeout(r,20));return {ok:true,status:'LIVE',trades:[{side:'BUY'}]};};
