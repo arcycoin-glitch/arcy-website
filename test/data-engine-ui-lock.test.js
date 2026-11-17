@@ -36,8 +36,8 @@ const BASELINE = Object.freeze({
   // 2026-11-07 owner-authorized Radar SCORE display repair: accept the existing
   // discovery-2 backend schema and hide absent rationales; no HTML/CSS/skeleton,
   // provider, ranking or other-page changes. Reviewed in PR #177.
-  "search/market-radar.js": "9ab1d79ec72bd4d0ba1944a93953cb815eda802e",
-  "search/market-radar.css": "929b37c5e0a233ea850ffb9c5122d5a87aa006c4",
+  "search/market-radar.js": "dc4fef8de6bf53e89a911babf2451929d8c00d00",
+  "search/market-radar.css": "48a313697ab636df04975ab351cad2e534781773",
   "search/assets/arc-network-mark.svg": "164d2a27c837cd58e42cf12d5d9a89ad4a546225",
   "search/assets/ethereum-mark.svg": "b92e033331b638dc4e2904aaa96b9f7e20917eb7",
   "search/assets/robinhood-chain-mark.svg": "3cb7faadf2cd29c1b158065283c688f424079a8e"
