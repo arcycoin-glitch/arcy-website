@@ -1,0 +1,92 @@
+{
+  "base": "https://www.arcyusdc.xyz",
+  "at": "2026-11-17T20:18:34.540Z",
+  "records": [
+    {
+      "width": 320,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visibleCards": [
+        "pons"
+      ],
+      "ponsRows": 5,
+      "infoButtons": 5,
+      "infoLabel": true,
+      "searchLinks": true
+    },
+    {
+      "width": 390,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visibleCards": [
+        "pons"
+      ],
+      "ponsRows": 5,
+      "infoButtons": 5,
+      "infoLabel": true,
+      "searchLinks": true
+    },
+    {
+      "width": 800,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visibleCards": [
+        "pons"
+      ],
+      "ponsRows": 5,
+      "infoButtons": 5,
+      "infoLabel": true,
+      "searchLinks": true
+    },
+    {
+      "width": 1024,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visibleCards": [
+        "pons"
+      ],
+      "ponsRows": 5,
+      "infoButtons": 5,
+      "infoLabel": true,
+      "searchLinks": true
+    },
+    {
+      "width": 1440,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visibleCards": [
+        "pons"
+      ],
+      "ponsRows": 5,
+      "infoButtons": 5,
+      "infoLabel": true,
+      "searchLinks": true
+    }
+  ],
+  "errors": []
+}
