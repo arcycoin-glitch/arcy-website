@@ -1,0 +1,6 @@
+{
+  "schema": "arcy-radar-project-registry/1",
+  "version": "2026-11-18.0",
+  "policy": "Owner-reviewed bindings of ONE exact chainId+address to official primary sources. Changed only by reviewed pull request. Proposals produced by scripts/radar-registry-propose.cjs are NOT trusted until a reviewer copies them here with a review block. An empty list is the honest state: no binding has been owner-approved yet.",
+  "projects": []
+}
