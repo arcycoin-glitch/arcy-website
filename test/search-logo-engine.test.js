@@ -166,12 +166,12 @@ test('Data Engine V2 wrong-logo security: one image URL shared by different cont
  assert.equal(same[0].logoUrl,OWN);assert.equal(same[1].logoUrl,OWN);
 });
 
-test('cold public Search discovery allows enough time for bounded exact-contract art lookup and image validation',()=>{
+test('discovery returns candidates before slow images, and a bounded separate artwork action is available',()=>{
  const service=fs.readFileSync(path.join(__dirname,'..','search/server/lib/multichain-service.js'),'utf8');
- // 2.5s DEX batch + 1s raster validation. This was previously a 350ms
- // outer deadline, causing the whole valid icon batch to be discarded.
+ const route=fs.readFileSync(path.join(__dirname,'..','api/search/index.js'),'utf8');
  const timeout=/withTimeout\(logos\.enhance\(network,ranked\),(\d+),'Optional discovery artwork deadline'\)/.exec(service);
- assert.ok(timeout,'bounded optional logo enrichment is called from Search');
- assert.ok(Number(timeout[1])>=3500&&Number(timeout[1])<=5000,'outer deadline covers existing bounded provider+image validation');
- assert.match(service,/catch\{matches=ranked\.map\(item=>\(\{\.\.\.item,logoUrl:logos\.localLogo/);
+ assert.ok(timeout,'initial Search retains optional enrichment');
+ assert.ok(Number(timeout[1])<=400,'foreground Search must not wait for slow thumbnail verification');
+ assert.match(route,/artwork:require\('\.\.\/\.\.\/search\/server\/api\/artwork'\)/);
+ assert.match(route,/artwork:\['chain','addresses'\]/);
 });

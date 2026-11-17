@@ -122,13 +122,10 @@ async function discover({network='ethereum',query}){
  ];
  const ranked=identities.rank(network,query,candidates);
  let matches;
- // Logo enrichment may require one bounded exact-contract DEX batch lookup
- // (2.5s maximum) followed by raster validation (1s maximum). The old 350ms
- // outer cap discarded even legitimately sourced thumbnails on a cold search.
- // Give the existing bounded pipeline enough time without changing the API,
- // result identity, or any required data-engine deadline. Fast cached hits
- // still return immediately; CDN outages retain the initials fallback.
- try{matches=await require('./timeout').withTimeout(logos.enhance(network,ranked),3600,'Optional discovery artwork deadline')}
+ // Keep the first Search response fast: slow/unavailable images never hold
+ // exact-contract results hostage. The homepage hydrates art independently,
+ // using the same image-validation pipeline via action=artwork.
+ try{matches=await require('./timeout').withTimeout(logos.enhance(network,ranked),350,'Optional discovery artwork deadline')}
  catch{matches=ranked.map(item=>({...item,logoUrl:logos.localLogo(network,item.address),logoSource:null}))}
 
  return {ok:true,query,chainId:chains.chain(network).chainId,network,
