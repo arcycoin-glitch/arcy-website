@@ -389,3 +389,51 @@ test('live-probe regression: unreadable Transfer logs are NOT reported as zero v
  const d=await OC.demand({rpc,network:'ethereum',candidate:row(),now:NOW,budget:{max:100,used:0,pace:false}});
  assert.deepEqual(d,{ok:false,reason:'TRANSFER_LOGS_UNREADABLE'});
 });
+
+test('watch candidates: ten highest-evidence observed REVIEW tokens fill the display without claiming eligibility',()=>{
+ const candidates=Array.from({length:15},(_,i)=>({
+  key:'1:0x'+(i+1).toString(16).padStart(40,'0'),network:'ethereum',chainId:1,address:'0x'+(i+1).toString(16).padStart(40,'0'),
+  eligibility:'REVIEW',reasons:['IDENTITY_NOT_VERIFIED','CATALYST_NOT_VERIFIED'],risk:[],
+  evidenceConfidence:{score:+(i/20).toFixed(3),verified:[],missing:['IDENTITY','CATALYST']},
+  discoveryScore:99-i,scoreVersion:'arcy-discovery-2'
+ }));
+ const out=E.watchCandidates(candidates);
+ assert.equal(out.length,10);
+ assert.equal(out[0].address,candidates[14].address,'real evidence completeness precedes a flashy Discovery Score');
+ assert.ok(out.every((x,i)=>x.rank===i+1&&x.watchOnly&&x.displayTier==='WATCHLIST_NOT_VERIFIED'));
+ assert.ok(out.every(x=>x.eligibility==='REVIEW'&&x.displayReason.includes('NOT VERIFIED')));
+ assert.ok(out.every(x=>x.scoreVersion==='arcy-discovery-2'));
+});
+test('watch candidates: hard EXCLUDE, engine error and exact-contract duplicates never fill ranking',()=>{
+ const addr=n=>'0x'+n.toString(16).padStart(40,'0');
+ const r=(n,o={})=>({key:'5042:'+addr(n),network:'arc',chainId:5042,address:addr(n),eligibility:'REVIEW',
+  reasons:['HISTORY_NOT_VERIFIED'],discoveryScore:n,evidenceConfidence:{score:0.4,missing:['HISTORY']},...o});
+ const a=r(1,{eligibility:'ELIGIBLE',evidenceConfidence:{score:1,missing:[]},discoveryScore:1});
+ const b=r(2),highRisk=r(3,{eligibility:'EXCLUDE',reasons:['SELL_DISABLED'],discoveryScore:1000,evidenceConfidence:{score:1,missing:[]}}),
+  error=r(4,{reasons:['ENGINE_ERROR_RPC_TIMEOUT']});
+ const out=E.watchCandidates([b,highRisk,b,a,error]);
+ assert.deepEqual(out.map(x=>x.address),[a.address,b.address]);
+ assert.equal(out[0].watchOnly,false);
+ assert.equal(out[1].watchOnly,true);
+ assert.equal(out[0].displayTier,'ELIGIBLE');
+ assert.equal(E.watchCandidates([highRisk,error]).length,0,'no fabricated result when all candidates are unsafe');
+});
+test('watch candidates: source contradictions rank below equally reviewed clean signals',()=>{
+ const r=(n,contradiction)=>({key:'4663:0x'+n.toString(16).padStart(40,'0'),network:'robinhood',chainId:4663,
+  address:'0x'+n.toString(16).padStart(40,'0'),eligibility:'REVIEW',
+  evidenceConfidence:{score:0.8,missing:['IDENTITY']},
+  discoveryScore:contradiction?100:30,reasons:contradiction?['SOURCE_CONTRADICTION']:['IDENTITY_NOT_VERIFIED']});
+ const out=E.watchCandidates([r(1,true),r(2,false)]);
+ assert.equal(out[0].address,r(2,false).address);
+ assert.equal(out[1].watchOnly,true);
+});
+test('watch candidates: real engine with zero reviewed identities produces visible WATCHLIST_NOT_VERIFIED, not ELIGIBLE',async()=>{
+ const data=await runOne({reg:{schema:'arcy-radar-project-registry/1',version:'empty',projects:[]}});
+ const x=data.networks.ethereum;
+ assert.equal(x.selected.length,0);
+ assert.equal(x.displayCandidates.length,1);
+ assert.equal(x.displayCandidates[0].eligibility,'REVIEW');
+ assert.equal(x.displayCandidates[0].displayTier,'WATCHLIST_NOT_VERIFIED');
+ assert.equal(data.top10[0].key,x.displayCandidates[0].key);
+ assert.equal(data.top10[0].watchOnly,true);
+});
