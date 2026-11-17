@@ -367,3 +367,25 @@ test('decision log is reproducible and carries version provenance',async()=>{
  assert.equal(only(a).decisionHash,only(b).decisionHash);
  assert.equal(a.registry.version,'test.1');assert.match(a.registry.digest,/^[0-9a-f]{64}$/);
 });
+test('live-probe regression: production Pons launch.block is a decimal number and is accepted as factory proof',()=>{
+ const launch={status:'ONCHAIN_VERIFIED',factory:'0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e',block:116895900};
+ const c={...row({network:'pons',chainId:4663,launch}),radarAsOf:isoAgo(0),radarFreshness:'FRESH'};
+ assert.ok(!P.evaluate(c,{},NOW).reasons.includes('PONS_FACTORY_NOT_VERIFIED'));
+ for(const block of [0,-5,'116895900',null,1.5])assert.ok(P.evaluate({...c,launch:{...launch,block}},{},NOW).reasons.includes('PONS_FACTORY_NOT_VERIFIED'));
+});
+test('live-probe regression: block-at-time converges from below on irregular block times (no overshoot failure)',async()=>{
+ // blocks are 0.05s for the first half of history and 0.2s afterwards: a constant-rate guess overshoots
+ const T0=1.7e9,mid=5e6,tsOf=n=>n<=mid?T0+n*0.05:T0+mid*0.05+(n-mid)*0.2,headN=mid+4e6,calls=[];
+ const call=async(m,p)=>{calls.push(p[0]);const n=p[0]==='latest'?headN:Number(BigInt(p[0]));return {number:'0x'+n.toString(16),timestamp:'0x'+Math.floor(tsOf(n)).toString(16)};};
+ const head=await OC.headOf(call,'robinhood');
+ for(const target of [T0+100000,T0+mid*0.05-3600,Math.floor(tsOf(headN))-86400*3]){
+  const b=await OC.blockAt(call,'robinhood',Math.floor(target),new Map(),head);
+  assert.ok(b.timestamp<=target&&target-b.timestamp<=900,'target '+target+' got '+b.timestamp);
+ }
+});
+test('live-probe regression: unreadable Transfer logs are NOT reported as zero verified buyers',async()=>{
+ const w=world();
+ const rpc=async(m,p)=>{if(m==='eth_getLogs')throw Object.assign(Error('response too large'),{code:'RPC_RESPONSE_TOO_LARGE'});return w.rpc(m,p);};
+ const d=await OC.demand({rpc,network:'ethereum',candidate:row(),now:NOW,budget:{max:100,used:0}});
+ assert.deepEqual(d,{ok:false,reason:'TRANSFER_LOGS_UNREADABLE'});
+});
