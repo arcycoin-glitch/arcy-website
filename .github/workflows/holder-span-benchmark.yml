@@ -1,16 +1,20 @@
-name: 'Holder span benchmark (read-only, #262)'
+name: 'Holder span benchmark (read-only, resumable, #262)'
 on:
   pull_request:
     paths:
-      - 'scripts/probe-holder-span-benchmark.cjs'
+      - 'scripts/holder-bench-resumable.cjs'
       - '.github/workflows/holder-span-benchmark.yml'
   workflow_dispatch:
 permissions:
   contents: read
+env:
+  BENCH_TOKEN: '0x178b01f61cbea1d2a5581fe1621be607835ec349'
+  BENCH_STATE: '.holder-bench/state.json'
+  BENCH_MINUTES: '70'
 jobs:
   bench:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 85
     steps:
       - uses: actions/checkout@v4
         with:
@@ -18,4 +22,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node scripts/probe-holder-span-benchmark.cjs
+      # Durable checkpoint between runs: the newest saved state for this token (validated again by the script itself).
+      - uses: actions/cache/restore@v4
+        with:
+          path: .holder-bench
+          key: holder-bench-${{ env.BENCH_TOKEN }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: holder-bench-${{ env.BENCH_TOKEN }}-
+      - run: node scripts/holder-bench-resumable.cjs
+      - if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .holder-bench
+          key: holder-bench-${{ env.BENCH_TOKEN }}-${{ github.run_id }}-${{ github.run_attempt }}
