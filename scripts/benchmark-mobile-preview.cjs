@@ -26,7 +26,7 @@ async function probe(url){
  const initial={};for(const [k,u] of Object.entries(targets)){
   const html=await probe(u);
   if(!html.includes('ARCY SEARCH'))throw Error(k+' is not ARCY SEARCH');
-  initial[k]={bytes:Buffer.byteLength(html),originalOwl:html.includes('alt="ARCY owl"'),search:html.includes('home-search')};
+  initial[k]={bytes:Buffer.byteLength(html),originalOwl:html.includes('alt="ARCY owl"'),search:html.includes('id="search"')&&html.includes('src="/search-upgrade.js"')};
  }
  if(!initial.baseline.originalOwl||!initial.candidate.originalOwl||!initial.baseline.search||!initial.candidate.search)
   throw Error('Original owl or homepage Search missing from paired comparison');
