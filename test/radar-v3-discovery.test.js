@@ -356,12 +356,12 @@ test('Pons: zero confirmed candidates is reported honestly with the number check
  const out=await run('pons',[{a:addr(120),s:'AAA'},{a:addr(121),s:'BBB'}],{rpc:rpcFor([])});
  assert.equal(out.tokens.length,0);assert.equal(out.coverage.ponsChecked,2);assert.equal(out.coverage.ponsConfirmed,0);
 });
-test('quota: a full uncached refresh of all four sections stays inside the Demo plan arithmetic (13 provider credits)',async()=>{
+test('quota: Pons-only Robinhood routing saves one Demo token lookup without increasing four-section calls',async()=>{
  const specs=[{a:addr(130),s:'AAA',vol:5e5,liq:6e5}];
  const mk=net=>router([[/tokens\/multi/,()=>resp(multi(net,specs))],[/coingecko\.com/,()=>resp(page(net,specs))],[/rpc\.example/,rpcFor([addr(130)])]]);
  let credits=0;const shared=router([[/tokens\/multi/,(u)=>{credits++;return resp(multi('arc',specs));}],[/coingecko\.com/,(u)=>{credits++;return resp(page(/networks\/eth\//.test(u)?'ethereum':/networks\/arc\//.test(u)?'arc':'robinhood',specs));}],[/rpc\.example/,rpcFor([addr(130)])]]);
  for(const n of ['arc','ethereum','robinhood','pons'])await radar.load(n,{env:ENV,fetcher:shared,now:()=>T0,rpcUrl:'https://rpc.example/'});
- assert.equal(credits,sources.demoBudget(3600e3).callsPerCycle);
+ assert.equal(credits,sources.demoBudget(3600e3).callsPerCycle-1,'factory-confirmed Pons is removed from Robinhood before a redundant token/multi lookup; exactly one provider credit saved');
  const before=credits;for(const n of ['arc','ethereum','robinhood','pons'])await radar.load(n,{env:ENV,fetcher:shared,now:()=>T0+30*60000,rpcUrl:'https://rpc.example/'});
  assert.equal(credits,before,'second pass inside the TTL costs nothing');
 });
