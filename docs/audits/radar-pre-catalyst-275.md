@@ -27,6 +27,10 @@ Read-only Pons Launch browser capture: [`radar-275-production/results.json`](rad
 
 Fixture regression covers 8x, 20x, 9x followed by 90% decline, 7d versus 30d, 5x–8x review, wick, dust, pool migration, wrong chain/ticker, <24h, missing source, official event versus rumor, abandonment, sparse releases, one buyer versus trade count, unknown churn, low exit, dangerous privileges, source contradiction, stale and 429/503/timeout-equivalent absence, all four sections and empty output. These are deterministic unit fixtures, **not** a time-separated historical backtest. Real event lead time, precision and false discoveries remain unmeasured because authoritative linked datasets and licensed historical inputs are absent.
 
+## Independent 24-hour anti-pump exclusion (handoff hardening)
+
+The selector can now additionally issue an **EXCLUDE** if the existing Radar has a mature exact-pool `CROSS_VERIFIED` 24-hour change and **both** independent provider readings independently confirm at least +700% in that same completed 24-hour window. This is a mathematically bounded **8x over 24 hours**, not lifetime return and not a 7d/30d OHLCV substitute. Single-source observations, token-wide/pool-scope mismatches, pools under 24 hours, missing or stale snapshots, and contradictory readings do **not** trigger this exclusion. No new APIs, provider credits, keys, or persistence are introduced. The gate is still shadow-only and cannot establish that any candidate has *not* previously rallied. The proof is one-way: exclusion only.
+
 ## Release boundaries
 
 No public behavior or ranking changes. No new paid source, schedule, Vercel function, persistent store, Risk flag, worker or Production deployment. A public release would require separately reviewed official affiliation and catalyst ingestion, licensed OHLCV plus historical liquidity evidence, controlled quota ledger, time-separated evaluation, and a fresh security/regression review. Keep PR Draft.

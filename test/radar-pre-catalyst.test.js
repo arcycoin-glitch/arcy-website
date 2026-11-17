@@ -46,6 +46,38 @@ test('verified sustained 8x and 20x are excluded; 9x then 90% down remains exclu
   assert.equal(r.runup.status,'EXCLUDE_ALREADY_RAN_8X');
  }
 });
+test('two independent verified pool-level 24h gains >=700% veto a late 8x token without historical provider calls',()=>{
+ const c=candidate(),e=evidence(c);
+ c.change24hPct=704;
+ c.fields={change24hPct:{status:'CROSS_VERIFIED',value:704,
+  sources:[{provider:'GeckoTerminal',value:704},{provider:'DEX Screener',value:701}]}};
+ const result=decision(c,{...e,history:[]});
+ assert.equal(result.decision,'EXCLUDE');
+ assert.ok(result.reasons.includes('EXCLUDE_VERIFIED_24H_8X'));
+ assert.equal(result.recentRunup.status,'EXCLUDE_VERIFIED_24H_8X');
+ assert.equal(result.runup.status,'RUNUP_NOT_VERIFIED','recent proof never pretends to clear 30d history');
+ assert.equal(result.recentRunup.window,'OBSERVED_24H');
+});
+test('single-source, mismatched, young pool, sparse and 699% reports cannot assert a verified 8x',()=>{
+ const c=candidate(),e=evidence(c);
+ c.change24hPct=704;
+ c.fields={change24hPct:{status:'SOURCE_REPORTED',value:704,
+  sources:[{provider:'GeckoTerminal',value:704}]}};
+ assert.equal(decision(c,{...e,history:[]}).decision,'REVIEW');
+ c.fields.change24hPct.status='CROSS_VERIFIED';
+ c.fields.change24hPct.sources.push({provider:'DEX Screener',value:699});
+ assert.notEqual(decision(c,{...e,history:[]}).recentRunup.status,'EXCLUDE_VERIFIED_24H_8X');
+ c.fields.change24hPct.sources[1].value=704;
+ c.fields.change24hPct.scope='TOKEN';
+ assert.notEqual(decision(c,{...e,history:[]}).recentRunup.status,'EXCLUDE_VERIFIED_24H_8X');
+ delete c.fields.change24hPct.scope;
+ c.poolCreatedAt=iso(0);
+ assert.notEqual(decision(c,{...e,history:[]}).recentRunup.status,'EXCLUDE_VERIFIED_24H_8X');
+ c.poolCreatedAt=iso(40);
+ c.change24hPct=-95;c.fields.change24hPct.value=-95;
+ c.fields.change24hPct.sources.forEach(x=>x.value=-95);
+ assert.equal(decision(c,{...e,history:[]}).decision,'REVIEW','deep drawdown is not a negative or positive shortcut');
+});
 test('30d runup is found even when 7d is clean; 7d runup is independently found',()=>{
  const c=candidate();
  let r=decision(c,evidence(c,d=>d>=10&&d<=12?9:1));
