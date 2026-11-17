@@ -71,6 +71,7 @@ html.search-upgraded #search .grid{display:none!important}
  #search .home-search-result code{grid-column:2;grid-row:2;max-width:100%;font-size:8px}
  #search .home-result-status{grid-column:3;grid-row:1/3;white-space:normal;text-align:right;max-width:72px;line-height:1.3}
 }
+
 @media(prefers-reduced-motion:reduce){#search .home-search-result{scroll-behavior:auto}}
 
 /* Release polish: use a compact mark and give the actual search controls room. */
@@ -564,3 +565,13 @@ html.search-upgraded #search .home-search-form{gap:7px;grid-template-rows:auto a
   margin-inline:auto;
  }
 }
+
+/* Keep the existing segmented picker comfortably operable on touch screens. */
+@media (max-width:1023px) {
+ #search .home-network-segments .home-network-option,
+ #search .home-network-segments .home-network-option[data-network=all] {min-height:44px}
+}
+
+/* Typeahead may overlap the picker at short viewports; network selection must
+   stay clickable so a user can switch chains while suggestions are open. */
+#search .home-network-picker {position:relative;z-index:51}

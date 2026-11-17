@@ -88,7 +88,9 @@ async function inspectAt(endpoint,address){
  const block=await callRpc('eth_blockNumber',[]);
  if(!/^0x[0-9a-f]+$/i.test(block))throw Error('Malformed Arc block');
  const bytecode=await callRpc('eth_getCode',[address,block]);
- if(!/^0x[0-9a-f]+$/i.test(bytecode||'')||bytecode==='0x')
+ // #262: an empty account is a deterministic answer, not a provider outage.
+ if(bytecode==='0x')throw Object.assign(Error('No verified token contract'),{code:'NO_CONTRACT_CODE'});
+ if(!/^0x[0-9a-f]+$/i.test(bytecode||''))
   throw Error('No verified token contract');
  const call=data=>callRpc('eth_call',[{to:address,data},block]);
  // Independent getters share the already validated chain/code/block anchor.

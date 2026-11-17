@@ -21,7 +21,11 @@ module.exports=async function(req,res){
   json(body){
    if(closed||res.writableEnded)return body;
    if(!started)return res.json(body);
-   send(body.ok?{phase:'complete',report:body}:{phase:'error',error:body.error||'CHAIN_SCAN_UNAVAILABLE'});
+   // Once streaming starts the HTTP status is already 200. Preserve the exact-chain
+   // error metadata in the terminal NDJSON frame so browser clients can distinguish
+   // a deterministic missing contract (404) from a genuine provider failure (502).
+   send(body.ok?{phase:'complete',report:body}:{phase:'error',error:body.error||'CHAIN_SCAN_UNAVAILABLE',
+    reason:body.reason||null,chainId:body.chainId??null,network:body.network||null,address:body.address||null});
    if(!closed)res.end();return body;
   }
  };

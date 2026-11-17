@@ -165,10 +165,21 @@ test('benchmarked span allowance is identity-bound: exact address AND exact depl
  assert.deepEqual(ok.discoverySpanAllowance,{deployBlock:e.deployBlock,span:10008621,maxSpan:e.maxSpan,basis:'BENCHMARKED_EXACT_RECONCILIATION'});
  assert.throws(()=>RD.handoff(mk(e.maxSpan+1),[],syrup),x=>x.code==='HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED'&&x.maxSpan===e.maxSpan);
  assert.throws(()=>RD.handoff(mk(10008621),[],A),x=>x.code==='HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED'&&x.maxSpan===RD.DEFAULT_MAX_SPAN);
- assert.deepEqual(Object.keys(RD.BENCHMARKED_SPANS).sort(),['0x0dc6b79f3c3854e4d74514fd4d29be6c96beee39','0xbbe6aab0ed76e90aea0d1cd978ec231c8adcdf8b'],'only benchmarked contracts');
+ assert.deepEqual(Object.keys(RD.BENCHMARKED_SPANS).sort(),['0x0dc6b79f3c3854e4d74514fd4d29be6c96beee39','0x178b01f61cbea1d2a5581fe1621be607835ec349','0xbbe6aab0ed76e90aea0d1cd978ec231c8adcdf8b'],'only benchmarked contracts (XAUM added with #262 exact-reconciliation evidence)');
  for(const [k,v] of Object.entries(RD.BENCHMARKED_SPANS)){assert.ok(Object.isFrozen(v)&&v.maxSpan>RD.DEFAULT_MAX_SPAN&&v.maxSpan<=RD.HARD_MAX_SPAN,k);assert.equal(RD.allowedSpan(k,v.deployBlock-1),RD.DEFAULT_MAX_SPAN);}
  const gbpa='0xbbe6aab0ed76e90aea0d1cd978ec231c8adcdf8b',g=RD.BENCHMARKED_SPANS[gbpa];
  assert.equal(RD.handoff({deploySearch:{head:g.deployBlock+18556172-1},deployBlock:g.deployBlock,addresses:[]},[],gbpa).phase,'READ');
  assert.throws(()=>RD.handoff({deploySearch:{head:g.deployBlock+18556172-1},deployBlock:g.deployBlock,addresses:[]},[],syrup),x=>x.code==='HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED','one contract\'s allowance never applies to another');
  const within=RD.handoff(mk(5000),[],A);assert.equal(within.discoverySpanAllowance,undefined,'normal spans carry no allowance marker');
+});
+test('#262 XAUM benchmarked span: applies only to the exact recorded deployment block, never above HARD_MAX_SPAN',()=>{
+ const xaum='0x178b01f61cbea1d2a5581fe1621be607835ec349',e=RD.BENCHMARKED_SPANS[xaum];
+ assert.ok(Object.isFrozen(e));assert.equal(e.deployBlock,19784073);
+ assert.equal(RD.allowedSpan(xaum,19784073),14000000);assert.ok(14000000>11880053,'covers the benchmarked span');
+ assert.equal(RD.allowedSpan(xaum,19784074),RD.DEFAULT_MAX_SPAN,'any other deployment block: global bound');
+ assert.ok(e.maxSpan<=RD.HARD_MAX_SPAN);
+ // a span beyond the benchmarked allowance is still refused (cost bound remains enforced)
+ assert.throws(()=>RD.handoff({deploySearch:{head:19784073+15000000},deployBlock:19784073,addresses:[]},[],xaum),e=>e.code==='HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED');
+ const s=RD.handoff({deploySearch:{head:31664125},deployBlock:19784073,addresses:[]},[],xaum);
+ assert.equal(s.phase,'READ');assert.equal(s.discoverySpanAllowance.basis,'BENCHMARKED_EXACT_RECONCILIATION');
 });

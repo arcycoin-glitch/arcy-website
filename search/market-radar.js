@@ -106,7 +106,7 @@ const change24hReason=item=>{
  // Nothing here is ranked, scored or called safe; anomaly flags are indicators only.
  const CAT_FLAGS={DUPLICATE_TICKER_IN_WINDOW:'aynı ticker',VOLUME_FAR_ABOVE_LIQUIDITY:'hacim ≫ likidite',FEW_WALLETS_MANY_TRADES:'az cüzdan · çok işlem',ONE_SIDED_FLOW:'tek yönlü akış'};
  const CAT_ORDER=[['qualified','nitelikli'],['emerging','yeni havuz (<24s)'],['momentumWatch','ivme izleme'],['lowLiquidityHighRisk','düşük likidite'],['insufficientEvidence','yetersiz kanıt'],['newPools','zincirde yeni havuz']];
- const CAT_TITLE={emerging:'Yeni projeler · havuz 24 saatten genç, tek kaynak, sıralanmaz',momentumWatch:'İvme izleme · yalnızca gözlem',lowLiquidityHighRisk:'Düşük likidite / yüksek risk',insufficientEvidence:'Yetersiz kanıt · alanlar eksik veya kaynaklar ayrışıyor',newPools:'Zincirde yeni havuzlar · factory olaylarından keşif; güvenlik sinyali değildir'};
+ const CAT_TITLE={emerging:'Yeni projeler · havuz 24 saatten genç, tek kaynak, sıralanmaz',momentumWatch:'İvme izleme · yalnızca gözlem',lowLiquidityHighRisk:'Düşük likidite / yüksek risk',insufficientEvidence:'Yetersiz kanıt · alanlar eksik veya kaynaklar ayrışıyor',newPools:'Zincirde yeni havuzlar · factory olaylarından keşif; token doğrulaması veya güvenlik sinyali değildir'};
  const renderCategories=(box,network,c)=>{
   if(!box)return;box.replaceChildren();
   const ok=c&&c.version==='data-engine-v2'&&c.qualified&&Number.isFinite(c.qualified.count);
@@ -538,7 +538,7 @@ const change24hReason=item=>{
    loadedNetwork=network;
    const cov=body.coverage||{};
    status.textContent=items.length+' candidates · '+(cov.poolsInspected??'?')+' provider-returned pools inspected · '+(cov.fieldsNotVerified??0)+' fields NOT VERIFIED · '+(body.freshness==='STALE'?'STALE data from ':'As of ')+new Date(body.asOf).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-   if(!items.length)status.textContent=network==='pons'?'No recent Pons launch confirmed onchain right now.':'No verified ranking returned for this network.';
+   if(!items.length)status.textContent=network==='pons'?'No recent Pons launch confirmed onchain right now.':'No candidates met ranking conditions in this data window. This does not cover every pool or transaction.';
    for(const a of Array.isArray(body.attribution)?body.attribution:[]){const href=safeUrl(a?.url);if(!href||typeof a.text!=='string')continue;const link=el('a','arcy-radar-credit',a.text.slice(0,80)+' ↗');link.href=href;link.target='_blank';link.rel='noopener noreferrer';credit.append(link,document.createTextNode(' '));}
    render();
   }catch(e){

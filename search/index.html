@@ -486,7 +486,7 @@ function isHistoricalEvidence(field){
  return field?.status==='HISTORICAL_ONCHAIN_VERIFIED'||field?.freshness?.state==='LAST_VERIFIED';
 }
 function isCurrentEvidence(field){
- return field?.dataState==='DATA_FOUND'&&field.value!==null&&field.value!==undefined&&!isHistoricalEvidence(field);
+ return field?.dataState==='DATA_FOUND'&&field.value!==null&&field.value!==undefined&&!isHistoricalEvidence(field)&&field?.freshness?.state!=='STALE'&&field?.status!=='STALE';
 }
 function displayBurnShare(value){
  const percentage=Number(value);
@@ -508,17 +508,18 @@ function render(report){
   const withoutEvidence=[];
   const count=$('evidenceCount');count.textContent='20 checks · Sources, risks and evidence';
   if(report&&report.cards){
-   let valid=0,historical=0,total=0;
+   let valid=0,historical=0,stale=0,total=0;
    for(const card of Object.values(report.cards)){
     for(const data of Object.values(card.fields||{})){
      total++;
      if(isCurrentEvidence(data))valid++;
-     else if(data?.dataState==='DATA_FOUND'&&data.value!==null&&data.value!==undefined)historical++;
+     else if(data?.dataState==='DATA_FOUND'&&data.value!==null&&data.value!==undefined){
+      if(isHistoricalEvidence(data))historical++;else stale++;
+     }
     }
    }
-   const sourceBacked=valid+historical;
-   count.textContent=historical
-    ?total+' checks · '+valid+' current · '+historical+' historical ('+sourceBacked+' source-backed) · Evidence and gaps'
+   count.textContent=historical||stale
+    ?total+' checks · '+valid+' current'+(historical?' · '+historical+' historical':'')+(stale?' · '+stale+' stale':'')+' · Evidence and gaps'
     :total+' checks · '+valid+' source-backed · Evidence and gaps';
   }
   for(const spec of displayDefinitions){
@@ -602,7 +603,7 @@ function render(report){
     }
     if(report&&knownCount===0&&spec.id!=='supply'){
       const notice=document.createElement('p');notice.className='noSource';
-      notice.textContent='No independently supported figures for this category yet.';
+      notice.textContent='No source-backed figures for this category yet.';
       section.append(notice);
     }
     if(report&&missingRows.length){
@@ -616,17 +617,18 @@ function render(report){
     const state=document.createElement('span');
     const proven=card?Object.values(card.fields||{}).filter(isCurrentEvidence).length:0;
     const rawProven=card?Object.values(card.fields||{}).filter(f=>f?.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined).length:0;
-    const historical=rawProven-proven;
+    const historical=card?Object.values(card.fields||{}).filter(f=>isHistoricalEvidence(f)&&f?.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined).length:0;
+    const stale=rawProven-proven-historical;
     state.textContent=!card?'NOT SCANNED':proven===spec.fields.length?'ALL 4 FIELDS SOURCE-BACKED':
-     proven>0?'PARTIALLY SOURCE-BACKED':historical>0?'HISTORICAL EVIDENCE ONLY':'NO SOURCE-BACKED FIELDS';
+     proven>0?'PARTIALLY SOURCE-BACKED':historical>0?'HISTORICAL EVIDENCE ONLY':stale>0?'STALE EVIDENCE ONLY':'NO SOURCE-BACKED FIELDS';
     if(spec.id==='mechanics'){
      const assessment=ARCYMechanicsPolicy.assess(card,report||{});
-     state.textContent=historical?'LAST VERIFIED EVIDENCE':assessment.completeRows===4?'VERIFIED CONTRACT EVIDENCE':'PARTIAL VERIFIED EVIDENCE · '+assessment.completeRows+'/4 complete rows';
+     state.textContent=historical?'LAST VERIFIED EVIDENCE':stale?'STALE CONTRACT EVIDENCE':assessment.completeRows===4?'CONTRACT CHECKS WITH SOURCE EVIDENCE':'PARTIAL CONTRACT EVIDENCE · '+assessment.completeRows+'/4 complete rows';
     }
     status.append(state);
     if(card){
      const sources=document.createElement('span');
-     sources.textContent=historical?proven+' current · '+historical+' historical ('+rawProven+'/'+spec.fields.length+' raw)':
+     sources.textContent=historical||stale?proven+' current'+(historical?' · '+historical+' historical':'')+(stale?' · '+stale+' stale':'')+' ('+rawProven+'/'+spec.fields.length+' raw)':
       rawProven+' / '+spec.fields.length+' sourced';
      status.append(sources);
     }
@@ -660,9 +662,12 @@ function render(report){
         const fieldTitle=document.createElement('strong');fieldTitle.textContent=label;
         const stage=document.createElement('span');stage.className='proof-state';
         const historical=isHistoricalEvidence(field);
-        stage.textContent=historical?'HISTORICAL':field.status==='SOURCE_REPORTED_RPC_RECONCILED'?'RPC CHECKED · CANDIDATES':
-         field.dataState==='DATA_FOUND'?'SOURCE BACKED':'NOT VERIFIED';
-        if(historical||field.dataState!=='DATA_FOUND')stage.classList.add('unverified');
+        stage.textContent=historical?'HISTORICAL':field.freshness?.state==='STALE'||field.status==='STALE'?'STALE':
+         field.status==='SOURCE_REPORTED_RPC_RECONCILED'?'RPC CHECKED · CANDIDATES':
+         field.dataState!=='DATA_FOUND'?'NOT VERIFIED':
+         ['ONCHAIN_VERIFIED','CROSS_VERIFIED'].includes(field.status)?'VERIFIED':
+         field.status==='SOURCE_REPORTED'?'SOURCE REPORTED':'SOURCE BACKED';
+        if(historical||field.freshness?.state==='STALE'||field.status==='STALE'||field.dataState!=='DATA_FOUND')stage.classList.add('unverified');
         header.append(fieldTitle,stage);block.append(header);
         const source=document.createElement('p');
         const proof=Array.isArray(field.evidence)?field.evidence[0]:null;
@@ -1197,7 +1202,7 @@ async function scanAddress(address,network=selected(),version=searchVersion,chos
   renderIdentity(identity,network);
   render(data,{preserve:hadAnchor});renderQuickFacts(data);
   document.title=(asset.name||asset.symbol||'Token')+' ('+(asset.symbol||'?')+') · ARCY SEARCH';
-  $('detailState').textContent=phase==='complete'?'Chain '+info.id+' · Snapshot complete · '+data.scannedAt+' · Unsupported metrics remain NOT VERIFIED.':'Chain '+info.id+' · Verified data loading · Deep analysis in progress…';
+  $('detailState').textContent=phase==='complete'?'Chain '+info.id+' · Snapshot complete · '+data.scannedAt+' · Unsupported metrics remain NOT VERIFIED.':'Chain '+info.id+' · Source data loading · Deep analysis in progress…';
   $('detailState').dataset.phase=phase;
   dispatchEvent(new CustomEvent('arcy-search-progress',{detail:{phase,network,address,block:data.block,availableFields:Object.values(data.cards[phase]?.fields||{}).filter(isCurrentEvidence).length}}));
   if(phase==='complete')complete=true;
@@ -1205,19 +1210,28 @@ async function scanAddress(address,network=selected(),version=searchVersion,chos
  try{
   const params=new URLSearchParams({address,chain:network});
   let response=await fetch('/api/search?action=progress&'+params,{signal:controller.signal,cache:'no-store'});
-  if(response.status===404)response=await fetch('/api/search?action=report&'+params,{signal:controller.signal,cache:'no-store'});
-  if(!response.ok){const data=await response.json();throw Error(data.reason||data.error||'Scan unavailable')}
+  const failure=data=>{
+   if(data?.error==='NO_CONTRACT_CODE'&&data.chainId===info.id&&data.network===network&&data.address?.toLowerCase()===address.toLowerCase())
+    return Error('No contract code at this address on '+info.label+'. Check the network and contract address.');
+   return Error(data?.reason||data?.error||'Scan unavailable');
+  };
+  if(response.status===404){
+   const data=await response.json().catch(()=>null);
+   if(data?.error==='NO_CONTRACT_CODE')throw failure(data);
+   response=await fetch('/api/search?action=report&'+params,{signal:controller.signal,cache:'no-store'});
+  }
+  if(!response.ok){const data=await response.json().catch(()=>null);throw failure(data)}
   if(!response.headers.get('content-type')?.includes('application/x-ndjson'))paint(await response.json(),'complete');
   else{
    const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
-   const event=text=>{if(!text.trim())return;const e=JSON.parse(text);if(e.phase==='error')throw Error(e.error||'Deep analysis unavailable');if(!['identity','supply','holders','liquidity','activity','mechanics','complete'].includes(e.phase))throw Error('Invalid analysis phase');paint(e.report,e.phase)};
+   const event=text=>{if(!text.trim())return;const e=JSON.parse(text);if(e.phase==='error')throw failure(e);if(!['identity','supply','holders','liquidity','activity','mechanics','complete'].includes(e.phase))throw Error('Invalid analysis phase');paint(e.report,e.phase)};
    try{for(;;){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});if(buffer.length>2*1024*1024)throw Error('Analysis frame exceeds limit');let cut;while((cut=buffer.indexOf('\n'))!==-1){event(buffer.slice(0,cut));buffer=buffer.slice(cut+1)}}buffer+=decoder.decode();if(buffer.trim())event(buffer)}
    finally{if(!complete)await reader.cancel().catch(()=>{});reader.releaseLock()}
    if(!complete)throw Error('Analysis stream ended before completion');
   }
  }catch(error){
   if(version!==searchVersion||network!==selected()||controller.signal.aborted)return;
-  $('detailState').textContent=(anchor?'Deep analysis unavailable; verified partial data retained: ':'Scan unavailable: ')+String(error.message).slice(0,150);
+  $('detailState').textContent=(anchor?'Deep analysis unavailable; source-backed partial data retained: ':'Scan unavailable: ')+String(error.message).slice(0,150);
   if(!anchor){
    chartGeneration++;if(chartController){chartController.abort();chartController=null}
    clearPriceChart();$('marketLink').hidden=true;$('chartNote').textContent='On-chain contract evidence could not be established. Chart withheld.';
