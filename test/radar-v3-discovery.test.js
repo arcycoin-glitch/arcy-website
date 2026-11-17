@@ -343,6 +343,36 @@ test('Robinhood without a working RPC still ranks; the look-alike check just rep
  const out=await run('robinhood',[{a:addr(100),s:'AAA',vol:5e5,liq:6e5}],{rpc:async()=>({ok:false,status:500,headers:new Headers(),text:async()=>''})});
  assert.equal(out.tokens.length,1);assert.match(out.coverage.ponsLookalikeCheck,/PONS_MEMBERSHIP_UNAVAILABLE/);
 });
+test('Robinhood uses only an authenticated, recent Pons snapshot as backup when factory RPC is unavailable',async()=>{
+ const PON=addr(660),GEN=addr(661),specs=[
+  {a:PON,s:'PNBACK',n:'Factory-proven Pons',vol:8e5,liq:8e5,age:3,buys:300,sells:200},
+  {a:GEN,s:'RHBACK',n:'Non-Pons',vol:5e5,liq:6e5,age:4,buys:250,sells:200}
+ ];
+ const snapshot={ok:true,version:2,engine:'arcy-radar-v3',network:'pons',chainId:4663,
+  freshness:'FRESH',asOf:new Date(T0).toISOString(),coverage:{ponsConfirmed:1},
+  tokens:[{rank:1,address:PON,symbol:'PNBACK',name:'Factory-proven Pons',
+   fields:{},launch:{status:'ONCHAIN_VERIFIED',factory:sources.PONS.factories[0]}}]};
+ const env={...ENV,RADAR_PONS_DURABLE_CACHE_ENABLED:'true',
+  ARC_HOLDER_QUEUE_URL:'https://worker.example/',ARC_HOLDER_QUEUE_TOKEN:'in-test-only'};
+ const requests=[],f=router([
+  [/^https:\/\/worker\.example\//,(url,o)=>{requests.push({url,method:o.method});return {ok:true,status:200,
+   json:async()=>({ok:true,hit:true,snapshot})};}],
+  [/tokens\/multi/,()=>resp(multi('robinhood',specs))],
+  [/coingecko\.com/,()=>resp(page('robinhood',specs))],
+  [/rpc\.example/,async()=>({ok:false,status:500,headers:new Headers(),text:async()=>''})]
+ ]);
+ const result=await radar.load('robinhood',{env,fetcher:f,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
+ assert.deepEqual(result.tokens.map(x=>x.address),[GEN]);
+ assert.equal(result.discovery.excludedCounts.PONS_LAUNCH_SEPARATE_SECTION,1);
+ assert.match(result.coverage.ponsLookalikeCheck,/PONS_MEMBERSHIP_UNAVAILABLE.*VERIFIED_PONS_CACHE/);
+ assert.equal(requests.length,1,'only one read from existing authenticated worker backup');
+ assert.equal(requests[0].method,'POST');
+ // Invalid membership/issuer claim cannot be used to suppress a Robinhood token.
+ snapshot.tokens[0].launch.factory=addr(900);
+ const second=await radar.load('robinhood',{env,fetcher:f,now:()=>T0,disableCache:true,rpcUrl:'https://rpc.example/'});
+ assert.ok(second.tokens.some(x=>x.address===PON),'an invalid cache edition is ignored, never called trusted');
+ assert.match(second.coverage.ponsLookalikeCheck,/PONS_MEMBERSHIP_UNAVAILABLE/);
+});
 test('Pons: only factory-confirmed launches are ranked — a PONS-ticker impostor with huge volume is not',async()=>{
  const OFFICIAL=addr(110),FAKE=addr(111);
  const specs=[{a:FAKE,s:'PONS',n:'Pons',vol:5e7,liq:9e6,age:1},{a:OFFICIAL,s:'PONS',n:'Pons',vol:2e5,liq:3e5,age:20},{a:addr(112),s:'NEWL',n:'New Launch',vol:6e4,liq:9e4,age:1,buys:300,sells:250},{a:addr(113),s:'NOTL',vol:4e6,liq:2e6}];
