@@ -34,3 +34,16 @@ const word=v=>BigInt(v).toString(16).padStart(64,'0'),aw=a=>a.slice(2).toLowerCa
   out('pool',{pool:p.id,name:p.name,dex:p.dex,tx24:p.tx24,viaPositionManager:viaPosm,viaInitialize:viaInit});
  }
 })().catch(e=>out('error',{e:String(e.stack).slice(0,300)}));
+// Cross-check this branch's Live Trading rows for WASTED (Ethereum V4) against the provider's own trade feed (tx/side/wallet).
+(async()=>{await new Promise(r=>setTimeout(r,20000));
+ const lt=require('../search/server/lib/live-trades');
+ const r=await lt.analyze({network:'ethereum',address:'0x0f08046cf0f51616be643f8434232c51c2189edc'});
+ const pools=[...new Set((r.trades||[]).map(t=>t.pool))];const gt=new Map();
+ for(const p of pools){const g=await J('https://api.geckoterminal.com/api/v2/networks/eth/pools/'+p+'/trades');for(const x of g.data||[])gt.set(String(x.attributes.tx_hash).toLowerCase(),x.attributes);}
+ const rows=(r.trades||[]).map(t=>{const g=gt.get(t.txHash);return {tx:t.txHash,block:t.block,side:t.side,wallet:t.wallet,token:t.tokenAmount,counter:t.counterAmount+' '+t.counterSymbol,usd:t.usd,provider:g?{kind:g.kind,from:String(g.tx_from_address).toLowerCase(),usd:Number(g.volume_in_usd).toFixed(2)}:null};});
+ const checked=rows.filter(x=>x.provider);
+ out('wasted-crosscheck',{status:r.status,pools:r.pools,excluded:r.excludedPools,rpc:r.cost?.rpcCalls,n:rows.length,providerChecked:checked.length,
+  sideAgree:checked.filter(x=>x.side.toLowerCase()===x.provider.kind).length,walletAgree:checked.filter(x=>x.wallet===x.provider.from).length,
+  dupTxLog:rows.length-new Set((r.trades||[]).map(t=>t.txHash+':'+t.logIndex)).size});
+ for(const x of rows.slice(0,8))out('wasted-row',x);
+})().catch(e=>out('xerror',{e:String(e.stack).slice(0,300)}));
