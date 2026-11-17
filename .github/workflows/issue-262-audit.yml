@@ -19,3 +19,6 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/probe-262-audit.cjs
+        env:
+          # Integrated engine preview of PR #276 (3736ee1). Production audit = omit this variable.
+          ARCY_BASE: https://arcy-official-jjkfdvcg1-arcy3.vercel.app
