@@ -17,13 +17,13 @@ const tokens = {
   robinhood: ['Tesla Token', 'TSLA'],
 };
 const fields = {
-  supply: ['totalSupply', 'circulatingSupply', 'burnAddressBalance', 'burnAddressPct'],
+  supply: ['totalSupply', 'nonBurnSupply', 'burnAddressBalance', 'burnAddressPct'],
   holders: ['holderCount', 'largestWalletPct', 'top10Pct', 'top20Pct'],
-  liquidity: ['liquidityUsd', 'volume24h', 'dexPairCount', 'lpStatus'],
+  liquidity: ['liquidityUsd', 'volume24h', 'dexPairCount', 'liquidityTurnover24h'],
   activity: ['priceUsd', 'valuation', 'change24h', 'volume24h'],
   mechanics: ['tradingTaxes', 'mintCapability', 'ownerAdmin', 'contractArchitecture'],
 };
-const missing = new Set(['circulatingSupply', 'top20Pct', 'lpStatus', 'valuation', 'mintCapability']);
+const missing = new Set(['nonBurnSupply', 'top20Pct', 'liquidityTurnover24h', 'valuation', 'mintCapability']);
 
 function report(network, address) {
   const [name, symbol] = tokens[network];
@@ -104,7 +104,7 @@ function candidate(network) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(origin + '/#search');
       assert.equal(await page.locator('.home-search').count(), 1, 'current homepage Search module appears');
-      assert.equal(await page.locator('.home-search-owl').count(), 1, 'Search module keeps one owl');
+      assert.equal(await page.locator('.owl img[alt="ARCY owl"]').count(), 1, 'homepage keeps the original ARCY owl');
       assert.equal(await page.locator('#contract').isVisible(), false, 'legacy contract input remains hidden after Search upgrade');
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `home overflow at ${width}px`);
 
@@ -113,7 +113,7 @@ function candidate(network) {
       assert.match(await page.locator('#homeSearchState').innerText(), /at least 2 characters/);
 
       for (const network of ['arc', 'ethereum', 'robinhood']) {
-        if (network !== 'arc') await page.locator(`.home-network-option[data-network="${network}"]`).click();
+        await page.locator(`.home-network-option[data-network="${network}"]`).click();
         discoveryStatus = 429;
         await page.locator('#homeSearchQuery').fill(tokens[network][1]);
         await page.locator('.home-search-form').evaluate(form => form.requestSubmit());
@@ -123,13 +123,14 @@ function candidate(network) {
         const result = page.locator('.home-search-results .home-search-result');
         await result.waitFor({ state: 'visible' });
         assert.match(await result.innerText(), new RegExp(tokens[network][0]));
-        assert.match(await result.locator('.home-result-status').innerText(), /NOT VERIFIED/);
+        assert.match(await result.locator('.home-result-status').innerText(), /INDEXED/);
+        assert.match(await result.locator('.home-result-status').getAttribute('title'), /has not been independently confirmed/);
         assert.equal(await result.locator('.home-token-placeholder').count(), 1, 'no-logo result has a visible fallback avatar');
         await result.click();
         await page.waitForURL(`**/search/token/${network}/${addresses[network]}`);
         await page.waitForFunction(() => document.querySelector('#detailState')?.textContent.includes('Snapshot complete'));
         await page.locator('#deepResearch').evaluate(node => { node.open = true; });
-        assert.equal(await page.locator('#cards > .card').count(), 5);
+        assert.equal(await page.locator('#cards > .report-carousel-slide').count(), 6);
         assert.equal(await page.locator('#cards .metric').count(), 20, 'all twenty schema fields render');
         assert.equal(await page.locator('#cards .metric b.no').count(), 5, 'unsupported fixture fields remain visibly unverified');
         assert.match(await page.locator('#evidenceCount').innerText(), /20 checks/);
@@ -140,10 +141,11 @@ function candidate(network) {
       }
 
       reportStatus = 503;
+      await page.locator('.home-network-option[data-network="arc"]').click();
       await page.locator('#homeSearchQuery').fill(addresses.arc);
       await page.locator('.home-search-form').evaluate(form => form.requestSubmit());
       await page.waitForFunction(() => document.querySelector('#detailState')?.textContent.includes('Scan unavailable'));
-      assert.equal(await page.locator('#cards > .card').count(), 4, 'failed report preserves other cards while unevidenced Mechanics stays hidden');
+      assert.equal(await page.locator('#cards > .report-carousel-slide').count(), 5, 'failed report preserves Live Trading and four other cards while unevidenced Mechanics stays hidden');
       assert.deepEqual(await page.locator('#cards .metric b').allTextContents(), Array(16).fill('—'),
         'failed report clears prior token metrics instead of displaying stale values');
       reportStatus = 200;
@@ -157,7 +159,7 @@ function candidate(network) {
     assert.ok(requests.some(url => url.searchParams.get('chain') === 'arc'));
     assert.ok(requests.some(url => url.searchParams.get('chain') === 'ethereum'));
     assert.ok(requests.some(url => url.searchParams.get('chain') === 'robinhood'));
-    console.log('PASS: current homepage Search -> exact-chain candidate -> separate detail flow; 429 and report failures; five cards/twenty fields; 320/390/1440px layout; all API responses are mocked fixtures, not live provider evidence.');
+    console.log('PASS: current homepage Search -> exact-chain candidate -> separate detail flow; 429 and report failures; six cards/twenty fields; 320/390/1440px layout; all API responses are mocked fixtures, not live provider evidence.');
   } finally {
     if (browser) await browser.close();
     server.kill();

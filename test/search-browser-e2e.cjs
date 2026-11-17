@@ -19,9 +19,9 @@ const tokens = {
   robinhood: ['Tesla Token', 'TSLA'],
 };
 const fieldKeys = {
-  supply: ['lockedSupply', 'unlockedSupply', 'verifiedBurned', 'nextUnlock'],
+  supply: ['totalSupply', 'nonBurnSupply', 'burnAddressBalance', 'burnAddressPct'],
   holders: ['holderCount', 'largestWalletPct', 'top10Pct', 'top20Pct'],
-  liquidity: ['liquidityUsd', 'volume24h', 'dexPairCount', 'lpStatus'],
+  liquidity: ['liquidityUsd', 'volume24h', 'dexPairCount', 'liquidityTurnover24h'],
   activity: ['priceUsd', 'valuation', 'change24h', 'volume24h'],
   mechanics: ['tradingTaxes', 'mintCapability', 'ownerAdmin', 'contractArchitecture'],
 };
@@ -34,7 +34,7 @@ function report(network, address) {
     for (const key of keys) {
       const missing = key === 'valuation';
       cards[card].fields[key] = {
-        value: missing ? null : key === 'nextUnlock' ? '2099-01-01T00:00:00Z' : key === 'lpStatus' ? 'NOT VERIFIED' : key === 'tradingTaxes' ? 'NOT VERIFIED' : 1,
+        value: missing ? null : key === 'tradingTaxes' ? 'NOT VERIFIED' : 1,
         dataState: missing ? 'NOT_VERIFIED' : 'DATA_FOUND',
         status: missing ? 'NOT_VERIFIED' : 'BROWSER_FIXTURE',
         kind: key === 'valuation' ? 'FDV' : undefined,
@@ -74,7 +74,7 @@ function candidate(network) {
       server.stdout.once('data', () => { clearTimeout(timer); resolve(); });
       server.once('error', reject);
     });
-    browser = await chromium.launch({ headless: true,channel:'msedge' });
+    browser = await chromium.launch({ headless: true, ...(process.env.ARCY_BROWSER_CHANNEL ? {channel:process.env.ARCY_BROWSER_CHANNEL} : {}) });
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     const pageErrors = [];
     const seen = [];
@@ -118,20 +118,18 @@ function candidate(network) {
       await page.setViewportSize({ width: viewport, height: 900 });
       await page.goto(origin + '/#search');
       assert.equal(await page.locator('.home-search').count(), 1, 'homepage search card appears');
-      assert.equal(await page.locator('.home-search-owl').count(), 1, 'homepage shows a single Search owl');
+      assert.equal(await page.locator('.owl img[alt="ARCY owl"]').count(), 1, 'homepage keeps the original ARCY owl');
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `homepage horizontal overflow at ${viewport}px`);
 
       for (const network of ['arc', 'ethereum', 'robinhood']) {
-        if (network !== 'arc') {
-          await page.locator(`.home-network-option[data-network="${network}"]`).click();
-        }
+        await page.locator(`.home-network-option[data-network="${network}"]`).click();
         const [name, symbol] = tokens[network];
         const query = network === 'arc' ? name : symbol;
         await page.locator('#homeSearchQuery').fill(query);
         await page.locator('.home-search-form').evaluate(form => form.requestSubmit());
         await page.locator('.home-search-result').waitFor({ state: 'visible' });
         assert.match(await page.locator('.home-search-result').innerText(), new RegExp(name));
-        assert.match(await page.locator('.home-search-result .home-result-status').innerText(), /NOT VERIFIED/);
+        assert.match(await page.locator('.home-search-result .home-result-status').innerText(), /INDEXED/);
         assert.equal(await page.locator('.home-token-placeholder').count(), 1, 'all logos retain a fallback avatar');
         if (network === 'ethereum') {
           const remote = page.locator('.home-token-placeholder img');
@@ -147,7 +145,7 @@ function candidate(network) {
         await page.locator('.home-search-result').click();
         await page.waitForURL(`**/search/token/${network}/${addresses[network]}`);
         await page.waitForFunction(() => document.querySelector('#detailState')?.textContent.includes('Snapshot complete'));
-        assert.equal(await page.locator('#cards .card').count(), 5);
+        assert.equal(await page.locator('#cards .card').count(), 6, 'Live Trading plus five metric cards remain present');
         assert.equal(await page.locator('#deepResearch').getAttribute('open'),'');
         assert.equal(await page.locator('#cards .card > .metric').count(), 19, 'only source-backed rows remain directly visible');
         if(network==='ethereum'){
@@ -215,6 +213,22 @@ function candidate(network) {
     assert.deepEqual(pageErrors, []);
     assert.equal(seen.filter(x => x.action === 'discover').length, 24, 'homepage and detail-page discovery each run once per chain/viewport');
     assert.equal(seen.filter(x => ['report','progress'].includes(x.action)).length, 12);
+    // A chain-scoped missing contract is a user-correctable identity error,
+    // while a provider failure remains a service error. Neither may show data.
+    const errors = [
+      { status: 404, body: { ok:false, error:'NO_CONTRACT_CODE', chainId:1, network:'ethereum', address:addresses.ethereum, reason:'No deployed code at the pinned block' }, expected:/No contract code at this address on Ethereum\. Check the network and contract address\./ },
+      { status: 502, body: { ok:false, error:'RPC_UNAVAILABLE', reason:'Provider unavailable' }, expected:/Scan unavailable: Provider unavailable/ },
+    ];
+    for(const scenario of errors){
+      const errorRoute=route=>route.fulfill({status:scenario.status,json:scenario.body});
+      await page.route('**/api/search?action=progress&**',errorRoute);
+      await page.goto(origin+'/search/token/ethereum/'+addresses.ethereum);
+      await page.waitForFunction(pattern=>pattern==='NO_CODE'?document.querySelector('#detailState')?.textContent.includes('No contract code'):document.querySelector('#detailState')?.textContent.includes('Provider unavailable'),scenario.status===404?'NO_CODE':'PROVIDER');
+      assert.match(await page.locator('#detailState').innerText(),scenario.expected);
+      assert.equal(await page.locator('#asset').innerText(),'','failed scan has no invented identity');
+      assert.equal(await page.locator('#cards .proof-value').count(),0,'failed scan has no invented evidence');
+      await page.unroute('**/api/search?action=progress&**',errorRoute);
+    }
     // Two real-world failure modes: an issuer-known static FLOKI suggestion
     // receives art asynchronously; a Robinhood non-stock PONS gets DEX art.
     await page.goto(origin + '/#search');
@@ -233,9 +247,9 @@ function candidate(network) {
         .find(x=>x.textContent.includes('Pons'));
       return Boolean(result?.querySelector('img'));
     },null,{timeout:12000});
-    assert.match(await page.locator('#homeSearchSuggestions').innerText(),/NOT VERIFIED/);
+    assert.match(await page.locator('#homeSearchSuggestions').innerText(),/INDEXED/);
     assert.deepEqual(pageErrors, []);
-    console.log('PASS: mocked browser E2E at 320/390/768/1440px; home discovery on all chains; official labels remain unverified; remote Ethereum logo + initials fallback; 5 cards/20 checks; all four GeckoTerminal presets stay on the selected chain; detail-page re-search. All API data in this test is mocked, not real provider evidence.');
+    console.log('PASS: mocked browser E2E at 320/390/768/1440px; home discovery on all chains; indexed candidates remain unverified; 404 no-contract versus 502 provider error; remote Ethereum logo + initials fallback; 6 cards/20 checks; all four GeckoTerminal presets stay on the selected chain; detail-page re-search. All API data in this test is mocked, not real provider evidence.');
   } finally {
     if (browser) await browser.close();
     server.kill();
