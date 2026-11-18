@@ -186,7 +186,9 @@ test('upgradeable proxy is never treated as bounded mint / reviewed admin',async
  assert.ok(x.reasons.includes('MINT_NOT_VERIFIED'));assert.ok(x.reasons.includes('ADMIN_NOT_VERIFIED'));
 });
 test('low exit: verified quotes that all cost >5% => LOW_EXIT_LIQUIDITY exclusion; analyzer failure => NOT_VERIFIED',async()=>{
- assert.ok(only(await runOne({exitAnalyzer:async()=>({ok:true,executableUsd:0,verifiedSizes:3})})).reasons.includes('LOW_EXIT_LIQUIDITY'));
+ assert.ok(only(await runOne({exitAnalyzer:async()=>({ok:true,executableUsd:0,verifiedSizes:3,verifiedUsdSizes:[1000,5000,25000],model:'REVIEWED_UNISWAP_V4',block:123})})).reasons.includes('LOW_EXIT_LIQUIDITY'));
+ assert.ok(only(await runOne({exitAnalyzer:async()=>({ok:true,executableUsd:0,verifiedSizes:1,verifiedUsdSizes:[1000],model:'REVIEWED_UNISWAP_V4',block:123})})).reasons.includes('EXIT_LIQUIDITY_NOT_VERIFIED'),
+  'a successful quote at $1k is not proof of a failed $5k Ethereum exit');
  assert.ok(only(await runOne({exitAnalyzer:async()=>{throw Object.assign(Error('x'),{code:'RPC_TIMEOUT'});}})).reasons.includes('EXIT_LIQUIDITY_NOT_VERIFIED'));
 });
 test('fake affiliation: address absent at the pinned commit is a contradiction, not identity',async()=>{
