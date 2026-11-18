@@ -270,3 +270,13 @@ test('category regression from primary-source research: WPRL is a bridge wrapper
  assert.equal(CAT.classify({chainId:4663,address:A(44),symbol:'WFOO',name:'Wrapped Foo'},'robinhood',NOW).category,'WRAPPED_OR_BASE_ASSET');
  assert.equal(CAT.classify({chainId:4663,address:A(45),symbol:'WRAPX',name:'Wrapstar Protocol'},'robinhood',NOW).category,'EARLY_STAGE_CANDIDATE');
 });
+test('category regression (live Arc): XAUM-style precious-metal tickers are never early-stage without an issuer record',()=>{
+ for(const sym of ['XAUM','XAUt','PAXG','XAG']) {const c=CAT.classify({chainId:5042,address:A(46),symbol:sym,name:sym},'arc',NOW).category;assert.equal(c,'COMMODITY_TICKER_WITHOUT_IDENTITY',sym);}
+ assert.equal(CAT.classify({chainId:5042,address:A(47),symbol:'XAUNCH',name:'Xaunch'},'arc',NOW).category,'EARLY_STAGE_CANDIDATE');
+});
+test('Info sentence: parts never contain the UI separator (live preview regression)',()=>{
+ const o=OPP.evaluate({candidate:cand(),evidence:{product:product()},network:'robinhood',now:NOW});
+ const t=OPP.infoReason(o,{eligibility:'REVIEW',dossier:{status:'PARTIAL_EVIDENCE'}});
+ assert.ok(t.split(';').every(p=>!/[()]/.test(p)||/\(.*\)/.test(p)),t);
+ assert.match(t,/kısmi kanıt \(resmi site kontratı yayınlıyor, bağlantı eksik\)/);
+});

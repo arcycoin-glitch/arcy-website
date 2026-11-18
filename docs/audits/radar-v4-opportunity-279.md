@@ -64,3 +64,53 @@ Layout: no HTML, CSS or presentation JavaScript changed (`git diff origin/main` 
    - let the scheduled workflow create `radar-v4-snapshots` (or run it manually);
    - set `RADAR_V4_OPPORTUNITY_ENABLED=true` on a Preview, verify 320–1440 px, then decide on Production.
 6. 90-day price window is not measured (30-day sampler). Usage growth over time is not measured (no stored buyer history).
+
+## Hardening pass — 2026-11-18 (release-gate work)
+
+### Fixed
+| Problem | Fix | Evidence |
+|---|---|---|
+| Legacy loader failure hid a valid V4 snapshot (`apply(network, await radar.load())`) | Snapshot-first handler. After the site-origin check and the existing publication approvals, a FRESH (≤6 h) or STALE (≤24 h) section is served with no provider call. Otherwise the legacy loader runs and `opportunity.reason` says why. If both are down, the existing honest 503 is returned. | Handler tests: fresh+provider down, stale+provider down, expired/invalid/404/403/429/503 + healthy legacy, publication gate, concurrency, cache expiry |
+| Rows from the excluded/diversity windows were labelled with a hardcoded "GeckoTerminal" source | `SOURCE_REPORTED` + `sourceConfirmed:false` + exact route, chain, contract, pool and `measuredAt`. Radar-shaped field evidence is kept verbatim. | Test asserts no provider name is invented |
+| Ethereum "NEAR" | Exact Rainbow-bridged NEAR `0x85f1…f6a4` (Blockscout: "Rainbow Bridged Near (Ethereum)", verified source) → `BRIDGED_ESTABLISHED_ASSET`. Any other contract using an established-asset ticker → `MAJOR_ASSET_TICKER_WITHOUT_IDENTITY` (blocked). | Regression test. The exact NEAR row from the 09:28 run left the provider window before its address could be captured, so both cases are covered. |
+| WPRL, GDLR, XAUM classed as early-stage | GDLR: issuer site doma.io says "backed 1:1 by bars" → commodity-backed. WPRL: pearlbridge.xyz shows it is the PRL bridge wrapper → wrapped. "Wrapped …" names → wrapped. Precious-metal tickers without an issuer record → blocked. | Tests |
+| Snapshot workflow force-pushed an orphan branch | Fast-forward commits only. Covers first-time creation, per-ref concurrency, a 42-revision index, and a read-back of the published commit validated with the serving code. PR runs publish to the safe ref `radar-v4-snapshots-preview`. | First creation `944eabd` (readback valid); fast-forward update `c32511d` (ahead 1, behind 0) |
+| A data-branch commit triggered a Vercel Preview deployment | The data branch now carries its own `vercel.json` (`deploymentEnabled:false`) and a README. | `944eabd`: Vercel status "success" (a deployment was made). `e6644a4`: 0 Vercel statuses. |
+| Info text split inside parentheses (`;`) | Parts never contain the UI separator | Found during browser verification; test added |
+
+### Primary-source dossiers (`lib/radar-v2/intel/dossiers.json`, research log, not owner approval)
+- **PRIORS (Pons): PRIMARY_SOURCE_VERIFIED.** priors.trade publishes the exact contract and links `priors-agents/priors`. The repository's homepage is priors.trade and `deployments/4663.v2.json` binds the contract at commit `d4ae785f`. 5 authors and 30 closed issues in 90 days; no releases, no dated milestone.
+- **ORBIO: PARTIAL_EVIDENCE.** orbio.so/protocol lists the exact contract. The developer platform is live, and the site links `orbioso/orbio-sdk` (7 commits, 1 author in 90 days), but the repository does not bind the contract.
+- **HOOKR: PARTIAL_EVIDENCE.** hookr.fun publishes the exact contract and the product is live on Robinhood Chain. The repository `Hookr-fun/hookr-contracts` binds the contract but is not linked from the site.
+- **TOLLY: PARTIAL_EVIDENCE.** The contract appears only inside a launchpad token listing.
+- **WPRL, GDLR:** dossiers used to correct their categories.
+- No dossier is OWNER_APPROVED, and the validator refuses a self-declared approval. A dossier enables repository research for ranking only when the official site links the repository; it never grants identity or eligibility.
+
+### Real published snapshot (`radar-v4-snapshots-preview` @ `c32511d`, generated 2026-11-18 11:42 UTC)
+| Section | Shown | ELIGIBLE | WATCHLIST | Non-early removed |
+|---|---|---|---|---|
+| Arc | 7 (XAUM is now removed by the new rule; the next run shows ≤6) | 0 | 7 | 0 |
+| Ethereum | 0 | 0 | 0 | 12/12 (3 commodity, 2 legacy meme, 3 blue chip, 1 wrapped, 2 mature, 1 large cap) |
+| Robinhood | 8 | 0 | 8 | 3 tokenized equity |
+| Pons | 10 | 0 | 10 | 0 |
+
+- Identity coverage: 0 owner-approved.
+- Product/team evidence: 1 live candidate (ORBIO via its dossier repository; PRIORS was outside this run's window).
+- Dated catalysts: 0.
+- Verified 8x: 0. Critical exclusions in this run: 0.
+- Cost: Blockscout 14 calls, GitHub 5 calls; RPC Arc 173, Ethereum 0, Robinhood 444; 0 CoinGecko credits.
+- Time: 92 s cold (a previous cold run took 150 s). One snapshot read per 10 minutes per serving instance; public V4 requests make no provider calls.
+
+### Flag-ON verification (browser, real UI code, real serving output)
+Vercel environment variables are not reachable from this session (no Vercel connector is connected, and the available connector exposes no env-write tool), so a real Preview could not be switched ON. Instead:
+- The served-response files produced by `V4.serve()` in CI were loaded from the published data ref.
+- On the live Production token page, `window.fetch` was intercepted only for `/api/search?action=radar`, and the deployed `/search/market-radar.js` was re-executed.
+
+Results:
+- 320/390/800/1024/1440 px: no horizontal overflow, all four tabs visible, rows within the card.
+- Rows render with the unchanged columns, SCORE and ⓘ Info. Info shows "Araştırma izleme listesi — DOĞRULANMADI", the dossier status and evidence labels. Token links open `/search/token/<chain>/<exact contract>`.
+- Pons/Robinhood duplicates: 0. Ethereum does not show XAUt/PEPE/PAXG/AAVE.
+- Ethereum renders the existing empty-window message. The V4 shortfall reason (`NOT_EARLY_STAGE_CATEGORY: 12`) is in the API response, not in the locked UI.
+- Flag OFF (the live site) still shows the legacy list (e.g. Robinhood with SPY/NVDA tokenized equities).
+
+This is NOT a Vercel Preview with the environment flag ON. That gate remains open.
