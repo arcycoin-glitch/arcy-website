@@ -179,3 +179,14 @@ test('builder cross-check upgrades pre-verification near misses using the real v
  assert.equal(r.cost.builderCrossChecks,1,'one batched call per network');
  const off=await run({ethereum:ethSection({nearMiss:[nm(70)]})});assert.equal(off.networks.ethereum.all.find(x=>x.address===A(70)).discoveryClass,'MONITOR_ONLY');
 });
+
+
+test('near-match look-alike exclusion also applies to an otherwise V4 ELIGIBLE contract',()=>{
+ const row=(n,eligibility)=>({key:'1:'+A(n),network:'ethereum',chainId:1,address:A(n),symbol:'SAME',
+  eligibility,discoveryClass:'NEAR_MATCH',marketObserved:true,reasons:[],
+  nearMatch:{passed:[],maxDistance:0.2},opportunity:{score:20,dimensions:{product:0,team:0,adoption:0}},
+  evidenceConfidence:{score:35,missing:[]}});
+ const d=E.selectDisplay([row(601,'ELIGIBLE'),row(602,'REVIEW')]);
+ assert.equal(d.length,0,'same-symbol near matches remain withheld regardless of V4 eligibility');
+ assert.equal(d.shortfall.droppedByReason.DUPLICATE_TICKER_UNRESOLVED,2);
+});
