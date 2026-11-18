@@ -9,7 +9,7 @@ const iso=d=>new Date(NOW-d*DAY).toISOString();
 const EMPTY_REG={schema:'arcy-radar-project-registry/1',version:'t',projects:[]};
 const verified=(o={})=>({crossCheck:'MATCHED',fields:{priceUsd:'CROSS_VERIFIED',volume24hUsd:'CROSS_VERIFIED',liquidityUsd:'CROSS_VERIFIED',poolCreatedAt:'CROSS_VERIFIED'},sourcesDisagree:false,...o});
 // Ethereum floors: volume $100k, liquidity $200k, 10 trades.
-const miss=(n,o={})=>({address:A(n),symbol:'T'+n,name:'Token '+n,reason:'INELIGIBLE_AFTER_VERIFICATION',priceUsd:0.5,volume24hUsd:70000,liquidityUsd:260000,
+const miss=(n,o={})=>({address:A(n),symbol:'T'+n,name:'Token '+n,reason:'INELIGIBLE_AFTER_VERIFICATION',priceUsd:0.5,volume24hUsd:70000,liquidityUsd:260000,change24hPct:5,logo:{url:'https://assets.geckoterminal.com/near-match-fixture',source:'GeckoTerminal'},
  poolCreatedAt:iso(40),buys24h:60,sells24h:55,pool:A(1000+n),quote:'0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',...o});
 const legacyRanked=['0x68749665ff8d2d112fa859aa293f07a622782f38','0x6982508145454ce325ddbe47a25d4ec3d2311933','0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9']
  .map((a,i)=>({rank:i+1,address:a,chainId:1,symbol:['XAUt','PEPE','AAVE'][i],name:['Tether Gold','Pepe','Aave Token'][i],priceUsd:1,volume24hUsd:5e6,liquidityUsd:2e7,poolCreatedAt:iso(900),buys24h:300,sells24h:300,fields:{},discovery:{version:'arcy-discovery-2',score:60,poolsSeen:1}}));
@@ -134,12 +134,12 @@ test('12. near-match layer adds zero network/RPC calls and stays bounded with ov
  assert.ok(r.networks.ethereum.displayCandidates.length<=10);
  assert.ok(r.networks.ethereum.displayCandidates.filter(x=>x.discoveryClass==='MONITOR_ONLY').length<=10);
 });
-test('Ethereum uses remaining slots for transparently labeled monitored candidates, without relaxing risk gates',async()=>{
- const young=Array.from({length:6},(_,i)=>({...miss(30+i),reason:'POOL_UNDER_24H',poolCreatedAt:iso(0.2)}));
- const r=await run({ethereum:ethSection({excluded:[{...miss(40,{volume24hUsd:95000}),detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:verified()},...young]})});
+test('Ethereum uses remaining slots for adequately observed monitored candidates, not young unverified pools',async()=>{
+ const mature=Array.from({length:6},(_,i)=>({...miss(30+i),reason:'INELIGIBLE_AFTER_VERIFICATION',detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:null,poolCreatedAt:iso(5)}));
+ const r=await run({ethereum:ethSection({excluded:[{...miss(40,{volume24hUsd:95000}),detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:verified()},...mature]})});
  const shown=r.networks.ethereum.displayCandidates;
  assert.equal(shown[0].discoveryClass,'NEAR_MATCH');assert.equal(shown.filter(x=>x.discoveryClass==='MONITOR_ONLY').length,6);
- assert.match(shown[1].infoV4,/^SADECE İZLEME — onaylı veya düşük riskli değildir, eksik: .*havuz 24 saatten yeni/);
+ assert.match(shown[1].infoV4,/^SADECE İZLEME — onaylı veya düşük riskli değildir, eksik: /);
  assert.equal(r.networks.ethereum.display.shortfall?.droppedByReason?.MONITOR_ONLY_CAP||0,0);
 });
 test('snapshot builder reads the legacy V3 window (source=legacy-v3) and refuses V4-served input (circular guard)',async()=>{
@@ -196,7 +196,9 @@ test('Arc and Ethereum may populate 10 observation slots, while Robinhood retain
   key:({arc:5042,ethereum:1,robinhood:4663}[network])+':'+A(800+i),network,
   chainId:{arc:5042,ethereum:1,robinhood:4663}[network],address:A(800+i),symbol:'CAND'+i,
   eligibility:'REVIEW',discoveryClass:'MONITOR_ONLY',reasons:[],marketObserved:true,
-  priceUsd:0.1,liquidityUsd:25000,volume24hUsd:2000,nearMatch:{passed:['PRICE_EVIDENCE'],pending:['POOL_UNDER_24H'],maxDistance:0.3},
+  priceUsd:0.1,liquidityUsd:network==='ethereum'?120000:25000,volume24hUsd:network==='ethereum'?26000:2000,
+  change24hPct:4,trades24h:36,poolCreatedAt:iso(6),snapshotNow:NOW,
+  artwork:{url:'https://assets.geckoterminal.com/observed-fixture'},nearMatch:{passed:['PRICE_EVIDENCE'],pending:['INDEPENDENT_CROSS_CHECK_PENDING'],maxDistance:0.3},
   opportunity:{score:20,dimensions:{product:0,team:0,adoption:0}},
   evidenceConfidence:{score:20,missing:['EXIT','SELL']}
   ,...props
@@ -222,8 +224,8 @@ test('Arc and Ethereum may populate 10 observation slots, while Robinhood retain
 });
 
 test('snapshot validator accepts expanded genuine Ethereum monitors but rejects four Robinhood monitors',async()=>{
- const young=Array.from({length:8},(_,i)=>({...miss(1100+i),reason:'POOL_UNDER_24H',poolCreatedAt:iso(0.2)}));
- const sec=ethSection({tokens:[],excluded:young});
+ const monitored=Array.from({length:8},(_,i)=>({...miss(1100+i),reason:'INELIGIBLE_AFTER_VERIFICATION',detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:null,poolCreatedAt:iso(5)}));
+ const sec=ethSection({tokens:[],excluded:monitored});
  const result=await run({ethereum:sec});
  const snapshot=S.build(result,{ethereum:sec},{now:NOW});
  assert.ok(snapshot.sections.ethereum.rows.length>3,'must exercise the formerly rejected monitor overflow');
