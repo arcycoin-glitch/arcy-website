@@ -29,20 +29,19 @@ jobs:
       - name: Radar V2 + V3 discovery unit tests
         run: node --test test/radar-v2.test.js test/radar-v3-discovery.test.js
       - name: Radar Intelligence Engine unit + adversarial tests (#279)
-        run: node --test test/radar-intel.test.js test/radar-pre-catalyst.test.js
-      - name: Radar Intelligence Engine live read-only shadow probe (#279, CI only)
-        run: node scripts/probe-radar-intel.cjs
+        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-pre-catalyst.test.js
+      - name: Radar V4 opportunity snapshot dry run (#279, CI only, nothing published)
+        run: node scripts/radar-v4-snapshot.cjs --out radar-v4-snapshot.json
         continue-on-error: true
-        timeout-minutes: 8
+        timeout-minutes: 15
         env:
-          RADAR_INTEL_PROBE: '1'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload Radar Intelligence report
+      - name: Upload Radar V4 snapshot dry run
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: radar-intel-report
-          path: radar-intel-report.json
+          name: radar-v4-snapshot
+          path: radar-v4-snapshot.json
           if-no-files-found: ignore
       - name: Pons V2 production-code chain probe (CI only)
         run: node scripts/probe-pons-v2.cjs

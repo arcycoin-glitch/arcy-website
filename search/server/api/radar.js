@@ -34,7 +34,9 @@ module.exports=async function(req,res){
  try{
   if(!ownPage(req)&&require('../../../lib/radar-v2/sources').publicationAllowed(process.env).ok)return res.status(403).json({ok:false,error:'RADAR_SITE_ONLY',message:'Market Radar data is served to the ARCY SEARCH page only.'});
   const rpcUrl=network==='pons'?require('../lib/chains').rpcUrl('robinhood',process.env):undefined;
-  const data=await radar.load(network,{env:process.env,rpcUrl});
+  // Radar V4 release gate (#279): RADAR_V4_OPPORTUNITY_ENABLED=true serves the precomputed opportunity ranking in the same DTO.
+  // OFF by default; any snapshot problem keeps the legacy list (labelled in data.opportunity).
+  const data=await require('../../../lib/radar-v2/v4-snapshot').apply(network,await radar.load(network,{env:process.env,rpcUrl}),{env:process.env});
   // Long edge cache protects the provider quota (Demo plan: 10k credits/month). Stale-if-error is bounded in the library.
   const ttl=Math.max(600,Math.floor(Number(process.env.RADAR_V2_TTL_MS||1800000)/1000));
   if(data.freshness==='STALE'){

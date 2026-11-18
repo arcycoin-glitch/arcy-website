@@ -1,0 +1,43 @@
+name: Radar V4 opportunity snapshot (bounded, read-only sources)
+# Issue #279. Computes the ARCY Opportunity Intelligence V4 ranking OUTSIDE visitor requests and commits a validated JSON
+# snapshot to the data-only branch `radar-v4-snapshots` (Vercel deployments are disabled for that branch in vercel.json).
+# Sources are read-only and budgeted per run; no paid service, no Railway write, no deploy. The public Radar serves the
+# snapshot only when RADAR_V4_OPPORTUNITY_ENABLED=true is set on the Vercel project (OFF by default).
+on:
+  schedule:
+    - cron: '41 */4 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: radar-v4-snapshot
+  cancel-in-progress: false
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Engine tests must pass before publishing
+        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-pre-catalyst.test.js
+      - name: Fetch previous snapshot branch (if it exists)
+        run: |
+          git fetch --depth=1 origin radar-v4-snapshots:radar-v4-snapshots 2>/dev/null || true
+          mkdir -p snap
+          if git rev-parse --verify radar-v4-snapshots >/dev/null 2>&1; then git --work-tree=snap checkout radar-v4-snapshots -- . && git reset -q; fi
+      - name: Build and validate snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/radar-v4-snapshot.cjs --previous snap/radar-v4/snapshot.json --out snap/radar-v4/snapshot.json
+      - name: Commit snapshot to data-only branch
+        run: |
+          cd snap
+          git init -q -b radar-v4-snapshots
+          git config user.name "arcy-radar-v4-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add radar-v4/snapshot.json
+          git commit -q -m "radar-v4 snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:radar-v4-snapshots

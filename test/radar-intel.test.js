@@ -437,3 +437,16 @@ test('watch candidates: real engine with zero reviewed identities produces visib
  assert.equal(data.top10[0].key,x.displayCandidates[0].key);
  assert.equal(data.top10[0].watchOnly,true);
 });
+test('V4 end-to-end: evidenced project outranks PEPE-like legacy volume; legacy is categorised, not ranked',async()=>{
+ const PEPE='0x6982508145454ce325ddbe47a25d4ec3d2311933';
+ const r=await runOne({rows:[row({address:PEPE,symbol:'PEPE',name:'Pepe',volume24hUsd:9e8,liquidityUsd:2.5e7,poolCreatedAt:isoAgo(900),discovery:{version:'arcy-discovery-2',score:95,poolsSeen:1}}),row()]});
+ const n=r.networks.ethereum;
+ assert.deepEqual(n.displayCandidates.map(x=>x.address),[TOKEN]);
+ const pepe=n.all.find(x=>x.address===PEPE);
+ assert.equal(pepe.category.category,'LEGACY_MEME');assert.equal(pepe.eligibility,'EXCLUDE');assert.ok(pepe.reasons.includes('NOT_EARLY_STAGE_CATEGORY'));
+ assert.ok(pepe.notes.includes('ONCHAIN_SKIPPED_NOT_EARLY_STAGE'));assert.deepEqual(pepe.risk,[]);
+ const acme=n.displayCandidates[0];
+ assert.ok(acme.opportunity.dimensions.product>=60&&acme.opportunity.dimensions.team>=50,JSON.stringify(acme.opportunity));
+ assert.ok(acme.opportunity.score>pepe.opportunity.score);assert.equal(acme.selectionTier,1);
+ assert.match(acme.infoV4,/^Doğrulanmış erken aşama adayı/);assert.equal(n.categories.LEGACY_MEME,1);
+});
