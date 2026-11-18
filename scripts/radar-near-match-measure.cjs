@@ -20,7 +20,7 @@ async function main(){
  const lim={unregisteredOnchain:Number(process.env.NM_ONCHAIN||3),rpcPerNetwork:600,httpPerRun:120,concurrency:1,maxCandidatesPerNetwork:45};
  const t1=Date.now();const before=await engine.run({sections,rpc,limits:{...lim,intake:'v4.0'}});const beforeMs=Date.now()-t1;
  engine._clearCache();
- const t2=Date.now();const after=await engine.run({sections,rpc,limits:{...lim,intake:'near-match-1'}});const afterMs=Date.now()-t2;
+ const t2=Date.now();const after=await engine.run({sections,rpc,limits:{...lim,intake:'near-match-1',crossCheckFetcher:global.fetch}});const afterMs=Date.now()-t2;
  const esc=x=>String(x).replace(/%/g,'%25').replace(/\r/g,'%0D').replace(/\n/g,'%0A');
  const say=(t,o)=>{const m=JSON.stringify(o);console.log(m);if(process.env.GITHUB_ACTIONS==='true')console.log('::notice title='+t+'::'+esc(m).slice(0,3800));};
  say('near-match cost',{timing,beforeMs,afterMs,beforeCost:before.cost,afterCost:after.cost});

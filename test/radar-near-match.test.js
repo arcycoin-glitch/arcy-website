@@ -163,3 +163,19 @@ test('API: source=legacy-v3 bypasses V4 serving (for the builder) without bypass
   const cross=await call({chain:'ethereum',source:'legacy-v3'},{'sec-fetch-site':'cross-site'});assert.equal(cross.code,403);
  }finally{for(const k of Object.keys(process.env))if(!(k in old))delete process.env[k];Object.assign(process.env,old);radar.load=ol;global.fetch=of;S._reset();}
 });
+test('look-alikes: several contracts sharing a ticker never fill near-match/monitor slots',async()=>{
+ const young=(n)=>({...miss(n,{symbol:'GTA6',name:'GTA6'}),reason:'POOL_UNDER_24H',poolCreatedAt:iso(0.2)});
+ const r=await run({ethereum:ethSection({excluded:[young(60),young(61),{...miss(62,{volume24hUsd:95000}),detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:verified()}]})});
+ assert.deepEqual(r.networks.ethereum.displayCandidates.map(x=>x.address),[A(62)]);
+ assert.equal(r.networks.ethereum.display.shortfall.droppedByReason.DUPLICATE_TICKER_UNRESOLVED,2);
+});
+test('builder cross-check upgrades pre-verification near misses using the real verifier; disagreement => CONFLICT',async()=>{
+ const pairs=(addr,price,liq)=>[{chainId:'ethereum',pairAddress:A(9000),baseToken:{address:addr},quoteToken:{address:'0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'},priceUsd:String(price),volume:{h24:70000},liquidity:{usd:liq},priceChange:{h24:1},pairCreatedAt:NOW-40*DAY,dexId:'uniswap',url:'https://dexscreener.com/ethereum/x'}];
+ const nm=(n,o={})=>({...miss(n,{volume24hUsd:70000,liquidityUsd:150000,...o}),stage:'POOL_LEVEL_GATES',gates:['VOLUME_BELOW_NETWORK_FLOOR','LIQUIDITY_BELOW_NETWORK_FLOOR'],scope:'POOL_LEVEL_PROVIDER_VALUES'});
+ const fetcher=async(u)=>({ok:true,status:200,headers:new Map(),text:async()=>JSON.stringify([...pairs(A(70),0.5,150000),...pairs(A(71),0.9,150000)])});
+ const r=await run({ethereum:ethSection({nearMiss:[nm(70),nm(71)]})},{limits:{concurrency:1,pace:false,crossCheckFetcher:fetcher}});
+ const by=a=>r.networks.ethereum.all.find(x=>x.address===a);
+ assert.equal(by(A(70)).discoveryClass,'NEAR_MATCH',JSON.stringify(by(A(70)).nearMatch));assert.equal(by(A(71)).discoveryClass,'CONFLICT');
+ assert.equal(r.cost.builderCrossChecks,1,'one batched call per network');
+ const off=await run({ethereum:ethSection({nearMiss:[nm(70)]})});assert.equal(off.networks.ethereum.all.find(x=>x.address===A(70)).discoveryClass,'MONITOR_ONLY');
+});
