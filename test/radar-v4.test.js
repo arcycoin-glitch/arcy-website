@@ -280,3 +280,76 @@ test('Info sentence: parts never contain the UI separator (live preview regressi
  assert.ok(t.split(';').every(p=>!/[()]/.test(p)||/\(.*\)/.test(p)),t);
  assert.match(t,/kısmi kanıt \(resmi site kontratı yayınlıyor, bağlantı eksik\)/);
 });
+
+// ── P0: verified negative evidence must survive separate scheduled snapshots ──
+const HOLDS=require('../lib/radar-v2/intel/risk-holds');
+const AF=HOLDS.SEEDS[0], AF_POOL='0x1c0523377296238f6a2fd25cb3b15f75e280eb330ad29f843b974eec264dfe31';
+const AF_CASE={network:'arc',chainId:5042,address:AF.address,pool:AF_POOL};
+const exitProof=(extra={})=>({status:'EXIT_SIMULATED',executableUsd:1000,verifiedSizes:2,model:'REVIEWED_UNISWAP_V4',
+ block:1145000,sourceUrl:'https://explorer.arc.io/address/0x1234567890123456789012345678901234567890',...extra});
+test('P0 AF: older real-source negative evidence survives missing EXIT, HISTORY, source outages and on-chain budget skips',()=>{
+ const first=HOLDS.initial(null);
+ assert.equal(first.get(AF.key).state,'HELD');
+ const snap1=HOLDS.list(first),next=HOLDS.initial(snap1);
+ assert.equal(HOLDS.observe(next,AF_CASE,{exit:null,sourceConsistency:null,poolVerified:false,now:NOW}).state,'HELD');
+ assert.equal(HOLDS.observe(next,AF_CASE,{exit:exitProof(),sourceConsistency:'CONSISTENT',poolVerified:false,now:NOW}).state,'HELD',
+  'mocked successful quote without reviewed pool identity must never clear');
+ assert.equal(HOLDS.validate(HOLDS.list(next)).ok,true);
+});
+test('P0 AF: only a NEW validated exact-pool, block-pinned exit quote and fresh compatible on-chain source may clear; then re-failure reopens',()=>{
+ const ledger=HOLDS.initial(null),source=exitProof();
+ const short=HOLDS.observe(ledger,AF_CASE,{exit:source,sourceConsistency:'CONTRADICTED',poolVerified:true,now:NOW});
+ assert.equal(short.state,'HELD','price mismatch cannot clear a known critical risk');
+ const noBlock=HOLDS.observe(ledger,AF_CASE,{exit:exitProof({block:null}),sourceConsistency:'CONSISTENT',poolVerified:true,now:NOW});
+ assert.equal(noBlock.state,'HELD','missing verified block cannot clear');
+ const wrongPool=HOLDS.observe(ledger,{...AF_CASE,pool:A(888)},{exit:source,sourceConsistency:'CONSISTENT',poolVerified:true,now:NOW});
+ assert.equal(wrongPool.state,'HELD','a different pool is not a verified recovery for an existing pool');
+ const clean=HOLDS.observe(ledger,AF_CASE,{exit:source,sourceConsistency:'CONSISTENT',poolVerified:true,now:NOW});
+ assert.equal(clean.state,'CLEARED');assert.equal(clean.recovery.pool,AF_POOL);
+ assert.ok(HOLDS.validate(HOLDS.list(ledger)).ok);
+ const next=HOLDS.initial(HOLDS.list(ledger));
+ assert.equal(next.get(AF.key).state,'CLEARED','a verified clearance survives future runs; seed is not a permanent blacklist');
+ const newFail=HOLDS.observe(next,AF_CASE,{exit:exitProof({status:'EXIT_FAILED_VERIFIED',executableUsd:0}),sourceConsistency:'CONTRADICTED',poolVerified:true,now:NOW+60000});
+ assert.equal(newFail.state,'HELD','a newer confirmed failure reinstates exclusion');
+});
+test('P0: snapshot contract v2 rejects a held contract in public rows, missing ledger, duplicate/forged entries and legacy schema',()=>{
+ const snap=S.build(engineResult(),sections,{now:NOW});
+ assert.equal(snap.schema,'arcy-radar-v4-snapshot/2');assert.equal(S.validate(snap).ok,true);
+ const leak=structuredClone(snap);leak.sections.arc.rows[0].address=AF.address;
+ assert.equal(S.validate(leak).reason,'CRITICAL_RISK_ROW_LEAK');
+ const missing=structuredClone(snap);delete missing.riskLedger;
+ assert.equal(S.validate(missing).ok,false);
+ const legacy=structuredClone(snap);legacy.schema='arcy-radar-v4-snapshot/1';
+ assert.equal(S.validate(legacy).ok,false);
+ const dup=structuredClone(snap);dup.riskLedger.push({...AF});
+ assert.equal(S.validate(dup).ok,false);
+});
+test('P0: end-to-end engine excludes exact audited AF on a fresh window even when all on-chain reads are skipped',async()=>{
+ const token={address:AF.address,symbol:'AF',name:'Arcflow',chainId:5042,pool:AF_POOL,
+  priceUsd:0.00015,liquidityUsd:37379,volume24hUsd:47000,poolCreatedAt:iso(60),
+  discovery:{version:'arcy-discovery-2',score:57.5,reason:'ranked'}};
+ const one={ok:true,network:'arc',chainId:5042,asOf:iso(0),freshness:'FRESH',tokens:[token],excluded:[]};
+ const empty=(network,chainId)=>({ok:true,network,chainId,asOf:iso(0),freshness:'FRESH',tokens:[]});
+ const data={arc:one,ethereum:empty('ethereum',1),robinhood:empty('robinhood',4663),pons:empty('pons',4663)};
+ const r=await E.run({sections:data,now:NOW,rpc:{},limits:{unregisteredOnchain:0,concurrency:1},priorRiskLedger:null});
+ const af=r.networks.arc.all.find(x=>x.address===AF.address);
+ assert.equal(af.eligibility,'EXCLUDE');assert.ok(af.reasons.includes('PERSISTENT_LOW_EXIT_LIQUIDITY'));
+ assert.equal(r.networks.arc.displayCandidates.length,0);
+ const snap=S.build(r,data,{now:NOW});assert.equal(S.validate(snap).ok,true);
+ assert.ok(!snap.sections.arc.rows.some(x=>x.address===AF.address));
+ const another=HOLDS.initial(snap.riskLedger);
+ assert.equal(another.get(AF.key).state,'HELD');
+});
+test('P0: carrying an old valid section forward cannot reintroduce a newly held contract',()=>{
+ const prev=S.build(engineResult(),sections,{now:NOW});
+ const x=prev.sections.arc.rows[0],key='5042:'+x.address;
+ const ledger=[...prev.riskLedger,{...AF,key,address:x.address,firstObservedAt:iso(0),lastNegativeAt:iso(0),pool:null}];
+ const current=S.build(engineResult(),sections,{now:NOW+60000});
+ current.riskLedger=ledger;
+ current.sections.arc={status:'NOT_BUILT',reason:'SOURCE_UNAVAILABLE',asOf:null,rows:[]};
+ const merged=S.merge(prev,current);
+ assert.equal(merged.sections.arc.carriedForward,true);
+ assert.equal(merged.sections.arc.criticalRiskRowsRemoved,1);
+ assert.equal(merged.sections.arc.rows.length,0);
+ assert.equal(S.validate(merged).ok,true,JSON.stringify(S.validate(merged)));
+});
