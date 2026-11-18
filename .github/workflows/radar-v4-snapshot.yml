@@ -39,7 +39,7 @@ jobs:
         with:
           node-version: '22'
       - name: Engine tests must pass before publishing
-        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-pre-catalyst.test.js
+        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-near-match.test.js test/radar-pre-catalyst.test.js
       - name: Check out data branch (or create it the first time)
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}

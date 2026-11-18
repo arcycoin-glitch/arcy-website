@@ -14,9 +14,12 @@ async function sections(fetcher=global.fetch){
  for(const chain of CHAINS){
   const t0=Date.now();
   try{
-   const r=await fetcher(BASE+'/api/search?action=radar&chain='+chain,{headers:{referer:BASE+'/',accept:'application/json','sec-fetch-site':'same-origin'},redirect:'error',signal:AbortSignal.timeout(15000)});
+   const r=await fetcher(BASE+'/api/search?action=radar&chain='+chain+'&source=legacy-v3',{headers:{referer:BASE+'/',accept:'application/json','sec-fetch-site':'same-origin'},redirect:'error',signal:AbortSignal.timeout(15000)});
    timing[chain]={http:r.status,ms:Date.now()-t0};
-   out[chain]=r.ok?await r.json():{ok:false,http:r.status};
+   const body=r.ok?await r.json():{ok:false,http:r.status};
+   // Circular-input guard: a V4-served section (deployed handler without the legacy-v3 bypass) is never used as engine input.
+   if(body?.opportunity?.servedList==='V4_OPPORTUNITY'){timing[chain].circular=true;out[chain]={ok:false,reason:'CIRCULAR_V4_INPUT_REFUSED'};}
+   else out[chain]=body;
   }catch(e){timing[chain]={error:e?.name||'ERROR',ms:Date.now()-t0};out[chain]={ok:false};}
  }
  return {out,timing};

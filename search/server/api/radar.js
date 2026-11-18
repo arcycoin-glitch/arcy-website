@@ -39,7 +39,10 @@ module.exports=async function(req,res){
   // an independently computed snapshot. Otherwise the legacy Radar runs with its own checks (and says why V4 was not served).
   const V4=require('../../../lib/radar-v2/v4-snapshot');
   let v4Reason=null;
-  if(V4.enabled(process.env)){
+  // `source=legacy-v3` (read-only) returns the legacy candidate window even when V4 is ON. The out-of-request V4 builder
+  // MUST read this, never the V4-served list, otherwise each snapshot would be built from the previous one (circular input).
+  const legacyRequested=req.query?.source==='legacy-v3';
+  if(V4.enabled(process.env)&&!legacyRequested){
    const gate=require('../../../lib/radar-v2/sources').publicationAllowed(process.env);
    if(gate.ok){
     const v4=await V4.serve(network,{env:process.env});
@@ -52,7 +55,7 @@ module.exports=async function(req,res){
    }else v4Reason=gate.reason;
   }
   const loaded=await radar.load(network,{env:process.env,rpcUrl});
-  const data=v4Reason?V4.markUnavailable(loaded,v4Reason):loaded;
+  const data=legacyRequested?{...loaded,servedList:'LEGACY_V3_REQUESTED'}:v4Reason?V4.markUnavailable(loaded,v4Reason):loaded;
   // Long edge cache protects the provider quota (Demo plan: 10k credits/month). Stale-if-error is bounded in the library.
   const ttl=Math.max(600,Math.floor(Number(process.env.RADAR_V2_TTL_MS||1800000)/1000));
   if(data.freshness==='STALE'){

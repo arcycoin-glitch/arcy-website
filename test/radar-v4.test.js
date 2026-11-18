@@ -107,8 +107,8 @@ test('discovery: quiet volume-floor contracts, Arc movers and on-chain pool crea
    {address:A(1),reason:'INELIGIBLE_AFTER_VERIFICATION',detail:'VOLUME_BELOW_NETWORK_FLOOR'}],
   categories:{newPools:{items:[{address:A(6),symbol:'NEW',pool:A(16),quote:A(99)},{address:A(7),symbol:'ETH',identityFlag:'MAJOR_TICKER_WITHOUT_IDENTITY_PROOF',pool:A(17)}]}}};
  const d=E.discover({arc:sec}).sections.arc;
- assert.deepEqual(d.candidates.map(c=>[c.address,c.provenance[0]]),[[A(1),'RADAR_RANKED'],[A(2),'RADAR_LOW_VOLUME_WATCHLIST'],[A(3),'RADAR_QUIET_VOLUME_FLOOR'],[A(6),'ONCHAIN_POOL_CREATION']]);
- assert.equal(d.candidates[2].quote.address,A(99));assert.ok(d.candidates[0].provenance.includes('RADAR_QUIET_VOLUME_FLOOR'));
+ assert.deepEqual(d.candidates.map(c=>[c.address,c.provenance[0]]),[[A(1),'RADAR_RANKED'],[A(3),'RADAR_QUIET_VOLUME_FLOOR'],[A(4),'RADAR_POST_VERIFICATION_GATES'],[A(2),'RADAR_LOW_VOLUME_WATCHLIST'],[A(6),'ONCHAIN_POOL_CREATION']]);
+ assert.equal(d.candidates[1].quote.address,A(99));assert.deepEqual(d.candidates[2].v3.gates,['LIQUIDITY_BELOW_NETWORK_FLOOR']);assert.ok(d.candidates[0].provenance.includes('RADAR_QUIET_VOLUME_FLOOR'));
 });
 test('three chains rank independently; Pons launches never appear in Robinhood (cross-tab duplicate guard)',()=>{
  const pons=A(77),launch={status:'ONCHAIN_VERIFIED',factory:'0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e',block:123};
