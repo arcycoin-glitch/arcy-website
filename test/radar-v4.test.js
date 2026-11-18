@@ -90,13 +90,14 @@ test('zero ELIGIBLE but twelve usable REVIEW candidates => exactly ten WATCHLIST
  assert.equal(out[1].key,'1:'+A(4));assert.equal(out[1].selectionTier,3);
  assert.ok(out.every(x=>x.displayTier==='WATCHLIST_NOT_VERIFIED'&&x.watchOnly));assert.equal(out.shortfall,null);
 });
-test('fewer than ten defensible candidates: true count with shortfall diagnosis; never padded with risky/contradictory/wash/non-early rows',()=>{
+test('fewer than ten defensible candidates: true count with shortfall diagnosis; never padded with risky/contradictory/non-early rows; suspected wash demoted',()=>{
  const rows=[row(1),row(2),row(3,{eligibility:'EXCLUDE',reasons:['NOT_EARLY_STAGE_CATEGORY']}),row(4,{reasons:['SOURCE_CONTRADICTION']}),
   row(5,{opportunity:{score:90,dimensions:{},flags:['DEMAND_CONCENTRATED_OR_WASH']}}),row(6,{marketObserved:false}),row(7,{reasons:['ENGINE_ERROR_X']}),row(1),
   row(8,{eligibility:'EXCLUDE',reasons:['EXCLUDE_ALREADY_RAN_8X']})];
  const out=E.selectDisplay(rows);
- assert.equal(out.length,2);
- assert.deepEqual(out.shortfall.droppedByReason,{NOT_EARLY_STAGE_CATEGORY:1,SOURCE_CONTRADICTION:1,DEMAND_CONCENTRATED_OR_WASH:1,MARKET_NOT_OBSERVED:1,ENGINE_ERROR:1,DUPLICATE_EXACT_CONTRACT:1,EXCLUDED_RISK_OR_IDENTITY:1});
+ assert.deepEqual(out.map(x=>x.address),[A(1),A(2),A(5)],'suspected wash is shown LAST, never above clean rows despite a higher score');
+ assert.equal(out[2].selectionTier,4);
+ assert.deepEqual(out.shortfall.droppedByReason,{NOT_EARLY_STAGE_CATEGORY:1,SOURCE_CONTRADICTION:1,MARKET_NOT_OBSERVED:1,ENGINE_ERROR:1,DUPLICATE_EXACT_CONTRACT:1,EXCLUDED_RISK_OR_IDENTITY:1});
 });
 test('discovery: quiet volume-floor contracts, Arc movers and on-chain pool creations are research candidates with provenance',()=>{
  const sec={ok:true,network:'arc',chainId:5042,asOf:iso(0),freshness:'FRESH',tokens:[{address:A(1),chainId:5042,symbol:'R',pool:A(11)}],

@@ -28,13 +28,18 @@ async function main(){
  fs.mkdirSync(path.dirname(out),{recursive:true});
  fs.writeFileSync(out,JSON.stringify(snap));
  const summary={};
- for(const [n,x] of Object.entries(snap.sections))summary[n]={status:x.status,carriedForward:!!x.carriedForward,shown:x.rows.length,counts:x.counts,categories:x.categories,bySource:x.bySource,history:x.historyCoverage,
+ for(const [n,x] of Object.entries(snap.sections))summary[n]={legacyTop:(x.legacyTop||[]).length,legacyKept:(x.legacyTop||[]).filter(a=>x.rows.some(r=>r.address===a)).length,status:x.status,carriedForward:!!x.carriedForward,shown:x.rows.length,counts:x.counts,categories:x.categories,bySource:x.bySource,history:x.historyCoverage,
   shortfall:x.display?.shortfall||null,rows:x.rows.map(r=>[r.symbol,r.opportunity.displayTier,r.opportunity.score,JSON.stringify(r.opportunity.dimensions),r.opportunity.divergence?.signal,r.discovery.reason])};
  console.log(JSON.stringify({generatedAt:snap.generatedAt,cost:snap.cost,run:snap.run,summary},null,1));
  if(process.env.GITHUB_ACTIONS==='true'){
   const esc=x=>String(x).replace(/%/g,'%25').replace(/\r/g,'%0D').replace(/\n/g,'%0A');
   console.log('::notice title=radar-v4 cost::'+esc(JSON.stringify({generatedAt:snap.generatedAt,cost:snap.cost,run:snap.run,registry:snap.registry})));
-  for(const [n,x] of Object.entries(summary))console.log('::notice title=radar-v4 '+n+'::'+esc(JSON.stringify(x)).slice(0,60000));
+  // GitHub truncates annotation messages near 4 KB: one compact header + one compact row list per section.
+  for(const [n,x] of Object.entries(summary)){
+   console.log('::notice title=radar-v4 '+n+'::'+esc(JSON.stringify({legacyTop:x.legacyTop,legacyKept:x.legacyKept,status:x.status,carriedForward:x.carriedForward,shown:x.shown,counts:x.counts,categories:x.categories,bySource:x.bySource,history:x.history,shortfall:x.shortfall})).slice(0,3800));
+   const d=v=>v===null||v===undefined?'-':Math.round(v);
+   console.log('::notice title=radar-v4 rows '+n+'::'+esc(x.rows.map(r=>{const m=JSON.parse(r[3]||'{}');return [r[0],r[1]==='ELIGIBLE'?'E':'W',r[2],'p'+d(m.product)+' t'+d(m.team)+' a'+d(m.adoption)+' c'+d(m.catalyst)+' d'+d(m.divergence)+' m'+d(m.market),r[4]].join('|');}).join(' ; ')).slice(0,3800));
+  }
  }
 }
 if(require.main===module)main().catch(e=>{console.error(e?.stack||e);process.exitCode=1;});
