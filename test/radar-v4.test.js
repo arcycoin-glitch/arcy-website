@@ -285,7 +285,7 @@ test('Info sentence: parts never contain the UI separator (live preview regressi
 const HOLDS=require('../lib/radar-v2/intel/risk-holds');
 const AF=HOLDS.SEEDS[0], AF_POOL='0x1c0523377296238f6a2fd25cb3b15f75e280eb330ad29f843b974eec264dfe31';
 const AF_CASE={network:'arc',chainId:5042,address:AF.address,pool:AF_POOL};
-const exitProof=(extra={})=>({status:'EXIT_SIMULATED',executableUsd:1000,verifiedSizes:2,model:'REVIEWED_UNISWAP_V4',
+const exitProof=(extra={})=>({status:'EXIT_SIMULATED',executableUsd:1000,verifiedSizes:2,thresholdVerified:true,thresholdUsd:1000,model:'REVIEWED_UNISWAP_V4',
  block:1145000,sourceUrl:'https://explorer.arc.io/address/0x1234567890123456789012345678901234567890',...extra});
 test('P0 AF: older real-source negative evidence survives missing EXIT, HISTORY, source outages and on-chain budget skips',()=>{
  const first=HOLDS.initial(null);
@@ -300,6 +300,8 @@ test('P0 AF: only a NEW validated exact-pool, block-pinned exit quote and fresh 
  const ledger=HOLDS.initial(null),source=exitProof();
  const short=HOLDS.observe(ledger,AF_CASE,{exit:source,sourceConsistency:'CONTRADICTED',poolVerified:true,now:NOW});
  assert.equal(short.state,'HELD','price mismatch cannot clear a known critical risk');
+ const noThreshold=HOLDS.observe(ledger,AF_CASE,{exit:exitProof({thresholdVerified:false}),sourceConsistency:'CONSISTENT',poolVerified:true,now:NOW});
+ assert.equal(noThreshold.state,'HELD','successful quote at the minimum required USD size must be independently verified');
  const noBlock=HOLDS.observe(ledger,AF_CASE,{exit:exitProof({block:null}),sourceConsistency:'CONSISTENT',poolVerified:true,now:NOW});
  assert.equal(noBlock.state,'HELD','missing verified block cannot clear');
  const wrongPool=HOLDS.observe(ledger,{...AF_CASE,pool:A(888)},{exit:source,sourceConsistency:'CONSISTENT',poolVerified:true,now:NOW});
