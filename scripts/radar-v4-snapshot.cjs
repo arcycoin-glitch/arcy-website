@@ -16,9 +16,16 @@ async function main(){
  const t0=Date.now();
  // Load audited risk holds BEFORE starting any on-chain run; late loading loses negative evidence on source errors.
  let previous=null;const prevPath=arg('previous');
- if(prevPath&&fs.existsSync(prevPath)){try{const doc=JSON.parse(fs.readFileSync(prevPath,'utf8'));if(S.validate(doc).ok)previous=doc;
-  else console.warn('Old/invalid snapshot ignored for carry-forward; historical audited hold seed remains active');}
-  catch{console.warn('Unreadable previous snapshot; historical audited hold seed remains active');}}
+ if(prevPath&&fs.existsSync(prevPath)){
+  let doc;
+  try{doc=JSON.parse(fs.readFileSync(prevPath,'utf8'));}catch{throw Error('PREVIOUS_SNAPSHOT_UNREADABLE_REFUSE_RISK_LEDGER_RESET');}
+  if(doc?.schema==='arcy-radar-v4-snapshot/1')console.warn('Migrating original V4 snapshot v1; audited historical hold seed starts v2 ledger');
+  else{
+   const v=S.validate(doc);
+   if(!v.ok)throw Error('PREVIOUS_SNAPSHOT_INVALID_REFUSE_RISK_LEDGER_RESET: '+v.reason);
+   previous=doc;
+  }
+ }
  const s=await sections();
  const rpc={arc:require('../search/server/lib/arc-rpc').rpc,robinhood:require('../search/server/lib/robinhood-rpc').rpc,ethereum:require('../search/server/lib/eth').rpc};
  const limits={unregisteredOnchain:Number(process.env.RADAR_V4_ONCHAIN_PER_NETWORK||6),rpcPerNetwork:Number(process.env.RADAR_V4_RPC_PER_NETWORK||900),
