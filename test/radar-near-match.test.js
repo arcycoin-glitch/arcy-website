@@ -132,15 +132,15 @@ test('12. near-match layer adds zero network/RPC calls and stays bounded with ov
  const r=await run({ethereum:ethSection({excluded:flood,nearMiss:flood.map(x=>({...x,stage:'BELOW_FINALISTS',gates:[]}))})},{rpc,limits:{concurrency:1,pace:false,unregisteredOnchain:0}});
  assert.equal(calls,0);assert.ok(r.networks.ethereum.funnel.v4Candidates<=45);assert.ok(Date.now()-t0<5000);
  assert.ok(r.networks.ethereum.displayCandidates.length<=10);
- assert.ok(r.networks.ethereum.displayCandidates.filter(x=>x.discoveryClass==='MONITOR_ONLY').length<=NM.MONITOR_MAX);
+ assert.ok(r.networks.ethereum.displayCandidates.filter(x=>x.discoveryClass==='MONITOR_ONLY').length<=10);
 });
-test('monitor-only entries are subordinate, capped at three and state what is missing',async()=>{
+test('Ethereum uses remaining slots for transparently labeled monitored candidates, without relaxing risk gates',async()=>{
  const young=Array.from({length:6},(_,i)=>({...miss(30+i),reason:'POOL_UNDER_24H',poolCreatedAt:iso(0.2)}));
  const r=await run({ethereum:ethSection({excluded:[{...miss(40,{volume24hUsd:95000}),detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:verified()},...young]})});
  const shown=r.networks.ethereum.displayCandidates;
- assert.equal(shown[0].discoveryClass,'NEAR_MATCH');assert.equal(shown.filter(x=>x.discoveryClass==='MONITOR_ONLY').length,3);
+ assert.equal(shown[0].discoveryClass,'NEAR_MATCH');assert.equal(shown.filter(x=>x.discoveryClass==='MONITOR_ONLY').length,6);
  assert.match(shown[1].infoV4,/^SADECE İZLEME — onaylı veya düşük riskli değildir, eksik: .*havuz 24 saatten yeni/);
- assert.equal(r.networks.ethereum.display.shortfall.droppedByReason.MONITOR_ONLY_CAP,3);
+ assert.equal(r.networks.ethereum.display.shortfall?.droppedByReason?.MONITOR_ONLY_CAP||0,0);
 });
 test('snapshot builder reads the legacy V3 window (source=legacy-v3) and refuses V4-served input (circular guard)',async()=>{
  const {sections}=require('../scripts/probe-radar-intel.cjs');const urls=[];
@@ -189,4 +189,34 @@ test('near-match look-alike exclusion also applies to an otherwise V4 ELIGIBLE c
  const d=E.selectDisplay([row(601,'ELIGIBLE'),row(602,'REVIEW')]);
  assert.equal(d.length,0,'same-symbol near matches remain withheld regardless of V4 eligibility');
  assert.equal(d.shortfall.droppedByReason.DUPLICATE_TICKER_UNRESOLVED,2);
+});
+
+test('Arc and Ethereum may populate 10 observation slots, while Robinhood retains the 3-monitor cap',()=>{
+ const monitor=(network,i,props={})=>({
+  key:({arc:5042,ethereum:1,robinhood:4663}[network])+':'+A(800+i),network,
+  chainId:{arc:5042,ethereum:1,robinhood:4663}[network],address:A(800+i),symbol:'CAND'+i,
+  eligibility:'REVIEW',discoveryClass:'MONITOR_ONLY',reasons:[],marketObserved:true,
+  priceUsd:0.1,liquidityUsd:25000,volume24hUsd:2000,nearMatch:{passed:['PRICE_EVIDENCE'],pending:['POOL_UNDER_24H'],maxDistance:0.3},
+  opportunity:{score:20,dimensions:{product:0,team:0,adoption:0}},
+  evidenceConfidence:{score:20,missing:['EXIT','SELL']}
+  ,...props
+ });
+ for(const network of ['arc','ethereum']){
+  const rows=Array.from({length:13},(_,i)=>monitor(network,i));
+  const out=E.selectDisplay(rows,{network});
+  assert.equal(out.length,10,network+' can present ten observed candidates');
+  assert.deepEqual(out.byClass,{MONITOR_ONLY:10});
+  assert.ok(out.every(x=>x.watchOnly&&x.displayTier==='WATCHLIST_NOT_VERIFIED'));
+  assert.equal(out.shortfall,null);
+ }
+ const conservative=E.selectDisplay(Array.from({length:13},(_,i)=>monitor('robinhood',i)),{network:'robinhood'});
+ assert.equal(conservative.length,3,'Robinhood retains existing conservative cap');
+ assert.equal(conservative.shortfall.droppedByReason.MONITOR_ONLY_CAP,10);
+ const candidates=Array.from({length:13},(_,i)=>monitor('ethereum',i));
+ candidates[0].eligibility='EXCLUDE';candidates[0].reasons=['PERSISTENT_LOW_EXIT_LIQUIDITY'];
+ candidates[1].discoveryClass='CONFLICT';
+ candidates[2].symbol='SPOOF';candidates[3].symbol='SPOOF';
+ const risk=E.selectDisplay(candidates,{network:'ethereum'});
+ assert.ok(risk.every(x=>x.address!==A(800)&&x.address!==A(801)&&x.symbol!=='SPOOF'),'hard holds, source conflicts and lookalikes remain excluded');
+ assert.ok(risk.length<=9,'never fabricate a tenth candidate when safety leaves too few');
 });
