@@ -11,6 +11,7 @@ on:
     branches: [main]
     paths:
       - 'lib/radar-v2/**'
+      - 'api/search/index.js'
       - 'scripts/radar-v4-snapshot.cjs'
       - '.github/workflows/radar-v4-snapshot.yml'
   schedule:
@@ -19,6 +20,7 @@ on:
   pull_request:
     paths:
       - 'lib/radar-v2/**'
+      - 'api/search/index.js'
       - 'scripts/radar-v4-snapshot.cjs'
       - '.github/workflows/radar-v4-snapshot.yml'
 permissions:
