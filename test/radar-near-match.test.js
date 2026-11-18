@@ -108,7 +108,8 @@ test('10. coverage counters reconcile with discovery and exclusion stages',async
  const sum=Object.values(f.classes).reduce((a,b)=>a+b,0);assert.equal(sum,f.v4Candidates);
  assert.equal(f.v4Candidates,r.networks.ethereum.all.length);
  assert.equal(Object.values(f.shownByClass).reduce((a,b)=>a+b,0),r.networks.ethereum.displayCandidates.length);
- assert.deepEqual(f.shownByClass,{NEAR_MATCH:1,MONITOR_ONLY:2});
+ assert.deepEqual(f.shownByClass,{NEAR_MATCH:1,MONITOR_ONLY:1});
+ assert.equal(r.networks.ethereum.display.shortfall.droppedByReason.MATURE_POOL_NOT_EVIDENCED,1,'young pool must not be used to fill the ranking');
 });
 test('11. V3/V4 fallback cannot leak excluded assets (category, impersonation, wrapped) into near-match rows',async()=>{
  const sec=ethSection({tokens:[],excluded:[
