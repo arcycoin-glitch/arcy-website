@@ -345,14 +345,13 @@ const change24hReason=item=>{
    try{const candidate=new URL(item.logo?.url);if(candidate.protocol==='https:'&&logoHosts.has(candidate.hostname))logoUrl=candidate.href;}catch{}
    // Data Engine V2: Search's exact-contract artwork (same origin, fixed paths only) is reused as-is.
    if(!logoUrl&&typeof item.logo?.url==='string'&&/^\/search\/assets\/token-icons\/[a-z0-9-]+\.svg$|^\/assets\/hero-arcy\.png$/.test(item.logo.url))logoUrl=item.logo.url;
-   const logoFallback=Array.from(String(item.symbol||'?').trim())[0]?.toLocaleUpperCase()||'?';
    const logoWrap=el('span','arcy-radar-overview-logo-wrap');
    if(logoUrl){
     const logo=el('img','arcy-radar-overview-token-logo');
     logo.src=logoUrl;logo.alt='';logo.width=34;logo.height=34;logo.loading='lazy';logo.decoding='async';logo.referrerPolicy='no-referrer';
-    logo.addEventListener('error',()=>{logo.remove();logoWrap.classList.add('is-placeholder');logoWrap.textContent=logoFallback;},{once:true});
+    logo.addEventListener('error',()=>{logo.remove();logoWrap.classList.add('is-placeholder');logoWrap.textContent='•';},{once:true});
     logoWrap.append(logo);
-   }else{logoWrap.classList.add('is-placeholder');logoWrap.textContent=logoFallback;}
+   }else{logoWrap.classList.add('is-placeholder');logoWrap.textContent='•';}
    identity.append(rank,logoWrap,tokenCopy);
    const scope=item.fields?.volume24hUsd?.scope;
    volume.title=scope==='TOKEN'?'Token genelindeki 24 saatlik hacim':scope==='POOL'?'Gözlemlenen havuzun 24 saatlik hacmi':'Sağlayıcının bildirdiği 24 saatlik hacim';
