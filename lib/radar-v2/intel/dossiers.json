@@ -1,0 +1,31 @@
+{
+  "schema": "arcy-radar-dossiers/1",
+  "version": "2026-11-18.1",
+  "policy": "Research log of primary-source checks made by ARCY engineering (not owner approval). Statuses: OWNER_APPROVED (only via project-registry.json), PRIMARY_SOURCE_VERIFIED (official site publishes the exact contract AND links a repository that itself binds the exact contract), PARTIAL_EVIDENCE, NOT_VERIFIED, CONFLICTING_EVIDENCE. A dossier never grants identity/eligibility; it may enable public-repository activity research for ranking and is shown as a label. DEX Screener/GeckoTerminal profile links are creator-submitted and are used only to find the site to check.",
+  "dossiers": [
+    {"id":"priors","network":"pons","chainId":4663,"address":"0xedbf91223639800bcd5756815caf908df3b890be","symbol":"PRIORS","status":"PRIMARY_SOURCE_VERIFIED","checkedAt":"2026-11-18T11:40:00Z",
+     "officialSite":"https://priors.trade/","siteShowsExactAddress":true,"siteContext":"Homepage: USDG credit protocol for ERC-8004 agents on Robinhood Chain; links the repository.",
+     "github":{"owner":"priors-agents","repos":["priors-agents/priors"],"linkedFromOfficialSite":true,"repoHomepage":"https://priors.trade","binding":{"repo":"priors-agents/priors","path":"deployments/4663.v2.json","ref":"d4ae785fd8d08a90e621372455c9a0a4b135c5c4"}},
+     "observed":{"commits90d":"100 (API page cap)","authors90d":5,"closedIssues90d":30,"releases":0,"openMilestones":0},
+     "missing":["OWNER_APPROVAL","DATED_OFFICIAL_CATALYST","GITHUB_RELEASES"]},
+    {"id":"orbio","network":"robinhood","chainId":4663,"address":"0xaa07a0e9209e16ac99708c3ec70159c6ef3128a3","symbol":"ORBIO","status":"PARTIAL_EVIDENCE","checkedAt":"2026-11-18T11:35:00Z",
+     "officialSite":"https://orbio.so/protocol","siteShowsExactAddress":true,"siteContext":"Protocol page lists the exact contract among protocol addresses; developer platform (SDK, hosted MCP, API) is live.",
+     "github":{"owner":"orbioso","repos":["orbioso/orbio-sdk"],"linkedFromOfficialSite":true,"repoHomepage":null,"binding":null},
+     "observed":{"commits90d":7,"authors90d":1,"closedIssues90d":4,"releases":0,"openMilestones":0},
+     "missing":["REPOSITORY_DOES_NOT_BIND_CONTRACT","OWNER_APPROVAL","DATED_OFFICIAL_CATALYST"]},
+    {"id":"hookr","network":"robinhood","chainId":4663,"address":"0x18e674231a58c239dc7daedcffe15ec3a24cff5c","symbol":"HOOKR","status":"PARTIAL_EVIDENCE","checkedAt":"2026-11-18T11:37:00Z",
+     "officialSite":"https://hookr.fun/","siteShowsExactAddress":true,"siteContext":"Homepage: Uniswap v4 hook infrastructure live on Robinhood Chain; docs publish an npm SDK; no repository link on the site.",
+     "github":{"owner":"Hookr-fun","repos":["Hookr-fun/hookr-contracts"],"linkedFromOfficialSite":false,"repoHomepage":null,"binding":null},
+     "observed":{"commits90d":40,"authors90d":1,"closedIssues90d":24,"releases":0,"openMilestones":0},
+     "missing":["SITE_TO_REPOSITORY_LINK","OWNER_APPROVAL","DATED_OFFICIAL_CATALYST"]},
+    {"id":"tolly","network":"arc","chainId":5042,"address":"0xbc43ce8dec648ea298c4275559b81d6261c90b67","symbol":"TOLLY","status":"PARTIAL_EVIDENCE","checkedAt":"2026-11-18T11:42:00Z",
+     "officialSite":"https://tollylabs.com/","siteShowsExactAddress":true,"siteContext":"Arc launchpad market page lists many tokens; the exact contract appears in that listing, not in an explicit token statement.",
+     "github":null,"observed":{},"missing":["EXPLICIT_OFFICIAL_TOKEN_STATEMENT","PUBLIC_REPOSITORY","OWNER_APPROVAL","DATED_OFFICIAL_CATALYST"]},
+    {"id":"wprl","network":"ethereum","chainId":1,"address":"0x07696dcab55e62cfef953666b29fe1970518cb00","symbol":"WPRL","status":"PRIMARY_SOURCE_VERIFIED","checkedAt":"2026-11-18T11:44:00Z",
+     "officialSite":"https://pearlbridge.xyz/","siteShowsExactAddress":true,"siteContext":"Bridge site: WPRL is the Ethereum wrapper of PRL. Category: wrapped representation, not an early-stage project token.",
+     "github":null,"observed":{},"missing":[]},
+    {"id":"gdlr","network":"ethereum","chainId":1,"address":"0xa038a26bf960451b8ce75ec4c92013c6307f8e4e","symbol":"GDLR","status":"PRIMARY_SOURCE_VERIFIED","checkedAt":"2026-11-18T11:46:00Z",
+     "officialSite":"https://doma.io/","siteShowsExactAddress":true,"siteContext":"Issuer site: gdollar (GDLR) is backed 1:1 by metal bars. Category: commodity-backed, not an early-stage project token.",
+     "github":null,"observed":{},"missing":[]}
+  ]
+}

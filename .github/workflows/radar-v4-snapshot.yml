@@ -1,0 +1,88 @@
+name: Radar V4 opportunity snapshot (bounded, read-only sources)
+# Issue #279. Computes the ARCY Opportunity Intelligence V4 ranking OUTSIDE visitor requests and publishes a validated JSON
+# snapshot to a data-only branch. Vercel deployments are disabled for both data branches in vercel.json.
+#  - schedule / manual run on main  -> branch `radar-v4-snapshots` (read by Production/Preview when the V4 flag is ON)
+#  - pull_request touching Radar V4 -> branch `radar-v4-snapshots-preview` (safe test ref; Production never reads it)
+# Normal fast-forward commits (no force push); a bounded index keeps the last 42 revisions. One run at a time per ref.
+on:
+  # Publish the first Production data-only snapshot immediately after the reviewed V4 PR is merged;
+  # the Production feature flag remains OFF until a separate verified release decision.
+  push:
+    branches: [main]
+    paths:
+      - 'lib/radar-v2/**'
+      - 'scripts/radar-v4-snapshot.cjs'
+      - '.github/workflows/radar-v4-snapshot.yml'
+  schedule:
+    - cron: '41 */4 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'lib/radar-v2/**'
+      - 'scripts/radar-v4-snapshot.cjs'
+      - '.github/workflows/radar-v4-snapshot.yml'
+permissions:
+  contents: write
+concurrency:
+  group: radar-v4-snapshot-${{ github.event_name == 'pull_request' && 'preview' || 'main' }}
+  cancel-in-progress: false
+jobs:
+  snapshot:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DATA_REF: ${{ github.event_name == 'pull_request' && 'radar-v4-snapshots-preview' || 'radar-v4-snapshots' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Engine tests must pass before publishing
+        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-pre-catalyst.test.js
+      - name: Check out data branch (or create it the first time)
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          url="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$url" "$DATA_REF" >/dev/null; then
+            git clone -q --depth 60 --branch "$DATA_REF" "$url" snap
+            echo "FIRST_RUN=0" >> "$GITHUB_ENV"
+          else
+            mkdir snap && cd snap && git init -q -b "$DATA_REF" && git remote add origin "$url"
+            echo "FIRST_RUN=1" >> "$GITHUB_ENV"
+          fi
+      - name: Build and validate snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/radar-v4-snapshot.cjs --previous snap/radar-v4/snapshot.json --out snap/radar-v4/snapshot.json --index snap/radar-v4/index.json --responses snap/radar-v4/served
+      - name: Commit (fast-forward only, never force)
+        run: |
+          cd snap
+          git config user.name "arcy-radar-v4-bot"
+          git config user.email "actions@users.noreply.github.com"
+          # Vercel reads vercel.json from the deployed commit itself: the data-only branch carries its own
+          # "deploymentEnabled": false so a snapshot commit never creates any (Preview or Production) deployment.
+          printf '{\n  "git": { "deploymentEnabled": false }\n}\n' > vercel.json
+          printf 'Data-only branch for ARCY Radar V4 snapshots (issue #279). Written by .github/workflows/radar-v4-snapshot.yml. Not a deployable site.\n' > README.md
+          git add radar-v4 vercel.json README.md
+          git diff --cached --quiet && { echo "No change"; exit 0; }
+          git commit -q -m "radar-v4 snapshot $(date -u +%Y-%m-%dT%H:%MZ) engine ${GITHUB_SHA::12}"
+          git push -q origin "HEAD:${DATA_REF}"
+          echo "PUBLISHED_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Read back the published snapshot and validate it with the serving code
+        if: env.PUBLISHED_SHA != ''
+        run: |
+          node -e '
+          const S=require("./lib/radar-v2/v4-snapshot");
+          const sha=process.env.PUBLISHED_SHA,ref=process.env.DATA_REF;
+          (async()=>{
+           for(let i=0;i<12;i++){
+            const r=await fetch("https://raw.githubusercontent.com/${{ github.repository }}/"+sha+"/radar-v4/snapshot.json");
+            if(r.ok){const j=await r.json();const v=S.validate(j);
+             console.log("::notice title=radar-v4 readback::"+JSON.stringify({ref,sha,firstRun:process.env.FIRST_RUN,http:r.status,valid:v,generatedAt:j.generatedAt,shown:Object.fromEntries(Object.entries(j.sections).map(([n,x])=>[n,x.rows.length]))}));
+             if(!v.ok)process.exit(4);return;}
+            await new Promise(r=>setTimeout(r,10000));
+           }
+           console.log("::error title=radar-v4 readback::published snapshot not readable");process.exit(5);
+          })();'

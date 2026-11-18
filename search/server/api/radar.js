@@ -34,7 +34,25 @@ module.exports=async function(req,res){
  try{
   if(!ownPage(req)&&require('../../../lib/radar-v2/sources').publicationAllowed(process.env).ok)return res.status(403).json({ok:false,error:'RADAR_SITE_ONLY',message:'Market Radar data is served to the ARCY SEARCH page only.'});
   const rpcUrl=network==='pons'?require('../lib/chains').rpcUrl('robinhood',process.env):undefined;
-  const data=await radar.load(network,{env:process.env,rpcUrl});
+  // Radar V4 release gate (#279), OFF by default. Snapshot-first: the site-origin policy above has already run; publication
+  // must also be approved. A valid V4 section is served WITHOUT the legacy provider loader, so a provider outage cannot hide
+  // an independently computed snapshot. Otherwise the legacy Radar runs with its own checks (and says why V4 was not served).
+  const V4=require('../../../lib/radar-v2/v4-snapshot');
+  let v4Reason=null;
+  if(V4.enabled(process.env)){
+   const gate=require('../../../lib/radar-v2/sources').publicationAllowed(process.env);
+   if(gate.ok){
+    const v4=await V4.serve(network,{env:process.env});
+    if(v4.data){
+     const remaining=Math.max(0,Math.floor((V4.FRESH_MS-(Date.now()-Date.parse(v4.data.asOf)))/1000));
+     res.setHeader('Cache-Control',v4.data.freshness==='FRESH'?`public, max-age=0, s-maxage=${Math.min(600,remaining)}, stale-while-revalidate=60`:'no-store');
+     return res.status(200).json(v4.data);
+    }
+    v4Reason=v4.reason;
+   }else v4Reason=gate.reason;
+  }
+  const loaded=await radar.load(network,{env:process.env,rpcUrl});
+  const data=v4Reason?V4.markUnavailable(loaded,v4Reason):loaded;
   // Long edge cache protects the provider quota (Demo plan: 10k credits/month). Stale-if-error is bounded in the library.
   const ttl=Math.max(600,Math.floor(Number(process.env.RADAR_V2_TTL_MS||1800000)/1000));
   if(data.freshness==='STALE'){
