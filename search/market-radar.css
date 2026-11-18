@@ -566,7 +566,7 @@
   border:1px solid rgba(146,188,212,.18);
   overflow:hidden;
 }
-#tokenDetail .arcy-radar-overview-logo-wrap.is-placeholder{color:#7d9caf;font-size:22px}
+#tokenDetail .arcy-radar-overview-logo-wrap.is-placeholder{color:#bed5e5;font-size:16px;font-weight:800;line-height:1}
 #tokenDetail .arcy-radar-overview-token-logo{
   display:block;
   width:34px;
@@ -1067,3 +1067,6 @@
 .arcy-radar-categories-ticker{font-weight:700;color:#e8f2f8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .arcy-radar-categories-meta{color:#9fb4c2;overflow-wrap:anywhere;min-width:0}
 .arcy-radar-categories-flags{grid-column:2;color:#ffcc82;overflow-wrap:anywhere}
+
+/* Exact-contract artwork fallback: readable initial on small screens, never a misleading substitute logo. */
+@media(max-width:520px){#tokenDetail .arcy-radar-overview-logo-wrap.is-placeholder{font-size:11px}}
