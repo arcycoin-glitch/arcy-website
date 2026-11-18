@@ -54,7 +54,8 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "radar-v4-snapshots": false
+      "radar-v4-snapshots": false,
+      "radar-v4-snapshots-preview": false
     }
   }
 }

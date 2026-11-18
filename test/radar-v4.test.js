@@ -133,7 +133,10 @@ test('snapshot build: valid DTO rows, discovery-2 formula kept, Pons removed fro
  assert.equal(S.validate(snap).ok,true,JSON.stringify(S.validate(snap)));
  const arc=snap.sections.arc.rows[0];
  assert.equal(arc.rank,1);assert.equal(arc.discovery.version,'arcy-discovery-2');assert.ok(Number.isFinite(arc.discovery.score));assert.equal(arc.discovery.basis,'ARCY_DISCOVERY_2_ON_SOURCE_REPORTED_ROW');
- assert.match(arc.discovery.reason,/DOĞRULANMADI/);assert.equal(arc.fields.priceUsd.status,'SOURCE_REPORTED');assert.equal(arc.opportunity.notForecast,true);
+ assert.match(arc.discovery.reason,/DOĞRULANMADI/);assert.equal(arc.fields.priceUsd.status,'SOURCE_REPORTED');
+ assert.equal(arc.fields.priceUsd.sourceConfirmed,false);assert.deepEqual(arc.fields.priceUsd.sources,[],'no invented provider attribution');
+ assert.equal(arc.fields.priceUsd.provenance.via,'RADAR_QUIET_VOLUME_FLOOR');assert.equal(arc.fieldsProvenance,'SOURCE_REPORTED_UNCONFIRMED');
+ assert.ok(!JSON.stringify(arc.fields).includes('GeckoTerminal'));assert.equal(arc.opportunity.notForecast,true);
  assert.deepEqual(snap.sections.robinhood.rows.map(r=>r.address),[A(2)]);
  assert.equal(snap.sections.ethereum.status,'NOT_BUILT');
  // a forged duplicate is rejected at validation
@@ -158,9 +161,9 @@ test('public path: gate ON serves V4 rows in the same DTO, FRESH then STALE then
  const snap=S.build(engineResult(),sections,{now:NOW});const env={RADAR_V4_OPPORTUNITY_ENABLED:'true'};
  S._reset();const f=fetcherFor(snap);
  const a=await S.apply('arc',live('arc'),{env,fetcher:f,now:NOW+60000});
- assert.equal(a.opportunity.status,'FRESH');assert.equal(a.tokens[0].address,A(1));assert.equal(a.opportunity.legacyRemoved,1);
+ assert.equal(a.opportunity.status,'FRESH');assert.equal(a.tokens[0].address,A(1));assert.equal(a.opportunity.servedList,'V4_OPPORTUNITY');assert.ok(!a.tokens.some(t=>t.address===A(500)));
  assert.ok(a.tokens.every((x,i)=>x.rank===i+1&&x.fields&&typeof x.symbol==='string'));assert.equal(a.version,2);assert.equal(a.engine,'arcy-radar-v3');
- S._reset();assert.equal((await S.apply('arc',live('arc'),{env,fetcher:fetcherFor(snap),now:NOW+8*3600000})).opportunity.status,'STALE');
+ S._reset();const st=await S.apply('arc',live('arc'),{env,fetcher:fetcherFor(snap),now:NOW+8*3600000});assert.equal(st.opportunity.status,'STALE');assert.equal(st.freshness,'STALE');
  S._reset();const old=await S.apply('arc',live('arc'),{env,fetcher:fetcherFor(snap),now:NOW+30*3600000});
  assert.equal(old.opportunity.status,'UNAVAILABLE');assert.equal(old.tokens[0].address,A(500));
  S._reset();const nb=await S.apply('ethereum',{...live('arc'),network:'ethereum',chainId:1},{env,fetcher:fetcherFor(snap),now:NOW});
@@ -191,5 +194,73 @@ test('snapshot ref override is restricted to a branch name on the fixed reposito
 test('radar API handler: gate OFF leaves the public response untouched (no extra request)',async()=>{
  const handler=require('../search/server/api/radar.js');assert.equal(typeof handler,'function');
  const src=require('node:fs').readFileSync(require.resolve('../search/server/api/radar.js'),'utf8');
- assert.match(src,/v4-snapshot'\)\.apply\(network,await radar\.load/);
+ assert.match(src,/V4\.serve\(network/);assert.ok(src.indexOf('V4.serve(network')<src.indexOf('radar.load(network'),'snapshot-first ordering');
+});
+// ── snapshot-first handler (production blocker fix) ──
+function handlerHarness(){
+ const radar=require('../lib/radar-v2'),handler=require('../search/server/api/radar.js');
+ const call=async(chain)=>{const res={headers:{},setHeader(k,v){this.headers[k]=v;},status(c){this.code=c;return this;},json(b){this.body=b;return this;}};
+  await handler({method:'GET',query:{chain},headers:{'sec-fetch-site':'same-origin'}},res);return res;};
+ return {radar,call};
+}
+async function withEnv(vars,fn){const keys=Object.keys(vars),old=Object.fromEntries(keys.map(k=>[k,process.env[k]]));Object.assign(process.env,vars);
+ const of=global.fetch,radar=require('../lib/radar-v2'),ol=radar.load;S._reset();
+ try{return await fn();}finally{for(const k of keys)if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k];global.fetch=of;radar.load=ol;S._reset();}}
+const ON={RADAR_V4_OPPORTUNITY_ENABLED:'true',MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:'true',MARKET_RADAR_JSON_DELIVERY_APPROVED:'true'};
+const providerDown=async()=>{throw Object.assign(Error('RADAR_PROVIDER_HTTP_503'),{code:'RADAR_PROVIDER_HTTP_503'});};
+test('handler: fresh V4 snapshot is served even when the legacy provider fails (no legacy call)',()=>withEnv(ON,async()=>{
+ const {radar,call}=handlerHarness();const snap=S.build(engineResult(),sections,{now:Date.now()});let legacyCalls=0;
+ radar.load=async()=>{legacyCalls++;return providerDown();};
+ global.fetch=async(u)=>{assert.equal(u,S.url(process.env));return {ok:true,status:200,text:async()=>JSON.stringify(snap)};};
+ const r=await call('arc');
+ assert.equal(r.code,200);assert.equal(r.body.opportunity.servedList,'V4_OPPORTUNITY');assert.equal(r.body.freshness,'FRESH');assert.equal(legacyCalls,0);
+ assert.match(r.headers['Cache-Control'],/s-maxage=/);assert.equal(r.body.version,2);assert.equal(r.body.engine,'arcy-radar-v3');
+}));
+test('handler: stale (6-24 h) V4 snapshot is served as STALE with no-store when the provider fails',()=>withEnv(ON,async()=>{
+ const {radar,call}=handlerHarness();const snap=S.build(engineResult(),sections,{now:Date.now()-8*3600000});
+ radar.load=providerDown;global.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify(snap)});
+ const r=await call('arc');assert.equal(r.code,200);assert.equal(r.body.freshness,'STALE');assert.equal(r.headers['Cache-Control'],'no-store');assert.equal(r.body.opportunity.status,'STALE');
+}));
+test('handler: expired / invalid / missing-branch snapshot + healthy legacy => legacy list, labelled; both down => honest 503',()=>withEnv(ON,async()=>{
+ const {radar,call}=handlerHarness();
+ radar.load=async(n)=>({...live(n),network:n});
+ for(const [body,status,reason] of [[S.build(engineResult(),sections,{now:Date.now()-30*3600000}),200,'SNAPSHOT_SECTION_EXPIRED'],[{schema:'bad'},200,'SNAPSHOT_SCHEMA_INVALID'],[{},404,'SNAPSHOT_HTTP_404'],[{},403,'SNAPSHOT_HTTP_403'],[{},429,'SNAPSHOT_HTTP_429'],[{},503,'SNAPSHOT_HTTP_503']]){
+  S._reset();global.fetch=async()=>({ok:status===200,status,text:async()=>JSON.stringify(body)});
+  const r=await call('arc');assert.equal(r.code,200);assert.equal(r.body.tokens[0].address,A(500));assert.equal(r.body.opportunity.reason,reason,reason);
+ }
+ S._reset();radar.load=providerDown;global.fetch=async()=>({ok:false,status:503,text:async()=>''});
+ const down=await call('arc');assert.equal(down.code,503);assert.equal(down.body.ok,false);assert.ok(!down.body.tokens,'no fabricated candidates');
+}));
+test('handler: V4 not served unless the existing publication approvals are set; gate OFF never fetches the snapshot',()=>withEnv({RADAR_V4_OPPORTUNITY_ENABLED:'true',MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:'false'},async()=>{
+ const {radar,call}=handlerHarness();let fetched=0;global.fetch=async()=>{fetched++;return {ok:true,status:200,text:async()=>'{}'};};
+ radar.load=async()=>{throw Object.assign(Error('RADAR_NOT_CONFIGURED'),{code:'RADAR_NOT_CONFIGURED'});};
+ const r=await call('arc');assert.equal(r.code,503);assert.equal(fetched,0);
+ delete process.env.RADAR_V4_OPPORTUNITY_ENABLED;process.env.MARKET_RADAR_PUBLIC_DISPLAY_APPROVED='true';process.env.MARKET_RADAR_JSON_DELIVERY_APPROVED='true';
+ radar.load=async(n)=>({...live(n),network:n});const off=await call('arc');assert.equal(fetched,0);assert.equal(off.body.opportunity,undefined,'legacy response byte-identical when OFF');
+}));
+test('serving path: concurrent requests share one snapshot read; cache expiry triggers exactly one refresh',async()=>{
+ S._reset();let n=0;const snap=S.build(engineResult(),sections,{now:NOW});
+ const f=async()=>{n++;await new Promise(r=>setTimeout(r,20));return {ok:true,status:200,text:async()=>JSON.stringify(snap)};};
+ const env={RADAR_V4_OPPORTUNITY_ENABLED:'true'};
+ const rs=await Promise.all(['arc','robinhood','pons','arc','pons'].map(x=>S.serve(x,{env,fetcher:f,now:NOW})));
+ assert.equal(n,1);assert.ok(rs.every(r=>r.data));
+ await S.serve('arc',{env,fetcher:f,now:NOW+11*60000});assert.equal(n,2);
+});
+test('serving path: exact-address Pons/Robinhood integrity even if a stored snapshot slipped a duplicate past an old validator',async()=>{
+ S._reset();const snap=S.build(engineResult(),sections,{now:NOW});
+ // simulate an older publisher: duplicate placed in robinhood AFTER validation
+ const dup={...snap.sections.pons.rows[0],network:'robinhood',rank:2};snap.sections.robinhood.rows.push(dup);
+ assert.equal(S.validate(snap).ok,false,'publisher validator rejects it');
+ const r=await S.serve('robinhood',{env:{RADAR_V4_OPPORTUNITY_ENABLED:'true'},fetcher:async()=>({ok:true,status:200,text:async()=>JSON.stringify(snap)}),now:NOW});
+ assert.equal(r.data,null,'server refuses the whole invalid snapshot rather than serving a duplicate');
+ const ok=S.build(engineResult(),sections,{now:NOW});S._reset();
+ const good=await S.serve('robinhood',{env:{RADAR_V4_OPPORTUNITY_ENABLED:'true'},fetcher:async()=>({ok:true,status:200,text:async()=>JSON.stringify(ok)}),now:NOW});
+ const pons=new Set(ok.sections.pons.rows.map(x=>x.address));assert.ok(good.data.tokens.every(x=>!pons.has(x.address)));
+});
+test('category regression: Ethereum "NEAR" is never an early-stage project by ticker; exact Rainbow NEAR is bridged established',()=>{
+ assert.equal(CAT.classify({chainId:1,address:'0x85f17cf997934a597031b2e18a9ab6ebd4b9f6a4',symbol:'NEAR',name:'NEAR'},'ethereum',NOW).category,'BRIDGED_ESTABLISHED_ASSET');
+ assert.equal(CAT.classify({chainId:1,address:A(42),symbol:'NEAR',name:'NEAR'},'ethereum',NOW).category,'MAJOR_ASSET_TICKER_WITHOUT_IDENTITY');
+ assert.ok(CAT.BLOCKED.has('MAJOR_ASSET_TICKER_WITHOUT_IDENTITY'));
+ assert.equal(CAT.classify({chainId:1,address:'0x7e37ac5d67ebe99851193cd036d7725b6730c53d',symbol:'NEARon',name:'iShares Short Duration Bond Active ETF (Ondo Tokenized)'},'ethereum',NOW).category,'TOKENIZED_EQUITY');
+ assert.equal(CAT.classify({chainId:1,address:A(43),symbol:'NEARX',name:'Nearby App'},'ethereum',NOW).category,'EARLY_STAGE_CANDIDATE','no substring matching');
 });

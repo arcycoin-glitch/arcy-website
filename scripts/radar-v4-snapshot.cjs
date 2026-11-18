@@ -27,9 +27,25 @@ async function main(){
  if(!v.ok){console.error('Refusing to publish invalid snapshot:',JSON.stringify(v));process.exitCode=3;return;}
  fs.mkdirSync(path.dirname(out),{recursive:true});
  fs.writeFileSync(out,JSON.stringify(snap));
+ // Bounded, auditable revision index (last 42 runs ~ 7 days at 4-hourly cadence). Git history of the data branch keeps the bytes.
+ const indexPath=arg('index');
+ if(indexPath){
+  let idx={schema:'arcy-radar-v4-snapshot-index/1',revisions:[]};
+  try{const prev=JSON.parse(fs.readFileSync(indexPath,'utf8'));if(Array.isArray(prev?.revisions))idx.revisions=prev.revisions;}catch{}
+  idx.revisions.unshift({generatedAt:snap.generatedAt,engineCommit:snap.engineCommit,sections:Object.fromEntries(Object.entries(snap.sections).map(([n,x])=>[n,{status:x.status,asOf:x.asOf,shown:x.rows.length,carriedForward:!!x.carriedForward}]))});
+  idx.revisions=idx.revisions.slice(0,42);fs.writeFileSync(indexPath,JSON.stringify(idx,null,1));
+ }
+ // Optional: the exact public responses the serving code would return (used for flag-ON browser verification).
+ const respDir=arg('responses');
+ if(respDir){
+  fs.mkdirSync(respDir,{recursive:true});S._reset();
+  const local=async()=>({ok:true,status:200,text:async()=>JSON.stringify(snap)});
+  for(const n of ['arc','ethereum','robinhood','pons']){const v=await S.serve(n,{env:{RADAR_V4_OPPORTUNITY_ENABLED:'true'},fetcher:local,now:Date.now()});
+   fs.writeFileSync(path.join(respDir,n+'.json'),JSON.stringify(v.data||{ok:false,error:'V4_NOT_SERVED',reason:v.reason}));}
+ }
  const summary={};
  for(const [n,x] of Object.entries(snap.sections))summary[n]={legacyTop:(x.legacyTop||[]).length,legacyKept:(x.legacyTop||[]).filter(a=>x.rows.some(r=>r.address===a)).length,status:x.status,carriedForward:!!x.carriedForward,shown:x.rows.length,counts:x.counts,categories:x.categories,bySource:x.bySource,history:x.historyCoverage,
-  shortfall:x.display?.shortfall||null,rows:x.rows.map(r=>[r.symbol,r.opportunity.displayTier,r.opportunity.score,JSON.stringify(r.opportunity.dimensions),r.opportunity.divergence?.signal,r.discovery.reason])};
+  shortfall:x.display?.shortfall||null,rows:x.rows.map(r=>[r.symbol,r.opportunity.displayTier,r.opportunity.score,JSON.stringify(r.opportunity.dimensions),r.opportunity.divergence?.signal,r.discovery.reason,r.address.slice(0,10)])};
  console.log(JSON.stringify({generatedAt:snap.generatedAt,cost:snap.cost,run:snap.run,summary},null,1));
  if(process.env.GITHUB_ACTIONS==='true'){
   const esc=x=>String(x).replace(/%/g,'%25').replace(/\r/g,'%0D').replace(/\n/g,'%0A');
