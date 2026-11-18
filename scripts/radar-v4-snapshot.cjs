@@ -29,7 +29,7 @@ async function main(){
  const s=await sections();
  const rpc={arc:require('../search/server/lib/arc-rpc').rpc,robinhood:require('../search/server/lib/robinhood-rpc').rpc,ethereum:require('../search/server/lib/eth').rpc};
  const limits={unregisteredOnchain:Number(process.env.RADAR_V4_ONCHAIN_PER_NETWORK||6),rpcPerNetwork:Number(process.env.RADAR_V4_RPC_PER_NETWORK||900),
-  httpPerRun:Number(process.env.RADAR_V4_HTTP_PER_RUN||200),concurrency:1,maxCandidatesPerNetwork:30};
+  httpPerRun:Number(process.env.RADAR_V4_HTTP_PER_RUN||200),concurrency:1,maxCandidatesPerNetwork:45,crossCheckFetcher:global.fetch};
  const result=await engine.run({sections:s.out,rpc,limits,priorRiskLedger:previous?.riskLedger||null});
  const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}));
  snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits};

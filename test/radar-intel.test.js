@@ -450,7 +450,7 @@ test('V4 end-to-end: evidenced project outranks PEPE-like legacy volume; legacy 
  const acme=n.displayCandidates[0];
  assert.ok(acme.opportunity.dimensions.product>=60&&acme.opportunity.dimensions.team>=50,JSON.stringify(acme.opportunity));
  assert.ok(acme.opportunity.score>pepe.opportunity.score);assert.equal(acme.selectionTier,1);
- assert.match(acme.infoV4,/^Doğrulanmış erken aşama adayı/);assert.equal(n.categories.LEGACY_MEME,1);
+ assert.match(acme.infoV4,/^NİTELİKLİ — /);assert.match(acme.infoV4,/Doğrulanmış erken aşama adayı/);assert.equal(acme.discoveryClass,'QUALIFIED');assert.equal(n.categories.LEGACY_MEME,1);
 });
 test('dossier: official-site-linked repository feeds product/team research but NEVER identity or eligibility',async()=>{
  E._setDossiers({dossiers:[{id:'acme',network:'ethereum',chainId:1,address:TOKEN,symbol:'ACME',status:'PRIMARY_SOURCE_VERIFIED',checkedAt:isoAgo(0),
