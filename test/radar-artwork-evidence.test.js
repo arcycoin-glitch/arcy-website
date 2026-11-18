@@ -17,7 +17,7 @@ test('source artwork: direct Gecko pool image and finalized DEX image preserve e
  assert.deepEqual(A.candidateArtwork({network:'ethereum',address:ADDR(100),logo:geckoImage}),{url:geckoImage,source:'GeckoTerminal'});
  assert.deepEqual(A.candidateArtwork({network:'ethereum',address:ADDR(101),logo:{url:dexImage,source:'DEX Screener'}}),{url:dexImage,source:'DEX Screener'});
  assert.equal(A.candidateArtwork({network:'ethereum',address:ADDR(102),logo:'https://unsafe.example/logo.png'}),null);
- assert.equal(A.candidateArtwork({network:'ethereum',address:ADDR(103),logo:{url:dexImage,source:'Official Project'}}).source,'GeckoTerminal','untrusted issuer label cannot be preserved');
+ assert.equal(A.candidateArtwork({network:'ethereum',address:ADDR(103),logo:{url:dexImage,source:'Official Project'}}),null,'untrusted issuer source must not be invented');
  assert.equal(A.candidateArtwork({network:'ethereum',address:'invalid',logo:geckoImage}),null);
  assert.equal(A.candidateArtwork({network:'ethereum',address:ADDR(105),logo:'http://coin-images.coingecko.com/coins/1.png'}),null);
 });
