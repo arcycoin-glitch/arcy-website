@@ -76,3 +76,30 @@ test('other networks stay on their existing independent display policy',()=>{
  assert.equal(Q.reason(row(50,{liquidityUsd:0,change24hPct:300,artwork:null}),'robinhood'),null);
  assert.equal(selectDisplay([row(51,{liquidityUsd:0,artwork:null,change24hPct:300})],{network:'robinhood'}).length,1);
 });
+
+test('source outages cannot carry forward previously exposed +238% zero-liquidity monitored assets',()=>{
+ const S=require('../lib/radar-v2/v4-snapshot'),RH=require('../lib/radar-v2/intel/risk-holds');
+ const ledger=RH.list(RH.initial(null));
+ const oldRow={
+  rank:1,network:'arc',chainId:5042,address:A(980),symbol:'SHARK',name:'Shark Coin',
+  priceUsd:0.00002388,liquidityUsd:0,volume24hUsd:23646,change24hPct:238.7,
+  buys24h:50,sells24h:20,poolCreatedAt:new Date(NOW-5*86400000).toISOString(),
+  measuredAt:new Date(NOW-60000).toISOString(),logo:null,
+  fields:{},discovery:{version:'arcy-discovery-2',reason:'old risk-unaware ranking'},
+  opportunity:{version:S.OPPORTUNITY_VERSION,displayTier:'WATCHLIST_NOT_VERIFIED',
+   eligibility:'REVIEW',category:'EARLY_STAGE_CANDIDATE',discoveryClass:'MONITOR_ONLY',notForecast:true}
+ };
+ const previous={schema:S.SCHEMA,opportunityVersion:S.OPPORTUNITY_VERSION,
+  generatedAt:new Date(NOW-60000).toISOString(),riskLedger:ledger,
+  sections:{arc:{status:'BUILT',asOf:new Date(NOW-60000).toISOString(),rows:[oldRow],
+   counts:{displayed:1,watchOnly:1},display:{shown:1,byClass:{MONITOR_ONLY:1}},presentation:{watchlist:[]}}}};
+ assert.equal(S.validate(previous).ok,true,'old row was formally valid under legacy snapshot schema');
+ const next={...previous,generatedAt:new Date(NOW).toISOString(),
+  sections:{arc:{status:'NOT_BUILT',asOf:null,rows:[]}}};
+ const merged=S.merge(previous,next);
+ assert.equal(S.validate(merged).ok,true);
+ assert.equal(merged.sections.arc.carriedForward,true);
+ assert.equal(merged.sections.arc.rows.length,0,'risk-like post-rally filler must not be resurrected');
+ assert.equal(merged.sections.arc.qualityRowsRemoved,1);
+ assert.equal(merged.sections.arc.display.shortfall.droppedByReason.CARRIED_QUALITY_FILTER_REMOVED,1);
+});
