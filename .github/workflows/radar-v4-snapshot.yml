@@ -5,6 +5,14 @@ name: Radar V4 opportunity snapshot (bounded, read-only sources)
 #  - pull_request touching Radar V4 -> branch `radar-v4-snapshots-preview` (safe test ref; Production never reads it)
 # Normal fast-forward commits (no force push); a bounded index keeps the last 42 revisions. One run at a time per ref.
 on:
+  # Publish the first Production data-only snapshot immediately after the reviewed V4 PR is merged;
+  # the Production feature flag remains OFF until a separate verified release decision.
+  push:
+    branches: [main]
+    paths:
+      - 'lib/radar-v2/**'
+      - 'scripts/radar-v4-snapshot.cjs'
+      - '.github/workflows/radar-v4-snapshot.yml'
   schedule:
     - cron: '41 */4 * * *'
   workflow_dispatch:
