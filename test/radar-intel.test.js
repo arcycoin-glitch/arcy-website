@@ -450,3 +450,26 @@ test('V4 end-to-end: evidenced project outranks PEPE-like legacy volume; legacy 
  assert.ok(acme.opportunity.score>pepe.opportunity.score);assert.equal(acme.selectionTier,1);
  assert.match(acme.infoV4,/^Doğrulanmış erken aşama adayı/);assert.equal(n.categories.LEGACY_MEME,1);
 });
+test('dossier: official-site-linked repository feeds product/team research but NEVER identity or eligibility',async()=>{
+ E._setDossiers({dossiers:[{id:'acme',network:'ethereum',chainId:1,address:TOKEN,symbol:'ACME',status:'PRIMARY_SOURCE_VERIFIED',checkedAt:isoAgo(0),
+  officialSite:'https://acme.example/',siteShowsExactAddress:true,github:{owner:'acme-labs',repos:[REPO],linkedFromOfficialSite:true,binding:{repo:REPO,path:'deployments/1.json',ref:SHA}}}]});
+ try{
+  const x=only(await runOne({reg:{schema:'arcy-radar-project-registry/1',version:'e',projects:[]}}));
+  assert.equal(x.eligibility,'REVIEW');assert.ok(x.reasons.includes('IDENTITY_NOT_VERIFIED'));assert.ok(x.reasons.includes('PRODUCT_CONTINUITY_NOT_VERIFIED'));
+  assert.ok(x.opportunity.dimensions.team>=50&&x.opportunity.dimensions.product!==null,JSON.stringify(x.opportunity.dimensions));
+  assert.ok(x.notes.includes('DOSSIER_REPO_BINDING_RECHECKED'));assert.equal(x.dossier.status,'PRIMARY_SOURCE_VERIFIED');
+  assert.match(x.infoV4,/Birincil kaynak: resmi site kontratı yayınlıyor/);assert.match(x.infoV4,/DOĞRULANMADI/);
+  // a dossier whose repo no longer binds the address is a contradiction
+  const y=only(await runOne({reg:{schema:'arcy-radar-project-registry/1',version:'e',projects:[]},routes:githubRoutes({fileHasAddress:false})}));
+  assert.ok(y.notes.includes('DOSSIER_BINDING_CONTRADICTED'));assert.ok(y.reasons.includes('SOURCE_CONTRADICTION'));
+  // repository NOT linked from the official site => no repository research
+  E._setDossiers({dossiers:[{id:'acme',network:'ethereum',chainId:1,address:TOKEN,status:'PARTIAL_EVIDENCE',checkedAt:isoAgo(0),github:{owner:'acme-labs',repos:[REPO],linkedFromOfficialSite:false}}]});
+  const z=only(await runOne({reg:{schema:'arcy-radar-project-registry/1',version:'e',projects:[]}}));
+  assert.equal(z.opportunity.dimensions.team,null);
+ }finally{E._setDossiers(require('../lib/radar-v2/intel/dossiers.json'));}
+});
+test('dossier file: shipped records are schema-valid and none claims OWNER_APPROVED',()=>{
+ const D=require('../lib/radar-v2/intel/dossiers'),doc=require('../lib/radar-v2/intel/dossiers.json'),s=D.load(doc);
+ assert.equal(s.rejected.length,0);assert.ok(doc.dossiers.every(d=>d.status!=='OWNER_APPROVED'));
+ assert.equal(D.load({dossiers:[{...doc.dossiers[0],status:'OWNER_APPROVED'}]}).byKey.size,0,'owner approval cannot be self-declared in a dossier');
+});

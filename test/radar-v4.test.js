@@ -264,3 +264,9 @@ test('category regression: Ethereum "NEAR" is never an early-stage project by ti
  assert.equal(CAT.classify({chainId:1,address:'0x7e37ac5d67ebe99851193cd036d7725b6730c53d',symbol:'NEARon',name:'iShares Short Duration Bond Active ETF (Ondo Tokenized)'},'ethereum',NOW).category,'TOKENIZED_EQUITY');
  assert.equal(CAT.classify({chainId:1,address:A(43),symbol:'NEARX',name:'Nearby App'},'ethereum',NOW).category,'EARLY_STAGE_CANDIDATE','no substring matching');
 });
+test('category regression from primary-source research: WPRL is a bridge wrapper, GDLR is gold-backed, "Wrapped X" names are wrappers',()=>{
+ assert.equal(CAT.classify({chainId:1,address:'0x07696dcab55e62cfef953666b29fe1970518cb00',symbol:'WPRL',name:'Wrapped Pearl'},'ethereum',NOW).category,'WRAPPED_OR_BASE_ASSET');
+ assert.equal(CAT.classify({chainId:1,address:'0xa038a26bf960451b8ce75ec4c92013c6307f8e4e',symbol:'GDLR',name:'GDollar'},'ethereum',NOW).category,'COMMODITY_BACKED');
+ assert.equal(CAT.classify({chainId:4663,address:A(44),symbol:'WFOO',name:'Wrapped Foo'},'robinhood',NOW).category,'WRAPPED_OR_BASE_ASSET');
+ assert.equal(CAT.classify({chainId:4663,address:A(45),symbol:'WRAPX',name:'Wrapstar Protocol'},'robinhood',NOW).category,'EARLY_STAGE_CANDIDATE');
+});
