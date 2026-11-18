@@ -10,7 +10,7 @@ const ADDR=n=>'0x'+n.toString(16).padStart(40,'0'),NOW=Date.parse('2026-11-18T16
 const geckoImage='https://coin-images.coingecko.com/coins/images/10001/large/legitimate.png';
 const dexImage='https://cdn.dexscreener.com/cms/images/legitimate-art?width=800';
 const sectionRow=(address,logo)=>({address,symbol:'TEST',name:'Test candidate',logo,reason:'INELIGIBLE_AFTER_VERIFICATION',
- detail:'VOLUME_BELOW_NETWORK_FLOOR',priceUsd:0.5,volume24hUsd:90000,liquidityUsd:240000,
+ detail:'VOLUME_BELOW_NETWORK_FLOOR',priceUsd:0.5,volume24hUsd:90000,liquidityUsd:240000,change24hPct:5,
  poolCreatedAt:'2026-11-14T00:00:00Z',buys24h:32,sells24h:31,
  verification:{crossCheck:'MATCHED',fields:{priceUsd:'CROSS_VERIFIED',liquidityUsd:'CROSS_VERIFIED',volume24hUsd:'CROSS_VERIFIED'},sourcesDisagree:false}});
 test('source artwork: direct Gecko pool image and finalized DEX image preserve exact contract',()=>{
@@ -42,5 +42,6 @@ test('V4 near-match snapshot retains only contract-matched allowed artwork witho
  const spoof={...s,excluded:[sectionRow(addr,{url:'https://bad.invalid/icon.png',source:'GeckoTerminal'})]};
  const spoofSnap=S.build(await E.run({sections:{ethereum:spoof},now:NOW,env:{},fetcher:async()=>{throw Error('NO_NETWORK')},rpc:{},
   registryDoc:{schema:'arcy-radar-project-registry/1',version:'test',projects:[]},limits:{concurrency:1,pace:false}}),{ethereum:spoof},{now:NOW});
- assert.equal(spoofSnap.sections.ethereum.rows[0].logo,null,'invalid image never displayed');
+ assert.equal(spoofSnap.sections.ethereum.rows.length,0,'unverified artwork cannot fill a premium watch slot');
+ assert.equal(spoofSnap.sections.ethereum.display.shortfall.droppedByReason.TOKEN_ARTWORK_NOT_SOURCED,1);
 });
