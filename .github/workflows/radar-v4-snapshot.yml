@@ -53,7 +53,11 @@ jobs:
           cd snap
           git config user.name "arcy-radar-v4-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add radar-v4
+          # Vercel reads vercel.json from the deployed commit itself: the data-only branch carries its own
+          # "deploymentEnabled": false so a snapshot commit never creates any (Preview or Production) deployment.
+          printf '{\n  "git": { "deploymentEnabled": false }\n}\n' > vercel.json
+          printf 'Data-only branch for ARCY Radar V4 snapshots (issue #279). Written by .github/workflows/radar-v4-snapshot.yml. Not a deployable site.\n' > README.md
+          git add radar-v4 vercel.json README.md
           git diff --cached --quiet && { echo "No change"; exit 0; }
           git commit -q -m "radar-v4 snapshot $(date -u +%Y-%m-%dT%H:%MZ) engine ${GITHUB_SHA::12}"
           git push -q origin "HEAD:${DATA_REF}"
