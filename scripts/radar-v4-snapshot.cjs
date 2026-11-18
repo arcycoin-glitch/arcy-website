@@ -53,10 +53,11 @@ async function main(){
   for(const n of ['arc','ethereum','robinhood','pons']){const v=await S.serve(n,{env:{RADAR_V4_OPPORTUNITY_ENABLED:'true'},fetcher:local,now:Date.now()});
    fs.writeFileSync(path.join(respDir,n+'.json'),JSON.stringify(v.data||{ok:false,error:'V4_NOT_SERVED',reason:v.reason}));}
  }
- const summary={riskLedger:{held:snap.riskLedger.filter(r=>r.state==='HELD').length,cleared:snap.riskLedger.filter(r=>r.state==='CLEARED').length}};
+ const riskSummary={held:snap.riskLedger.filter(r=>r.state==='HELD').length,cleared:snap.riskLedger.filter(r=>r.state==='CLEARED').length};
+ const summary={};
  for(const [n,x] of Object.entries(snap.sections))summary[n]={legacyTop:(x.legacyTop||[]).length,legacyKept:(x.legacyTop||[]).filter(a=>x.rows.some(r=>r.address===a)).length,status:x.status,carriedForward:!!x.carriedForward,shown:x.rows.length,counts:x.counts,categories:x.categories,bySource:x.bySource,history:x.historyCoverage,
   shortfall:x.display?.shortfall||null,rows:x.rows.map(r=>[r.symbol,r.opportunity.displayTier,r.opportunity.score,JSON.stringify(r.opportunity.dimensions),r.opportunity.divergence?.signal,r.discovery.reason,r.address.slice(0,10)])};
- console.log(JSON.stringify({generatedAt:snap.generatedAt,cost:snap.cost,run:snap.run,summary},null,1));
+ console.log(JSON.stringify({generatedAt:snap.generatedAt,cost:snap.cost,run:snap.run,riskLedger:riskSummary,summary},null,1));
  if(process.env.GITHUB_ACTIONS==='true'){
   const esc=x=>String(x).replace(/%/g,'%25').replace(/\r/g,'%0D').replace(/\n/g,'%0A');
   console.log('::notice title=radar-v4 cost::'+esc(JSON.stringify({generatedAt:snap.generatedAt,cost:snap.cost,run:snap.run,registry:snap.registry})));
