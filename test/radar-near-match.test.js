@@ -220,3 +220,18 @@ test('Arc and Ethereum may populate 10 observation slots, while Robinhood retain
  assert.ok(risk.every(x=>x.address!==A(800)&&x.address!==A(801)&&x.symbol!=='SPOOF'),'hard holds, source conflicts and lookalikes remain excluded');
  assert.ok(risk.length<=9,'never fabricate a tenth candidate when safety leaves too few');
 });
+
+test('snapshot validator accepts expanded genuine Ethereum monitors but rejects four Robinhood monitors',async()=>{
+ const young=Array.from({length:8},(_,i)=>({...miss(1100+i),reason:'POOL_UNDER_24H',poolCreatedAt:iso(0.2)}));
+ const sec=ethSection({tokens:[],excluded:young});
+ const result=await run({ethereum:sec});
+ const snapshot=S.build(result,{ethereum:sec},{now:NOW});
+ assert.ok(snapshot.sections.ethereum.rows.length>3,'must exercise the formerly rejected monitor overflow');
+ assert.ok(snapshot.sections.ethereum.rows.length<=10);
+ assert.equal(snapshot.sections.ethereum.rows.filter(x=>x.opportunity.discoveryClass==='MONITOR_ONLY').length,snapshot.sections.ethereum.rows.length);
+ assert.deepEqual(S.validate(snapshot),{ok:true},'source-backed rows may now fill Arc/ETH slots');
+ const spoof=structuredClone(snapshot);
+ spoof.sections.robinhood={...spoof.sections.ethereum,
+  rows:spoof.sections.ethereum.rows.map(x=>({...x,network:'robinhood',chainId:4663}))};
+ assert.equal(S.validate(spoof).ok,false,'robinhood still enforces the old 3-monitor cap');
+});
