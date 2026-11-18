@@ -14,13 +14,16 @@ const arg=k=>{const i=process.argv.indexOf('--'+k);return i>0?process.argv[i+1]:
 async function main(){
  const out=arg('out');if(!out)throw Error('USAGE: --out file');
  const t0=Date.now();
+ // Load audited risk holds BEFORE starting any on-chain run; late loading loses negative evidence on source errors.
+ let previous=null;const prevPath=arg('previous');
+ if(prevPath&&fs.existsSync(prevPath)){try{const doc=JSON.parse(fs.readFileSync(prevPath,'utf8'));if(S.validate(doc).ok)previous=doc;
+  else console.warn('Old/invalid snapshot ignored for carry-forward; historical audited hold seed remains active');}
+  catch{console.warn('Unreadable previous snapshot; historical audited hold seed remains active');}}
  const s=await sections();
  const rpc={arc:require('../search/server/lib/arc-rpc').rpc,robinhood:require('../search/server/lib/robinhood-rpc').rpc,ethereum:require('../search/server/lib/eth').rpc};
  const limits={unregisteredOnchain:Number(process.env.RADAR_V4_ONCHAIN_PER_NETWORK||6),rpcPerNetwork:Number(process.env.RADAR_V4_RPC_PER_NETWORK||900),
   httpPerRun:Number(process.env.RADAR_V4_HTTP_PER_RUN||200),concurrency:1,maxCandidatesPerNetwork:30};
- const result=await engine.run({sections:s.out,rpc,limits});
- let previous=null;const prevPath=arg('previous');
- if(prevPath&&fs.existsSync(prevPath)){try{previous=JSON.parse(fs.readFileSync(prevPath,'utf8'));}catch{previous=null;}}
+ const result=await engine.run({sections:s.out,rpc,limits,priorRiskLedger:previous?.riskLedger||null});
  const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}));
  snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits};
  const v=S.validate(snap);
@@ -43,7 +46,7 @@ async function main(){
   for(const n of ['arc','ethereum','robinhood','pons']){const v=await S.serve(n,{env:{RADAR_V4_OPPORTUNITY_ENABLED:'true'},fetcher:local,now:Date.now()});
    fs.writeFileSync(path.join(respDir,n+'.json'),JSON.stringify(v.data||{ok:false,error:'V4_NOT_SERVED',reason:v.reason}));}
  }
- const summary={};
+ const summary={riskLedger:{held:snap.riskLedger.filter(r=>r.state==='HELD').length,cleared:snap.riskLedger.filter(r=>r.state==='CLEARED').length}};
  for(const [n,x] of Object.entries(snap.sections))summary[n]={legacyTop:(x.legacyTop||[]).length,legacyKept:(x.legacyTop||[]).filter(a=>x.rows.some(r=>r.address===a)).length,status:x.status,carriedForward:!!x.carriedForward,shown:x.rows.length,counts:x.counts,categories:x.categories,bySource:x.bySource,history:x.historyCoverage,
   shortfall:x.display?.shortfall||null,rows:x.rows.map(r=>[r.symbol,r.opportunity.displayTier,r.opportunity.score,JSON.stringify(r.opportunity.dimensions),r.opportunity.divergence?.signal,r.discovery.reason,r.address.slice(0,10)])};
  console.log(JSON.stringify({generatedAt:snap.generatedAt,cost:snap.cost,run:snap.run,summary},null,1));
