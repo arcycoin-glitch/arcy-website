@@ -114,3 +114,18 @@ Results:
 - Flag OFF (the live site) still shows the legacy list (e.g. Robinhood with SPY/NVDA tokenized equities).
 
 This is NOT a Vercel Preview with the environment flag ON. That gate remains open.
+
+## P0 release blocker repair — audited negative-evidence persistence (2026-11-18)
+
+**This section supersedes earlier V4 release claims above. Do not treat earlier 5/0/8/10 Preview output as accepted for Production.**
+
+- Confirmed AF/Arcflow exact identity: Arc chain ID 5042, `0x75d658f8101fbe6dc217fbba7e20a0312af5fa2e`. GitHub Actions [real-source intelligence job 134407888322](https://github.com/arcycoin-glitch/arcy-website/actions/runs/44187516676/job/134407888322) recorded `LOW_EXIT_LIQUIDITY+SOURCE_CONTRADICTION` and `EXIT_FAILED_VERIFIED` at the $1,000 exit threshold on November 17, 2026, 22:13 UTC. The sibling job 134416551195 independently recorded the exact contract (not just the symbol).
+- The current November 18 Preview snapshot reports pool ID `0x1c0523377296238f6a2fd25cb3b15f75e280eb330ad29f843b974eec264dfe31`. **The archived workflow log did not preserve the original failed quote's exact pool ID.** The hold explicitly says the pool anchor is from the later Preview, not proven to be the historical quote pool. This is a conservative current-pool release gate, not fabricated historical pool provenance.
+- `lib/radar-v2/intel/risk-holds.js` includes the evidence-bound initial hold. Later signed-off snapshot editions carry its state forward as a ledger keyed on exact chain and contract, including the source URL and observation time. Missing on-chain scans, unavailable providers, changed top ranking or temporary quote failures cannot clear a held critical risk.
+- A hold may only become `CLEARED` after a **newer** quote on the **same verified current pool**, a factory-approved read-only exit adapter, a valid block reference, a provider/on-chain price comparison within 25% and a verified minimum trade size of $1k (Arc/Robinhood) or $5k (Ethereum), with cost ≤5%. This is intentionally strict; a provider outage keeps the hold, not a fabricated recovery.
+- A new verified failed threshold quote reinstates `HELD` after clearance. There is no symbol blacklist and no time-based automatic deletion.
+- The snapshot contract is now `arcy-radar-v4-snapshot/2`: it requires a valid negative-evidence ledger and rejects held exact contracts in V4 rows or Arc presentation watchlist. The published data branch must be regenerated; the old V1 snapshot is intentionally invalid for V4 serving. Carried-forward sections and gate-ON legacy fallbacks also suppress known held rows. **V4 gate OFF still preserves the previous V3 output.**
+- This is not a cryptographic provenance guarantee. The data branch and GitHub workflow writer remain trusted; branch permissions and CI history are operational controls. The initial seed is based on actual historical logs, not on an invented claim of an audited historical pool.
+- The new regressions exercise held → missing evidence → still held, held → incompatible quote → held, held → new verified recovered quote → cleared, cleared → new failed quote → held, schema v2 validation, carry-forward filtering, and the no-RPC exact-contract engine decision.
+
+**Release gate remains closed until:** targeted and full CI pass (independent transient provider failures must be reported separately), a fresh real-source `/2` snapshot is published and read back, AF is excluded in the true flag-ON Vercel Preview on all four tabs, ⓘ Info click and keyboard controls work, and a reviewed Production smoke + rollback check has completed. No production flag changes or merges are justified by the source-code commit alone.
