@@ -304,11 +304,15 @@
  suggestBox.className='home-search-suggest';suggestBox.hidden=true;
  suggestBox.setAttribute('role','region');
  suggestBox.setAttribute('aria-label','Suggested token contracts');
- form.append(suggestBox);
+ // Keep suggestion links immediately after the input in DOM/tab order.
+ // The list is in normal form flow so neither the chain picker nor the next
+ // page section can cover its touch targets on narrow screens.
+ form.insertBefore(suggestBox,picker);
  input.setAttribute('aria-controls',suggestBox.id);
  input.setAttribute('aria-expanded','false');
  let suggestGeneration=0,suggestTimer=null,suggestController=null;
  const hideSuggestions=()=>{
+  form.classList.remove('has-visible-suggestions');
   suggestBox.hidden=true;suggestBox.replaceChildren();
   input.setAttribute('aria-expanded','false');
  };
@@ -352,7 +356,7 @@
   heading.textContent='SUGGESTED TOKENS · SELECT TO RESEARCH';
   suggestBox.append(heading);
   for(const item of rows)suggestBox.append(addCandidate(item,item.network));
-  suggestBox.hidden=false;input.setAttribute('aria-expanded','true');
+  suggestBox.hidden=false;form.classList.add('has-visible-suggestions');input.setAttribute('aria-expanded','true');
  }
  function scheduleSuggestions(){
   cancelSuggestions();hideSuggestions();

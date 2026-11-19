@@ -63,3 +63,16 @@ test('typeahead has an isolated responsive overlay and cannot modify unlock modu
  assert.match(css,/@media\(max-width:560px\)/);
  assert.doesNotMatch(source,/fetch\('\/api\/unlocks/);
 });
+
+test('typeahead results remain tappable below input and above network controls',()=>{
+ assert.ok(source.includes('form.insertBefore(suggestBox,picker)'));
+ assert.ok(source.includes("form.classList.add('has-visible-suggestions')"));
+ assert.ok(source.includes("form.classList.remove('has-visible-suggestions')"));
+ assert.ok(css.includes('html.search-upgraded #search .home-search-form > .home-search-suggest {'));
+ assert.ok(css.includes('.home-search-form.has-visible-suggestions > .home-network-picker {grid-row:3}'));
+ assert.ok(css.includes('.home-search-form.has-visible-suggestions > .home-search-submit {grid-row:4}'));
+ const block=css.slice(css.lastIndexOf('html.search-upgraded #search .home-search-form > .home-search-suggest {'));
+ for(const rule of ['position:relative;','top:auto;','left:auto;','right:auto;','grid-column:1 / -1;','grid-row:2;','touch-action:pan-y;']){
+  assert.ok(block.includes(rule),'missing suggestion layout safeguard: '+rule);
+ }
+});
