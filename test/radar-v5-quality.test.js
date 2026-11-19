@@ -286,3 +286,12 @@ test('V5-18. registry: exact lowercase contracts, unique, Ethereum only; every l
  assert.equal(U.registryFor(5042).length,0,'no Arc listing without Arc evidence');assert.equal(U.registryFor(4663).length,0);
  for(const sym of ['USDC','USDT','DAI','WETH','WBTC','PEPE','SHIB'])assert.ok(!list.some(e=>e.symbol===sym),sym+' is not an A-class research candidate');
 });
+
+test('V5-19. a listed contract already in the Radar window is enriched with two-indexer identity instead of being re-added',async()=>{
+ F._reset();
+ const fetcher=providers({explorer:{[AAVE]:{symbol:'AAVE',name:'Aave Token',exchange_rate:'101'}},pairs:[pair(AAVE,'AAVE')]});
+ const {rows,enrich,report}=await U.discover({network:'ethereum',fetcher,now:NOW,o:{fetcher},existing:new Set([AAVE]),dexTokens:require('../lib/radar-v2/dexscreener').tokens});
+ assert.equal(rows.some(r=>r.address===AAVE),false,'never duplicated');
+ assert.equal(enrich.get(AAVE).identity.status,'TWO_SOURCE_SYMBOL_MATCH');assert.equal(report.enriched,1);
+ assert.equal(QX.tierOf(est('ethereum',5,{sourceEvidence:{crossCheck:null},universe:enrich.get(AAVE)})),'ESTABLISHED');
+});

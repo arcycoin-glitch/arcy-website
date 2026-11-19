@@ -42,10 +42,11 @@ async function main(){
   const tick=new Map();for(const r of n.all){const t=String(r.symbol||'').toLowerCase();if(!tick.has(t))tick.set(t,new Set());tick.get(t).add(r.address);}
   const sample=new Map((n.universe?.sample||[]).map(x=>[x[1],x[2]]));
   const out=U.registryFor(1).map(e=>{const row=n.all.find(r=>r.address===e.address);const shown=n.displayCandidates.find(r=>r.address===e.address);
-   if(shown)return e.symbol+':SHOWN#'+shown.rank+'('+shown.discoveryTier+',Q'+shown.qualityRank.score+')';
+   if(shown)return e.symbol+':SHOWN#'+shown.rank+'('+shown.discoveryTier+',Q'+shown.qualityRank.score+')['+(sample.get(e.address.slice(0,10))||'')+']';
    if(!row)return e.symbol+':'+(sample.get(e.address.slice(0,10))||'NOT_IN_INTAKE');
    const g=QX.gate(row,'ethereum',{tickers:tick,held,now:Date.now()});
-   return e.symbol+':'+(g||('PASSED_GATES_Q'+QR.compute(row,'ethereum').score+'_NOT_IN_TOP_10'));});
+   const diag=sample.get(e.address.slice(0,10))||'';
+   return e.symbol+':'+(g||('PASSED_GATES_Q'+QR.compute(row,'ethereum').score+'_NOT_IN_TOP_10'))+(g==='B_V3_GATES_NOT_MET'?'('+row.discoveryClass+')':'')+(diag?'['+diag+']':'');});
   say('v5 ethereum registry',out.join(' '));}
  // 2. Discovery expansion (Arc + Ethereum) on keyless CI sources: normal vs expanded page plan, same gates.
  const env={...process.env,MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:'true',MARKET_RADAR_JSON_DELIVERY_APPROVED:'true'};
