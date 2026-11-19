@@ -313,3 +313,16 @@ test('V5-20. listed contracts use the complete per-token pool listing (batched l
  assert.equal(aave.poolCount,3);
  assert.ok(report.dexCalls<=U.registryFor(1).length+1,'one per listed contract plus at most one batch');
 });
+
+test('V5-21. pools that do not report volume/liquidity are left out of a lower-bound sum (never estimated); oldest known pool dates the market',async()=>{
+ F._reset();require('../lib/radar-v2/http')._resetCooldowns();
+ const a=pair(AAVE,'AAVE',{pairAddress:A(0xb1),pairCreatedAt:undefined});
+ const b=pair(AAVE,'AAVE',{pairAddress:A(0xb2),volume:{h24:null},liquidity:{usd:1e6},pairCreatedAt:NOW-400*DAY});
+ const fetcher=providers({explorer:{[AAVE]:{symbol:'AAVE',name:'Aave Token',exchange_rate:'100'}},pairs:[a,b]});
+ const dex=require('../lib/radar-v2/dexscreener');
+ const {rows}=await U.discover({network:'ethereum',fetcher,now:NOW,o:{fetcher},dexTokens:dex.tokens,dexTokenPairs:dex.tokenPairs});
+ const r=rows.find(x=>x.address===AAVE);
+ assert.equal(r.volume24hUsd,1200000,'only the reporting pool counts');assert.equal(r.liquidityUsd,2.5e7+1e6);
+ assert.equal(r.poolCreatedAt,new Date(NOW-400*DAY).toISOString());
+ assert.equal(r.universe.poolsReportingVolume,1);
+});
