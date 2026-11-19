@@ -190,6 +190,8 @@ function providers({explorer={},pairs=[],explorerList=[],calls=[]}={}){
   if(/blockscout\.com\/api\/v2\/tokens\?type=ERC-20/.test(u))return res({items:explorerList});
   const one=/blockscout\.com\/api\/v2\/tokens\/(0x[0-9a-f]{40})$/.exec(u);if(one)return explorer[one[1]]?res(explorer[one[1]]):{ok:false,status:404,headers:new Map(),text:async()=>'{}'};
   if(/explorer\.arc\.io/.test(u))return {ok:false,status:503,headers:new Map(),text:async()=>'{}'};
+  const tp=/api\.dexscreener\.com\/token-pairs\/v1\/(\w+)\/(0x[0-9a-f]{40})$/.exec(u);
+  if(tp)return res(pairs.filter(p=>p.chainId===tp[1]&&(p.baseToken.address===tp[2]||p.quoteToken.address===tp[2])));
   if(/api\.dexscreener\.com\/tokens\/v1\/(\w+)\//.test(u)){const chain=/tokens\/v1\/(\w+)\//.exec(u)[1];return res(pairs.filter(p=>p.chainId===chain));}
   throw Error('unexpected '+u);};
 }
@@ -294,4 +296,20 @@ test('V5-19. a listed contract already in the Radar window is enriched with two-
  assert.equal(rows.some(r=>r.address===AAVE),false,'never duplicated');
  assert.equal(enrich.get(AAVE).identity.status,'TWO_SOURCE_SYMBOL_MATCH');assert.equal(report.enriched,1);
  assert.equal(QX.tierOf(est('ethereum',5,{sourceEvidence:{crossCheck:null},universe:enrich.get(AAVE)})),'ESTABLISHED');
+});
+
+test('V5-20. listed contracts use the complete per-token pool listing (batched lists under-count large tokens); calls stay bounded',async()=>{
+ F._reset();require('../lib/radar-v2/http')._resetCooldowns();
+ const calls=[];
+ // batched endpoint returns only a small pool; the per-token listing returns the deep pools as well
+ const small=pair(AAVE,'AAVE',{pairAddress:A(0xa1),liquidity:{usd:50000},volume:{h1:10,h6:60,h24:300}});
+ const deep=[pair(AAVE,'AAVE',{pairAddress:A(0xa2)}),pair(AAVE,'AAVE',{pairAddress:A(0xa3),liquidity:{usd:5e6}})];
+ const base=providers({calls,explorer:{[AAVE]:{symbol:'AAVE',name:'Aave Token',exchange_rate:'100'}},pairs:[small]});
+ const fetcher=async u=>{u=String(u);if(/token-pairs\/v1/.test(u)){calls.push(u);return {ok:true,status:200,headers:new Map(),text:async()=>JSON.stringify([small,...deep])};}return base(u);};
+ const dex=require('../lib/radar-v2/dexscreener');
+ const {rows,report}=await U.discover({network:'ethereum',fetcher,now:NOW,o:{fetcher},dexTokens:dex.tokens,dexTokenPairs:dex.tokenPairs,maxPairLookups:30});
+ const aave=rows.find(r=>r.address===AAVE);
+ assert.equal(aave.liquidityUsd,50000+2.5e7+5e6,'all base pools of the exact contract are summed');
+ assert.equal(aave.poolCount,3);
+ assert.ok(report.dexCalls<=U.registryFor(1).length+1,'one per listed contract plus at most one batch');
 });
