@@ -203,3 +203,13 @@ test('V5-13. extreme 24h run-ups and crashes are not shown on Robinhood or Pons 
  const out=E.selectDisplay([early('robinhood',1,{change24hPct:-71}),early('robinhood',2)],{network:'robinhood',now:NOW});
  assert.deepEqual(out.map(x=>x.address),[A(2)]);
 });
+
+test('V5-14. a Robinhood monitor row may not carry the ticker of a different factory-verified Pons launch (same chain look-alike)',()=>{
+ const pons=new Map([['gato',new Set([A(900)])]]);
+ const look=early('robinhood',901,{symbol:'GATO',discoveryClass:'MONITOR_ONLY',nearMatch:{passed:[],pending:['POOL_UNDER_24H'],maxDistance:0.3}});
+ const same=early('robinhood',900,{symbol:'GATO',discoveryClass:'MONITOR_ONLY',nearMatch:{passed:[],pending:[],maxDistance:0.3}});
+ const out=E.selectDisplay([look,early('robinhood',902,{symbol:'DCTY'})],{network:'robinhood',now:NOW,foreignTickers:pons});
+ assert.deepEqual(out.map(x=>x.address),[A(902)]);
+ assert.equal(E.selectDisplay([same],{network:'robinhood',now:NOW,foreignTickers:pons}).length,1,'the exact verified contract itself is not a look-alike');
+ assert.equal(out.shortfall.droppedByReason.DUPLICATE_TICKER_CROSS_SECTION,1);
+});
