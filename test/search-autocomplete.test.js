@@ -63,3 +63,11 @@ test('typeahead has an isolated responsive overlay and cannot modify unlock modu
  assert.match(css,/@media\(max-width:560px\)/);
  assert.doesNotMatch(source,/fetch\('\/api\/unlocks/);
 });
+
+test('typeahead results remain tappable below the input, ahead of network filters and following sections',()=>{
+ assert.match(source,/form\\.insertBefore\\(suggestBox,picker\\)/);
+ assert.match(css,/html\\.search-upgraded #search \\.home-search-form > \\.home-search-suggest \\{/);
+ assert.match(css,/position:relative;\\s*top:auto;\\s*left:auto;\\s*right:auto;/);
+ assert.match(css,/grid-column:1 \\/ -1;/);
+ assert.match(css,/touch-action:pan-y;/);
+});
