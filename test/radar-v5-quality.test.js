@@ -213,3 +213,9 @@ test('V5-14. a Robinhood monitor row may not carry the ticker of a different fac
  assert.equal(E.selectDisplay([same],{network:'robinhood',now:NOW,foreignTickers:pons}).length,1,'the exact verified contract itself is not a look-alike');
  assert.equal(out.shortfall.droppedByReason.DUPLICATE_TICKER_CROSS_SECTION,1);
 });
+
+test('V5-15. a contract named after GameStop is an unverified issuer brand, not an early-stage discovery',()=>{
+ const r=D.unverifiedIssuerBrand({name:'GameStop',symbol:'GME'});
+ assert.equal(r.reason,'ISSUER_AFFILIATION_NOT_VERIFIED');
+ assert.equal(D.unverifiedIssuerBrand({name:'Game Stopper Cat',symbol:'GSC'}),null,'only the exact normalized brand name');
+});
