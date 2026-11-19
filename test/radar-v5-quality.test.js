@@ -326,3 +326,16 @@ test('V5-21. pools that do not report volume/liquidity are left out of a lower-b
  assert.equal(r.poolCreatedAt,new Date(NOW-400*DAY).toISOString());
  assert.equal(r.universe.poolsReportingVolume,1);
 });
+
+test('V5-22. explorer artwork for the exact contract is used only from allow-listed image hosts; never from another contract',async()=>{
+ F._reset();require('../lib/radar-v2/http')._resetCooldowns();
+ const noImg=pair(AAVE,'AAVE',{info:{}});
+ const ok=providers({explorer:{[AAVE]:{symbol:'AAVE',name:'Aave Token',exchange_rate:'100',icon_url:'https://assets.coingecko.com/coins/images/12645/small/aave.png'}},pairs:[noImg]});
+ const dex=require('../lib/radar-v2/dexscreener');
+ let {rows}=await U.discover({network:'ethereum',fetcher:ok,now:NOW,o:{fetcher:ok},dexTokens:dex.tokens,dexTokenPairs:dex.tokenPairs});
+ assert.deepEqual(rows.find(r=>r.address===AAVE).logo,{url:'https://assets.coingecko.com/coins/images/12645/small/aave.png',source:'Blockscout token record'});
+ F._reset();
+ const bad=providers({explorer:{[AAVE]:{symbol:'AAVE',name:'Aave Token',exchange_rate:'100',icon_url:'https://evil.example/aave.png'}},pairs:[noImg]});
+ ({rows}=await U.discover({network:'ethereum',fetcher:bad,now:NOW,o:{fetcher:bad},dexTokens:dex.tokens,dexTokenPairs:dex.tokenPairs}));
+ assert.equal(rows.find(r=>r.address===AAVE).logo,null,'non-allow-listed host is dropped, row still evaluated');
+});
