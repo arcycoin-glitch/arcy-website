@@ -42,6 +42,9 @@ test('V4 near-match snapshot retains only contract-matched allowed artwork witho
  const spoof={...s,excluded:[sectionRow(addr,{url:'https://bad.invalid/icon.png',source:'GeckoTerminal'})]};
  const spoofSnap=S.build(await E.run({sections:{ethereum:spoof},now:NOW,env:{},fetcher:async()=>{throw Error('NO_NETWORK')},rpc:{},
   registryDoc:{schema:'arcy-radar-project-registry/1',version:'test',projects:[]},limits:{concurrency:1,pace:false}}),{ethereum:spoof},{now:NOW});
- assert.equal(spoofSnap.sections.ethereum.rows.length,0,'unverified artwork cannot fill a premium watch slot');
- assert.equal(spoofSnap.sections.ethereum.display.shortfall.droppedByReason.TOKEN_ARTWORK_NOT_SOURCED,1);
+ // V5 (#279): an untrusted image is dropped (never shown, never borrowed), but artwork is decorative, not evidence:
+ // the corroborated contract stays and the UI uses its existing placeholder.
+ assert.equal(spoofSnap.sections.ethereum.rows.length,1);
+ assert.equal(spoofSnap.sections.ethereum.rows[0].logo,null,'unverified artwork is never published');
+ assert.equal(spoofSnap.sections.ethereum.rows[0].address,addr);
 });

@@ -29,7 +29,7 @@ async function main(){
  const s=await sections();
  const rpc={arc:require('../search/server/lib/arc-rpc').rpc,robinhood:require('../search/server/lib/robinhood-rpc').rpc,ethereum:require('../search/server/lib/eth').rpc};
  const limits={unregisteredOnchain:Number(process.env.RADAR_V4_ONCHAIN_PER_NETWORK||6),rpcPerNetwork:Number(process.env.RADAR_V4_RPC_PER_NETWORK||900),
-  httpPerRun:Number(process.env.RADAR_V4_HTTP_PER_RUN||200),concurrency:1,maxCandidatesPerNetwork:45,crossCheckFetcher:global.fetch};
+  httpPerRun:Number(process.env.RADAR_V4_HTTP_PER_RUN||200),concurrency:1,maxCandidatesPerNetwork:45,crossCheckFetcher:global.fetch,universeFetcher:global.fetch};
  const result=await engine.run({sections:s.out,rpc,limits,priorRiskLedger:previous?.riskLedger||null});
  const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}));
  snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits};
@@ -66,10 +66,10 @@ async function main(){
    console.log('::notice title=radar-v4 '+n+'::'+esc(JSON.stringify({legacyTop:x.legacyTop,legacyKept:x.legacyKept,status:x.status,carriedForward:x.carriedForward,shown:x.shown,counts:x.counts,categories:x.categories,bySource:x.bySource,history:x.history,shortfall:x.shortfall})).slice(0,3800));
    const d=v=>v===null||v===undefined?'-':Math.round(v);
    const sec=snap.sections[n];
-   console.log('::notice title=radar-v5 '+n+'::'+esc(JSON.stringify({shown:sec.rows.length,byFilter:sec.display?.byFilter||null,byClass:sec.display?.byClass||null,filterB:sec.display?.filterB||null,
-    rows:sec.rows.map(r=>[r.symbol,r.opportunity.discoveryFilter==='B_QUALITY_EXPANSION'?'B':'A',r.opportunity.discoveryClass,r.opportunity.expansion?.segment||'',r.opportunity.qualityRank?.score??'-',
+   console.log('::notice title=radar-v5 '+n+'::'+esc(JSON.stringify({shown:sec.rows.length,byTier:sec.display?.byTier||null,byClass:sec.display?.byClass||null,filterB:sec.display?.filterB?.droppedByReason||null,
+    universe:sec.universe?{explorer:sec.universe.explorer,considered:sec.universe.considered,accepted:sec.universe.accepted,rejected:sec.universe.rejected}:null,
+    rows:sec.rows.map(r=>[r.symbol,r.opportunity.discoveryTier,r.opportunity.discoveryClass,r.opportunity.researchRank?.score??'-',r.opportunity.qualityRank?.score??'-',
      r.change24hPct===null?'-':Math.round(r.change24hPct),r.liquidityUsd===null?'-':Math.round(r.liquidityUsd),r.logo?'logo':'nologo'].join('|'))})).slice(0,3800));
-   console.log('::notice title=radar-v4 rows '+n+'::'+esc(x.rows.map(r=>{const m=JSON.parse(r[3]||'{}');return [r[0],r[1]==='ELIGIBLE'?'E':'W',r[2],'p'+d(m.product)+' t'+d(m.team)+' a'+d(m.adoption)+' c'+d(m.catalyst)+' d'+d(m.divergence)+' m'+d(m.market),r[4]].join('|');}).join(' ; ')).slice(0,3800));
   }
  }
 }

@@ -108,8 +108,12 @@ test('10. coverage counters reconcile with discovery and exclusion stages',async
  const sum=Object.values(f.classes).reduce((a,b)=>a+b,0);assert.equal(sum,f.v4Candidates);
  assert.equal(f.v4Candidates,r.networks.ethereum.all.length);
  assert.equal(Object.values(f.shownByClass).reduce((a,b)=>a+b,0),r.networks.ethereum.displayCandidates.length);
- assert.deepEqual(f.shownByClass,{NEAR_MATCH:1,MONITOR_ONLY:1});
- assert.equal(r.networks.ethereum.display.shortfall.droppedByReason.MATURE_POOL_NOT_EVIDENCED,1,'young pool must not be used to fill the ranking');
+ // V5 (#279): a monitor row needs corroborated exact-contract identity (a logo is no longer accepted as a proxy);
+ // the BELOW_SHORTLIST row was never cross-checked, so it is withheld and counted.
+ assert.deepEqual(f.shownByClass,{NEAR_MATCH:1});
+ // the young (<24h) pool row has no cross-check either: it is withheld at the identity gate before its pool-age gate.
+ assert.equal(r.networks.ethereum.display.shortfall.droppedByReason.EXACT_CONTRACT_IDENTITY_NOT_CORROBORATED,2);
+ assert.ok(!r.networks.ethereum.displayCandidates.some(x=>x.address===A(12)),'young pool must not be used to fill the ranking');
 });
 test('11. V3/V4 fallback cannot leak excluded assets (category, impersonation, wrapped) into near-match rows',async()=>{
  const sec=ethSection({tokens:[],excluded:[
@@ -136,7 +140,8 @@ test('12. near-match layer adds zero network/RPC calls and stays bounded with ov
  assert.ok(r.networks.ethereum.displayCandidates.filter(x=>x.discoveryClass==='MONITOR_ONLY').length<=10);
 });
 test('Ethereum uses remaining slots for adequately observed monitored candidates, not young unverified pools',async()=>{
- const mature=Array.from({length:6},(_,i)=>({...miss(30+i),reason:'INELIGIBLE_AFTER_VERIFICATION',detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:null,poolCreatedAt:iso(5)}));
+ // cross-checked contracts whose volume is far below the floor (monitor class); identity corroborated (V5 rule)
+ const mature=Array.from({length:6},(_,i)=>({...miss(30+i,{volume24hUsd:30000}),reason:'INELIGIBLE_AFTER_VERIFICATION',detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:verified(),poolCreatedAt:iso(5)}));
  const r=await run({ethereum:ethSection({excluded:[{...miss(40,{volume24hUsd:95000}),detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:verified()},...mature]})});
  const shown=r.networks.ethereum.displayCandidates;
  assert.equal(shown[0].discoveryClass,'NEAR_MATCH');assert.equal(shown.filter(x=>x.discoveryClass==='MONITOR_ONLY').length,6);
@@ -199,7 +204,7 @@ test('Arc and Ethereum may populate 10 observation slots, while Robinhood retain
   eligibility:'REVIEW',discoveryClass:'MONITOR_ONLY',reasons:[],marketObserved:true,
   priceUsd:0.1,liquidityUsd:network==='ethereum'?120000:25000,volume24hUsd:network==='ethereum'?26000:2000,
   change24hPct:4,trades24h:36,poolCreatedAt:iso(6),snapshotNow:NOW,
-  artwork:{url:'https://assets.geckoterminal.com/observed-fixture'},nearMatch:{passed:['PRICE_EVIDENCE'],pending:['INDEPENDENT_CROSS_CHECK_PENDING'],maxDistance:0.3},
+  artwork:{url:'https://assets.geckoterminal.com/observed-fixture'},nearMatch:{passed:['PRICE_EVIDENCE'],pending:['INDEPENDENT_CROSS_CHECK_PENDING'],maxDistance:0.3},v3Verification:{crossCheck:'MATCHED'},
   opportunity:{score:20,dimensions:{product:0,team:0,adoption:0}},
   evidenceConfidence:{score:20,missing:['EXIT','SELL']}
   ,...props
@@ -225,7 +230,7 @@ test('Arc and Ethereum may populate 10 observation slots, while Robinhood retain
 });
 
 test('snapshot validator accepts expanded genuine Ethereum monitors but rejects four Robinhood monitors',async()=>{
- const monitored=Array.from({length:8},(_,i)=>({...miss(1100+i),reason:'INELIGIBLE_AFTER_VERIFICATION',detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:null,poolCreatedAt:iso(5)}));
+ const monitored=Array.from({length:8},(_,i)=>({...miss(1100+i,{volume24hUsd:30000}),reason:'INELIGIBLE_AFTER_VERIFICATION',detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:verified(),poolCreatedAt:iso(5)}));
  const sec=ethSection({tokens:[],excluded:monitored});
  const result=await run({ethereum:sec});
  const snapshot=S.build(result,{ethereum:sec},{now:NOW});
