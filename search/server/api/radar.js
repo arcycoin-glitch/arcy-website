@@ -54,7 +54,9 @@ module.exports=async function(req,res){
     v4Reason=v4.reason;
    }else v4Reason=gate.reason;
   }
-  const loaded=await radar.load(network,{env:process.env,rpcUrl});
+  // V5: extra discovery pages only for the builder's legacy read (never a visitor list); credits are reserved by the loader.
+  const expanded=legacyRequested&&req.query?.discovery==='v5-expanded';
+  const loaded=await radar.load(network,{env:process.env,rpcUrl,...(expanded?{expanded:true}:{})});
   const data=legacyRequested?{...loaded,servedList:'LEGACY_V3_REQUESTED'}:v4Reason?V4.markUnavailable(loaded,v4Reason):loaded;
   // Long edge cache protects the provider quota (Demo plan: 10k credits/month). Stale-if-error is bounded in the library.
   const ttl=Math.max(600,Math.floor(Number(process.env.RADAR_V2_TTL_MS||1800000)/1000));

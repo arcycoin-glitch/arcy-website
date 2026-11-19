@@ -33,9 +33,20 @@ test('24h maturity and all network safety floors remain unchanged',()=>{
 });
 test('Arc changes stay inside backend candidate gathering only',()=>{
   const src=fs.readFileSync('lib/radar-v2/index.js','utf8');
-  assert.match(src,/const plan=channelPlan\(network,access\.mode\)/);
-  assert.match(src,/const pages=kind==='top'\?plan\.topPages:1/);
+  assert.match(src,/const plan=channelPlan\(network,access\.mode,\{expanded\}\)/);
+  assert.match(src,/const pages=kind==='top'\?plan\.topPages:kind==='trending'\?plan\.trendingPages:1/);
   assert.match(src,/if\(plan\.arcDemo\)channelStatus\.new='SKIPPED_IN_FAVOR_OF_TOP_PAGE_2'/);
   assert.match(src,/const maturity=D\.rankingMaturityIssue\(view,t,\{strict:true\}\)/);
   assert.match(src,/const dv=D\.diversify\(verified\.map/);
+});
+
+test('V5 builder-only expansion: Ethereum and Arc read extra optional pages, other networks unchanged, default unchanged',()=>{
+  const w=(n,m,x)=>{const p=radar.channelPlan(n,m,{expanded:x});return p.channels.flatMap(([k])=>Array.from({length:k==='top'?p.topPages:k==='trending'?p.trendingPages:1},(_,i)=>k+':'+(i+1)));};
+  assert.deepEqual(w('ethereum','demo',true),['top:1','top:2','trending:1','trending:2','new:1']);
+  assert.deepEqual(w('arc','demo',true),['top:1','top:2','top:3','trending:1']);
+  assert.deepEqual(w('robinhood','demo',true),['top:1','trending:1','new:1']);
+  assert.deepEqual(w('pons','demo',true),['top:1','trending:1','new:1']);
+  for(const n of ['arc','ethereum','robinhood','pons'])assert.deepEqual(w(n,'demo',false),windows(n,'demo'));
+  assert.equal(radar.plannedPages(radar.channelPlan('ethereum','demo',{expanded:true})),5);
+  assert.equal(radar.plannedPages(radar.channelPlan('ethereum','demo')),3);
 });

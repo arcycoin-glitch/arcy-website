@@ -14,7 +14,7 @@ async function sections(fetcher=global.fetch){
  for(const chain of CHAINS){
   const t0=Date.now();
   try{
-   const r=await fetcher(BASE+'/api/search?action=radar&chain='+chain+'&source=legacy-v3',{headers:{referer:BASE+'/',accept:'application/json','sec-fetch-site':'same-origin'},redirect:'error',signal:AbortSignal.timeout(15000)});
+   const r=await fetcher(BASE+'/api/search?action=radar&chain='+chain+'&source=legacy-v3&discovery=v5-expanded',{headers:{referer:BASE+'/',accept:'application/json','sec-fetch-site':'same-origin'},redirect:'error',signal:AbortSignal.timeout(15000)});
    timing[chain]={http:r.status,ms:Date.now()-t0};
    const body=r.ok?await r.json():{ok:false,http:r.status};
    // Circular-input guard: a V4-served section (deployed handler without the legacy-v3 bypass) is never used as engine input.

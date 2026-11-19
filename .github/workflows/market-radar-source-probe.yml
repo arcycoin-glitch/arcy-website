@@ -16,7 +16,7 @@ on:
 jobs:
   live-source-probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,11 +29,15 @@ jobs:
       - name: Radar V2 + V3 discovery unit tests
         run: node --test test/radar-v2.test.js test/radar-v3-discovery.test.js
       - name: Radar Intelligence Engine unit + adversarial tests (#279)
-        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-near-match.test.js test/radar-pre-catalyst.test.js
+        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-near-match.test.js test/radar-v5-quality.test.js test/radar-pre-catalyst.test.js
       - name: Radar near-match before/after measurement on real V3 data (#279, CI only, nothing published)
         run: node scripts/radar-near-match-measure.cjs
         continue-on-error: true
         timeout-minutes: 12
+      - name: Radar V5 quality discovery before/after measurement on real data (#279, CI only, nothing published)
+        run: node scripts/radar-v5-measure.cjs
+        continue-on-error: true
+        timeout-minutes: 18
       - name: Pons V2 production-code chain probe (CI only)
         run: node scripts/probe-pons-v2.cjs
         continue-on-error: true
