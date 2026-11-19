@@ -575,3 +575,18 @@ html.search-upgraded #search .home-search-form{gap:7px;grid-template-rows:auto a
 /* Typeahead may overlap the picker at short viewports; network selection must
    stay clickable so a user can switch chains while suggestions are open. */
 #search .home-network-picker {position:relative;z-index:51}
+
+/* Search suggestions must not sit underneath the network picker or the next
+   page section. Keep them in the form's layout flow at every viewport size.
+   Only the open list adds height; the original page sections are untouched. */
+html.search-upgraded #search .home-search-form > .home-search-suggest {
+ position:relative;
+ top:auto;
+ left:auto;
+ right:auto;
+ z-index:1;
+ grid-column:1 / -1;
+ min-width:0;
+ margin:0;
+ touch-action:pan-y;
+}
