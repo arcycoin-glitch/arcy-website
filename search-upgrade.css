@@ -586,7 +586,12 @@ html.search-upgraded #search .home-search-form > .home-search-suggest {
  right:auto;
  z-index:1;
  grid-column:1 / -1;
+ grid-row:2;
  min-width:0;
  margin:0;
  touch-action:pan-y;
 }
+/* The existing grid pins the network picker to row 2 and the CTA to row 3.
+   Move both down only while suggestions are visible. */
+html.search-upgraded #search .home-search-form.has-visible-suggestions > .home-network-picker {grid-row:3}
+html.search-upgraded #search .home-search-form.has-visible-suggestions > .home-search-submit {grid-row:4}
