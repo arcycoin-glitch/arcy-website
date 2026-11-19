@@ -73,8 +73,10 @@ test('10 monitored rows only when all ten pass; existing critical holds and coll
  assert.equal(filtered.shortfall.droppedByReason.DUPLICATE_TICKER_UNRESOLVED,2);
 });
 test('other networks keep their microcap liquidity/artwork policy; V5 applies only the extreme-move rule there',()=>{
- assert.equal(Q.reason(row(50,{liquidityUsd:0,change24hPct:5,artwork:null}),'robinhood'),null);
- assert.equal(selectDisplay([row(51,{liquidityUsd:0,artwork:null,change24hPct:5})],{network:'robinhood'}).length,1);
+ assert.equal(Q.reason(row(50,{liquidityUsd:0,change24hPct:5,artwork:null,discoveryClass:'QUALIFIED'}),'robinhood'),null);
+ assert.equal(selectDisplay([row(51,{liquidityUsd:0,artwork:null,change24hPct:5,discoveryClass:'QUALIFIED'})],{network:'robinhood'}).length,1);
+ // V5: the weakest class (MONITOR_ONLY) needs sourced artwork on every network.
+ assert.equal(Q.reason(row(53,{change24hPct:5,artwork:null}),'robinhood'),'TOKEN_ARTWORK_NOT_SOURCED');
  // V5 (#279): an observed +300% day is not shown as a research candidate on any network.
  assert.equal(Q.reason(row(52,{liquidityUsd:0,change24hPct:300,artwork:null}),'robinhood'),'ALREADY_SPIKED_24H');
 });

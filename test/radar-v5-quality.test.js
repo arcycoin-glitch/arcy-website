@@ -198,7 +198,8 @@ test('V5-13. extreme 24h run-ups and crashes are not shown on Robinhood or Pons 
   assert.equal(Q.reason({change24hPct:-56},network),'EXTREME_DRAWDOWN_24H',network+' OPHIRIS-like crash');
   assert.equal(Q.reason({change24hPct:238},network),'ALREADY_SPIKED_24H');
   assert.equal(Q.reason({change24hPct:-34},network),null,'ordinary decline remains observable');
-  assert.equal(Q.reason({change24hPct:null,liquidityUsd:0,artwork:null},network),null,'liquidity/artwork rules still Arc/Ethereum only');
+  assert.equal(Q.reason({change24hPct:null,liquidityUsd:0,artwork:null,discoveryClass:'QUALIFIED'},network),null,'microcap liquidity rules still Arc/Ethereum only');
+  assert.equal(Q.reason({change24hPct:1,artwork:null,discoveryClass:'MONITOR_ONLY'},network),'TOKEN_ARTWORK_NOT_SOURCED','BSWQ-like anonymous monitor row');
  }
  const out=E.selectDisplay([early('robinhood',1,{change24hPct:-71}),early('robinhood',2)],{network:'robinhood',now:NOW});
  assert.deepEqual(out.map(x=>x.address),[A(2)]);
