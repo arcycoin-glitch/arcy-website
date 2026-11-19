@@ -68,3 +68,56 @@
 
 ## Rollback
 Revert the merge commit and dispatch `radar-v4-snapshot.yml`. Pre-V5 snapshots stay valid under the V5 validator. A V5 snapshot read by pre-V5 serving code fails validation; that code then keeps its last valid in-memory snapshot or falls back to the marked legacy list.
+
+
+---
+
+# V5 final — three-tier discovery and a separate established universe (2026-11-20)
+
+## Architecture
+- **Tiers.** All three compete for the same ten slots; none is reserved.
+  - **EARLY:** a Filter A row whose pool is under 90 days old or of unknown age.
+  - **GROWTH:** a Filter A row with a pool of 90 days or more, or a measured-size established row (large cap / mature market) that passed the quality-expansion gates.
+  - **ESTABLISHED (A-class):** a maintainer-listed exact contract whose identity is corroborated in this run.
+- **Established universe** (`intel/universe.js`, `established-universe.json`). Runs in the snapshot builder only, never in a visitor request.
+  - **Sources:** the registry of 28 Ethereum governance/protocol contracts (exact addresses) plus the network explorer's token index.
+  - **Market data:** one complete DEX Screener pool listing per listed contract (`/token-pairs/v1`). Batched requests for other contracts.
+  - **Identity:** the explorer token record and DEX Screener must report the same symbol for the exact contract, and the registry's symbol for listed rows.
+  - **Price corroboration:** explorer rate against DEX price, MATCHED within 10 %, CONFLICT at 25 % or more.
+  - **Sums:** liquidity and volume are lower-bound sums over the contract's own base pools.
+  - **Scope:** no Arc or Robinhood listing exists, so nothing crosses chains. Pons is excluded. A Robinhood row never re-lists a Pons launch.
+- **Combined order `arcy-research-rank-1`:**
+  1. class (QUALIFIED > NEAR_MATCH > MONITOR_ONLY);
+  2. for near/monitor rows, distance to the real thresholds;
+  3. V4 verified-evidence tier;
+  4. `arcy-quality-rank-1`;
+  5. the previous V4 keys.
+
+  A corroborated A-class project therefore outranks a weak monitor row, but never a row with verified on-chain evidence. The SCORE column (`arcy-discovery-2`) is unchanged.
+- **The four PR #295 weaknesses, fixed with tests:**
+  1. Filter B accepts only a reviewed list of non-blocking "not yet verified" reasons. Any other code blocks.
+  2. Artwork is never a gate or a score input. Monitor rows need corroborated exact-contract identity instead. A missing logo uses the existing placeholder.
+  3. Organic growth separates reviewed on-chain buyers, provider unique wallets, and transaction-count proxies (capped at 30 % of the component).
+  4. Carried-forward expansion rows are re-checked against every gate they publish: category, tier, reviewed reasons, class, price, liquidity, volume, turnover, trades, price move, pool age, conflict, identity and quality.
+- **Fixed during real-data runs:**
+  - The Arc explorer had shared the Blockscout provider id, so an Arc outage blocked Ethereum reads. It now has its own id.
+  - The batched DEX Screener list under-counted large tokens (AAVE, LINK and UNI read as "below $200k").
+  - A single pool without a volume figure voided the whole sum.
+  - The deepest pool sometimes had no creation time; pool age now falls back to the oldest known pool.
+  - Robinhood "GME" ("Greatest Meme Ever") used a stock ticker on the tokenized-equity chain.
+
+## Real data (Preview snapshot builder on Production legacy-V3 input, CI, 2026-11-19 23:30–23:45 UTC)
+| Network | Early | Growth | A-class Established | Total | Missing slots | Shortage cause |
+|---|---:|---:|---:|---:|---:|---|
+| Arc | 4 | 0 | 0 | 4 | 6 | ~20 of 47 window contracts already spiked, 8 look-alike tickers, 6 too far from floors, 4 no market, AF hold. Universe: Arc explorer answers HTTP 403 to CI; no verified Arc registry |
+| Ethereum | 2 | 1 | 4–6 (CVX, UNI, MKR, LINK, AAVE, CRV) | 7–9 | 1–3 | Of 28 listed: 1 never matched, 15 below DEX activity floors (COMP, ENS, GRT, BAL, YFI, SUSHI, RPL, SNX, SAFE, GNO, LPT, IMX, ZRX), 11–12 below Quality 40 (LDO, ENA, SKY, ONDO, PENDLE, ETHFI, 1INCH, EIGEN, MORPHO; no unique-participant or development evidence) |
+| Robinhood | 5 | 4 | 0 | 9 | 1 | 4 tokenized equities (never used), MOW risk hold, identity-uncorroborated monitors, 9 look-alike tickers. Robinhood explorer index answers HTTP 403 to CI |
+| Pons | 2 | 0 | n/a | 2 | 8 | Factory reports 730 launches in the last 500k blocks, but only 2 of the 40 checked provider tokens are factory launches with a market above the Pons floors (others: ~$3k liquidity, under $300 volume) |
+
+- Every listed Ethereum contract matched on price (0.0–4.4 % gap between the explorer and DEX Screener). No identity mismatch was observed.
+- **Cost per build:** about 57 explorer requests (Ethereum identity lookups), 28 DEX Screener per-token requests plus one batch, 2 builder cross-checks. RPC is unchanged. Engine time 145–175 s, out of request.
+
+## What would raise coverage (not done)
+- **Arc / Robinhood:** an explorer token index reachable from the builder, or a verified registry of Arc-native and Robinhood-native projects with official contract evidence.
+- **Ethereum Quality:** unique-participant data (on-chain buyer review for listed contracts) and official repository/development evidence for registry projects. Today these score 0 instead of being assumed.
+- **Pons:** this is a market fact, not a filter defect. More factory launches need real DEX markets.

@@ -277,6 +277,7 @@ test('V5-16. a Robinhood monitor row may not carry the ticker of a different fac
 test('V5-17. a contract named after GameStop is an unverified issuer brand, not a discovery',()=>{
  assert.equal(D.unverifiedIssuerBrand({name:'GameStop',symbol:'GME'}).reason,'ISSUER_AFFILIATION_NOT_VERIFIED');
  assert.equal(D.unverifiedIssuerBrand({name:'Game Stopper Cat',symbol:'GSC'}),null);
+ assert.equal(D.unverifiedIssuerBrand({name:'Greatest Meme Ever',symbol:'GME'}).reason,'ISSUER_AFFILIATION_NOT_VERIFIED','stock ticker on the tokenized-equity chain');
 });
 
 test('V5-18. registry: exact lowercase contracts, unique, Ethereum only; every listing is categorised as established (never early)',()=>{
