@@ -312,6 +312,7 @@
  input.setAttribute('aria-expanded','false');
  let suggestGeneration=0,suggestTimer=null,suggestController=null;
  const hideSuggestions=()=>{
+  form.classList.remove('has-visible-suggestions');
   suggestBox.hidden=true;suggestBox.replaceChildren();
   input.setAttribute('aria-expanded','false');
  };
@@ -355,7 +356,7 @@
   heading.textContent='SUGGESTED TOKENS · SELECT TO RESEARCH';
   suggestBox.append(heading);
   for(const item of rows)suggestBox.append(addCandidate(item,item.network));
-  suggestBox.hidden=false;input.setAttribute('aria-expanded','true');
+  suggestBox.hidden=false;form.classList.add('has-visible-suggestions');input.setAttribute('aria-expanded','true');
  }
  function scheduleSuggestions(){
   cancelSuggestions();hideSuggestions();
