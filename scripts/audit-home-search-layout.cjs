@@ -73,6 +73,16 @@ const ready=async()=>{
    assert(exceptions.length===0,'JS console exception '+width+' '+exceptions.join(' | '));
    if(width===390){
     await page.locator('#homeSearchQuery').fill('PONS');
+    const suggestion=page.locator('a.home-search-result[href="/search/token/robinhood/'+PONS+'"]');
+    await suggestion.first().waitFor({timeout:11000});
+    const dropdownLayout=await page.evaluate(()=>{
+     const list=document.getElementById('homeSearchSuggestions').getBoundingClientRect();
+     const picker=document.getElementById('homeNetworkPicker').getBoundingClientRect();
+     return {listBottom:list.bottom,pickerTop:picker.top};
+    });
+    assert(dropdownLayout.listBottom<=dropdownLayout.pickerTop+1,
+     'mobile typeahead is covered by network filters '+JSON.stringify(dropdownLayout));
+    await suggestion.first().click({trial:true,timeout:5000});
     await page.locator('.home-search-submit').click();
     await page.locator('a.home-search-result[href="/search/token/robinhood/'+PONS+'"]').first().waitFor({timeout:11000});
     await page.locator('.home-network-option[data-network="ethereum"]').click();
