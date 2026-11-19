@@ -72,9 +72,11 @@ test('10 monitored rows only when all ten pass; existing critical holds and coll
  assert.equal(filtered.shortfall.droppedByReason.SOURCE_CONFLICT_V3,1);
  assert.equal(filtered.shortfall.droppedByReason.DUPLICATE_TICKER_UNRESOLVED,2);
 });
-test('other networks stay on their existing independent display policy',()=>{
- assert.equal(Q.reason(row(50,{liquidityUsd:0,change24hPct:300,artwork:null}),'robinhood'),null);
- assert.equal(selectDisplay([row(51,{liquidityUsd:0,artwork:null,change24hPct:300})],{network:'robinhood'}).length,1);
+test('other networks keep their microcap liquidity/artwork policy; V5 applies only the extreme-move rule there',()=>{
+ assert.equal(Q.reason(row(50,{liquidityUsd:0,change24hPct:5,artwork:null}),'robinhood'),null);
+ assert.equal(selectDisplay([row(51,{liquidityUsd:0,artwork:null,change24hPct:5})],{network:'robinhood'}).length,1);
+ // V5 (#279): an observed +300% day is not shown as a research candidate on any network.
+ assert.equal(Q.reason(row(52,{liquidityUsd:0,change24hPct:300,artwork:null}),'robinhood'),'ALREADY_SPIKED_24H');
 });
 
 test('source outages cannot carry forward previously exposed +238% zero-liquidity monitored assets',()=>{

@@ -190,3 +190,16 @@ test('V5-12. Filter B never runs on Pons, and Robinhood keeps its Filter A list 
  const rh=E.selectDisplay([...Array.from({length:10},(_,i)=>early('robinhood',200+i)),est('robinhood',300)],{network:'robinhood',now:NOW});
  assert.equal(rh.length,10);assert.ok(rh.every(x=>x.discoveryFilter==='A_EARLY_DISCOVERY'));
 });
+
+test('V5-13. extreme 24h run-ups and crashes are not shown on Robinhood or Pons either; ordinary moves stay; other microcap rules unchanged',()=>{
+ const Q=require('../lib/radar-v2/intel/discovery-quality');
+ for(const network of ['robinhood','pons']){
+  assert.equal(Q.reason({change24hPct:-71},network),'EXTREME_DRAWDOWN_24H',network+' WOOD-like crash');
+  assert.equal(Q.reason({change24hPct:-56},network),'EXTREME_DRAWDOWN_24H',network+' OPHIRIS-like crash');
+  assert.equal(Q.reason({change24hPct:238},network),'ALREADY_SPIKED_24H');
+  assert.equal(Q.reason({change24hPct:-34},network),null,'ordinary decline remains observable');
+  assert.equal(Q.reason({change24hPct:null,liquidityUsd:0,artwork:null},network),null,'liquidity/artwork rules still Arc/Ethereum only');
+ }
+ const out=E.selectDisplay([early('robinhood',1,{change24hPct:-71}),early('robinhood',2)],{network:'robinhood',now:NOW});
+ assert.deepEqual(out.map(x=>x.address),[A(2)]);
+});
