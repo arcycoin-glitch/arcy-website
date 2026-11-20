@@ -1,771 +1,900 @@
 {
- "schema": "arcy-radar-established-universe/1",
- "version": "2026-11-20.1",
- "policy": "Maintainer-listed canonical ERC-20 contracts of established projects, by exact chainId + contract address. A listing is a RESEARCH CANDIDATE, not an inclusion: at build time a row is accepted only if two independent indexers (Blockscout token record and DEX Screener base token) report the expected symbol for this exact contract, and every Radar market, category and risk gate passes. A listing is not owner approval, not a safety verdict and not a return forecast. Symbols are labels only; identity is the address. V6 (#279): `official` lists the project's official domains and the pages on them to check; the snapshot builder fetches those pages every run and grants official contract identity only when a page on an official domain publishes this exact contract (dated, re-checked each run). Domains are maintainer-reviewed claims; the address match is live evidence.",
- "networks": {
-  "1": [
-   {
-    "address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
-    "symbol": "AAVE",
-    "project": "Aave",
-    "kind": "LENDING_GOVERNANCE",
-    "official": {
-     "domains": [
-      "aave.com"
-     ],
-     "pages": [
-      "https://aave.com/",
-      "https://aave.com/docs/resources/addresses"
-     ],
-     "github": "aave"
-    }
-   },
-   {
-    "address": "0x514910771af9ca656af840dff83e8264ecf986ca",
-    "symbol": "LINK",
-    "project": "Chainlink",
-    "kind": "ORACLE_NETWORK",
-    "official": {
-     "domains": [
-      "chain.link"
-     ],
-     "pages": [
-      "https://chain.link/",
-      "https://docs.chain.link/resources/link-token-contracts"
-     ],
-     "github": "smartcontractkit"
-    }
-   },
-   {
-    "address": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
-    "symbol": "UNI",
-    "project": "Uniswap",
-    "kind": "DEX_GOVERNANCE",
-    "official": {
-     "domains": [
-      "uniswap.org"
-     ],
-     "pages": [
-      "https://uniswap.org/",
-      "https://developers.uniswap.org/"
-     ],
-     "github": "Uniswap"
-    }
-   },
-   {
-    "address": "0x5a98fcbea516cf06857215779fd812ca3bef1b32",
-    "symbol": "LDO",
-    "project": "Lido",
-    "kind": "LIQUID_STAKING_GOVERNANCE",
-    "official": {
-     "domains": [
-      "lido.fi"
-     ],
-     "pages": [
-      "https://lido.fi/",
-      "https://docs.lido.fi/deployed-contracts/"
-     ],
-     "github": "lidofinance"
-    }
-   },
-   {
-    "address": "0x57e114b691db790c35207b2e685d4a43181e6061",
-    "symbol": "ENA",
-    "project": "Ethena",
-    "kind": "SYNTHETIC_DOLLAR_GOVERNANCE",
-    "official": {
-     "domains": [
-      "ethena.fi"
-     ],
-     "pages": [
-      "https://ethena.fi/",
-      "https://docs.ethena.fi/solution-design/key-addresses"
-     ],
-     "github": "ethena-labs"
-    }
-   },
-   {
-    "address": "0xd533a949740bb3306d119cc777fa900ba034cd52",
-    "symbol": "CRV",
-    "project": "Curve",
-    "kind": "DEX_GOVERNANCE",
-    "official": {
-     "domains": [
-      "curve.finance",
-      "curve.fi"
-     ],
-     "pages": [
-      "https://www.curve.finance/",
-      "https://docs.curve.finance/references/deployed-contracts/"
-     ],
-     "github": "curvefi"
-    }
-   },
-   {
-    "address": "0x56072c95faa701256059aa122697b133aded9279",
-    "symbol": "SKY",
-    "project": "Sky (formerly Maker)",
-    "kind": "STABLECOIN_PROTOCOL_GOVERNANCE",
-    "official": {
-     "domains": [
-      "sky.money"
-     ],
-     "pages": [
-      "https://sky.money/",
-      "https://developers.sky.money/"
-     ],
-     "github": "sky-ecosystem"
-    }
-   },
-   {
-    "address": "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
-    "symbol": "MKR",
-    "project": "Maker",
-    "kind": "STABLECOIN_PROTOCOL_GOVERNANCE",
-    "official": {
-     "domains": [
-      "sky.money",
-      "makerdao.com"
-     ],
-     "pages": [
-      "https://sky.money/",
-      "https://developers.sky.money/"
-     ],
-     "github": "makerdao"
-    }
-   },
-   {
-    "address": "0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3",
-    "symbol": "ONDO",
-    "project": "Ondo",
-    "kind": "RWA_PROTOCOL_GOVERNANCE",
-    "official": {
-     "domains": [
-      "ondo.finance",
-      "ondo.foundation"
-     ],
-     "pages": [
-      "https://ondo.finance/",
-      "https://docs.ondo.finance/"
-     ]
-    }
-   },
-   {
-    "address": "0xc00e94cb662c3520282e6f5717214004a7f26888",
-    "symbol": "COMP",
-    "project": "Compound",
-    "kind": "LENDING_GOVERNANCE",
-    "official": {
-     "domains": [
-      "compound.finance"
-     ],
-     "pages": [
-      "https://compound.finance/",
-      "https://docs.compound.finance/"
-     ],
-     "github": "compound-finance"
-    }
-   },
-   {
-    "address": "0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f",
-    "symbol": "SNX",
-    "project": "Synthetix",
-    "kind": "DERIVATIVES_PROTOCOL",
-    "official": {
-     "domains": [
-      "synthetix.io"
-     ],
-     "pages": [
-      "https://synthetix.io/",
-      "https://docs.synthetix.io/"
-     ],
-     "github": "Synthetixio"
-    }
-   },
-   {
-    "address": "0xc18360217d8f7ab5e7c516566761ea12ce7f9d72",
-    "symbol": "ENS",
-    "project": "Ethereum Name Service",
-    "kind": "NAMING_GOVERNANCE",
-    "official": {
-     "domains": [
-      "ens.domains"
-     ],
-     "pages": [
-      "https://ens.domains/",
-      "https://docs.ens.domains/dao/token"
-     ],
-     "github": "ensdomains"
-    }
-   },
-   {
-    "address": "0x808507121b80c02388fad14726482e061b8da827",
-    "symbol": "PENDLE",
-    "project": "Pendle",
-    "kind": "YIELD_PROTOCOL",
-    "official": {
-     "domains": [
-      "pendle.finance"
-     ],
-     "pages": [
-      "https://www.pendle.finance/",
-      "https://docs.pendle.finance/Developers/Deployments"
-     ],
-     "github": "pendle-finance"
-    }
-   },
-   {
-    "address": "0xfe0c30065b384f05761f15d0cc899d4f9f9cc0eb",
-    "symbol": "ETHFI",
-    "project": "ether.fi",
-    "kind": "RESTAKING_GOVERNANCE",
-    "official": {
-     "domains": [
-      "ether.fi"
-     ],
-     "pages": [
-      "https://www.ether.fi/",
-      "https://docs.ether.fi/"
-     ],
-     "github": "etherfi-protocol"
-    }
-   },
-   {
-    "address": "0xc944e90c64b2c07662a292be6244bdf05cda44a7",
-    "symbol": "GRT",
-    "project": "The Graph",
-    "kind": "INDEXING_NETWORK",
-    "official": {
-     "domains": [
-      "thegraph.com"
-     ],
-     "pages": [
-      "https://thegraph.com/",
-      "https://thegraph.com/docs/en/contracts/"
-     ],
-     "github": "graphprotocol"
-    }
-   },
-   {
-    "address": "0x111111111117dc0aa78b770fa6a738034120c302",
-    "symbol": "1INCH",
-    "project": "1inch",
-    "kind": "DEX_AGGREGATOR_GOVERNANCE",
-    "official": {
-     "domains": [
-      "1inch.io",
-      "1inch.com"
-     ],
-     "pages": [
-      "https://1inch.io/",
-      "https://docs.1inch.io/"
-     ],
-     "github": "1inch"
-    }
-   },
-   {
-    "address": "0xba100000625a3754423978a60c9317c58a424e3d",
-    "symbol": "BAL",
-    "project": "Balancer",
-    "kind": "DEX_GOVERNANCE",
-    "official": {
-     "domains": [
-      "balancer.fi"
-     ],
-     "pages": [
-      "https://balancer.fi/",
-      "https://docs.balancer.fi/"
-     ],
-     "github": "balancer"
-    }
-   },
-   {
-    "address": "0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
-    "symbol": "YFI",
-    "project": "Yearn",
-    "kind": "YIELD_PROTOCOL",
-    "official": {
-     "domains": [
-      "yearn.fi"
-     ],
-     "pages": [
-      "https://yearn.fi/",
-      "https://docs.yearn.fi/developers/addresses/core-contracts"
-     ],
-     "github": "yearn"
-    }
-   },
-   {
-    "address": "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2",
-    "symbol": "SUSHI",
-    "project": "SushiSwap",
-    "kind": "DEX_GOVERNANCE",
-    "official": {
-     "domains": [
-      "sushi.com"
-     ],
-     "pages": [
-      "https://www.sushi.com/",
-      "https://docs.sushi.com/"
-     ],
-     "github": "sushiswap"
-    }
-   },
-   {
-    "address": "0xd33526068d116ce69f19a9ee46f0bd304f21a51f",
-    "symbol": "RPL",
-    "project": "Rocket Pool",
-    "kind": "LIQUID_STAKING_PROTOCOL",
-    "official": {
-     "domains": [
-      "rocketpool.net"
-     ],
-     "pages": [
-      "https://rocketpool.net/",
-      "https://docs.rocketpool.net/"
-     ],
-     "github": "rocket-pool"
-    }
-   },
-   {
-    "address": "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
-    "symbol": "CVX",
-    "project": "Convex",
-    "kind": "YIELD_PROTOCOL",
-    "official": {
-     "domains": [
-      "convexfinance.com"
-     ],
-     "pages": [
-      "https://www.convexfinance.com/",
-      "https://docs.convexfinance.com/convexfinance/faq/contract-addresses"
-     ],
-     "github": "convex-eth"
-    }
-   },
-   {
-    "address": "0xec53bf9167f50cdeb3ae105f56099aaab9061f83",
-    "symbol": "EIGEN",
-    "project": "EigenLayer",
-    "kind": "RESTAKING_PROTOCOL",
-    "official": {
-     "domains": [
-      "eigenfoundation.org",
-      "eigenlayer.xyz",
-      "eigencloud.xyz"
-     ],
-     "pages": [
-      "https://www.eigenfoundation.org/",
-      "https://docs.eigenlayer.xyz/"
-     ],
-     "github": "Layr-Labs"
-    }
-   },
-   {
-    "address": "0x5afe3855358e112b5647b952709e6165e1c1eeee",
-    "symbol": "SAFE",
-    "project": "Safe",
-    "kind": "WALLET_INFRASTRUCTURE",
-    "official": {
-     "domains": [
-      "safe.global"
-     ],
-     "pages": [
-      "https://safe.global/",
-      "https://docs.safe.global/"
-     ],
-     "github": "safe-global"
-    }
-   },
-   {
-    "address": "0x6810e776880c02933d47db1b9fc05908e5386b96",
-    "symbol": "GNO",
-    "project": "Gnosis",
-    "kind": "INFRASTRUCTURE_GOVERNANCE",
-    "official": {
-     "domains": [
-      "gnosis.io",
-      "gnosischain.com"
-     ],
-     "pages": [
-      "https://www.gnosis.io/",
-      "https://docs.gnosischain.com/about/tokens/gno"
-     ],
-     "github": "gnosischain"
-    }
-   },
-   {
-    "address": "0x58b6a8a3302369daec383334672404ee733ab239",
-    "symbol": "LPT",
-    "project": "Livepeer",
-    "kind": "VIDEO_INFRASTRUCTURE",
-    "official": {
-     "domains": [
-      "livepeer.org"
-     ],
-     "pages": [
-      "https://www.livepeer.org/",
-      "https://docs.livepeer.org/references/contract-addresses"
-     ],
-     "github": "livepeer"
-    }
-   },
-   {
-    "address": "0xf57e7e7c23978c3caec3c3548e3d615c346e79ff",
-    "symbol": "IMX",
-    "project": "Immutable",
-    "kind": "GAMING_INFRASTRUCTURE",
-    "official": {
-     "domains": [
-      "immutable.com"
-     ],
-     "pages": [
-      "https://www.immutable.com/",
-      "https://docs.immutable.com/"
-     ],
-     "github": "immutable"
-    }
-   },
-   {
-    "address": "0x58d97b57bb95320f9a05dc918aef65434969c2b2",
-    "symbol": "MORPHO",
-    "project": "Morpho",
-    "kind": "LENDING_PROTOCOL",
-    "official": {
-     "domains": [
-      "morpho.org"
-     ],
-     "pages": [
-      "https://morpho.org/",
-      "https://docs.morpho.org/get-started/resources/addresses/"
-     ],
-     "github": "morpho-org"
-    }
-   },
-   {
-    "address": "0xe41d2489571d322189246dafa5ebde1f4699f498",
-    "symbol": "ZRX",
-    "project": "0x Protocol",
-    "kind": "DEX_INFRASTRUCTURE",
-    "official": {
-     "domains": [
-      "0x.org"
-     ],
-     "pages": [
-      "https://0x.org/",
-      "https://0x.org/docs"
-     ],
-     "github": "0xProject"
-    }
-   },
-   {
-    "address": "0x455e53cbb86018ac2b8092fdcd39d8444affc3f6",
-    "symbol": "POL",
-    "project": "Polygon",
-    "kind": "L2_INFRASTRUCTURE",
-    "official": {
-     "domains": [
-      "polygon.technology"
-     ],
-     "pages": [
-      "https://polygon.technology/",
-      "https://docs.polygon.technology/"
-     ],
-     "github": "0xPolygon"
-    }
-   },
-   {
-    "address": "0x6dea81c8171d0ba574754ef6f8b412f2ed88c54d",
-    "symbol": "LQTY",
-    "project": "Liquity",
-    "kind": "LENDING_GOVERNANCE",
-    "official": {
-     "domains": [
-      "liquity.org"
-     ],
-     "pages": [
-      "https://www.liquity.org/",
-      "https://docs.liquity.org/"
-     ],
-     "github": "liquity"
-    }
-   },
-   {
-    "address": "0x320623b8e4ff03373931769a31fc52a4e78b5d70",
-    "symbol": "RSR",
-    "project": "Reserve",
-    "kind": "STABLECOIN_PROTOCOL_GOVERNANCE",
-    "official": {
-     "domains": [
-      "reserve.org"
-     ],
-     "pages": [
-      "https://reserve.org/",
-      "https://reserve.org/protocol/"
-     ],
-     "github": "reserve-protocol"
-    }
-   },
-   {
-    "address": "0x0b38210ea11411557c13457d4da7dc6ea731b88a",
-    "symbol": "API3",
-    "project": "API3",
-    "kind": "ORACLE",
-    "official": {
-     "domains": [
-      "api3.org"
-     ],
-     "pages": [
-      "https://api3.org/",
-      "https://docs.api3.org/"
-     ],
-     "github": "api3dao"
-    }
-   },
-   {
-    "address": "0x04fa0d235c4abf4bcf4787af4cf447de572ef828",
-    "symbol": "UMA",
-    "project": "UMA",
-    "kind": "ORACLE",
-    "official": {
-     "domains": [
-      "uma.xyz"
-     ],
-     "pages": [
-      "https://uma.xyz/",
-      "https://docs.uma.xyz/"
-     ],
-     "github": "UMAprotocol"
-    }
-   },
-   {
-    "address": "0xbb0e17ef65f82ab018d8edd776e8dd940327b28b",
-    "symbol": "AXS",
-    "project": "Axie Infinity",
-    "kind": "GAMING",
-    "official": {
-     "domains": [
-      "axieinfinity.com"
-     ],
-     "pages": [
-      "https://axieinfinity.com/",
-      "https://whitepaper.axieinfinity.com/"
-     ],
-     "github": "axieinfinity"
-    }
-   },
-   {
-    "address": "0x3845badade8e6dff049820680d1f14bd3903a5d0",
-    "symbol": "SAND",
-    "project": "The Sandbox",
-    "kind": "GAMING",
-    "official": {
-     "domains": [
-      "sandbox.game"
-     ],
-     "pages": [
-      "https://www.sandbox.game/",
-      "https://sandboxgame.gitbook.io/"
-     ],
-     "github": "thesandboxgame"
-    }
-   },
-   {
-    "address": "0x0f5d2fb29fb7d3cfee444a200298f468908cc942",
-    "symbol": "MANA",
-    "project": "Decentraland",
-    "kind": "GAMING",
-    "official": {
-     "domains": [
-      "decentraland.org"
-     ],
-     "pages": [
-      "https://decentraland.org/",
-      "https://docs.decentraland.org/"
-     ],
-     "github": "decentraland"
-    }
-   },
-   {
-    "address": "0x4d224452801aced8b2f0aebe155379bb5d594381",
-    "symbol": "APE",
-    "project": "ApeCoin DAO",
-    "kind": "ECOSYSTEM_GOVERNANCE",
-    "official": {
-     "domains": [
-      "apecoin.com"
-     ],
-     "pages": [
-      "https://apecoin.com/",
-      "https://apecoin.com/about"
-     ]
-    }
-   },
-   {
-    "address": "0x5283d291dbcf85356a21ba090e6db59121208b44",
-    "symbol": "BLUR",
-    "project": "Blur",
-    "kind": "NFT_MARKETPLACE_GOVERNANCE",
-    "official": {
-     "domains": [
-      "blur.io"
-     ],
-     "pages": [
-      "https://blur.io/",
-      "https://docs.blur.foundation/"
-     ]
-    }
-   },
-   {
-    "address": "0x9d65ff81a3c488d585bbfb0bfe3c7707c7917f54",
-    "symbol": "SSV",
-    "project": "SSV Network",
-    "kind": "STAKING_INFRASTRUCTURE",
-    "official": {
-     "domains": [
-      "ssv.network"
-     ],
-     "pages": [
-      "https://ssv.network/",
-      "https://docs.ssv.network/"
-     ],
-     "github": "ssvlabs"
-    }
-   },
-   {
-    "address": "0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202",
-    "symbol": "KNC",
-    "project": "KyberSwap",
-    "kind": "DEX_GOVERNANCE",
-    "official": {
-     "domains": [
-      "kyberswap.com",
-      "kyber.network"
-     ],
-     "pages": [
-      "https://kyberswap.com/",
-      "https://docs.kyberswap.com/"
-     ],
-     "github": "KyberNetwork"
-    }
-   },
-   {
-    "address": "0xaf5191b0de278c7286d6c7cc6ab6bb8a73ba2cd6",
-    "symbol": "STG",
-    "project": "Stargate",
-    "kind": "BRIDGE_GOVERNANCE",
-    "official": {
-     "domains": [
-      "stargate.finance"
-     ],
-     "pages": [
-      "https://stargate.finance/",
-      "https://stargateprotocol.gitbook.io/"
-     ],
-     "github": "stargate-protocol"
-    }
-   },
-   {
-    "address": "0xdbdb4d16eda451d0503b854cf79d55697f90c8df",
-    "symbol": "ALCX",
-    "project": "Alchemix",
-    "kind": "LENDING_GOVERNANCE",
-    "official": {
-     "domains": [
-      "alchemix.fi"
-     ],
-     "pages": [
-      "https://alchemix.fi/",
-      "https://docs.alchemix.fi/"
-     ],
-     "github": "alchemix-finance"
-    }
-   },
-   {
-    "address": "0xbbbbca6a901c926f240b89eacb641d8aec7aeafd",
-    "symbol": "LRC",
-    "project": "Loopring",
-    "kind": "L2_INFRASTRUCTURE",
-    "official": {
-     "domains": [
-      "loopring.io",
-      "loopring.org"
-     ],
-     "pages": [
-      "https://loopring.io/",
-      "https://loopring.org/"
-     ],
-     "github": "Loopring"
-    }
-   },
-   {
-    "address": "0x8290333cef9e6d528dd5618fb97a76f268f3edd4",
-    "symbol": "ANKR",
-    "project": "Ankr",
-    "kind": "STAKING_INFRASTRUCTURE",
-    "official": {
-     "domains": [
-      "ankr.com"
-     ],
-     "pages": [
-      "https://www.ankr.com/",
-      "https://www.ankr.com/docs/"
-     ],
-     "github": "Ankr-network"
-    }
-   },
-   {
-    "address": "0x69af81e73a73b40adf4f3d4223cd9b1ece623074",
-    "symbol": "MASK",
-    "project": "Mask Network",
-    "kind": "SOCIAL",
-    "official": {
-     "domains": [
-      "mask.io"
-     ],
-     "pages": [
-      "https://mask.io/",
-      "https://docs.mask.io/"
-     ],
-     "github": "DimensionDev"
-    }
-   },
-   {
-    "address": "0x18aaa7115705e8be94bffebde57af9bfc265b998",
-    "symbol": "AUDIO",
-    "project": "Audius",
-    "kind": "MEDIA",
-    "official": {
-     "domains": [
-      "audius.co",
-      "audius.org"
-     ],
-     "pages": [
-      "https://audius.co/",
-      "https://docs.audius.org/"
-     ],
-     "github": "AudiusProject"
-    }
-   },
-   {
-    "address": "0x0d8775f648430679a709e98d2b0cb6250d2887ef",
-    "symbol": "BAT",
-    "project": "Basic Attention Token",
-    "kind": "ADVERTISING",
-    "official": {
-     "domains": [
-      "basicattentiontoken.org",
-      "brave.com"
-     ],
-     "pages": [
-      "https://basicattentiontoken.org/",
-      "https://brave.com/"
-     ],
-     "github": "brave"
-    }
-   }
-  ],
-  "5042": [],
-  "4663": []
- }
+  "schema": "arcy-radar-established-universe/1",
+  "version": "2026-11-20.2",
+  "policy": "Maintainer-listed canonical ERC-20 contracts of established projects, by exact chainId + contract address. A listing is a RESEARCH CANDIDATE, not an inclusion: at build time a row is accepted only if two independent indexers (Blockscout token record and DEX Screener base token) report the expected symbol for this exact contract, and every Radar market, category and risk gate passes. A listing is not owner approval, not a safety verdict and not a return forecast. Symbols are labels only; identity is the address. V6 (#279): `official` lists the project's official domains and the pages on them to check; the snapshot builder fetches those pages every run and grants official contract identity only when a page on an official domain publishes this exact contract (dated, re-checked each run). Domains are maintainer-reviewed claims; the address match is live evidence.",
+  "networks": {
+    "1": [
+      {
+        "address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+        "symbol": "AAVE",
+        "project": "Aave",
+        "kind": "LENDING_GOVERNANCE",
+        "official": {
+          "domains": [
+            "aave.com"
+          ],
+          "pages": [
+            "https://aave.com/",
+            "https://aave.com/docs/resources/addresses"
+          ],
+          "github": "aave"
+        }
+      },
+      {
+        "address": "0x514910771af9ca656af840dff83e8264ecf986ca",
+        "symbol": "LINK",
+        "project": "Chainlink",
+        "kind": "ORACLE_NETWORK",
+        "official": {
+          "domains": [
+            "chain.link"
+          ],
+          "pages": [
+            "https://chain.link/",
+            "https://docs.chain.link/resources/link-token-contracts"
+          ],
+          "github": "smartcontractkit"
+        }
+      },
+      {
+        "address": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+        "symbol": "UNI",
+        "project": "Uniswap",
+        "kind": "DEX_GOVERNANCE",
+        "official": {
+          "domains": [
+            "uniswap.org"
+          ],
+          "pages": [
+            "https://uniswap.org/",
+            "https://developers.uniswap.org/"
+          ],
+          "github": "Uniswap"
+        }
+      },
+      {
+        "address": "0x5a98fcbea516cf06857215779fd812ca3bef1b32",
+        "symbol": "LDO",
+        "project": "Lido",
+        "kind": "LIQUID_STAKING_GOVERNANCE",
+        "official": {
+          "domains": [
+            "lido.fi"
+          ],
+          "pages": [
+            "https://lido.fi/",
+            "https://docs.lido.fi/deployed-contracts/"
+          ],
+          "github": "lidofinance"
+        }
+      },
+      {
+        "address": "0x57e114b691db790c35207b2e685d4a43181e6061",
+        "symbol": "ENA",
+        "project": "Ethena",
+        "kind": "SYNTHETIC_DOLLAR_GOVERNANCE",
+        "official": {
+          "domains": [
+            "ethena.fi"
+          ],
+          "pages": [
+            "https://ethena.fi/",
+            "https://docs.ethena.fi/solution-design/key-addresses"
+          ],
+          "github": "ethena-labs"
+        }
+      },
+      {
+        "address": "0xd533a949740bb3306d119cc777fa900ba034cd52",
+        "symbol": "CRV",
+        "project": "Curve",
+        "kind": "DEX_GOVERNANCE",
+        "official": {
+          "domains": [
+            "curve.finance",
+            "curve.fi"
+          ],
+          "pages": [
+            "https://www.curve.finance/",
+            "https://docs.curve.finance/references/deployed-contracts/"
+          ],
+          "github": "curvefi"
+        }
+      },
+      {
+        "address": "0x56072c95faa701256059aa122697b133aded9279",
+        "symbol": "SKY",
+        "project": "Sky (formerly Maker)",
+        "kind": "STABLECOIN_PROTOCOL_GOVERNANCE",
+        "official": {
+          "domains": [
+            "sky.money"
+          ],
+          "pages": [
+            "https://sky.money/",
+            "https://developers.sky.money/"
+          ],
+          "github": "sky-ecosystem"
+        }
+      },
+      {
+        "address": "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
+        "symbol": "MKR",
+        "project": "Maker",
+        "kind": "STABLECOIN_PROTOCOL_GOVERNANCE",
+        "official": {
+          "domains": [
+            "sky.money",
+            "makerdao.com"
+          ],
+          "pages": [
+            "https://sky.money/",
+            "https://developers.sky.money/"
+          ],
+          "github": "makerdao"
+        }
+      },
+      {
+        "address": "0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3",
+        "symbol": "ONDO",
+        "project": "Ondo",
+        "kind": "RWA_PROTOCOL_GOVERNANCE",
+        "official": {
+          "domains": [
+            "ondo.finance",
+            "ondo.foundation"
+          ],
+          "pages": [
+            "https://ondo.finance/",
+            "https://docs.ondo.finance/"
+          ]
+        }
+      },
+      {
+        "address": "0xc00e94cb662c3520282e6f5717214004a7f26888",
+        "symbol": "COMP",
+        "project": "Compound",
+        "kind": "LENDING_GOVERNANCE",
+        "official": {
+          "domains": [
+            "compound.finance"
+          ],
+          "pages": [
+            "https://compound.finance/",
+            "https://docs.compound.finance/"
+          ],
+          "github": "compound-finance"
+        }
+      },
+      {
+        "address": "0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f",
+        "symbol": "SNX",
+        "project": "Synthetix",
+        "kind": "DERIVATIVES_PROTOCOL",
+        "official": {
+          "domains": [
+            "synthetix.io"
+          ],
+          "pages": [
+            "https://synthetix.io/",
+            "https://docs.synthetix.io/"
+          ],
+          "github": "Synthetixio"
+        }
+      },
+      {
+        "address": "0xc18360217d8f7ab5e7c516566761ea12ce7f9d72",
+        "symbol": "ENS",
+        "project": "Ethereum Name Service",
+        "kind": "NAMING_GOVERNANCE",
+        "official": {
+          "domains": [
+            "ens.domains"
+          ],
+          "pages": [
+            "https://ens.domains/",
+            "https://docs.ens.domains/dao/token"
+          ],
+          "github": "ensdomains"
+        }
+      },
+      {
+        "address": "0x808507121b80c02388fad14726482e061b8da827",
+        "symbol": "PENDLE",
+        "project": "Pendle",
+        "kind": "YIELD_PROTOCOL",
+        "official": {
+          "domains": [
+            "pendle.finance"
+          ],
+          "pages": [
+            "https://www.pendle.finance/",
+            "https://docs.pendle.finance/Developers/Deployments"
+          ],
+          "github": "pendle-finance"
+        }
+      },
+      {
+        "address": "0xfe0c30065b384f05761f15d0cc899d4f9f9cc0eb",
+        "symbol": "ETHFI",
+        "project": "ether.fi",
+        "kind": "RESTAKING_GOVERNANCE",
+        "official": {
+          "domains": [
+            "ether.fi"
+          ],
+          "pages": [
+            "https://www.ether.fi/",
+            "https://docs.ether.fi/"
+          ],
+          "github": "etherfi-protocol"
+        }
+      },
+      {
+        "address": "0xc944e90c64b2c07662a292be6244bdf05cda44a7",
+        "symbol": "GRT",
+        "project": "The Graph",
+        "kind": "INDEXING_NETWORK",
+        "official": {
+          "domains": [
+            "thegraph.com"
+          ],
+          "pages": [
+            "https://thegraph.com/",
+            "https://thegraph.com/docs/en/contracts/"
+          ],
+          "github": "graphprotocol"
+        }
+      },
+      {
+        "address": "0x111111111117dc0aa78b770fa6a738034120c302",
+        "symbol": "1INCH",
+        "project": "1inch",
+        "kind": "DEX_AGGREGATOR_GOVERNANCE",
+        "official": {
+          "domains": [
+            "1inch.io",
+            "1inch.com"
+          ],
+          "pages": [
+            "https://1inch.io/",
+            "https://docs.1inch.io/"
+          ],
+          "github": "1inch"
+        }
+      },
+      {
+        "address": "0xba100000625a3754423978a60c9317c58a424e3d",
+        "symbol": "BAL",
+        "project": "Balancer",
+        "kind": "DEX_GOVERNANCE",
+        "official": {
+          "domains": [
+            "balancer.fi"
+          ],
+          "pages": [
+            "https://balancer.fi/",
+            "https://docs.balancer.fi/"
+          ],
+          "github": "balancer"
+        }
+      },
+      {
+        "address": "0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+        "symbol": "YFI",
+        "project": "Yearn",
+        "kind": "YIELD_PROTOCOL",
+        "official": {
+          "domains": [
+            "yearn.fi"
+          ],
+          "pages": [
+            "https://yearn.fi/",
+            "https://docs.yearn.fi/developers/addresses/core-contracts"
+          ],
+          "github": "yearn"
+        }
+      },
+      {
+        "address": "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2",
+        "symbol": "SUSHI",
+        "project": "SushiSwap",
+        "kind": "DEX_GOVERNANCE",
+        "official": {
+          "domains": [
+            "sushi.com"
+          ],
+          "pages": [
+            "https://www.sushi.com/",
+            "https://docs.sushi.com/"
+          ],
+          "github": "sushiswap"
+        }
+      },
+      {
+        "address": "0xd33526068d116ce69f19a9ee46f0bd304f21a51f",
+        "symbol": "RPL",
+        "project": "Rocket Pool",
+        "kind": "LIQUID_STAKING_PROTOCOL",
+        "official": {
+          "domains": [
+            "rocketpool.net"
+          ],
+          "pages": [
+            "https://rocketpool.net/",
+            "https://docs.rocketpool.net/"
+          ],
+          "github": "rocket-pool"
+        }
+      },
+      {
+        "address": "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
+        "symbol": "CVX",
+        "project": "Convex",
+        "kind": "YIELD_PROTOCOL",
+        "official": {
+          "domains": [
+            "convexfinance.com"
+          ],
+          "pages": [
+            "https://www.convexfinance.com/",
+            "https://docs.convexfinance.com/convexfinance/faq/contract-addresses"
+          ],
+          "github": "convex-eth"
+        }
+      },
+      {
+        "address": "0xec53bf9167f50cdeb3ae105f56099aaab9061f83",
+        "symbol": "EIGEN",
+        "project": "EigenLayer",
+        "kind": "RESTAKING_PROTOCOL",
+        "official": {
+          "domains": [
+            "eigenfoundation.org",
+            "eigenlayer.xyz",
+            "eigencloud.xyz"
+          ],
+          "pages": [
+            "https://www.eigenfoundation.org/",
+            "https://docs.eigenlayer.xyz/"
+          ],
+          "github": "Layr-Labs"
+        }
+      },
+      {
+        "address": "0x5afe3855358e112b5647b952709e6165e1c1eeee",
+        "symbol": "SAFE",
+        "project": "Safe",
+        "kind": "WALLET_INFRASTRUCTURE",
+        "official": {
+          "domains": [
+            "safe.global"
+          ],
+          "pages": [
+            "https://safe.global/",
+            "https://docs.safe.global/"
+          ],
+          "github": "safe-global"
+        }
+      },
+      {
+        "address": "0x6810e776880c02933d47db1b9fc05908e5386b96",
+        "symbol": "GNO",
+        "project": "Gnosis",
+        "kind": "INFRASTRUCTURE_GOVERNANCE",
+        "official": {
+          "domains": [
+            "gnosis.io",
+            "gnosischain.com"
+          ],
+          "pages": [
+            "https://www.gnosis.io/",
+            "https://docs.gnosischain.com/about/tokens/gno"
+          ],
+          "github": "gnosischain"
+        }
+      },
+      {
+        "address": "0x58b6a8a3302369daec383334672404ee733ab239",
+        "symbol": "LPT",
+        "project": "Livepeer",
+        "kind": "VIDEO_INFRASTRUCTURE",
+        "official": {
+          "domains": [
+            "livepeer.org"
+          ],
+          "pages": [
+            "https://www.livepeer.org/",
+            "https://docs.livepeer.org/references/contract-addresses"
+          ],
+          "github": "livepeer"
+        }
+      },
+      {
+        "address": "0xf57e7e7c23978c3caec3c3548e3d615c346e79ff",
+        "symbol": "IMX",
+        "project": "Immutable",
+        "kind": "GAMING_INFRASTRUCTURE",
+        "official": {
+          "domains": [
+            "immutable.com"
+          ],
+          "pages": [
+            "https://www.immutable.com/",
+            "https://docs.immutable.com/"
+          ],
+          "github": "immutable"
+        }
+      },
+      {
+        "address": "0x58d97b57bb95320f9a05dc918aef65434969c2b2",
+        "symbol": "MORPHO",
+        "project": "Morpho",
+        "kind": "LENDING_PROTOCOL",
+        "official": {
+          "domains": [
+            "morpho.org"
+          ],
+          "pages": [
+            "https://morpho.org/",
+            "https://docs.morpho.org/get-started/resources/addresses/"
+          ],
+          "github": "morpho-org"
+        }
+      },
+      {
+        "address": "0xe41d2489571d322189246dafa5ebde1f4699f498",
+        "symbol": "ZRX",
+        "project": "0x Protocol",
+        "kind": "DEX_INFRASTRUCTURE",
+        "official": {
+          "domains": [
+            "0x.org"
+          ],
+          "pages": [
+            "https://0x.org/",
+            "https://0x.org/docs"
+          ],
+          "github": "0xProject"
+        }
+      },
+      {
+        "address": "0x455e53cbb86018ac2b8092fdcd39d8444affc3f6",
+        "symbol": "POL",
+        "project": "Polygon",
+        "kind": "L2_INFRASTRUCTURE",
+        "official": {
+          "domains": [
+            "polygon.technology"
+          ],
+          "pages": [
+            "https://polygon.technology/",
+            "https://docs.polygon.technology/"
+          ],
+          "github": "0xPolygon"
+        }
+      },
+      {
+        "address": "0x6dea81c8171d0ba574754ef6f8b412f2ed88c54d",
+        "symbol": "LQTY",
+        "project": "Liquity",
+        "kind": "LENDING_GOVERNANCE",
+        "official": {
+          "domains": [
+            "liquity.org"
+          ],
+          "pages": [
+            "https://www.liquity.org/",
+            "https://docs.liquity.org/"
+          ],
+          "github": "liquity"
+        }
+      },
+      {
+        "address": "0x320623b8e4ff03373931769a31fc52a4e78b5d70",
+        "symbol": "RSR",
+        "project": "Reserve",
+        "kind": "STABLECOIN_PROTOCOL_GOVERNANCE",
+        "official": {
+          "domains": [
+            "reserve.org"
+          ],
+          "pages": [
+            "https://reserve.org/",
+            "https://reserve.org/protocol/"
+          ],
+          "github": "reserve-protocol"
+        }
+      },
+      {
+        "address": "0x0b38210ea11411557c13457d4da7dc6ea731b88a",
+        "symbol": "API3",
+        "project": "API3",
+        "kind": "ORACLE",
+        "official": {
+          "domains": [
+            "api3.org"
+          ],
+          "pages": [
+            "https://api3.org/",
+            "https://docs.api3.org/"
+          ],
+          "github": "api3dao"
+        }
+      },
+      {
+        "address": "0x04fa0d235c4abf4bcf4787af4cf447de572ef828",
+        "symbol": "UMA",
+        "project": "UMA",
+        "kind": "ORACLE",
+        "official": {
+          "domains": [
+            "uma.xyz"
+          ],
+          "pages": [
+            "https://uma.xyz/",
+            "https://docs.uma.xyz/"
+          ],
+          "github": "UMAprotocol"
+        }
+      },
+      {
+        "address": "0xbb0e17ef65f82ab018d8edd776e8dd940327b28b",
+        "symbol": "AXS",
+        "project": "Axie Infinity",
+        "kind": "GAMING",
+        "official": {
+          "domains": [
+            "axieinfinity.com"
+          ],
+          "pages": [
+            "https://axieinfinity.com/",
+            "https://whitepaper.axieinfinity.com/"
+          ],
+          "github": "axieinfinity"
+        }
+      },
+      {
+        "address": "0x3845badade8e6dff049820680d1f14bd3903a5d0",
+        "symbol": "SAND",
+        "project": "The Sandbox",
+        "kind": "GAMING",
+        "official": {
+          "domains": [
+            "sandbox.game"
+          ],
+          "pages": [
+            "https://www.sandbox.game/",
+            "https://sandboxgame.gitbook.io/"
+          ],
+          "github": "thesandboxgame"
+        }
+      },
+      {
+        "address": "0x0f5d2fb29fb7d3cfee444a200298f468908cc942",
+        "symbol": "MANA",
+        "project": "Decentraland",
+        "kind": "GAMING",
+        "official": {
+          "domains": [
+            "decentraland.org"
+          ],
+          "pages": [
+            "https://decentraland.org/",
+            "https://docs.decentraland.org/"
+          ],
+          "github": "decentraland"
+        }
+      },
+      {
+        "address": "0x4d224452801aced8b2f0aebe155379bb5d594381",
+        "symbol": "APE",
+        "project": "ApeCoin DAO",
+        "kind": "ECOSYSTEM_GOVERNANCE",
+        "official": {
+          "domains": [
+            "apecoin.com"
+          ],
+          "pages": [
+            "https://apecoin.com/",
+            "https://apecoin.com/about"
+          ]
+        }
+      },
+      {
+        "address": "0x5283d291dbcf85356a21ba090e6db59121208b44",
+        "symbol": "BLUR",
+        "project": "Blur",
+        "kind": "NFT_MARKETPLACE_GOVERNANCE",
+        "official": {
+          "domains": [
+            "blur.io"
+          ],
+          "pages": [
+            "https://blur.io/",
+            "https://docs.blur.foundation/"
+          ]
+        }
+      },
+      {
+        "address": "0x9d65ff81a3c488d585bbfb0bfe3c7707c7917f54",
+        "symbol": "SSV",
+        "project": "SSV Network",
+        "kind": "STAKING_INFRASTRUCTURE",
+        "official": {
+          "domains": [
+            "ssv.network"
+          ],
+          "pages": [
+            "https://ssv.network/",
+            "https://docs.ssv.network/"
+          ],
+          "github": "ssvlabs"
+        }
+      },
+      {
+        "address": "0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202",
+        "symbol": "KNC",
+        "project": "KyberSwap",
+        "kind": "DEX_GOVERNANCE",
+        "official": {
+          "domains": [
+            "kyberswap.com",
+            "kyber.network"
+          ],
+          "pages": [
+            "https://kyberswap.com/",
+            "https://docs.kyberswap.com/"
+          ],
+          "github": "KyberNetwork"
+        }
+      },
+      {
+        "address": "0xaf5191b0de278c7286d6c7cc6ab6bb8a73ba2cd6",
+        "symbol": "STG",
+        "project": "Stargate",
+        "kind": "BRIDGE_GOVERNANCE",
+        "official": {
+          "domains": [
+            "stargate.finance"
+          ],
+          "pages": [
+            "https://stargate.finance/",
+            "https://stargateprotocol.gitbook.io/"
+          ],
+          "github": "stargate-protocol"
+        }
+      },
+      {
+        "address": "0xdbdb4d16eda451d0503b854cf79d55697f90c8df",
+        "symbol": "ALCX",
+        "project": "Alchemix",
+        "kind": "LENDING_GOVERNANCE",
+        "official": {
+          "domains": [
+            "alchemix.fi"
+          ],
+          "pages": [
+            "https://alchemix.fi/",
+            "https://docs.alchemix.fi/"
+          ],
+          "github": "alchemix-finance"
+        }
+      },
+      {
+        "address": "0xbbbbca6a901c926f240b89eacb641d8aec7aeafd",
+        "symbol": "LRC",
+        "project": "Loopring",
+        "kind": "L2_INFRASTRUCTURE",
+        "official": {
+          "domains": [
+            "loopring.io",
+            "loopring.org"
+          ],
+          "pages": [
+            "https://loopring.io/",
+            "https://loopring.org/"
+          ],
+          "github": "Loopring"
+        }
+      },
+      {
+        "address": "0x8290333cef9e6d528dd5618fb97a76f268f3edd4",
+        "symbol": "ANKR",
+        "project": "Ankr",
+        "kind": "STAKING_INFRASTRUCTURE",
+        "official": {
+          "domains": [
+            "ankr.com"
+          ],
+          "pages": [
+            "https://www.ankr.com/",
+            "https://www.ankr.com/docs/"
+          ],
+          "github": "Ankr-network"
+        }
+      },
+      {
+        "address": "0x69af81e73a73b40adf4f3d4223cd9b1ece623074",
+        "symbol": "MASK",
+        "project": "Mask Network",
+        "kind": "SOCIAL",
+        "official": {
+          "domains": [
+            "mask.io"
+          ],
+          "pages": [
+            "https://mask.io/",
+            "https://docs.mask.io/"
+          ],
+          "github": "DimensionDev"
+        }
+      },
+      {
+        "address": "0x18aaa7115705e8be94bffebde57af9bfc265b998",
+        "symbol": "AUDIO",
+        "project": "Audius",
+        "kind": "MEDIA",
+        "official": {
+          "domains": [
+            "audius.co",
+            "audius.org"
+          ],
+          "pages": [
+            "https://audius.co/",
+            "https://docs.audius.org/"
+          ],
+          "github": "AudiusProject"
+        }
+      },
+      {
+        "address": "0x0d8775f648430679a709e98d2b0cb6250d2887ef",
+        "symbol": "BAT",
+        "project": "Basic Attention Token",
+        "kind": "ADVERTISING",
+        "official": {
+          "domains": [
+            "basicattentiontoken.org",
+            "brave.com"
+          ],
+          "pages": [
+            "https://basicattentiontoken.org/",
+            "https://brave.com/"
+          ],
+          "github": "brave"
+        }
+      }
+    ],
+    "4663": [
+      {
+        "address": "0x18e674231a58c239dc7daedcffe15ec3a24cff5c",
+        "symbol": "HOOKR",
+        "project": "Hookr.fun",
+        "kind": "HOOK_INFRASTRUCTURE",
+        "official": {
+          "domains": [
+            "hookr.fun"
+          ],
+          "pages": [
+            "https://hookr.fun/docs/reference/contracts-and-addresses",
+            "https://hookr.fun/"
+          ],
+          "github": null
+        }
+      },
+      {
+        "address": "0x000de658153f47f23e92973c8eb1e89762703676",
+        "symbol": "FOBO",
+        "project": "FOBO",
+        "kind": "RH_LAUNCHPAD",
+        "official": {
+          "domains": [
+            "fobo.fun"
+          ],
+          "pages": [
+            "https://docs.fobo.fun/fobo-token",
+            "https://docs.fobo.fun/contracts"
+          ],
+          "github": null
+        }
+      },
+      {
+        "address": "0xe934e36a439c94017b64a3fece66af12099abf50",
+        "symbol": "STONKBROKER",
+        "project": "StonkBrokers",
+        "kind": "RH_LAUNCHPAD_INFRASTRUCTURE",
+        "official": {
+          "domains": [
+            "stonkbrokers.io"
+          ],
+          "pages": [
+            "https://stonkbrokers.io/docs/stonkbroker-token",
+            "https://stonkbrokers.io/docs"
+          ],
+          "github": null
+        }
+      },
+      {
+        "address": "0x2d8d6f4a93acd7a916a5a654ec8b690ba3b3eadd",
+        "symbol": "STATICS",
+        "project": "Statics Protocol",
+        "kind": "RH_DEFI_PROTOCOL",
+        "official": {
+          "domains": [
+            "staticsprotocol.com"
+          ],
+          "pages": [
+            "https://docs.staticsprotocol.com/",
+            "https://staticsprotocol.com/"
+          ],
+          "github": "EqualFiLabs"
+        }
+      }
+    ],
+    "5042": [
+      {
+        "address": "0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+        "symbol": "TOLLY",
+        "project": "Tolly Labs",
+        "kind": "ARC_LAUNCHPAD_PROTOCOL",
+        "official": {
+          "domains": [
+            "tollylabs.com"
+          ],
+          "pages": [
+            "https://tollylabs.com/guide",
+            "https://tollylabs.com/"
+          ],
+          "github": null
+        }
+      },
+      {
+        "address": "0xece5ca8bf9220718e5727754026757512212cb3c",
+        "symbol": "ARGUS",
+        "project": "Argus",
+        "kind": "ARC_TRADING_PLATFORM",
+        "official": {
+          "domains": [
+            "argus.world"
+          ],
+          "pages": [
+            "https://argus.world/token/0xeCe5cA8bf9220718E5727754026757512212cb3c",
+            "https://argus.world/docs"
+          ],
+          "github": null
+        }
+      },
+      {
+        "address": "0x4f7dc89dc44ad08c20d9680d2ee9cfad69bfda55",
+        "symbol": "MALA",
+        "project": "Malachite",
+        "kind": "ARC_COMMUNITY_TOKEN",
+        "official": {
+          "domains": [
+            "malachitearc.com"
+          ],
+          "pages": [
+            "https://www.malachitearc.com/"
+          ],
+          "github": null
+        }
+      },
+      {
+        "address": "0x29316db42ff99f640fd4d1bb169635b6318cd430",
+        "symbol": "ARCANUS",
+        "project": "Arcanus",
+        "kind": "ARC_PRIVACY_PROTOCOL",
+        "official": {
+          "domains": [
+            "arcanus.network"
+          ],
+          "pages": [
+            "https://arcanus.network/docs",
+            "https://arcanus.network/"
+          ],
+          "github": "ArcanusNetwork"
+        }
+      }
+    ]
+  }
 }
