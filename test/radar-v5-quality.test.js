@@ -362,8 +362,8 @@ test('V5-23. observed 2026-11-20 Robinhood rows: WANTED (+1280%), RUGPULL (+575%
  const wanted=early('robinhood',951,{symbol:'WANTED',change24hPct:1280.3,discoveryClass:'MONITOR_ONLY',poolCreatedAt:young,artwork:null,v3Verification:null,sourceEvidence:null});
  const maxx=early('robinhood',952,{symbol:'Maxxing',change24hPct:47.9,discoveryClass:'MONITOR_ONLY',poolCreatedAt:young,artwork:null,v3Verification:null,sourceEvidence:null,universe:null});
  assert.equal(Q.reason(wanted,'robinhood'),'ALREADY_SPIKED_24H');
- assert.equal(Q.reason(maxx,'robinhood'),'EXACT_CONTRACT_IDENTITY_NOT_CORROBORATED');
- assert.equal(Q.reason({...maxx,v3Verification:{crossCheck:'MATCHED'}},'robinhood'),'MATURE_POOL_NOT_EVIDENCED','even corroborated, a <24h pool is not a monitor candidate');
+ assert.equal(Q.reason(maxx,'robinhood'),'PRELIMINARY_WATCH_NOT_MAIN_RANKING');
+ assert.equal(Q.reason({...maxx,v3Verification:{crossCheck:'MATCHED'}},'robinhood'),'PRELIMINARY_WATCH_NOT_MAIN_RANKING','even corroborated, no MONITOR_ONLY row can enter the premium shortlist');
  assert.equal(C.classify({chainId:4663,address:A(953),symbol:'RUGPULL',name:"It's a fucking rugpull"},'robinhood').category,'SELF_DECLARED_RUG_OR_SCAM');
  assert.equal(C.classify({chainId:1,address:A(954),symbol:'HPOT',name:'Honey Pot Inu'},'ethereum').category,'SELF_DECLARED_RUG_OR_SCAM');
  assert.equal(C.classify({chainId:1,address:A(955),symbol:'DRUG',name:'Drugstore'},'ethereum').category,'EARLY_STAGE_CANDIDATE','literal words only, no substring matches');
