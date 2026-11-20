@@ -1,9 +1,9 @@
-name: Radar V4 opportunity snapshot (bounded, read-only sources)
+name: Radar continuous research snapshot (V4–V7, read-only sources)
 # Issue #279. Computes the ARCY Opportunity Intelligence V4 ranking OUTSIDE visitor requests and publishes a validated JSON
 # snapshot to a data-only branch. Vercel deployments are disabled for both data branches in vercel.json.
 #  - schedule / manual run on main  -> branch `radar-v4-snapshots` (read by Production/Preview when the V4 flag is ON)
 #  - pull_request touching Radar V4 -> branch `radar-v4-snapshots-preview` (safe test ref; Production never reads it)
-# Normal fast-forward commits (no force push); a bounded index keeps the last 42 revisions. One run at a time per ref.
+# Normal fast-forward commits (no force push); a bounded index keeps the last 84 revisions. One run at a time per ref.
 on:
   # Publish the first Production data-only snapshot immediately after the reviewed V4 PR is merged;
   # the Production feature flag remains OFF until a separate verified release decision.
@@ -15,7 +15,8 @@ on:
       - 'scripts/radar-v4-snapshot.cjs'
       - '.github/workflows/radar-v4-snapshot.yml'
   schedule:
-    - cron: '41 */4 * * *'
+    # Every two hours: independent of visits, serialized, bounded and fail-closed.
+    - cron: '41 */2 * * *'
   workflow_dispatch:
   pull_request:
     paths:
