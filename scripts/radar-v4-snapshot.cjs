@@ -86,6 +86,12 @@ limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].c
   process.exitCode=3;return;}
  fs.mkdirSync(path.dirname(out),{recursive:true});
  fs.writeFileSync(out,JSON.stringify(snap));
+ // Dual-score SHADOW (feature flag RADAR_DUAL_SCORE_SHADOW, default OFF). Separate file, never served, never read by the site;
+ // any failure is logged and cannot affect the snapshot that was already validated and written above.
+ {const DS=require('../lib/radar-v2/intel/dual-score');
+  if(DS.enabled(process.env)){try{const sh=DS.shadow(result,{now:Date.now()});fs.writeFileSync(path.join(path.dirname(out),'dual-score-shadow.json'),JSON.stringify(sh));
+   console.log('::notice title=radar dual-score shadow::'+JSON.stringify(Object.fromEntries(Object.entries(sh.networks).map(([n,x])=>[n,{pool:x.eligiblePool,overlap:x.overlapWithProduction,coverage:x.meanCoverage,top:(x.dualTop10||[]).map(r=>r.symbol+':'+r.opportunity+'/'+r.quality).join(' ')}]))).slice(0,3800));}
+   catch(e){console.warn('dual-score shadow skipped: '+(e?.message||e));}}}
  if(memPath){fs.mkdirSync(path.dirname(memPath),{recursive:true});fs.writeFileSync(memPath,JSON.stringify(result.marketMemory));}
  if(ohPath){fs.mkdirSync(path.dirname(ohPath),{recursive:true});fs.writeFileSync(ohPath,JSON.stringify(OH.pruneCache(ohCache)));}
  if(ofPath){const keep=Object.entries(ofCache).filter(([,e])=>Date.now()-Date.parse(e.at)<=7*86400000).slice(-400);fs.mkdirSync(path.dirname(ofPath),{recursive:true});fs.writeFileSync(ofPath,JSON.stringify({version:'arcy-official-cache-1',entries:Object.fromEntries(keep)}));}
