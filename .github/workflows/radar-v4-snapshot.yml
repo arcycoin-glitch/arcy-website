@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      DATA_REF: ${{ github.event_name == 'pull_request' && 'radar-v4-snapshots-preview' || 'radar-v4-snapshots' }}
+      DATA_REF: ${{ github.event_name == 'pull_request' && 'radar-v4-snapshots-preview-p0' || 'radar-v4-snapshots' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -51,7 +51,11 @@ jobs:
             git clone -q --depth 60 --branch "$DATA_REF" "$url" snap
             echo "FIRST_RUN=0" >> "$GITHUB_ENV"
           else
-            mkdir snap && cd snap && git init -q -b "$DATA_REF" && git remote add origin "$url"
+            # An isolated P0 Preview cannot consume V5's incompatible shared
+            # Preview schema. Bootstrap from Production's audited risk ledger;
+            # never start with an empty risk ledger or overwrite V5's test data.
+            git clone -q --depth 60 --branch radar-v4-snapshots "$url" snap
+            (cd snap && git checkout -q -b "$DATA_REF")
             echo "FIRST_RUN=1" >> "$GITHUB_ENV"
           fi
       - name: Build and validate snapshot
