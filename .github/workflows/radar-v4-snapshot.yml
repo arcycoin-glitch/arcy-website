@@ -64,6 +64,8 @@ jobs:
           # V6 compression: provider OHLCV via an operator-configured CoinGecko Demo key when present; the keyless tier only on
           # non-scheduled runs (manual / pull request / merge), never on the cron schedule.
           COINGECKO_DEMO_API_KEY: ${{ secrets.COINGECKO_DEMO_API_KEY }}
+          # V8: site structure and legacy engine remain unchanged; only this snapshot ranking uses the custom top-ten filter.
+          RADAR_CUSTOM_FILTER_ENABLED: 'true'
           RADAR_OHLCV_KEYLESS: ${{ github.event_name != 'schedule' && '1' || '' }}
         run: node scripts/radar-v4-snapshot.cjs --previous snap/radar-v4/snapshot.json --out snap/radar-v4/snapshot.json --index snap/radar-v4/index.json --responses snap/radar-v4/served --memory snap/radar-v4/market-memory.json --history hist/radar-v4/snapshot.json --ohlcv-cache snap/radar-v4/ohlcv-cache.json --official-cache snap/radar-v4/official-cache.json
       - name: Commit (fast-forward only, never force)
