@@ -242,6 +242,10 @@ test('F-16. market sources that disagree (>3x on liquidity or volume) never yiel
  // when the lower provider value is below the research floor, the row is WATCH_ONLY even if the higher value clears it
  const thin=E.selectDisplay([{...ok,liquidityUsd:400000,marketSpread:{liquidityUsd:{min:9000,max:400000,ratio:44.4,providers:2}}}],{network:'robinhood',now:NOW});
  assert.equal(thin.length,0);assert.ok(thin.watch[0].reasons.includes('LIQUIDITY_BELOW_RESEARCH_FLOOR'));
+ // observed 2026-11-20 (Ethereum AAVE): the second provider indexes only part of the pools (V3: PARTIAL_COVERAGE) — a lower bound,
+ // not a contradiction: the floor uses the reported depth, but the spread still blocks QUALIFIED
+ const part=E.selectDisplay([{...ok,marketSpread:{liquidityUsd:{min:9000,max:1418484,ratio:157.6,providers:2,partialCoverage:true}}}],{network:'robinhood',now:NOW});
+ assert.equal(part[0].researchTier,'RESEARCH_CANDIDATE');assert.deepEqual(part[0].researchTierReasons,['MARKET_SOURCES_DISAGREE_LIQUIDITY']);
  // providers that agree change nothing
  const agree=E.selectDisplay([{...ok,marketSpread:{liquidityUsd:{min:1.3e6,max:1.42e6,ratio:1.09,providers:2}}}],{network:'robinhood',now:NOW});
  assert.equal(agree[0].researchTier,'RESEARCH_QUALIFIED');
