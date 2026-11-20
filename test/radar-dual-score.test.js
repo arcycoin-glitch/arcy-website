@@ -112,3 +112,10 @@ test('DS-7: four networks independently; Pons/Robinhood duplicates impossible in
  const partial=DS.shadow({networks:{arc:nets.arc}},{now:NOW});
  assert.equal(partial.networks.pons.status,'NO_RANKED_POOL');
 });
+
+test('DS-8: a collapsed token is not an early-discovery opportunity',()=>{
+ const crash=DS.opportunity(r(700,'pons',4663,{change24hPct:-95.2,liquidityUsd:1900,history:{observations:4,flags:['COLLAPSE_FROM_PEAK_OBSERVED'],drawdownFromPeakPct:-96}}));
+ const ok=DS.opportunity(r(701,'pons',4663));
+ assert.ok(crash.components.earlyDiscovery.evidence.some(e=>e.startsWith('COLLAPSED_NOT_EARLY')));
+ assert.ok(crash.components.earlyDiscovery.score<ok.components.earlyDiscovery.score);
+});
