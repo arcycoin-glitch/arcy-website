@@ -118,4 +118,7 @@ test('DS-8: a collapsed token is not an early-discovery opportunity',()=>{
  const ok=DS.opportunity(r(701,'pons',4663));
  assert.ok(crash.components.earlyDiscovery.evidence.some(e=>e.startsWith('COLLAPSED_NOT_EARLY')));
  assert.ok(crash.components.earlyDiscovery.score<ok.components.earlyDiscovery.score);
+ // recovered 24h change but a -95% day in market memory (JAMS-like) is still a collapse
+ const mem=DS.opportunity(r(702,'pons',4663,{change24hPct:8,history:{observations:4,flags:['EXTREME_24H_DROP_OBSERVED'],worst24hPct:-95.2}}));
+ assert.ok(mem.components.earlyDiscovery.evidence.some(e=>e.startsWith('COLLAPSED_NOT_EARLY')));
 });
