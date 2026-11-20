@@ -44,7 +44,7 @@ async function main(){
  const s=await sections();
  const rpc={arc:require('../search/server/lib/arc-rpc').rpc,robinhood:require('../search/server/lib/robinhood-rpc').rpc,ethereum:require('../search/server/lib/eth').rpc};
  const limits={unregisteredOnchain:Number(process.env.RADAR_V4_ONCHAIN_PER_NETWORK||6),rpcPerNetwork:Number(process.env.RADAR_V4_RPC_PER_NETWORK||900),
-  httpPerRun:Number(process.env.RADAR_V4_HTTP_PER_RUN||200),concurrency:1,maxCandidatesPerNetwork:45,crossCheckFetcher:global.fetch,universeFetcher:global.fetch};
+  httpPerRun:Number(process.env.RADAR_V4_HTTP_PER_RUN||200),concurrency:1,maxCandidatesPerNetwork:60,crossCheckFetcher:global.fetch,universeFetcher:global.fetch};
  // V6: provider OHLCV (bounded, cached on the data branch) for the compression engine, and live re-check of reviewed official pages.
  const OH=require('./radar-ohlcv.cjs'),ohPath=arg('ohlcv-cache');
  let ohCache=OH.loadCache(null);if(ohPath&&fs.existsSync(ohPath)){try{ohCache=OH.loadCache(JSON.parse(fs.readFileSync(ohPath,'utf8')));}catch{}}
@@ -55,6 +55,10 @@ async function main(){
   for(const [k,e] of Object.entries(d.entries))if(/^\d+:0x[0-9a-f]{40}$/.test(k)&&e?.dossier?.source==='BUILDER_LIVE_CHECK'&&Number.isFinite(Date.parse(e.at)))ofCache[k]=e;}catch{}}
  limits.officialCache=ofCache;
  limits.ohlcv=oh.fn||undefined;limits.ohlcvMax=Number(process.env.RADAR_OHLCV_PER_NETWORK||10);limits.officialFetcher=global.fetch;
+// Cached exact-pool history is reused for ALL 40 eligible candidates each cycle;
+// only uncached pools compete for the bounded provider-call allowance.
+const {NETWORKS}=require('../lib/radar-v2/sources');
+limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].chainId+':'+String(row.pool||'').toLowerCase()]);
  const result=await engine.run({sections:s.out,rpc,limits,priorRiskLedger:previous?.riskLedger||null,marketMemory:memory});
  const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}));
  const historyRemoved=S.applyMemory(snap,result.marketMemory);
@@ -74,13 +78,13 @@ async function main(){
  if(memPath){fs.mkdirSync(path.dirname(memPath),{recursive:true});fs.writeFileSync(memPath,JSON.stringify(result.marketMemory));}
  if(ohPath){fs.mkdirSync(path.dirname(ohPath),{recursive:true});fs.writeFileSync(ohPath,JSON.stringify(OH.pruneCache(ohCache)));}
  if(ofPath){const keep=Object.entries(ofCache).filter(([,e])=>Date.now()-Date.parse(e.at)<=7*86400000).slice(-400);fs.mkdirSync(path.dirname(ofPath),{recursive:true});fs.writeFileSync(ofPath,JSON.stringify({version:'arcy-official-cache-1',entries:Object.fromEntries(keep)}));}
- // Bounded, auditable revision index (last 42 runs ~ 7 days at 4-hourly cadence). Git history of the data branch keeps the bytes.
+ // Bounded, auditable revision index (last 84 runs ~ 7 days at the 2-hourly cadence). Git history of the data branch keeps the bytes.
  const indexPath=arg('index');
  if(indexPath){
   let idx={schema:'arcy-radar-v4-snapshot-index/1',revisions:[]};
   try{const prev=JSON.parse(fs.readFileSync(indexPath,'utf8'));if(Array.isArray(prev?.revisions))idx.revisions=prev.revisions;}catch{}
   idx.revisions.unshift({generatedAt:snap.generatedAt,engineCommit:snap.engineCommit,sections:Object.fromEntries(Object.entries(snap.sections).map(([n,x])=>[n,{status:x.status,asOf:x.asOf,shown:x.rows.length,carriedForward:!!x.carriedForward}]))});
-  idx.revisions=idx.revisions.slice(0,42);fs.writeFileSync(indexPath,JSON.stringify(idx,null,1));
+  idx.revisions=idx.revisions.slice(0,84);fs.writeFileSync(indexPath,JSON.stringify(idx,null,1));
  }
  // Optional: the exact public responses the serving code would return (used for flag-ON browser verification).
  const respDir=arg('responses');
