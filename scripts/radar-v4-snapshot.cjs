@@ -55,6 +55,8 @@ async function main(){
   for(const [k,e] of Object.entries(d.entries))if(/^\d+:0x[0-9a-f]{40}$/.test(k)&&e?.dossier?.source==='BUILDER_LIVE_CHECK'&&Number.isFinite(Date.parse(e.at)))ofCache[k]=e;}catch{}}
  limits.officialCache=ofCache;
  limits.ohlcv=oh.fn||undefined;limits.ohlcvMax=Number(process.env.RADAR_OHLCV_PER_NETWORK||10);limits.officialFetcher=global.fetch;
+ // V8: verified critical risk veto, evidence-calibrated opportunity priority, up to 10 visible candidates per network.
+ limits.customFilter=process.env.RADAR_CUSTOM_FILTER_ENABLED==='true';
 // Cached exact-pool history is reused for ALL 40 eligible candidates each cycle;
 // only uncached pools compete for the bounded provider-call allowance.
 const {NETWORKS}=require('../lib/radar-v2/sources');
