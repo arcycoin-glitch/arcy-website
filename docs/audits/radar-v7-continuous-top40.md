@@ -29,3 +29,18 @@ Scope: successor to PR #299 (V6), preserving its evidence/risk rules. This branc
 3. Verify data-branch readback and timestamp, data size below 3 MB, mobile 320/390px layout unchanged, navigation uses 5-row paging.
 4. Confirm data provider entitlement and production feature flag. Only after review/merge is cron guaranteed to run from default branch.
 5. Do not claim 40 qualifying real projects without sufficient source data. Publish actual count and shortfall reasons.
+
+## V7 hardening (engineering audit, PR #301 on top of #300)
+
+| # | Defect found in #300 | Effect | Fix |
+|---|---|---|---|
+| 1 | OHLCV planning queued every cached pool, fresh or stale, before new candidates. | After ~20 h, the same ranked rows re-spent the bounded provider calls. Candidates lower in the list never got history, so they could not earn history or compression evidence. | Order is now FRESH (no call) → NEW (bounded) → STALE (refresh last; dated candles are still served when the budget is spent). Covered by `ohlcvPlan` + V7-H1. |
+| 2 | OHLCV targeting looked only at the 10 published WATCH rows. | Near-qualifying rows ranked 11+ never received history. | The engine-internal `watchAll` list is used instead (not published). |
+| 3 | With no provider tier (cron without a key), the OHLCV cache was ignored completely. | Every scheduled run lost compression evidence that had already been collected. | Cache-only reuse makes no request; age is judged by the compression model (> 3 days → INSUFFICIENT_HISTORY). |
+| 4 | The provider kept calling after a 429. Empty or malformed answers returned null and an empty list overwrote the cache. | Rate-limit hammering; collected history could be lost. | The first 429/5xx stops calls for the run. Failures keep the cached candles. New candles merge into the history by day. Covered by V7-H4. |
+| 5 | Compression accepted gapped provider series (days with no candles). | A sparse, illiquid series could read as "compressed". | ≥ 80 % daily coverage is required, else `SERIES_HAS_GAPS`. Covered by V7-H5. |
+| 6 | Official discovery always took the same top 18/32 by curation and liquidity. Profile links were fetched only for the 30 most liquid contracts. | Contracts beyond that slice never gained official-source evidence, so the 60-intake / 40-display could not fill progressively. | A persisted rotation ledger checks never-checked contracts first, then least-recent. Links are looked up for the whole intake (two batches). A budget skip is not recorded as a check. Covered by V7-H2/H3. |
+| 7 | GitHub research was cached only in process. `repos` had no TTL. | About 10 GitHub calls per project on every 2-hour run. | Persisted TTL cache (`intel-cache.json`); transient failures are never stored. Covered by V7-H6. |
+| 8 | No size check before publishing (serving limit 3 MB, 1.5 s read). | At ~13 KB per row, 160 rows is close to the limit. An oversize file would silently force the legacy fallback. | The builder refuses to publish above 2.6 MB; the previous snapshot stays live. Size is reported. Covered by V7-H8. |
+
+Unchanged: ranking bands and score, profile ≥ 60, identity/market gates, risk vetoes, 40-row cap, legacy 10-row paths, UI/CSS.
