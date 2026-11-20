@@ -26,18 +26,18 @@ const est=(network,n,o={})=>({key:CID[network]+':'+A(n),network,chainId:CID[netw
  universe:{identity:{status:'TWO_SOURCE_SYMBOL_MATCH'},registry:{project:'Blue',kind:'LENDING_GOVERNANCE'}},history:HIST(),
  nearMatch:{passed:[],maxDistance:0},opportunity:{score:10,dimensions:{product:null,team:null,adoption:null},flags:[]},evidenceConfidence:{score:10,missing:[]},evidenceSummary:{risk:{}},infoV4:'x',...o});
 
-test('V5-1. combined ranking: a corroborated A-class project outranks a weak MONITOR row; class order and verified evidence still lead; Info explains',()=>{
+test('V5-1. research-rank-2 prioritizes evidence quality: established verified project outranks weaker early review; Info explains',()=>{
  const monitor=early('ethereum',3,{discoveryClass:'MONITOR_ONLY',symbol:'WEAK',nearMatch:{passed:[],pending:['POOL_AGE_UNKNOWN'],maxDistance:0.4}});
  const eligible=early('ethereum',1,{eligibility:'ELIGIBLE',reasons:[],opportunity:{score:70,dimensions:{product:80,team:80,adoption:80},flags:[]}});
  const out=E.selectDisplay([monitor,eligible,est('ethereum',50)],{network:'ethereum',now:NOW});
- assert.deepEqual(out.map(x=>x.address),[A(1),A(50)],'verified-evidence first, then A-class; the weak monitor never fills the main list');
+ assert.deepEqual(out.map(x=>x.address),[A(50),A(1)],'research-qualified established project leads an insufficiently evidenced early candidate');
  assert.deepEqual(out.watch.map(x=>x.address),[A(3)]);assert.ok(out.watch[0].reasons.includes('MONITOR_ONLY_CLASS'));
- assert.deepEqual(out.map(x=>x.discoveryTier),['EARLY','ESTABLISHED']);
- const b=out[1];
+ assert.deepEqual(out.map(x=>x.discoveryTier),['ESTABLISHED','EARLY']);
+ const b=out[0];
  assert.equal(b.discoveryFilter,'B_QUALITY_EXPANSION');assert.equal(b.eligibility,'QUALITY_EXPANSION_REVIEW');assert.equal(b.displayTier,'WATCHLIST_NOT_VERIFIED');
- assert.equal(b.researchRank.version,'arcy-research-rank-1');assert.equal(b.researchRank.position,2);
+ assert.equal(b.researchRank.version,'arcy-research-rank-2');assert.equal(b.researchRank.researchBand,'RESEARCH_QUALIFIED');assert.equal(b.researchRank.position,1);
  for(const part of [/^ARAŞTIRMAYA UYGUN \(güvenlik sertifikası değildir\); A-SINIFI YERLEŞİK PROJE — yerleşik proje kalitesi, getiri tahmini veya güvenlik garantisi değildir; /,/Kimlik: kontrat bağımsız kaynaklarla eşleşti \(resmi ihraççı doğrulaması değil\)/,/Profil: %\d+ kanıtlı \(eksik: /,/Geçmiş: 3 gözlem/,/Neden: listelenmiş kontrat, iki kaynakta kimlik eşleşti/,
-  /Kalite Sıralaması \d+\/100/,/Piyasa: likidite \$8\.0M, 24s hacim \$3\.0M, 900 işlem/,/Eksik doğrulama: /,/Sıra #2: araştırma sınıfı, sınıf \(nitelikli\)/,/Veri: 2026-11-20 10:00 UTC/])
+  /Kalite Sıralaması \d+\/100/,/Piyasa: likidite \$8\.0M, 24s hacim \$3\.0M, 900 işlem/,/Eksik doğrulama: /,/Sıra #1: kanıtlı kaliteli araştırma, kalite \d+, sınıf nitelikli/,/Veri: 2026-11-20 10:00 UTC/])
   assert.match(b.infoV4,part);
  assert.doesNotMatch(b.infoV4,/güvenli(?!k)|\bsafe\b|yükselecek|pump/i);
  assert.deepEqual(out.byTier,{EARLY:1,ESTABLISHED:1});
@@ -135,7 +135,7 @@ test('V5-8. snapshot: tiers publish and validate; class order is enforced for ev
  const snap=S.build(engine,{ethereum:{tokens:[],nearMiss:[],excluded:[],asOf:iso(0.01)}},{now:NOW,commit:'test'});
  assert.deepEqual(S.validate(snap),{ok:true});
  const b=snap.sections.ethereum.rows[0].opportunity;
- assert.equal(b.discoveryTier,'ESTABLISHED');assert.equal(b.category,'ESTABLISHED_BLUE_CHIP');assert.equal(b.researchRank.version,'arcy-research-rank-1');
+ assert.equal(b.discoveryTier,'ESTABLISHED');assert.equal(b.category,'ESTABLISHED_BLUE_CHIP');assert.equal(b.researchRank.version,'arcy-research-rank-2');
  assert.deepEqual(b.expansion.reviewedReasons,REVIEW);
  const clone=()=>structuredClone(snap);
  let bad=clone();bad.sections.ethereum.rows[1].opportunity.researchTier='WATCH_ONLY';assert.equal(S.validate(bad).ok,false,'WATCH_ONLY never in the main list');
