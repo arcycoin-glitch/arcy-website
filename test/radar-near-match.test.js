@@ -1,7 +1,10 @@
 'use strict';
 // Radar V3/V4 near-match discovery (issue #279): adaptive discovery, never adaptive safety.
 const test=require('node:test'),assert=require('node:assert/strict');
-const E=require('../lib/radar-v2/intel/engine'),NM=require('../lib/radar-v2/intel/near-match'),S=require('../lib/radar-v2/v4-snapshot');
+// V4-level selection semantics (research:false). The V5 research layer can only move rows from the main list to WATCH_ONLY,
+// never add one, so every exclusion/ordering guarantee tested here still holds in production; the layer itself is covered by
+// test/radar-v5-quality.test.js.
+const E0=require('../lib/radar-v2/intel/engine'),E={...E0,selectDisplay:(r,o={})=>E0.selectDisplay(r,{research:false,...o}),run:(a={})=>E0.run({...a,limits:{research:false,...(a.limits||{})}})},NM=require('../lib/radar-v2/intel/near-match'),S=require('../lib/radar-v2/v4-snapshot');
 const RH=require('../lib/radar-v2/intel/risk-holds'),F=require('../lib/radar-v2/intel/fetch');
 const DAY=86400000,NOW=Date.parse('2026-11-18T14:00:00Z');
 const A=n=>'0x'+n.toString(16).padStart(40,'0');

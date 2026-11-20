@@ -41,7 +41,7 @@ jobs:
         with:
           node-version: '22'
       - name: Engine tests must pass before publishing
-        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-immutable-snapshot.test.js test/radar-near-match.test.js test/radar-v5-quality.test.js test/radar-discovery-quality.test.js test/radar-pre-catalyst.test.js
+        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-immutable-snapshot.test.js test/radar-near-match.test.js test/radar-v5-quality.test.js test/radar-v5-final.test.js test/radar-discovery-quality.test.js test/radar-pre-catalyst.test.js
       - name: Check out data branch (or create it the first time)
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -54,10 +54,13 @@ jobs:
             mkdir snap && cd snap && git init -q -b "$DATA_REF" && git remote add origin "$url"
             echo "FIRST_RUN=1" >> "$GITHUB_ENV"
           fi
+      - name: Read-only copy of the Production data branch (market-memory history seed; never written)
+        if: env.DATA_REF != 'radar-v4-snapshots'
+        run: git clone -q --depth 60 --branch radar-v4-snapshots "https://github.com/${{ github.repository }}.git" hist || mkdir -p hist
       - name: Build and validate snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/radar-v4-snapshot.cjs --previous snap/radar-v4/snapshot.json --out snap/radar-v4/snapshot.json --index snap/radar-v4/index.json --responses snap/radar-v4/served
+        run: node scripts/radar-v4-snapshot.cjs --previous snap/radar-v4/snapshot.json --out snap/radar-v4/snapshot.json --index snap/radar-v4/index.json --responses snap/radar-v4/served --memory snap/radar-v4/market-memory.json --history hist/radar-v4/snapshot.json
       - name: Commit (fast-forward only, never force)
         run: |
           cd snap

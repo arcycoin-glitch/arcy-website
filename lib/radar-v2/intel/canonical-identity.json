@@ -1,0 +1,2230 @@
+{
+"schema": "arcy-radar-canonical-identity/1",
+"version": "2026-11-20.0",
+"observedAt": "2026-11-20T05:50:01Z",
+"expiresAt": "2027-01-04T00:00:00Z",
+"method": "Blockscout explorer token index (/api/v2/tokens?type=ERC-20, first pages) read from a browser session on 2026-11-20; kept only contracts for which the explorer links market data (exchange_rate and circulating_market_cap from its market-data provider) to the EXACT contract. This is METADATA corroboration of the exact contract (an aggregator listed THIS address), not issuer verification and not a safety verdict. Captured because explorer.arc.io and robinhoodchain.blockscout.com answer HTTP 403 to the CI snapshot builder. Re-capture before expiresAt; after it, entries no longer raise identity confidence.",
+"sources": {
+"5042": "https://explorer.arc.io/api/v2/tokens?type=ERC-20",
+"4663": "https://robinhoodchain.blockscout.com/api/v2/tokens?type=ERC-20"
+},
+"networks": {
+"5042": [
+{
+"address": "0x3600000000000000000000000000000000000000",
+"symbol": "USDC",
+"name": "USDC",
+"holders": 1286856,
+"marketCapUsd": 68583293985,
+"icon": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+"ambiguousTicker": true
+},
+{
+"address": "0x76a443768a5e3b8d1aed0105fc250877841deb40",
+"symbol": "LINK",
+"name": "Chainlink",
+"holders": 171,
+"marketCapUsd": 6729390056,
+"icon": "https://assets.coingecko.com/coins/images/877/small/Chainlink_Logo_500.png?1760023405"
+},
+{
+"address": "0x0dc6b79f3c3854e4d74514fd4d29be6c96beee39",
+"symbol": "syrupUSDC",
+"name": "Syrup USDC",
+"holders": 42,
+"marketCapUsd": 758257843,
+"icon": "https://blockscout-content.s3.us-east-1.amazonaws.com/syrupUSDC.svg"
+},
+{
+"address": "0xbef5f6d51cb62b58e6a8f77868681825c6fe21c1",
+"symbol": "EURC",
+"name": "EURC",
+"holders": 73620,
+"marketCapUsd": 502626146,
+"icon": "https://s2.coinmarketcap.com/static/img/coins/64x64/20641.png"
+},
+{
+"address": "0x171a4217b86a807a64eb94757db6849fb4bdbaa0",
+"symbol": "cirBTC",
+"name": "Circle Wrapped Bitcoin",
+"holders": 7484,
+"marketCapUsd": 362315500,
+"icon": "https://assets.coingecko.com/coins/images/102172745/standard/cirbtc.jpg?1775204071"
+},
+{
+"address": "0x8c4252c87081c88c6ad57d6dd97e1cafebf842b7",
+"symbol": "VIRTUAL",
+"name": "Virtuals Protocol",
+"holders": 317,
+"marketCapUsd": 268261305,
+"icon": "https://assets.coingecko.com/coins/images/34057/small/LOGOMARK.png?1708356054"
+},
+{
+"address": "0x178b01f61cbea1d2a5581fe1621be607835ec349",
+"symbol": "XAUM",
+"name": "Matrixdock Gold",
+"holders": 1738,
+"marketCapUsd": 61249008,
+"icon": "https://app.matrixdock.com/images/xaum/xaum-100x100-icon.png"
+},
+{
+"address": "0xc6df1b92a6ae61a27059c41e541a91ce8dcb1605",
+"symbol": "CHFAU",
+"name": "AllUnity CHF",
+"holders": null,
+"marketCapUsd": 40069414,
+"icon": "https://assets.coingecko.com/coins/images/102172300/small/CHFAU_red.png?1782278502"
+},
+{
+"address": "0x0dc4f92879b7670e5f4e4e6e3c801d229129d90d",
+"symbol": "WARS",
+"name": "Argentine Peso",
+"holders": 74,
+"marketCapUsd": 8428905,
+"icon": "https://assets.coingecko.com/coins/images/70846/small/world_logos_wars_logo_3.png?1764176749"
+},
+{
+"address": "0xf197ffc28c23e0309b5559e7a166f2c6164c80aa",
+"symbol": "MXNB",
+"name": "MXNB",
+"holders": 71,
+"marketCapUsd": 4510723,
+"icon": "https://assets.coingecko.com/coins/images/39136/small/MNXB_Logo.png?1746088156"
+},
+{
+"address": "0xd76f5faf6888e24d9f04bf92a0c8b921fe4390e0",
+"symbol": "WBRL",
+"name": "Brazilian real",
+"holders": 25,
+"marketCapUsd": 3950124,
+"icon": "https://assets.coingecko.com/coins/images/70862/small/wbrl.png?1764272108"
+},
+{
+"address": "0xe205b4e7ac03e3f7b2060c3edf2171aa7126c0d5",
+"symbol": "ZARU",
+"name": "ZAR Universal",
+"holders": 3,
+"marketCapUsd": 3461794,
+"icon": "https://assets.coingecko.com/coins/images/102176926/small/ZARU_Symbol_Primary.png?1789035266"
+},
+{
+"address": "0xfb0705023603dc86325b83d9ff6b0da7921fec17",
+"symbol": "TRYB",
+"name": "BiLira",
+"holders": 2,
+"marketCapUsd": 2655591,
+"icon": "https://assets.coingecko.com/coins/images/10119/small/JBs9jiXO_400x400.jpg?1696510144"
+},
+{
+"address": "0xbbe6aab0ed76e90aea0d1cd978ec231c8adcdf8b",
+"symbol": "GBPA",
+"name": "Agant GBP",
+"holders": 152,
+"marketCapUsd": 2415302,
+"icon": "https://assets.coingecko.com/coins/images/102173633/small/gbpa.png?1780589453"
+},
+{
+"address": "0xece5ca8bf9220718e5727754026757512212cb3c",
+"symbol": "ARGUS",
+"name": "Argus",
+"holders": 20402,
+"marketCapUsd": 1516310,
+"icon": "https://assets.coingecko.com/coins/images/102178392/small/argus-token.png?1789463380"
+},
+{
+"address": "0xd70c2fa4232e054b373efaea98e4138511c2a309",
+"symbol": "QCAD",
+"name": "Stablecorp QCAD",
+"holders": 1,
+"marketCapUsd": 1443693,
+"icon": "https://assets.coingecko.com/coins/images/102172031/small/QCAD-Teal---Transparent_200x200.png?1771119370"
+},
+{
+"address": "0xca18a528ea897040f715edc92e6e4572780c5ca1",
+"symbol": "KAI",
+"name": "Kairence",
+"holders": 105,
+"marketCapUsd": 804777,
+"icon": "https://assets.coingecko.com/coins/images/102176542/small/QmSfRb4v3uxnjq792Nwq1f5DE34Aur6VbgS1RQXQMqhEWv_copy.png?1788029178"
+},
+{
+"address": "0x337e7456b420bd3481e7fa61fa9850343d610d34",
+"symbol": "WMXN",
+"name": "Mexican Peso",
+"holders": 4,
+"marketCapUsd": 661373,
+"icon": "https://assets.coingecko.com/coins/images/70880/small/wmxn_logo_1.png?1764392404"
+},
+{
+"address": "0x8a1d45e102e886510e891d2ec656a708991e2d76",
+"symbol": "WCOP",
+"name": "Colombian Peso",
+"holders": 4,
+"marketCapUsd": 524968,
+"icon": "https://assets.coingecko.com/coins/images/70887/small/wcop_logo_1.png?1764394538"
+},
+{
+"address": "0x394d38f807ee0027a182216f5e67a15ae441fa2e",
+"symbol": "FAZE",
+"name": "Faze",
+"holders": 4384,
+"marketCapUsd": 487150,
+"icon": "https://assets.coingecko.com/coins/images/102178468/small/faze.jpg?1789657706"
+},
+{
+"address": "0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+"symbol": "TOLLY",
+"name": "Tolly",
+"holders": 10677,
+"marketCapUsd": 470270,
+"icon": "https://assets.coingecko.com/coins/images/102178398/small/tolly.webp?1789479311"
+},
+{
+"address": "0x4c9b47dbd5933aa4574b2c27f82419e4dbbd0222",
+"symbol": "ASTOCK",
+"name": "ArcStocks",
+"holders": 2246,
+"marketCapUsd": 455323,
+"icon": "https://assets.coingecko.com/coins/images/102178596/small/astock.jpg?1790132905"
+},
+{
+"address": "0x4933a85b5b5466fbaf179f72d3de273c287ec2c2",
+"symbol": "EURAU",
+"name": "AllUnity EUR",
+"holders": null,
+"marketCapUsd": 330797,
+"icon": "https://assets.coingecko.com/coins/images/68076/small/EURAU_blue.png?1782278504"
+},
+{
+"address": "0x091f0c7e675a787a4018eb47c30bed3fa2013b65",
+"symbol": "MSS2",
+"name": "Mint Stake Share 2",
+"holders": 69,
+"marketCapUsd": 287470,
+"icon": "https://assets.coingecko.com/coins/images/102180196/small/MSS2-logo-icon-colour.png?1794311065"
+},
+{
+"address": "0x3ead4e80e9e5bc0e01682d7ee74c4881b040d3ea",
+"symbol": "KAIRO",
+"name": "Kairo",
+"holders": 1348,
+"marketCapUsd": 192851,
+"icon": "https://assets.coingecko.com/coins/images/102178477/small/8d4afc76-21e6-46e6-ae4c-0e639057ac52.jpeg?1789700289"
+},
+{
+"address": "0x2164bb17a2d38c1b5170e987b2c0416df1efc752",
+"symbol": "LONG",
+"name": "Long",
+"holders": 7428,
+"marketCapUsd": 177870,
+"icon": "https://assets.coingecko.com/coins/images/102178399/small/long_400x400.jpg?1789480339"
+},
+{
+"address": "0x75d658f8101fbe6dc217fbba7e20a0312af5fa2e",
+"symbol": "AF",
+"name": "Arcflow",
+"holders": 1238,
+"marketCapUsd": 158012,
+"icon": "https://assets.coingecko.com/coins/images/102178819/small/flow.jpg?1790407099"
+},
+{
+"address": "0x61d450a098b6a7f69fc4b98ce68198fe59768651",
+"symbol": "WCLP",
+"name": "Chilean Peso",
+"holders": 5,
+"marketCapUsd": 132791,
+"icon": "https://assets.coingecko.com/coins/images/70976/small/wclp_logo_1.png?1764954870"
+},
+{
+"address": "0x30eb6f2878f60ba0ed6418bfe7cadcd0f475a265",
+"symbol": "MARCO",
+"name": "MELEGA",
+"holders": 36817,
+"marketCapUsd": 131574,
+"icon": "https://assets.coingecko.com/coins/images/27568/small/MELEGA_logo_halo_200x200px.png?1696526602"
+},
+{
+"address": "0x86f7424c3e1ebb3f42e1e687468e36d5f2a1222e",
+"symbol": "ELLIPSE",
+"name": "ELLIPSE",
+"holders": 1414,
+"marketCapUsd": 107349,
+"icon": "https://assets.coingecko.com/coins/images/102178522/small/transpr_ex.png?1789842376"
+},
+{
+"address": "0xfa3ffdf775cc3f6ac82cd258fb948a8a21e1749e",
+"symbol": "UBI",
+"name": "UBI",
+"holders": 1132,
+"marketCapUsd": 104836,
+"icon": "https://assets.coingecko.com/coins/images/102178889/small/ubi_400x400.jpg?1790603187"
+},
+{
+"address": "0x28f986a61e078795639f239675582a12b4cf7f01",
+"symbol": "OBRAIN",
+"name": "oBrain",
+"holders": 917,
+"marketCapUsd": 99763,
+"icon": "https://assets.coingecko.com/coins/images/102178559/small/1000020833.jpg?1789978080"
+},
+{
+"address": "0x643098f125e765081fec0b67384bfe5ca498f24a",
+"symbol": "AKARII",
+"name": "AKARII",
+"holders": 852,
+"marketCapUsd": 95863,
+"icon": "https://assets.coingecko.com/coins/images/102178967/small/AKARII-FPP.png?1790773506"
+},
+{
+"address": "0x8e98a62a995a50eca9979bfa016f91bf36a8f9d9",
+"symbol": "USDC",
+"name": "UpSideDownCat",
+"holders": 4151,
+"marketCapUsd": 86360,
+"icon": "https://assets.coingecko.com/coins/images/102178431/small/upsidedowncat.jpg?1789558808",
+"ambiguousTicker": true
+},
+{
+"address": "0x41358defd0dedc90528b3f1835715e907b686e6a",
+"symbol": "DUKE",
+"name": "The Duke of Arc",
+"holders": 4502,
+"marketCapUsd": 65463,
+"icon": "https://assets.coingecko.com/coins/images/102178508/small/duke.jpg?1789743193",
+"ambiguousTicker": true
+},
+{
+"address": "0x4f34c8b3b5fb6d98da888f0fea543d4d9c9f2ebe",
+"symbol": "WPEN",
+"name": "Peruvian Sol",
+"holders": 4,
+"marketCapUsd": 64135,
+"icon": "https://assets.coingecko.com/coins/images/70975/small/wpen_logo_1.png?1764954695"
+},
+{
+"address": "0xd86800d5b021f5d79350c2f742bbb1ecc010bf82",
+"symbol": "PUMPER",
+"name": "Pumper",
+"holders": 3,
+"marketCapUsd": 55368,
+"icon": "https://assets.coingecko.com/coins/images/102176824/small/pumper_logo.jpg?1788859946"
+},
+{
+"address": "0xa3de1dda14e4b3ce2eee2f8c1e49315effc15be2",
+"symbol": "ARCLIGHT",
+"name": "Arclight Finance",
+"holders": 1168,
+"marketCapUsd": 39741,
+"icon": "https://assets.coingecko.com/coins/images/102178933/small/4cmda5qvieo8rj5aj14q7a5vbxr0.?1790692123",
+"ambiguousTicker": true
+},
+{
+"address": "0x29316db42ff99f640fd4d1bb169635b6318cd430",
+"symbol": "ARCANUS",
+"name": "Arcanus",
+"holders": 4194,
+"marketCapUsd": 32507,
+"icon": "https://assets.coingecko.com/coins/images/102178786/small/x_logo.jpg?1790312744"
+},
+{
+"address": "0xe6a2476f33ec1566288aa32ec3319a6b77dd1e3b",
+"symbol": "DUKE",
+"name": "Duke",
+"holders": 4071,
+"marketCapUsd": 29204,
+"icon": "https://assets.coingecko.com/coins/images/102179289/small/duke.jpg?1791438260",
+"ambiguousTicker": true
+},
+{
+"address": "0x08adbf431569a1aacac2606d2adcd18f4ebf2a71",
+"symbol": "GLITCH",
+"name": "GLITCH",
+"holders": 944,
+"marketCapUsd": 28850,
+"icon": "https://assets.coingecko.com/coins/images/102178861/small/D1634850-64EB-4894-B99D-7433C2520844.jpeg?1790515113"
+},
+{
+"address": "0x1ea1e4f9a9975f1f6e9c0a9f6e8ada7a66e6de52",
+"symbol": "ARCT",
+"name": "ArcTools",
+"holders": 3744,
+"marketCapUsd": 26824,
+"icon": "https://assets.coingecko.com/coins/images/102178457/small/ARCT-logo-200.png?1789572456"
+},
+{
+"address": "0xf3715bf5c2de299f08b81180ffb739a8372a175f",
+"symbol": "ARCANINE",
+"name": "Arcanine",
+"holders": 1970,
+"marketCapUsd": 23913,
+"icon": "https://assets.coingecko.com/coins/images/102178426/small/arcanine.jpg?1789536897"
+},
+{
+"address": "0xd36687146385f7dc84a18fea3d00319d39d6d1a0",
+"symbol": "SOLON",
+"name": "SolonPad",
+"holders": 1275,
+"marketCapUsd": 22004,
+"icon": "https://assets.coingecko.com/coins/images/102178949/small/Solon.jpg?1790748500"
+},
+{
+"address": "0xbe0cad585ea2d13de2f4e36376be755c0afd8b97",
+"symbol": "ARCBAT",
+"name": "ARC BAT",
+"holders": 3962,
+"marketCapUsd": 19512,
+"icon": "https://assets.coingecko.com/coins/images/102178427/small/arc_bat.jpg?1789537144"
+},
+{
+"address": "0xb7c934ff18730c24e6113bb4bc5a68feef16fd29",
+"symbol": "ARCUS",
+"name": "Arcus Network",
+"holders": 1432,
+"marketCapUsd": 19170,
+"icon": "https://assets.coingecko.com/coins/images/102178538/small/8zcl45cyifee1l43r937gdp2gf1d.?1789888138"
+},
+{
+"address": "0xa37c1f9b2483b3b45ced74b10e19223aa76d18f2",
+"symbol": "BUILDERS",
+"name": "Builders",
+"holders": 542,
+"marketCapUsd": 19141,
+"icon": "https://assets.coingecko.com/coins/images/102179158/small/builder_400x400.jpg?1791298551"
+},
+{
+"address": "0x4f7dc89dc44ad08c20d9680d2ee9cfad69bfda55",
+"symbol": "MALA",
+"name": "Malachite",
+"holders": 3813,
+"marketCapUsd": 18063,
+"icon": "https://assets.coingecko.com/coins/images/102178433/small/escqrn2z8b7qlfkrw1wxn266rwjz.?1789563241"
+},
+{
+"address": "0x70857041fef0ced97f9e01e7ccc21889afe3f6f4",
+"symbol": "CRA",
+"name": "Cra Agent",
+"holders": 1348,
+"marketCapUsd": 13228,
+"icon": "https://assets.coingecko.com/coins/images/102178779/small/LOGO_PFP1.png?1790309651"
+},
+{
+"address": "0xb67f50fde86e09b5da963c4251cbd4788b151ed5",
+"symbol": "USDC",
+"name": "Fat Cat Bat Rat Wif Hat",
+"holders": 2338,
+"marketCapUsd": 11837,
+"icon": "https://assets.coingecko.com/coins/images/102178579/small/1000118393.webp?1790085348",
+"ambiguousTicker": true
+},
+{
+"address": "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7",
+"symbol": "ARCIRCLE",
+"name": "arcircle",
+"holders": 246,
+"marketCapUsd": 10663,
+"icon": "https://assets.coingecko.com/coins/images/102178959/small/arc_circle.jpg?1790751294"
+},
+{
+"address": "0x7c7489163b1060333e71229bb7a9f8cb7094a7a9",
+"symbol": "FOCI",
+"name": "Foci",
+"holders": 1303,
+"marketCapUsd": 9486,
+"icon": "https://assets.coingecko.com/coins/images/102178600/small/foci.png?1790138945"
+},
+{
+"address": "0xf1b72b46e2364356c1d8343590e4c0deefb19c3b",
+"symbol": "WAVE",
+"name": "Wave Protocol",
+"holders": 355,
+"marketCapUsd": 9149,
+"icon": "https://assets.coingecko.com/coins/images/102178953/small/fa3g803dgo7flk465qmlszg4cnkf.?1790748997"
+},
+{
+"address": "0xbc3764348131fe1962f267f442a8fe30459ededd",
+"symbol": "AKIT",
+"name": "ArcKit",
+"holders": 395,
+"marketCapUsd": 8560,
+"icon": "https://assets.coingecko.com/coins/images/102178938/small/n96ta33lbl51nuj2kg70e30ry9vq.?1790693539"
+},
+{
+"address": "0x5681e38cbff1d5c4461294c6cf3970aa0761d2eb",
+"symbol": "ROUTER",
+"name": "ArcRouter",
+"holders": 401,
+"marketCapUsd": 8447,
+"icon": "https://assets.coingecko.com/coins/images/102178934/small/ast44tlt3wdp9hrg2h3ux3yymrsq.?1790692432"
+},
+{
+"address": "0x797abf94a828776f082c56e33e5ec432e1d27033",
+"symbol": "ARCLOAK",
+"name": "Arcloak",
+"holders": 211,
+"marketCapUsd": 8099,
+"icon": "https://assets.coingecko.com/coins/images/102178952/small/arcloak.png?1790748881"
+},
+{
+"address": "0x8faae5592b9acc27a79fca745c6b872adf514a5d",
+"symbol": "MURMUR",
+"name": "MurMur",
+"holders": 1860,
+"marketCapUsd": 7971,
+"icon": "https://assets.coingecko.com/coins/images/102178935/small/6fplw30yyiw377perjuny27eqxrj.?1790692713"
+},
+{
+"address": "0x3dd6db0f20d747e1274839cdd6724cc5df1fb813",
+"symbol": "ASPAD",
+"name": "ArcStockpad",
+"holders": 419,
+"marketCapUsd": 7941,
+"icon": "https://assets.coingecko.com/coins/images/102178525/small/arcstockpadlogo_black.jpg?1789843367"
+},
+{
+"address": "0xf80457274fa646c7a8e0942d48be703864ef3d01",
+"symbol": "ACAT",
+"name": "ACAT",
+"holders": 748,
+"marketCapUsd": 7762,
+"icon": "https://assets.coingecko.com/coins/images/102179290/small/ACAT.jpg?1791438450"
+},
+{
+"address": "0x0da0b0c9198d47bc718cc26e4fded1c3e079767b",
+"symbol": "ARCVEIN",
+"name": "Arcvein",
+"holders": 163,
+"marketCapUsd": 7674,
+"icon": "https://assets.coingecko.com/coins/images/102179647/small/arcvein_400x400.png?1792422795"
+},
+{
+"address": "0x258bbb25fb1bc34c87212f8dab34838854ef2d5d",
+"symbol": "BCAT",
+"name": "Beancat",
+"holders": 6918,
+"marketCapUsd": 7108,
+"icon": "https://assets.coingecko.com/coins/images/102178550/small/Beancat.jpg?1789934451"
+},
+{
+"address": "0x93d5b8c53ee763c2c4522bf0d958ce51af4360ae",
+"symbol": "REGI",
+"name": "Registrai",
+"holders": 299,
+"marketCapUsd": 5981,
+"icon": "https://assets.coingecko.com/coins/images/102178864/small/B044DECD-CA9E-4691-99F9-3DB21C656824.jpeg?1790517023"
+},
+{
+"address": "0xc662d327a6a3ee01d5b4d0e2d5253c3058f59ba1",
+"symbol": "TEN",
+"name": "TEN",
+"holders": 214,
+"marketCapUsd": 5570,
+"icon": "https://assets.coingecko.com/coins/images/102178732/small/ten_400x400.jpg?1790170273"
+},
+{
+"address": "0x0bffa97f774824e9da843699aedd2835cb1b8022",
+"symbol": "ARCASH",
+"name": "ARCASH",
+"holders": 1408,
+"marketCapUsd": 5201,
+"icon": "https://assets.coingecko.com/coins/images/102178425/small/arcash.jpg?1789536555"
+},
+{
+"address": "0x9364d40e9e10ed01d0b538f272ab721e4630ddd2",
+"symbol": "ID",
+"name": "ArcID",
+"holders": 164,
+"marketCapUsd": 4988,
+"icon": "https://assets.coingecko.com/coins/images/102178958/small/arcid.jpg?1790751204"
+},
+{
+"address": "0xe66d5169c5d235209d74e976e594060c44c64420",
+"symbol": "FUCI",
+"name": "Fuci",
+"holders": 284,
+"marketCapUsd": 4892,
+"icon": "https://assets.coingecko.com/coins/images/102178842/small/fuci-logo-200.png?1790451949"
+},
+{
+"address": "0x0bb3befba323578dad33efb6356c69b557787777",
+"symbol": "MEMESPAD",
+"name": "MEMESPAD",
+"holders": 941,
+"marketCapUsd": 4855,
+"icon": "https://assets.coingecko.com/coins/images/102178775/small/memespad.jpg?1790274589"
+},
+{
+"address": "0x662889f3695ab815f5ace14eed6655a8701e12f0",
+"symbol": "KATF",
+"name": "Kata Finance",
+"holders": 184,
+"marketCapUsd": 4810,
+"icon": null
+},
+{
+"address": "0xcc5c8d46666f107a052538b9b1c1834d1e006911",
+"symbol": "ARCA",
+"name": "Arca OS",
+"holders": 346,
+"marketCapUsd": 4587,
+"icon": "https://assets.coingecko.com/coins/images/102178937/small/asl825vy0satltv2a0ins4lcnujm.?1790693143"
+},
+{
+"address": "0x3bd5702b950163cd6945f53b9bcefb551605821f",
+"symbol": "CORTEX",
+"name": "CORTEX",
+"holders": 539,
+"marketCapUsd": 3474,
+"icon": "https://assets.coingecko.com/coins/images/102178954/small/cortex.jpg?1790749123"
+},
+{
+"address": "0x548df4bf91624d8cec46d606211eb13f7492e27e",
+"symbol": "WONK",
+"name": "Wonk Fun",
+"holders": 839,
+"marketCapUsd": 3359,
+"icon": "https://assets.coingecko.com/coins/images/102178511/small/photo_2026-09-17_18-09-34.jpg?1789797282"
+},
+{
+"address": "0x8dac5f5a1c9925c3d8fafa1e87a831804faf45c4",
+"symbol": "ARCHAN",
+"name": "Arc Chan",
+"holders": 176,
+"marketCapUsd": 3176,
+"icon": "https://assets.coingecko.com/coins/images/102178847/small/logo.png?1790455814"
+},
+{
+"address": "0xcf7c78a0a7f76ded03265a1d04096bda14218528",
+"symbol": "ARC222",
+"name": "ARC222",
+"holders": 79,
+"marketCapUsd": 3141,
+"icon": "https://assets.coingecko.com/coins/images/102178815/small/logo.png?1790372367"
+},
+{
+"address": "0xc7522d55600202e556551c1ec3521eafb8ab87fa",
+"symbol": "ARCLIGHT",
+"name": "Arclight",
+"holders": 59,
+"marketCapUsd": 2830,
+"icon": "https://assets.coingecko.com/coins/images/102178868/small/logo.jpg?1790572591",
+"ambiguousTicker": true
+},
+{
+"address": "0x696313919db704fd6d2016a15065efb7db4c8f54",
+"symbol": "ARCIA",
+"name": "ARCIA",
+"holders": 68,
+"marketCapUsd": 2630,
+"icon": "https://assets.coingecko.com/coins/images/102178939/small/logo.jpg?1790717473"
+}
+],
+"4663": [
+{
+"address": "0x492641f648a4986844848e0befe66d14817bce34",
+"symbol": "LINK",
+"name": "Chainlink",
+"holders": 346,
+"marketCapUsd": 6728787181,
+"icon": "https://assets.coingecko.com/coins/images/877/small/Chainlink_Logo_500.png"
+},
+{
+"address": "0xcec185eb182c47d1ba1efc84e6959e18cd620be4",
+"symbol": "CBBTC",
+"name": "Coinbase Wrapped BTC",
+"holders": 11204,
+"marketCapUsd": 6654273790,
+"icon": "https://assets.coingecko.com/coins/images/40143/small/cbbtc.webp"
+},
+{
+"address": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+"symbol": "USDE",
+"name": "Ethena USDe",
+"holders": 8237,
+"marketCapUsd": 4853051559,
+"icon": "https://assets.coingecko.com/coins/images/33613/small/usde.png"
+},
+{
+"address": "0xf177d86a28b520e3e396e4f3b96cd8e72d7dabd8",
+"symbol": "UNI",
+"name": "Uniswap",
+"holders": 4075,
+"marketCapUsd": 2892395946,
+"icon": "https://assets.coingecko.com/coins/images/12504/small/uniswap-logo.png"
+},
+{
+"address": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+"symbol": "USDG",
+"name": "Global Dollar",
+"holders": 444807,
+"marketCapUsd": 2639766662,
+"icon": "https://assets.coingecko.com/coins/images/51281/standard/GDN_USDG_Token_200x200.png"
+},
+{
+"address": "0xce24439f2d9c6a2289f741120fe202248b666666",
+"symbol": "U",
+"name": "United Stables",
+"holders": 1088,
+"marketCapUsd": 1637680837,
+"icon": "https://assets.coingecko.com/coins/images/71157/small/united-stables-logo.jpg"
+},
+{
+"address": "0xeeca2e7dc194a320d349122d88259bb9595a4cb0",
+"symbol": "LIT",
+"name": "Lighter",
+"holders": 927,
+"marketCapUsd": 650591683,
+"icon": "https://assets.coingecko.com/coins/images/71121/small/lighter.png"
+},
+{
+"address": "0x40858070814a57fdf33a613ae84fe0a8b4a874f7",
+"symbol": "SYRUPUSDG",
+"name": "syrupUSDG",
+"holders": 152,
+"marketCapUsd": 299877248,
+"icon": "https://assets.coingecko.com/coins/images/102174289/small/syrupUSDG.png"
+},
+{
+"address": "0x74be72affafbc8de30f0c11247814036314d625f",
+"symbol": "PENGU",
+"name": "Pudgy Penguins",
+"holders": 1115,
+"marketCapUsd": 278871453,
+"icon": "https://assets.coingecko.com/coins/images/52622/small/PUDGY_PENGUINS_PENGU_PFP.png"
+},
+{
+"address": "0xc6911796042b15d7fa4f6cde69e245ddcd3d9c31",
+"symbol": "VIRTUAL",
+"name": "Virtuals Protocol",
+"holders": 17998,
+"marketCapUsd": 268217839,
+"icon": "https://assets.coingecko.com/coins/images/34057/small/LOGOMARK.png"
+},
+{
+"address": "0x5e49e1f85813f2b65858860a3fa231b4186f2e0e",
+"symbol": "PENDLE",
+"name": "Pendle",
+"holders": 556,
+"marketCapUsd": 232602732,
+"icon": "https://assets.coingecko.com/coins/images/15069/small/Pendle_Logo_Normal-03.png"
+},
+{
+"address": "0xfed493f38c1aacb4ea4e6a11f8b9287849ee0096",
+"symbol": "MGLO",
+"name": "Midas Fasanara Global Open",
+"holders": 7,
+"marketCapUsd": 188947680,
+"icon": "https://assets.coingecko.com/coins/images/102174031/small/mglobal-Cm4yjVTI.png"
+},
+{
+"address": "0x61a10e8556bed032ea176330e7f17d6a12a10000",
+"symbol": "UUSD",
+"name": "Unity USD",
+"holders": 1528,
+"marketCapUsd": 99872421,
+"icon": "https://assets.coingecko.com/coins/images/102172413/small/UUSD.png"
+},
+{
+"address": "0x241f3caad03db31137f641bef005a32176530024",
+"symbol": "NPC",
+"name": "Non-Playable Coin",
+"holders": 193,
+"marketCapUsd": 80325543,
+"icon": "https://assets.coingecko.com/coins/images/31193/small/NPC_200x200.png"
+},
+{
+"address": "0x8f86a15ec17cb3369d8b3e666dadbc11daa82b79",
+"symbol": "APE",
+"name": "ApeCoin",
+"holders": 1355,
+"marketCapUsd": 76552219,
+"icon": "https://assets.coingecko.com/coins/images/24383/small/APECOIN.png",
+"ambiguousTicker": true
+},
+{
+"address": "0x39dbed3a2bd333467115de45665cc57f813c4571",
+"symbol": "PONS",
+"name": "Pons",
+"holders": 105462,
+"marketCapUsd": 70145596,
+"icon": "https://assets.coingecko.com/coins/images/102174571/small/jhitvkisdq8fhxvimdkpcw7y3dx5."
+},
+{
+"address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+"symbol": "WETH",
+"name": "WETH",
+"holders": 610599,
+"marketCapUsd": 61395446,
+"icon": "https://assets.coingecko.com/coins/images/2518/small/weth.png"
+},
+{
+"address": "0x369c4748e98c153e9b7adebc3e71e9e2a5f60dc0",
+"symbol": "CRCLON",
+"name": "Circle Internet Group (Ondo Toke",
+"holders": 12,
+"marketCapUsd": 60772910,
+"icon": "https://assets.coingecko.com/coins/images/68595/small/crclon_160x160.png"
+},
+{
+"address": "0x533c5571ae586985e1fddfaa24304284d970c62a",
+"symbol": "SPYON",
+"name": "SPDR S&P 500 ETF (Ondo Tokenized",
+"holders": 56,
+"marketCapUsd": 46668390,
+"icon": "https://assets.coingecko.com/coins/images/68655/small/spyon_160x160.png"
+},
+{
+"address": "0x020bfc650a365f8bb26819deaabf3e21291018b4",
+"symbol": "CASHCAT",
+"name": "Cash Cat",
+"holders": 114375,
+"marketCapUsd": 43817753,
+"icon": "https://assets.coingecko.com/coins/images/102174280/small/cashcat-logo.jpg"
+},
+{
+"address": "0x0bb40d7fbae7f0c69bc5910c601987dce697d85f",
+"symbol": "SUSHI",
+"name": "Sushi",
+"holders": 2534,
+"marketCapUsd": 42783579,
+"icon": "https://assets.coingecko.com/coins/images/12271/small/512x512_Logo_no_chop.png"
+},
+{
+"address": "0x300fe8a40701ce81460503fb886f9ed81a3b5e14",
+"symbol": "QQQON",
+"name": "Invesco QQQ ETF (Ondo Tokenized ",
+"holders": 10,
+"marketCapUsd": 34983029,
+"icon": "https://assets.coingecko.com/coins/images/68654/small/qqqon_160x160.png"
+},
+{
+"address": "0xf1b95ae4e7700b962714702ea53784dc8492a856",
+"symbol": "NVDAON",
+"name": "NVIDIA (Ondo Tokenized Stock)",
+"holders": 84,
+"marketCapUsd": 29024723,
+"icon": "https://assets.coingecko.com/coins/images/68623/small/nvdaon_160x160.png"
+},
+{
+"address": "0x7eebda046d451bc7a7d12491eff72a861aa8136e",
+"symbol": "SWARM",
+"name": "SWARM ENGINE",
+"holders": 324,
+"marketCapUsd": 26389387,
+"icon": "https://assets.coingecko.com/coins/images/102179329/small/logo_SWARM.jpg"
+},
+{
+"address": "0xb197f36c25ba9b66960688882a4dc595c6b04309",
+"symbol": "TSLAON",
+"name": "Tesla (Ondo Tokenized Stock)",
+"holders": 28,
+"marketCapUsd": 25132073,
+"icon": "https://assets.coingecko.com/coins/images/68628/small/tslaon_160x160.png"
+},
+{
+"address": "0x0830a9dd26a04e959657ab6788d45f5725590c32",
+"symbol": "DEGEN",
+"name": "Degen",
+"holders": 2690,
+"marketCapUsd": 24394092,
+"icon": "https://assets.coingecko.com/coins/images/34515/small/android-chrome-512x512.png"
+},
+{
+"address": "0x76cf788606f3d968b93b8a243d0e185c974ee407",
+"symbol": "HOHM",
+"name": "Origami hOHM",
+"holders": 120,
+"marketCapUsd": 23397119,
+"icon": "https://assets.coingecko.com/coins/images/66457/small/hOHM_200px.png"
+},
+{
+"address": "0x178e54df3d091ee4d0b2534742ef9e3692b76526",
+"symbol": "BNKR",
+"name": "BankrCoin",
+"holders": 712,
+"marketCapUsd": 21490695,
+"icon": "https://assets.coingecko.com/coins/images/52626/small/bankr-static.png"
+},
+{
+"address": "0xe10cc5f0cd0c90322ebeb33e7757b2c9090146dc",
+"symbol": "GOOGLON",
+"name": "Alphabet Class A (Ondo Tokenized",
+"holders": 28,
+"marketCapUsd": 20590072,
+"icon": "https://assets.coingecko.com/coins/images/68606/small/googlon_160x160.png"
+},
+{
+"address": "0x2e8c31162b855a2ffa90f6f8634643ad6f111e18",
+"symbol": "AI",
+"name": "Artificial Inu",
+"holders": 59876,
+"marketCapUsd": 20321764,
+"icon": "https://assets.coingecko.com/coins/images/102176647/small/5ou9sb7h478ezv28urbjpzf1fl3e."
+},
+{
+"address": "0xe170dc96ca10103e0d4c5d9293c5a3a72ee365a5",
+"symbol": "JOHN",
+"name": "Little John",
+"holders": 3663,
+"marketCapUsd": 17195155,
+"icon": "https://assets.coingecko.com/coins/images/102174507/small/logo.png"
+},
+{
+"address": "0xf4c5015bbeaa89cb6c60b0ecafea05351533f4cd",
+"symbol": "PORKU",
+"name": "HoodPork",
+"holders": 1094,
+"marketCapUsd": 15935100,
+"icon": "https://assets.coingecko.com/coins/images/102179000/small/f014115a-0534-449c-985e-c773534fcf07.png"
+},
+{
+"address": "0x5ab3d4c385b400f3abb49e80de2faf6a88a7b691",
+"symbol": "FLOCK",
+"name": "FLOCK",
+"holders": 3842,
+"marketCapUsd": 15867786,
+"icon": "https://assets.coingecko.com/coins/images/53178/small/FLock_Token_Logo.png"
+},
+{
+"address": "0xca6f20e241c73de4eeb873107b217ce2463c3b1d",
+"symbol": "DUAL",
+"name": "Dual",
+"holders": 57,
+"marketCapUsd": 15857698,
+"icon": "https://assets.coingecko.com/coins/images/102172467/small/dual.png"
+},
+{
+"address": "0x8e41fd25e85e624560fa50ff9f117a02cd30b8b3",
+"symbol": "SIF",
+"name": "Super Inu Force",
+"holders": 355,
+"marketCapUsd": 15821605,
+"icon": "https://assets.coingecko.com/coins/images/102179080/small/grok-image-d4def90b-4246-4113-90a4-c46ce7ade9b8.jpg"
+},
+{
+"address": "0x9b8294f24453379aa87c807ab82bf1d5722153fc",
+"symbol": "SPCXON",
+"name": "SpaceX (Ondo Tokenized Stock)",
+"holders": 12,
+"marketCapUsd": 15698838,
+"icon": "https://assets.coingecko.com/coins/images/102173730/small/spcxon.png"
+},
+{
+"address": "0x09dedc334fc47ab543e5d70c7fd9d2b1aea175bd",
+"symbol": "MSTRON",
+"name": "MicroStrategy (Ondo Tokenized St",
+"holders": 6,
+"marketCapUsd": 14682754,
+"icon": "https://assets.coingecko.com/coins/images/68530/small/mstron_160x160.png"
+},
+{
+"address": "0xa85abef37c7e812aca761b2bec62fff7f3728f1e",
+"symbol": "UP",
+"name": "Superform",
+"holders": 3,
+"marketCapUsd": 11808667,
+"icon": "https://assets.coingecko.com/coins/images/70945/small/superform.png",
+"ambiguousTicker": true
+},
+{
+"address": "0xf4f0d634915a522f05ec0b89064950e91e435565",
+"symbol": "HALO",
+"name": "Halo",
+"holders": 3,
+"marketCapUsd": 11580963,
+"icon": "https://assets.coingecko.com/coins/images/102174888/small/halo-token-mark-2048.png"
+},
+{
+"address": "0x092963938debd8013a2e545b3549f8a5ec0d2286",
+"symbol": "OLAS",
+"name": "Autonolas",
+"holders": 61,
+"marketCapUsd": 11473929,
+"icon": "https://assets.coingecko.com/coins/images/31099/small/OLAS-token.png"
+},
+{
+"address": "0x18e674231a58c239dc7daedcffe15ec3a24cff5c",
+"symbol": "HOOKR",
+"name": "Hookr.fun",
+"holders": 10429,
+"marketCapUsd": 11317994,
+"icon": "https://assets.coingecko.com/coins/images/102175265/small/hookr.jpg"
+},
+{
+"address": "0x67b953ac1d98f9dfe17ab1854bd54b180f95ae07",
+"symbol": "RAMBO",
+"name": "Rambo Kitten",
+"holders": 392,
+"marketCapUsd": 11067407,
+"icon": null
+},
+{
+"address": "0xaa07a0e9209e16ac99708c3ec70159c6ef3128a3",
+"symbol": "ORBIO",
+"name": "Orbio.so",
+"holders": 16372,
+"marketCapUsd": 10313496,
+"icon": "https://assets.coingecko.com/coins/images/102176665/small/orbio.jpg"
+},
+{
+"address": "0xb0007d59fe4050a1636c2fa19038973d16481337",
+"symbol": "RYFT",
+"name": "RYFT",
+"holders": 1918,
+"marketCapUsd": 9626043,
+"icon": null
+},
+{
+"address": "0xe934e36a439c94017b64a3fece66af12099abf50",
+"symbol": "STONKBROKER",
+"name": "StonkBroker",
+"holders": 44459,
+"marketCapUsd": 9142195,
+"icon": "https://assets.coingecko.com/coins/images/102174654/small/9gwu14e3hpizobkefg65k66l70wu."
+},
+{
+"address": "0x7b5026cfcb4de0cf3d9a39fe2a541514b71437a2",
+"symbol": "METAON",
+"name": "Meta Platforms (Ondo Tokenized S",
+"holders": 10,
+"marketCapUsd": 9059849,
+"icon": "https://assets.coingecko.com/coins/images/68645/small/metaon_160x160.png"
+},
+{
+"address": "0x88ad8ddf1e3898412146a534538d418c6f8a9062",
+"symbol": "STANDARD",
+"name": "STANDARD",
+"holders": 4950,
+"marketCapUsd": 8746894,
+"icon": "https://assets.coingecko.com/coins/images/102178385/small/standard.png"
+},
+{
+"address": "0x6f63d869011f95274498023b4abfc00b30c34378",
+"symbol": "SN80",
+"name": "OpenRoboto",
+"holders": 52,
+"marketCapUsd": 8222002,
+"icon": "https://assets.coingecko.com/coins/images/66445/small/Image_Container.png"
+},
+{
+"address": "0x88c4c42ed68584ff02f5a00d5d3d985108a3961c",
+"symbol": "EDEL",
+"name": "Edel",
+"holders": 486,
+"marketCapUsd": 7872307,
+"icon": null
+},
+{
+"address": "0x9bf86418caf2b7a939603d6c24219a77bf7f9b33",
+"symbol": "AAPLON",
+"name": "Apple (Ondo Tokenized Stock)",
+"holders": 18,
+"marketCapUsd": 7256445,
+"icon": "https://assets.coingecko.com/coins/images/68616/small/aaplon_160x160.png"
+},
+{
+"address": "0x7fe995a80075df3dc8ae11a9b82c7fe4202cd87f",
+"symbol": "HMM",
+"name": "Thinking Cat",
+"holders": 94892,
+"marketCapUsd": 6720673,
+"icon": "https://assets.coingecko.com/coins/images/102174672/small/fmu02lq7zai1iyp4qqwfnmu5wr1v."
+},
+{
+"address": "0xf82119ebd01eb6ab67105c9536a713d61a25cf9f",
+"symbol": "ADX",
+"name": "heyAura",
+"holders": 138,
+"marketCapUsd": 6425930,
+"icon": "https://assets.coingecko.com/coins/images/847/small/token.png"
+},
+{
+"address": "0x900f8970d2fae8060d06bb29234f629c837c3383",
+"symbol": "BMNRON",
+"name": "BitMine Immersion Technologies (",
+"holders": 2,
+"marketCapUsd": 6034861,
+"icon": "https://assets.coingecko.com/coins/images/71411/small/bmnron_160x160.png"
+},
+{
+"address": "0xe77d354898a44808ff3999947002785cd727bed5",
+"symbol": "SFI",
+"name": "saffron.finance",
+"holders": 188,
+"marketCapUsd": 5539325,
+"icon": "https://assets.coingecko.com/coins/images/13117/small/sfi_red_250px.png"
+},
+{
+"address": "0xddde5965d49e69b6362bd8743e139a45dbfeb7b3",
+"symbol": "SN10",
+"name": "Pareton",
+"holders": null,
+"marketCapUsd": 4246936,
+"icon": "https://assets.coingecko.com/coins/images/66310/small/icon.png"
+},
+{
+"address": "0xdcd7face6a1d0bdd0665ea1b0842fc9ce797862b",
+"symbol": "IXS",
+"name": "IXS",
+"holders": 724,
+"marketCapUsd": 4211305,
+"icon": "https://assets.coingecko.com/coins/images/102179819/small/IXS-ava-square_2x.png"
+},
+{
+"address": "0x8e8266b11eaff21998b31c5ad258198e103e1fb0",
+"symbol": "OLY",
+"name": "OLY",
+"holders": 36,
+"marketCapUsd": 4030813,
+"icon": "https://assets.coingecko.com/coins/images/102176943/small/OLY_LOGO_CLEAN.png"
+},
+{
+"address": "0xedbf91223639800bcd5756815caf908df3b890be",
+"symbol": "PRIORS",
+"name": "Priors Agents",
+"holders": 5278,
+"marketCapUsd": 3954574,
+"icon": null
+},
+{
+"address": "0x56910d4409f3a0c78c64dd8d0545ff0705389870",
+"symbol": "INDEX",
+"name": "The Index",
+"holders": 27262,
+"marketCapUsd": 3927262,
+"icon": "https://assets.coingecko.com/coins/images/102174740/small/qffiSdBd_400x400_%281%29.jpg"
+},
+{
+"address": "0x2d8d6f4a93acd7a916a5a654ec8b690ba3b3eadd",
+"symbol": "STATICS",
+"name": "Statics Protocol",
+"holders": 953,
+"marketCapUsd": 3701829,
+"icon": "https://assets.coingecko.com/coins/images/102176707/small/04_Statics_Icon_Only_Dark.png"
+},
+{
+"address": "0xf3081494b87e8d5fb7960f066e931d1d0e6e3d67",
+"symbol": "TAO",
+"name": "ForeverMoney Wrapped TAO",
+"holders": 3047,
+"marketCapUsd": 3622361,
+"icon": "https://assets.coingecko.com/coins/images/102178769/small/tao.png"
+},
+{
+"address": "0x6a6a57d1e94eb586c5b505a1c81434bda3d6ed97",
+"symbol": "BABY",
+"name": "BabyCashCat",
+"holders": 2118,
+"marketCapUsd": 3583948,
+"icon": "https://assets.coingecko.com/coins/images/102179050/small/2182510a-5459-4b0d-bcac-9238095ddfe1.png"
+},
+{
+"address": "0x10b5ca68a5509b93e6c8f62ed76a7086164f1f11",
+"symbol": "WWB",
+"name": "Wowbit",
+"holders": 65,
+"marketCapUsd": 3456763,
+"icon": "https://assets.coingecko.com/coins/images/102178838/small/wwb-logo-200.png"
+},
+{
+"address": "0x348cc963411fb82cd6e0b64345714fec94f242cb",
+"symbol": "GOOSE",
+"name": "Goose Token",
+"holders": 13189,
+"marketCapUsd": 3405931,
+"icon": "https://assets.coingecko.com/coins/images/102176491/small/goose-seal.png"
+},
+{
+"address": "0x777777783478dadf54678d1d92dad3fb5bd42eb2",
+"symbol": "CAW",
+"name": "crow with knife",
+"holders": 126,
+"marketCapUsd": 3377116,
+"icon": "https://assets.coingecko.com/coins/images/36067/small/200px.png"
+},
+{
+"address": "0x07ebb29a38fbcb41563817e5e19f2cec619c90d2",
+"symbol": "BUN",
+"name": "Bundle Cat",
+"holders": 4997,
+"marketCapUsd": 3312487,
+"icon": "https://assets.coingecko.com/coins/images/102176682/small/catttyyy_%281%29.png"
+},
+{
+"address": "0x45242320dbb855eea8fd36804c6487e10e97fcf9",
+"symbol": "TENDIES",
+"name": "TENDIES",
+"holders": 21426,
+"marketCapUsd": 3034058,
+"icon": "https://assets.coingecko.com/coins/images/102174418/small/x1o0qj8dm7mlay3licerc1y75hr4."
+},
+{
+"address": "0x812486eaea648819853f8e372dc9f1516c7868bd",
+"symbol": "UBIK",
+"name": "ubik",
+"holders": 8784,
+"marketCapUsd": 3032652,
+"icon": "https://assets.coingecko.com/coins/images/102176699/small/ubik.webp"
+},
+{
+"address": "0x77b0aa38451ccdc1b42587e2f80b9879a7f82356",
+"symbol": "DOGO",
+"name": "DogBull",
+"holders": 20572,
+"marketCapUsd": 3031555,
+"icon": "https://assets.coingecko.com/coins/images/102175491/small/fy8vywsdpyv6zb2j7qtyt6u0dw24."
+},
+{
+"address": "0x7dbf38976f6d3b9c529e7d9484a71898b409ee6a",
+"symbol": "ZZZ",
+"name": "ZZZ",
+"holders": 10737,
+"marketCapUsd": 2964504,
+"icon": "https://assets.coingecko.com/coins/images/102176737/small/zzz-new-logo-black.png"
+},
+{
+"address": "0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111",
+"symbol": "TORCH",
+"name": "torch",
+"holders": 4111,
+"marketCapUsd": 2913765,
+"icon": "https://assets.coingecko.com/coins/images/102179438/small/photo_2026-08-07_13-08-05.jpg"
+},
+{
+"address": "0x6ddb8541af17dadea47df41d1c13faf8deee1902",
+"symbol": "KSKD",
+"name": "Kaskad",
+"holders": 168,
+"marketCapUsd": 2909191,
+"icon": "https://assets.coingecko.com/coins/images/102173678/small/KSKD-TOKEN-CIRCLE-2_._png.png"
+},
+{
+"address": "0x79bbf4508b1391af3a0f4b30bb5fc4aa9ab0e07c",
+"symbol": "ANON",
+"name": "Hey Anon",
+"holders": 6281,
+"marketCapUsd": 2749275,
+"icon": "https://assets.coingecko.com/coins/images/52961/small/AAI__ANON_SQ_Wb_250x250.png"
+},
+{
+"address": "0x57c0e45cb534413d1c20a4240955d6bb250bb4f1",
+"symbol": "UP",
+"name": "up",
+"holders": 14837,
+"marketCapUsd": 2729039,
+"icon": null,
+"ambiguousTicker": true
+},
+{
+"address": "0x5cb6f181081301b44905f3ae15419112ecabd8a6",
+"symbol": "PIPEDOG",
+"name": "pipedog",
+"holders": 8879,
+"marketCapUsd": 2690645,
+"icon": "https://assets.coingecko.com/coins/images/102174876/small/pipedog.png"
+},
+{
+"address": "0x43cac729218c62210d71d66b7f0ec93990d8d8cc",
+"symbol": "HOODON",
+"name": "Robinhood Markets (Ondo Tokenize",
+"holders": 6,
+"marketCapUsd": 2667678,
+"icon": "https://assets.coingecko.com/coins/images/68581/small/hoodon_160x160.png"
+},
+{
+"address": "0x75113389169b154ddac67ca7efa542680d75f072",
+"symbol": "FXION",
+"name": "iShares China Large-Cap ETF (Ond",
+"holders": 2,
+"marketCapUsd": 2628133,
+"icon": "https://assets.coingecko.com/coins/images/102172421/small/fxion_160x160.png"
+},
+{
+"address": "0x451b42a15100c340ca12f7c66de06fac5ea2d751",
+"symbol": "BOW",
+"name": "Longbow",
+"holders": 8329,
+"marketCapUsd": 2591154,
+"icon": "https://assets.coingecko.com/coins/images/102175862/small/longbow.jpg"
+},
+{
+"address": "0x351ab2c51e223b28d219fe28cc3956410cc11e18",
+"symbol": "ANTHROPIG",
+"name": "Anthropig",
+"holders": 1723,
+"marketCapUsd": 2538533,
+"icon": "https://assets.coingecko.com/coins/images/102178382/small/ant.png"
+},
+{
+"address": "0xe8ffd7e24187f72afb08d75b1bb13088a989a791",
+"symbol": "DELTA",
+"name": "Delta",
+"holders": 17020,
+"marketCapUsd": 2480581,
+"icon": "https://assets.coingecko.com/coins/images/102176692/small/fsh29xwdtuxwvc6pcdhi0jqrl5vd."
+},
+{
+"address": "0x385f4f8ae47651ce5f58f5265395a669f8281e18",
+"symbol": "AMC",
+"name": "A Meme Coin",
+"holders": 28391,
+"marketCapUsd": 2452805,
+"icon": "https://assets.coingecko.com/coins/images/102176700/small/amc.jpg"
+},
+{
+"address": "0xd5f1afea47b1a9eab414d2ee740cf1d6d039e725",
+"symbol": "MICRODUCK",
+"name": "microduck",
+"holders": 19344,
+"marketCapUsd": 2427254,
+"icon": "https://assets.coingecko.com/coins/images/102176663/small/bvw8hqnmvgvs61nw2h4et0zj00jx."
+},
+{
+"address": "0xb47e8ad95ca1e0ba1c76768fe0f109d82b5fdcc4",
+"symbol": "VOOI",
+"name": "VOOI",
+"holders": null,
+"marketCapUsd": 2384571,
+"icon": "https://assets.coingecko.com/coins/images/70365/small/VOOI_Token_Logo.png"
+},
+{
+"address": "0xad05253a381feade280ca50bf875dc8113e8a746",
+"symbol": "PROPS",
+"name": "Propbase",
+"holders": 640,
+"marketCapUsd": 2234699,
+"icon": null
+},
+{
+"address": "0xe08739259de3b3864417dcdea9f4aaeddb8eddb9",
+"symbol": "APE",
+"name": "Ape.fun",
+"holders": 2140,
+"marketCapUsd": 2215492,
+"icon": "https://assets.coingecko.com/coins/images/102179945/small/download.png",
+"ambiguousTicker": true
+},
+{
+"address": "0x50832d74a7160e2f7d361f5e678e107d228b9aa6",
+"symbol": "ARENA",
+"name": "The Arena",
+"holders": 817,
+"marketCapUsd": 2026179,
+"icon": "https://assets.coingecko.com/coins/images/51173/small/_ARENA_TokenLogo_200x200.png"
+},
+{
+"address": "0x667f0926022e6b9e9f67a9314ed5830be54346b2",
+"symbol": "FLAY",
+"name": "Flayer",
+"holders": 82,
+"marketCapUsd": 1991804,
+"icon": "https://assets.coingecko.com/coins/images/50377/small/flay.jpg"
+},
+{
+"address": "0x5d102d1e69e77591d486aa4f663b3645151bbdf6",
+"symbol": "VOLT",
+"name": "VOLT INU",
+"holders": 2750,
+"marketCapUsd": 1981600,
+"icon": "https://assets.coingecko.com/coins/images/102178510/small/Bazaart_AA3B7569-80A4-429F-A4DD-3ABFA751EAD2.jpeg"
+},
+{
+"address": "0xfed6b187f6da04e2eae5d3ea89b57129da62b28a",
+"symbol": "GF",
+"name": "GongFu",
+"holders": 1285,
+"marketCapUsd": 1969687,
+"icon": "https://assets.coingecko.com/coins/images/102179752/small/GongFu.png"
+},
+{
+"address": "0x6245e67affa44a23077f0ea7f981a8dc743a0c47",
+"symbol": "FRONG",
+"name": "frong",
+"holders": 17259,
+"marketCapUsd": 1950167,
+"icon": "https://assets.coingecko.com/coins/images/102175259/small/frong.png"
+},
+{
+"address": "0xb8fa8010833463aac5595b55b9045479239eff79",
+"symbol": "WTH",
+"name": "what the hook?",
+"holders": 1571,
+"marketCapUsd": 1934897,
+"icon": "https://assets.coingecko.com/coins/images/102175551/small/Hook_Logo_Metallic_Black_BG.png"
+},
+{
+"address": "0x98096d17e191b3da1d5f99a6d7b3584351b11e18",
+"symbol": "BONER",
+"name": "Boner Coin",
+"holders": 21713,
+"marketCapUsd": 1900040,
+"icon": "https://assets.coingecko.com/coins/images/102176671/small/boner.jpg"
+},
+{
+"address": "0xfce34d21a92069100e3226638140706cf03a266e",
+"symbol": "GLDSTN",
+"name": "Goldstein",
+"holders": 751,
+"marketCapUsd": 1845774,
+"icon": "https://assets.coingecko.com/coins/images/102179092/small/13C4593B-E474-42D8-82EE-3F3BF3C376A5.jpeg"
+},
+{
+"address": "0x000de658153f47f23e92973c8eb1e89762703676",
+"symbol": "FOBO",
+"name": "FOBO",
+"holders": 1608,
+"marketCapUsd": 1772808,
+"icon": "https://assets.coingecko.com/coins/images/102179795/small/fobo.jpg"
+},
+{
+"address": "0xf44702b17d9abd53815f703e772f35e9c71a53af",
+"symbol": "RAXOL",
+"name": "RAXOL",
+"holders": 2602,
+"marketCapUsd": 1736590,
+"icon": "https://assets.coingecko.com/coins/images/102174343/small/tljlld1hjqbs8rz1f0hdznr8ouls."
+},
+{
+"address": "0x1da24f6bb623b9d1afeae3f3146659a2662d6d27",
+"symbol": "DEEP",
+"name": "Deepstate",
+"holders": 264,
+"marketCapUsd": 1649409,
+"icon": "https://assets.coingecko.com/coins/images/102175623/small/_DEEP.png"
+},
+{
+"address": "0x72be1277e198d0c476869253cb4e62807e14533c",
+"symbol": "RAETO",
+"name": "Raeto",
+"holders": 1811,
+"marketCapUsd": 1619458,
+"icon": "https://assets.coingecko.com/coins/images/102179638/small/raeto.jpg"
+},
+{
+"address": "0x6572eade9fb17f4027baf92feac222b9aa746bd0",
+"symbol": "GOO",
+"name": "Grey Goo",
+"holders": 596,
+"marketCapUsd": 1614152,
+"icon": "https://assets.coingecko.com/coins/images/102179552/small/goo.png"
+},
+{
+"address": "0x5173d45a1191ee33cbb7d8c7e65f21b04ed54802",
+"symbol": "RAM",
+"name": "Ramses",
+"holders": 8465,
+"marketCapUsd": 1611505,
+"icon": "https://assets.coingecko.com/coins/images/70707/small/ram_%281%29.png"
+},
+{
+"address": "0xd7321801caae694090694ff55a9323139f043b88",
+"symbol": "JUGGERNAUT",
+"name": "The Juggernaut",
+"holders": 20137,
+"marketCapUsd": 1579637,
+"icon": "https://assets.coingecko.com/coins/images/102174595/small/juggernaut.jpg"
+},
+{
+"address": "0x97c065eed0309f182777bffa41a9c0027c190df1",
+"symbol": "SYK",
+"name": "Stryke",
+"holders": 35,
+"marketCapUsd": 1558779,
+"icon": "https://assets.coingecko.com/coins/images/36531/small/Brandmark_Yellow_transparent.png"
+},
+{
+"address": "0x15b271d9012b5820fc42b1c495b4c1e206547de5",
+"symbol": "WITRY",
+"name": "Wrapped iTRY",
+"holders": 5,
+"marketCapUsd": 1545031,
+"icon": "https://assets.coingecko.com/coins/images/102172903/small/wiTRY.png"
+},
+{
+"address": "0xf2915d1e3c1b0c769d0c756ec43f1c1f6c99cd03",
+"symbol": "ARROW",
+"name": "Arrow",
+"holders": 9377,
+"marketCapUsd": 1544192,
+"icon": null
+},
+{
+"address": "0xbf7eb6679d1c833e6a58ac9a122c993c4e691b31",
+"symbol": "AUDT",
+"name": "Auditchain",
+"holders": 16,
+"marketCapUsd": 1459594,
+"icon": "https://assets.coingecko.com/coins/images/6398/small/auditchain.png"
+},
+{
+"address": "0x42afa2124ca5a2b83898e46b2da9a190995b1e18",
+"symbol": "SCHIFFY",
+"name": "SCHIFFY",
+"holders": 6632,
+"marketCapUsd": 1454261,
+"icon": "https://assets.coingecko.com/coins/images/102176912/small/437ilu0a4p3x2igq9tp8ermhbkr9."
+},
+{
+"address": "0xbbb8ef3181661512ceab66e0b213c29211b24b6c",
+"symbol": "USDUC",
+"name": "Unstable Coin",
+"holders": 22,
+"marketCapUsd": 1443302,
+"icon": "https://assets.coingecko.com/coins/images/56006/small/usduc-logo.jpg"
+},
+{
+"address": "0x4c1dab3be86347977f3dfc4b9688224ef2272939",
+"symbol": "W0G",
+"name": "Wrapped 0G",
+"holders": null,
+"marketCapUsd": 1438131,
+"icon": "https://assets.coingecko.com/coins/images/69681/small/0g.png"
+},
+{
+"address": "0x32807d54ee1570cba97e256c59426dd80dcd9fcf",
+"symbol": "SIS",
+"name": "Symbiosis",
+"holders": 18487,
+"marketCapUsd": 1415914,
+"icon": "https://assets.coingecko.com/coins/images/20805/small/sis_token.png"
+},
+{
+"address": "0x94641b97010608c3827fb058074889f19868ff33",
+"symbol": "VRAX",
+"name": "Commander Vrax",
+"holders": 7193,
+"marketCapUsd": 1398371,
+"icon": "https://assets.coingecko.com/coins/images/102178985/small/9ynfoj2ibjxo3rlf9aghubks9n96.",
+"ambiguousTicker": true
+},
+{
+"address": "0xbd4802d70448fb1d776683bebea592d66b623e29",
+"symbol": "STONKFI",
+"name": "Stonk.Fi",
+"holders": 209,
+"marketCapUsd": 1257476,
+"icon": "https://assets.coingecko.com/coins/images/102175651/small/x-profile-1024.png"
+},
+{
+"address": "0x168661c52e5922288dfb2b3f323b6cf90eb21e18",
+"symbol": "STRATEGY",
+"name": "Strategy Coin",
+"holders": 2655,
+"marketCapUsd": 1236963,
+"icon": "https://assets.coingecko.com/coins/images/102176978/small/strategy.jpg"
+},
+{
+"address": "0x00000000043c1117dafa3a3d0c7148eb48b30130",
+"symbol": "FLETH",
+"name": "flETH",
+"holders": 91,
+"marketCapUsd": 1224659,
+"icon": "https://assets.coingecko.com/coins/images/54177/small/weth.png"
+},
+{
+"address": "0x351f65928a40657c31f51bb543f8bb3844d123fa",
+"symbol": "VRAX",
+"name": "Commander Vrax",
+"holders": 148,
+"marketCapUsd": 1222962,
+"icon": "https://assets.coingecko.com/coins/images/102179512/small/logo.png",
+"ambiguousTicker": true
+},
+{
+"address": "0x7163ae1b5aea2f09ebc609c52b4dcac0a7a4bc2d",
+"symbol": "GAGE",
+"name": "GAGE",
+"holders": 2301,
+"marketCapUsd": 1127781,
+"icon": "https://assets.coingecko.com/coins/images/102176839/small/w5wyrkznf1hhp7npgdzf36otoni1."
+},
+{
+"address": "0xded852de9fe9ba9b6f27f39e8e81cf851a5c79cc",
+"symbol": "ROBINCAT",
+"name": "ROBINCAT",
+"holders": 10756,
+"marketCapUsd": 945578,
+"icon": "https://assets.coingecko.com/coins/images/102176715/small/IMG_4475.png"
+},
+{
+"address": "0x4a88cf518ea6b7d1184184d6eab78df7252a74f1",
+"symbol": "NINJACAT",
+"name": "NinjaCat",
+"holders": 1199,
+"marketCapUsd": 912613,
+"icon": "https://assets.coingecko.com/coins/images/102176554/small/a59d031c-e999-4b92-b555-43fedbafd8c2.JPG"
+},
+{
+"address": "0xacc8de336f5d2366fa7334383d8fab73499f582a",
+"symbol": "FOREVER",
+"name": "Forever",
+"holders": 3873,
+"marketCapUsd": 886570,
+"icon": "https://assets.coingecko.com/coins/images/102179913/small/forever.jpg"
+},
+{
+"address": "0x4fc5b9f8933597d3ecf84d0611687e1dc8dd576f",
+"symbol": "ABIL",
+"name": "SPDR Bloomberg 1-3 Month T-Bill ",
+"holders": 1,
+"marketCapUsd": 863016,
+"icon": "https://assets.coingecko.com/coins/images/102175631/small/coingecko-aBIL.png"
+},
+{
+"address": "0x5173b8ea6923c2d40267890d45c46a3480954773",
+"symbol": "WIF",
+"name": "World is Flat",
+"holders": 1735,
+"marketCapUsd": 840918,
+"icon": "https://assets.coingecko.com/coins/images/102175446/small/our_logo_200.png"
+},
+{
+"address": "0x0e0d2c89a5a019fe1cf762e5e33187631dacc21b",
+"symbol": "CHUMP",
+"name": "Chump Coin",
+"holders": 13491,
+"marketCapUsd": 825970,
+"icon": "https://assets.coingecko.com/coins/images/102175847/small/1000313188.jpg"
+},
+{
+"address": "0x1c1a7e9142dd3eaa76b1047045b6e0e95848e814",
+"symbol": "WAGIE",
+"name": "wagie wojaks",
+"holders": 734,
+"marketCapUsd": 825951,
+"icon": "https://assets.coingecko.com/coins/images/102178323/small/LogoWW.png"
+},
+{
+"address": "0x3ba500f1ababbcf0f0247d06d1c56fd7e6c4c09d",
+"symbol": "WORM",
+"name": "Agent Wormhole",
+"holders": 10039,
+"marketCapUsd": 808383,
+"icon": "https://assets.coingecko.com/coins/images/102178404/small/Untitled_design_%288%29.png"
+},
+{
+"address": "0xca18a528ea897040f715edc92e6e4572780c5ca1",
+"symbol": "KAI",
+"name": "Kairence",
+"holders": 176,
+"marketCapUsd": 804842,
+"icon": "https://assets.coingecko.com/coins/images/102176542/small/QmSfRb4v3uxnjq792Nwq1f5DE34Aur6VbgS1RQXQMqhEWv_copy.png"
+},
+{
+"address": "0xf7f34c25cee15ea3d26c61fb6141ae90ed50158e",
+"symbol": "ALTAI",
+"name": "Altai the Tiger",
+"holders": 111,
+"marketCapUsd": 802064,
+"icon": "https://assets.coingecko.com/coins/images/102179499/small/logo.png"
+},
+{
+"address": "0x1f98becfc36d050757d6675618addc6a97dea1ef",
+"symbol": "TEB",
+"name": "The Earn Bull",
+"holders": 59,
+"marketCapUsd": 784966,
+"icon": "https://assets.coingecko.com/coins/images/102174493/small/photo_2026-07-06_16-02-22.jpg"
+},
+{
+"address": "0xb094d0d3221d7f7a9f14b0f78c34cd38d7acf6f2",
+"symbol": "GMEON",
+"name": "GameStop (Ondo Tokenized Stock)",
+"holders": 8,
+"marketCapUsd": 766453,
+"icon": "https://assets.coingecko.com/coins/images/68575/small/gmeon_160x160.png"
+},
+{
+"address": "0x0ff9072a1ead154d92c2d2fef16afba6028ce2b2",
+"symbol": "OPTIMUS",
+"name": "Optimus",
+"holders": 3552,
+"marketCapUsd": 715034,
+"icon": "https://assets.coingecko.com/coins/images/102179599/small/optimus-logo-square-200px.png"
+},
+{
+"address": "0xfc5a5c521c80d8e1d6b5aee6454b8c9483c91bff",
+"symbol": "LLL",
+"name": "Lighthouse",
+"holders": 1501,
+"marketCapUsd": 706430,
+"icon": "https://assets.coingecko.com/coins/images/102179527/small/lighthouse.jpg"
+},
+{
+"address": "0xca9c78dd337a67f6e0077f65f5e9218719d30edf",
+"symbol": "NET",
+"name": "NetNet",
+"holders": 11410,
+"marketCapUsd": 689809,
+"icon": "https://assets.coingecko.com/coins/images/102174712/small/netnet_400x400.jpg"
+},
+{
+"address": "0xdee52f2ab639b6942b0d0f0565400b93b7a0fbe5",
+"symbol": "HARMONIC",
+"name": "Harmonic Agent",
+"holders": 3251,
+"marketCapUsd": 670328,
+"icon": "https://assets.coingecko.com/coins/images/102176668/small/harmonic.jpg"
+},
+{
+"address": "0x91a2dae9699f0b82540b5886b0d8759c22820ba3",
+"symbol": "MUSEBOOK",
+"name": "musebook",
+"holders": 19368,
+"marketCapUsd": 666260,
+"icon": "https://assets.coingecko.com/coins/images/102178465/small/musebook.png"
+},
+{
+"address": "0xdaa8f3f54c66e9be2c44c1b6b566cbd07229ced3",
+"symbol": "HOOD",
+"name": "GreenHood",
+"holders": 1329,
+"marketCapUsd": 648510,
+"icon": "https://assets.coingecko.com/coins/images/102176621/small/logo-hood.png"
+},
+{
+"address": "0x30de7ae4c9578d110a97367ede9f7765cdce06ea",
+"symbol": "PANGEA",
+"name": "Pangea",
+"holders": 2759,
+"marketCapUsd": 629946,
+"icon": "https://assets.coingecko.com/coins/images/102179697/small/pangea.jpg"
+},
+{
+"address": "0xc65a7c91591a2dd4d5624e75e814b1bbe88b984a",
+"symbol": "TRENCHERS",
+"name": "Trenchers",
+"holders": 457,
+"marketCapUsd": 622980,
+"icon": "https://assets.coingecko.com/coins/images/102179402/small/trenchers-avatar.png"
+},
+{
+"address": "0xa156048aa84d13b1de40dfa8288d28b2593fc35c",
+"symbol": "XBOW",
+"name": "Crossbow Finance",
+"holders": 650,
+"marketCapUsd": 617147,
+"icon": "https://assets.coingecko.com/coins/images/102178475/small/2026-09-12_10.09.08_4.png"
+},
+{
+"address": "0x52bacfbf0e3f7c16bc883e8f6d7c9bc3ad41558b",
+"symbol": "KOM",
+"name": "Kommunitas",
+"holders": 10,
+"marketCapUsd": 597602,
+"icon": "https://assets.coingecko.com/coins/images/67692/small/Kommunitas_HD.png"
+},
+{
+"address": "0xef67e3064bef1a27e81925ec7132f23e533bd5f6",
+"symbol": "GME",
+"name": "Greatest Meme Ever",
+"holders": 3961,
+"marketCapUsd": 594446,
+"icon": "https://assets.coingecko.com/coins/images/102176793/small/logo-512_%281%29.png"
+},
+{
+"address": "0x806ba27b5e1c4c2e989a3757a8def9fe1145ed10",
+"symbol": "WOJAK",
+"name": "Wojak",
+"holders": 986,
+"marketCapUsd": 585960,
+"icon": "https://assets.coingecko.com/coins/images/102179288/small/xdw98uqzcex2f6xqpyofsdvt7kit."
+},
+{
+"address": "0xab093def657f15df31b33922a95e047add645b29",
+"symbol": "SHROOM",
+"name": "MUSHROOM",
+"holders": 10735,
+"marketCapUsd": 582982,
+"icon": "https://assets.coingecko.com/coins/images/102176720/small/shroom.jpg"
+},
+{
+"address": "0xc72f232a6869e6cf34dc06129affd07f8a2a246a",
+"symbol": "MANCER",
+"name": "Mancer",
+"holders": 12241,
+"marketCapUsd": 570126,
+"icon": "https://assets.coingecko.com/coins/images/102175391/small/mancer.jpg"
+},
+{
+"address": "0x834a24d16bf56d692c2e5fff9428f9d01f2f1ca5",
+"symbol": "LOXI",
+"name": "LOXI",
+"holders": 4464,
+"marketCapUsd": 568376,
+"icon": null
+},
+{
+"address": "0xbc9e7b1c5c0081f4ae85e71ec95703d3dec9ffad",
+"symbol": "Bucket",
+"name": "Bucket Shop",
+"holders": 2860,
+"marketCapUsd": 560954,
+"icon": null
+},
+{
+"address": "0x7cd7073a71eaf5f6e4febfa98460ee66cd97deb1",
+"symbol": "BISCOTTI",
+"name": "Biscotti",
+"holders": 3184,
+"marketCapUsd": 526145,
+"icon": "https://assets.coingecko.com/coins/images/102176685/small/uhi4hfcdozjt72clkps8kpelxikj."
+},
+{
+"address": "0x65b445518b1ad0d9c597731494f5bd2991b7ec08",
+"symbol": "ClawBank",
+"name": "ClawBank",
+"holders": 257,
+"marketCapUsd": 521359,
+"icon": null
+},
+{
+"address": "0x2e8e2dbf58b5f141f9a3d04dba0812b416574e83",
+"symbol": "DOPAMEME",
+"name": "dopameme",
+"holders": 205,
+"marketCapUsd": 510499,
+"icon": "https://assets.coingecko.com/coins/images/102175796/small/dopameme.png"
+},
+{
+"address": "0xceebf25b318201f1f949be2fabbfcee231737139",
+"symbol": "富贵",
+"name": "富贵 (Wealth and Prosperity)",
+"holders": 3005,
+"marketCapUsd": 498776,
+"icon": "https://assets.coingecko.com/coins/images/102178312/small/puppy.jpg"
+},
+{
+"address": "0x2a13008cc2f5a853f6fb21cbd90841806c64b247",
+"symbol": "TROLL",
+"name": "Troll in Hood",
+"holders": 801,
+"marketCapUsd": 497659,
+"icon": "https://assets.coingecko.com/coins/images/102179132/small/photo_2026-09-09_16-53-13.png"
+},
+{
+"address": "0xaa5751ff3fb61e613993b2eb4eab1fce017081fc",
+"symbol": "HYDX",
+"name": "HyperDex",
+"holders": 1935,
+"marketCapUsd": 491544,
+"icon": "https://assets.coingecko.com/coins/images/102178835/small/final_profile_%281%29.png"
+},
+{
+"address": "0x727701f88f09fed71eb217bcea88b3f314cf7079",
+"symbol": "GRID",
+"name": "GRID by Virtuals",
+"holders": 1801,
+"marketCapUsd": 489009,
+"icon": "https://assets.coingecko.com/coins/images/102174630/small/41nxlf8zihm0bizumu35snw3bls9."
+},
+{
+"address": "0xb63d07cef74be747231d601bb2faa6b252c68106",
+"symbol": "FABLES",
+"name": "Fables",
+"holders": 4686,
+"marketCapUsd": 488527,
+"icon": "https://assets.coingecko.com/coins/images/102179751/small/FABLES-correct-logo-200px.png"
+},
+{
+"address": "0x54a557dc542676f56ce2b1b5807cc76bedca308a",
+"symbol": "ZOKI",
+"name": "Zoki",
+"holders": 6578,
+"marketCapUsd": 477937,
+"icon": "https://assets.coingecko.com/coins/images/102178561/small/zoki.jpg"
+},
+{
+"address": "0x15f3385625d7e364c5a6216fbbceadf10fa90e7d",
+"symbol": "ABYSS",
+"name": "Abyss",
+"holders": 1520,
+"marketCapUsd": 476593,
+"icon": "https://assets.coingecko.com/coins/images/102179528/small/abyss.jpg"
+},
+{
+"address": "0x8e62f281f282686fca6dcb39288069a93fc23f1c",
+"symbol": "HOODRAT",
+"name": "Hoodrat",
+"holders": 10814,
+"marketCapUsd": 466983,
+"icon": "https://assets.coingecko.com/coins/images/102174350/small/sOAZF0mL_400x400.jpg"
+},
+{
+"address": "0x8d1612b4b78ebf08cfbf01a04fa270ccbb0509a2",
+"symbol": "RKST",
+"name": "rocket strategy",
+"holders": 2026,
+"marketCapUsd": 465849,
+"icon": null
+},
+{
+"address": "0x100765a16f42636bd84ee1e86bc5107b84bcdba3",
+"symbol": "CHOP",
+"name": "Chop",
+"holders": 1637,
+"marketCapUsd": 459029,
+"icon": "https://assets.coingecko.com/coins/images/102179284/small/chop.jpg"
+},
+{
+"address": "0xfb1bcb6817f7b8fa86896d3253b16aeb7bd6a5a8",
+"symbol": "WORTH",
+"name": "one life, its worth an attempt",
+"holders": 3854,
+"marketCapUsd": 451720,
+"icon": "https://assets.coingecko.com/coins/images/102174519/small/worth.jpg"
+},
+{
+"address": "0x71d58cfcea7382cdbdd678f965a076ba1bcc8f20",
+"symbol": "DGH",
+"name": "DigiHealth",
+"holders": 371,
+"marketCapUsd": 451228,
+"icon": "https://assets.coingecko.com/coins/images/102176817/small/dgh.png"
+},
+{
+"address": "0xc60ba256b44334a0cd2c7242e98b88f031abb006",
+"symbol": "V4",
+"name": "Programmable",
+"holders": 3512,
+"marketCapUsd": 449985,
+"icon": "https://assets.coingecko.com/coins/images/102179216/small/programmable.jpg"
+},
+{
+"address": "0xd9db30bb0d2b8d2eae3826a1372117e058791e18",
+"symbol": "MOO",
+"name": "Memory cow Moo",
+"holders": 9670,
+"marketCapUsd": 443124,
+"icon": "https://assets.coingecko.com/coins/images/102176669/small/QTB0jMQ7_400x400.jpg"
+},
+{
+"address": "0xc9675fe679c7d4e1b94416f66d61c96127eb964a",
+"symbol": "GIGATENEV",
+"name": "Giga Tenev",
+"holders": 15603,
+"marketCapUsd": 437242,
+"icon": "https://assets.coingecko.com/coins/images/102180143/small/gigatenev.jpg"
+},
+{
+"address": "0xc4f730335fb9e439ca5552f7b52b8e638c4245b0",
+"symbol": "NOTE",
+"name": "Note Systems",
+"holders": 2103,
+"marketCapUsd": 435555,
+"icon": "https://assets.coingecko.com/coins/images/102178376/small/tfsn9q7e2jtn0i7vu1ixmprbylgf."
+},
+{
+"address": "0x4a72b9702f991b790788f8afa9e7112541f4e8f8",
+"symbol": "ROUTE",
+"name": "Route",
+"holders": 3079,
+"marketCapUsd": 413446,
+"icon": "https://assets.coingecko.com/coins/images/102176834/small/route_400x400.jpg"
+},
+{
+"address": "0x9fa1c5e90a11294f83a9f135b81ad1b537a5ffdc",
+"symbol": "ZEAL",
+"name": "Zeal",
+"holders": 1295,
+"marketCapUsd": 412477,
+"icon": "https://assets.coingecko.com/coins/images/102176778/small/zeal_400x400.jpg"
+},
+{
+"address": "0xd51fdf3d83d4c17c802df06040ab51e66a923e95",
+"symbol": "$LILLY",
+"name": "LILLY",
+"holders": 5,
+"marketCapUsd": 409504,
+"icon": "https://assets.coingecko.com/coins/images/66906/small/HL_CG.jpg"
+},
+{
+"address": "0x6511c233790ec10f7d673c64dc82c3f941d57828",
+"symbol": "OAK",
+"name": "Oak",
+"holders": 2479,
+"marketCapUsd": 407295,
+"icon": "https://assets.coingecko.com/coins/images/102180044/small/7nb29hei3thu2n56etijehgpw2zr."
+},
+{
+"address": "0xb6813be7be026622b9b1c886d9d11eb0df39ba11",
+"symbol": "BALL",
+"name": "RobinHeadBall",
+"holders": 888,
+"marketCapUsd": 406674,
+"icon": "https://assets.coingecko.com/coins/images/102179603/small/ball_logo_200.png"
+},
+{
+"address": "0x4d3f37a965b21ab4122e92dd41d2693e742c883b",
+"symbol": "RIPE",
+"name": "Ripe DAO Governance Token",
+"holders": 886,
+"marketCapUsd": 405630,
+"icon": "https://assets.coingecko.com/coins/images/67990/small/Biggest.png"
+},
+{
+"address": "0x7ac87d8fdb45200fdd51e4aca225244485c984c5",
+"symbol": "SSR",
+"name": "Strategic Super Reserve",
+"holders": 47,
+"marketCapUsd": 404652,
+"icon": "https://assets.coingecko.com/coins/images/53882/small/STRATEGIC_SUPER_RESERVE_LOGO.jpg"
+},
+{
+"address": "0x440e339a46eaa3be8d723c2cbed2a30af74536d5",
+"symbol": "SPRING",
+"name": "Ticker Spring",
+"holders": 533,
+"marketCapUsd": 401631,
+"icon": "https://assets.coingecko.com/coins/images/102178444/small/download_%281%29.png"
+},
+{
+"address": "0x9f4ba41f91a59a34e17ee8c9eb3a51363b11abd5",
+"symbol": "GRIFT",
+"name": "grift.world",
+"holders": 1145,
+"marketCapUsd": 398842,
+"icon": "https://assets.coingecko.com/coins/images/102179077/small/1661868jxthxsobil4960m0u1kgu."
+},
+{
+"address": "0x8ff92566f2e81bdd68edfaa8cde73942a723796b",
+"symbol": "VEX",
+"name": "ProjectVex",
+"holders": 5456,
+"marketCapUsd": 395880,
+"icon": "https://assets.coingecko.com/coins/images/102174375/small/vex.jpg"
+},
+{
+"address": "0xb9972ca7188e511174947e3936a5315ac7073277",
+"symbol": "PROLOGUE",
+"name": "Prologue",
+"holders": 6795,
+"marketCapUsd": 392931,
+"icon": "https://assets.coingecko.com/coins/images/102175608/small/h1krcass1houq56whug4r5pofmsv."
+},
+{
+"address": "0x425343244492a0d6f6d9676a7d627045656eab80",
+"symbol": "WARD",
+"name": "Warden",
+"holders": 5,
+"marketCapUsd": 391306,
+"icon": "https://assets.coingecko.com/coins/images/68867/small/Warden_Icon_Lime.png"
+},
+{
+"address": "0x0025bd2fe04e3b64145d3af2bc865b8a3ff46ca0",
+"symbol": "BOOP",
+"name": "Boop",
+"holders": 25,
+"marketCapUsd": 380515,
+"icon": "https://assets.coingecko.com/coins/images/33874/small/Boop_resized.png"
+},
+{
+"address": "0x0d8f44e8394d6f52fd9169100f1fd0725bf83ef3",
+"symbol": "V4RC",
+"name": "V4RCADE",
+"holders": 459,
+"marketCapUsd": 376291,
+"icon": "https://assets.coingecko.com/coins/images/102179626/small/V4rcade_pfp.png"
+},
+{
+"address": "0x20024e485c0b22b42855589700721b28320a7777",
+"symbol": "PRISM",
+"name": "Prism Assets",
+"holders": 7927,
+"marketCapUsd": 373362,
+"icon": "https://assets.coingecko.com/coins/images/102175383/small/IMG_1143.jpeg"
+},
+{
+"address": "0xfde368debe9e80f80785064a65719cec1f809dec",
+"symbol": "PEPONS",
+"name": "Pepons",
+"holders": 166947,
+"marketCapUsd": 372998,
+"icon": "https://assets.coingecko.com/coins/images/102178736/small/Pepons.png"
+},
+{
+"address": "0x5edb417509a869b1d8222dea05257b8c8ba00361",
+"symbol": "DTF",
+"name": "DeFi Traded Fund",
+"holders": 415,
+"marketCapUsd": 371129,
+"icon": "https://assets.coingecko.com/coins/images/102175407/small/DTF.png"
+},
+{
+"address": "0xd6fde6a3fc6ab2d83b2be58383944ca1bade1e18",
+"symbol": "CATGPT",
+"name": "CATGPT",
+"holders": 3424,
+"marketCapUsd": 350420,
+"icon": "https://assets.coingecko.com/coins/images/102178240/small/catgpt.png"
+},
+{
+"address": "0xbfc3a980b78b007ef0cde9625e52dbb66c51a1a7",
+"symbol": "EARN",
+"name": "HOLD",
+"holders": 111,
+"marketCapUsd": 349170,
+"icon": "https://assets.coingecko.com/coins/images/32575/small/200.png"
+},
+{
+"address": "0xb2a9a1d670155deffdff950985b5b4a587a9b583",
+"symbol": "NOC",
+"name": "Nocturn",
+"holders": 205,
+"marketCapUsd": 349139,
+"icon": "https://assets.coingecko.com/coins/images/102174787/small/Nocturn.jpg"
+},
+{
+"address": "0x45443a4a7b58ab26a4b4d72616cf36d5aae7188c",
+"symbol": "HOTDOG",
+"name": "hotdog",
+"holders": 495,
+"marketCapUsd": 345838,
+"icon": "https://assets.coingecko.com/coins/images/102178964/small/hotdog.jpg"
+},
+{
+"address": "0xe3fa12da7fa026b21817f16622e8ae48fa785166",
+"symbol": "YARD",
+"name": "Yardkeeper",
+"holders": 6037,
+"marketCapUsd": 338369,
+"icon": "https://assets.coingecko.com/coins/images/102175525/small/yardkeeper.jpg"
+},
+{
+"address": "0x0762c1708f0d23f86b29d6b857121ff7df357506",
+"symbol": "WEBSITE",
+"name": "this is not a website",
+"holders": 3201,
+"marketCapUsd": 331658,
+"icon": "https://assets.coingecko.com/coins/images/102175241/small/notawebsite.jpg"
+},
+{
+"address": "0xb33eb16782776b4d738c0fd643577cb0284db610",
+"symbol": "HEY",
+"name": "Hey Research Lab",
+"holders": 1086,
+"marketCapUsd": 324281,
+"icon": "https://assets.coingecko.com/coins/images/102176950/small/2026-09-10_02.15.14.jpg"
+},
+{
+"address": "0xfad17d7cc41d9c9ca4a459da798a4446dd217974",
+"symbol": "POTATCHI",
+"name": "Potatchi",
+"holders": 7861,
+"marketCapUsd": 324252,
+"icon": "https://assets.coingecko.com/coins/images/102178884/small/ncgr6h17s96rsl1apobpa157ggez."
+},
+{
+"address": "0x78e80660e9a832f60dbfad1462ee7d9aa3c9bc34",
+"symbol": "TWIF",
+"name": "TaoWifHood",
+"holders": 258,
+"marketCapUsd": 322344,
+"icon": "https://assets.coingecko.com/coins/images/102179940/small/coingecko_pfp.png"
+},
+{
+"address": "0x49bac47750f3dcdba49350b5d74fd399e90f97c6",
+"symbol": "BULL",
+"name": "The Bull",
+"holders": 9591,
+"marketCapUsd": 316102,
+"icon": "https://assets.coingecko.com/coins/images/102175420/small/The_Bull.jpg"
+},
+{
+"address": "0x6eda83fc299c10d474068a7e69771c809bcbbba3",
+"symbol": "AGENTOS",
+"name": "AgentOS",
+"holders": 1455,
+"marketCapUsd": 308459,
+"icon": "https://assets.coingecko.com/coins/images/102174570/small/b6b5ojnnrpnx7zs0zm302gumiizv."
+},
+{
+"address": "0x8d4dfaaa4198b6486e0293fec914c2b6a821d4dc",
+"symbol": "KITSU",
+"name": "Kitsu",
+"holders": 5941,
+"marketCapUsd": 304291,
+"icon": "https://assets.coingecko.com/coins/images/102174287/small/kitsu-logo.jpg"
+},
+{
+"address": "0x7815475f3a4860ff5384055bd0e81e55901b8ad7",
+"symbol": "GC",
+"name": "GlobalCoin",
+"holders": 595,
+"marketCapUsd": 302571,
+"icon": "https://assets.coingecko.com/coins/images/102180171/small/gc.jpg"
+},
+{
+"address": "0x5f62c57e5c537887117eef828b7e3ad41c009feb",
+"symbol": "GOOD",
+"name": "Good In The Hood",
+"holders": 3497,
+"marketCapUsd": 297330,
+"icon": null
+},
+{
+"address": "0x16391c40e85fb2246a2c8c17bfa2594c5d3ef84b",
+"symbol": "GRASS",
+"name": "Touch Grass",
+"holders": 5496,
+"marketCapUsd": 291639,
+"icon": "https://assets.coingecko.com/coins/images/102176732/small/tg.jpg"
+},
+{
+"address": "0xfb3febaa029f58be6c5882c235e1970ee1c5b67d",
+"symbol": "LOTS",
+"name": "LOTS",
+"holders": 270,
+"marketCapUsd": 288333,
+"icon": "https://assets.coingecko.com/coins/images/102179749/small/lots-token-200x200.png"
+},
+{
+"address": "0x091f0c7e675a787a4018eb47c30bed3fa2013b65",
+"symbol": "MSS2",
+"name": "Mint Stake Share 2",
+"holders": 144,
+"marketCapUsd": 287570,
+"icon": "https://assets.coingecko.com/coins/images/102180196/small/MSS2-logo-icon-colour.png"
+},
+{
+"address": "0xb9ce619b168f325b4eb8c2e8e073501838c7a407",
+"symbol": "TINY",
+"name": "Tiny Humans AI",
+"holders": 164,
+"marketCapUsd": 284818,
+"icon": "https://assets.coingecko.com/coins/images/102175762/small/Tiny_Icon_round_transparent.png"
+},
+{
+"address": "0xefab538cf3c29237a47c6afb145d50ddf204a0a3",
+"symbol": "UFG",
+"name": "United Founders Group",
+"holders": 1668,
+"marketCapUsd": 277943,
+"icon": "https://assets.coingecko.com/coins/images/102176615/small/logo-small.png"
+},
+{
+"address": "0x20429af7ca3b0ce4d99edbaa0693f26c5df05195",
+"symbol": "QHOOKS",
+"name": "QHOOKS",
+"holders": 252,
+"marketCapUsd": 277118,
+"icon": "https://assets.coingecko.com/coins/images/102180244/small/qhooks-logo-256.png"
+},
+{
+"address": "0xe258427467c5d5ed73b1d0c838cbc2d140fb88e9",
+"symbol": "ULAB",
+"name": "Universal LayerBank Token",
+"holders": 279,
+"marketCapUsd": 273240,
+"icon": "https://assets.coingecko.com/coins/images/102179807/small/ULAB_logo_200x200.png"
+},
+{
+"address": "0xdb97b2aefd6816485a757ae49280d598a5c9c848",
+"symbol": "NILF",
+"name": "Not In Labor Force",
+"holders": 1025,
+"marketCapUsd": 271645,
+"icon": "https://assets.coingecko.com/coins/images/102176874/small/pfp.png"
+}
+]
+}
+}

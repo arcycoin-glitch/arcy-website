@@ -12,35 +12,41 @@ const CID={arc:5042,ethereum:1,robinhood:4663,pons:4663};
 const ART={url:'https://assets.geckoterminal.com/v5-fixture',source:'GeckoTerminal'};
 const act=(o={})=>({source:'GeckoTerminal pool windows',volumeUsd:{h1:50000,h6:300000,h24:1200000},trades:{h1:40,h6:300,h24:900},buyers:{h24:260},sellers:{h24:210},...o});
 const REVIEW=['DISCOVERY_SCORE_NOT_VERIFIED','IDENTITY_NOT_VERIFIED','RUNUP_NOT_VERIFIED','PRODUCT_CONTINUITY_NOT_VERIFIED','CATALYST_NOT_VERIFIED','SELL_EXIT_NOT_VERIFIED','MINT_NOT_VERIFIED','ADMIN_NOT_VERIFIED','EXIT_LIQUIDITY_NOT_VERIFIED','ORGANIC_BUYER_BREADTH_NOT_VERIFIED'];
+const HIST=(o={})=>({version:'arcy-market-memory-1',observations:3,from:iso(2),to:iso(0),flags:[],coverage:'OBSERVED',peak24hRisePct:5,drawdownFromPeakPct:-3,...o});
 // Engine-result shaped rows (what selectDisplay receives).
 const early=(network,n,o={})=>({key:CID[network]+':'+A(n),network,chainId:CID[network],address:A(n),symbol:'E'+n,eligibility:'REVIEW',reasons:[...REVIEW],risk:[],
  discoveryClass:'QUALIFIED',marketObserved:true,priceUsd:0.2,liquidityUsd:network==='ethereum'?400000:60000,volume24hUsd:network==='ethereum'?300000:20000,
  change24hPct:4,trades24h:200,buys24h:100,sells24h:100,poolCreatedAt:iso(40),snapshotNow:NOW,artwork:ART,category:{category:'EARLY_STAGE_CANDIDATE',basis:'NO_NON_EARLY_SIGNAL'},
- v3Verification:{crossCheck:'MATCHED'},sourceEvidence:{crossCheck:'MATCHED',crossVerifiedFields:2,of:3},
+ v3Verification:{crossCheck:'MATCHED'},sourceEvidence:{crossCheck:'MATCHED',crossVerifiedFields:2,of:3},universe:{identity:{status:'TWO_SOURCE_SYMBOL_MATCH'}},history:HIST(),
  nearMatch:{passed:[],maxDistance:0},opportunity:{score:30,dimensions:{product:0,team:0,adoption:0},flags:[]},evidenceConfidence:{score:30,missing:['EXIT']},infoV4:'NİTELİKLİ — tüm sıralama eşiklerini geçti; Araştırma izleme listesi',...o});
 const est=(network,n,o={})=>({key:CID[network]+':'+A(n),network,chainId:CID[network],address:A(n),symbol:'B'+n,name:'Blue '+n,eligibility:'EXCLUDE',reasons:['NOT_EARLY_STAGE_CATEGORY',...REVIEW],risk:[],
  discoveryClass:'QUALIFIED',marketObserved:true,priceUsd:12,liquidityUsd:network==='ethereum'?8e6:400000,volume24hUsd:network==='ethereum'?3e6:150000,change24hPct:2.5,
  trades24h:900,buys24h:470,sells24h:430,pairCount:4,poolCreatedAt:iso(700),snapshotNow:NOW,artwork:ART,activity:act(),
  category:{category:'ESTABLISHED_BLUE_CHIP',basis:'EXACT_CONTRACT_LIST',detail:'fixture'},sourceEvidence:{crossCheck:'MATCHED',crossVerifiedFields:3,of:3,sourcesDisagree:false},
+ universe:{identity:{status:'TWO_SOURCE_SYMBOL_MATCH'},registry:{project:'Blue',kind:'LENDING_GOVERNANCE'}},history:HIST(),
  nearMatch:{passed:[],maxDistance:0},opportunity:{score:10,dimensions:{product:null,team:null,adoption:null},flags:[]},evidenceConfidence:{score:10,missing:[]},evidenceSummary:{risk:{}},infoV4:'x',...o});
 
 test('V5-1. combined ranking: a corroborated A-class project outranks a weak MONITOR row; class order and verified evidence still lead; Info explains',()=>{
  const monitor=early('ethereum',3,{discoveryClass:'MONITOR_ONLY',symbol:'WEAK',nearMatch:{passed:[],pending:['POOL_AGE_UNKNOWN'],maxDistance:0.4}});
  const eligible=early('ethereum',1,{eligibility:'ELIGIBLE',reasons:[],opportunity:{score:70,dimensions:{product:80,team:80,adoption:80},flags:[]}});
  const out=E.selectDisplay([monitor,eligible,est('ethereum',50)],{network:'ethereum',now:NOW});
- assert.deepEqual(out.map(x=>x.address),[A(1),A(50),A(3)],'verified-evidence first, then A-class above the weak monitor');
- assert.deepEqual(out.map(x=>x.discoveryTier),['EARLY','ESTABLISHED','EARLY']);
+ assert.deepEqual(out.map(x=>x.address),[A(1),A(50)],'verified-evidence first, then A-class; the weak monitor never fills the main list');
+ assert.deepEqual(out.watch.map(x=>x.address),[A(3)]);assert.ok(out.watch[0].reasons.includes('MONITOR_ONLY_CLASS'));
+ assert.deepEqual(out.map(x=>x.discoveryTier),['EARLY','ESTABLISHED']);
  const b=out[1];
  assert.equal(b.discoveryFilter,'B_QUALITY_EXPANSION');assert.equal(b.eligibility,'QUALITY_EXPANSION_REVIEW');assert.equal(b.displayTier,'WATCHLIST_NOT_VERIFIED');
  assert.equal(b.researchRank.version,'arcy-research-rank-1');assert.equal(b.researchRank.position,2);
- for(const part of [/^A-SINIFI YERLEŞİK PROJE — yerleşik proje kalitesi, getiri tahmini veya güvenlik garantisi değildir; /,/Neden: listelenmiş kontrat, iki kaynakta kimlik eşleşti/,
-  /Kalite Sıralaması \d+\/100/,/Piyasa: likidite \$8\.0M, 24s hacim \$3\.0M, 900 işlem/,/Eksik doğrulama: /,/Sıralama: sınıf \(nitelikli\)/,/Veri: 2026-11-20 10:00 UTC/])
+ for(const part of [/^ARAŞTIRMAYA UYGUN \(güvenlik sertifikası değildir\); A-SINIFI YERLEŞİK PROJE — yerleşik proje kalitesi, getiri tahmini veya güvenlik garantisi değildir; /,/Kimlik: kontrat bağımsız kaynaklarla eşleşti \(resmi ihraççı doğrulaması değil\)/,/Profil: %\d+ kanıtlı \(eksik: /,/Geçmiş: 3 gözlem/,/Neden: listelenmiş kontrat, iki kaynakta kimlik eşleşti/,
+  /Kalite Sıralaması \d+\/100/,/Piyasa: likidite \$8\.0M, 24s hacim \$3\.0M, 900 işlem/,/Eksik doğrulama: /,/Sıra #2: araştırma sınıfı, sınıf \(nitelikli\)/,/Veri: 2026-11-20 10:00 UTC/])
   assert.match(b.infoV4,part);
  assert.doesNotMatch(b.infoV4,/güvenli(?!k)|\bsafe\b|yükselecek|pump/i);
- assert.deepEqual(out.byTier,{EARLY:2,ESTABLISHED:1});
+ assert.deepEqual(out.byTier,{EARLY:1,ESTABLISHED:1});
  // Filter A rows keep their class statement first; an old pool is labelled GROWTH, not "early".
+ // An old pool is not "growth" by age: without observed activity growth it is a MATURE market; with it, GROWTH.
  const old=E.selectDisplay([early('arc',9,{poolCreatedAt:iso(400)})],{network:'arc',now:NOW});
- assert.equal(old[0].discoveryTier,'GROWTH');assert.match(old[0].infoV4,/^NİTELİKLİ — tüm sıralama eşiklerini geçti; BÜYÜME — yeni değil/);
+ assert.equal(old[0].discoveryTier,'MATURE');assert.match(old[0].infoV4,/NİTELİKLİ — tüm sıralama eşiklerini geçti; OLGUN PİYASA — yeni değil, büyüme kanıtı henüz yok/);
+ const grew=E.selectDisplay([early('arc',9,{poolCreatedAt:iso(400),history:HIST({flags:['ACTIVITY_GROWTH_OBSERVED'],growth:{spanHours:96,liquidityPct:35,volumePct:80}})})],{network:'arc',now:NOW});
+ assert.equal(grew[0].discoveryTier,'GROWTH');
 });
 
 test('V5-2. SHARK, Gamooor, Louie and WASTED patterns cannot enter through any tier under 10-slot pressure',()=>{
@@ -95,7 +101,7 @@ test('V5-6. tiers: A-class needs a listed exact contract corroborated in this ru
  const tickers=new Map([['b5',new Set([A(5),A(6)])]]);
  assert.equal(QX.gate(lc(),'ethereum',{tickers,now:NOW}),'B_DUPLICATE_TICKER_UNRESOLVED');
  assert.equal(QX.tierOf(lc()),'GROWTH','popular by size is not A-class');
- assert.equal(QX.gate(est('ethereum',5,{sourceEvidence:{crossCheck:null}}),'ethereum',{now:NOW}),'B_LISTED_IDENTITY_NOT_CORROBORATED','a listing alone is not identity');
+ assert.equal(QX.gate(est('ethereum',5,{sourceEvidence:{crossCheck:null},universe:null}),'ethereum',{now:NOW}),'B_LISTED_IDENTITY_NOT_CORROBORATED','a listing alone is not identity');
  assert.equal(QX.tierOf(est('ethereum',5,{sourceEvidence:{crossCheck:null},universe:{identity:{status:'TWO_SOURCE_SYMBOL_MATCH'}}})),'ESTABLISHED');
  assert.equal(QX.gate(est('ethereum',5),'ethereum',{tickers,now:NOW}),null,'exact listed contract is not a look-alike');
 });
@@ -115,16 +121,16 @@ test('V5-7 (weakness 3). Quality Ranking separates organic participation from tr
  const reviewed=QR.compute(est('ethereum',6,{evidenceSummary:{demand:{distinctBuyers:300,cluster:'REVIEWED_NO_CONCENTRATION',wash:'REVIEWED_NO_SELF_TRADE'}}}),'ethereum',NOW);
  assert.equal(reviewed.organicBasis,'ONCHAIN_DEMAND_REVIEWED');assert.equal(reviewed.components.organicGrowth,1);
  // Identity: a listing without corroboration earns nothing; a logo never earns identity.
- assert.equal(QR.compute(est('ethereum',6,{sourceEvidence:{crossCheck:null}}),'ethereum',NOW).components.identity,0);
+ assert.equal(QR.compute(est('ethereum',6,{sourceEvidence:{crossCheck:null},universe:null}),'ethereum',NOW).components.identity,0);
  assert.equal(QR.compute(early('ethereum',7,{artwork:ART}),'ethereum',NOW).components.identity,QR.compute(early('ethereum',7,{artwork:null}),'ethereum',NOW).components.identity);
  // A 24h run-up earns no momentum.
  assert.equal(QR.compute(est('ethereum',6,{change24hPct:35}),'ethereum',NOW).components.earlyMomentum,0);
 });
 
 test('V5-8. snapshot: tiers publish and validate; class order is enforced for every row; wrong category or hidden EXCLUDE is rejected',()=>{
- const monitor=early('ethereum',1,{discoveryClass:'MONITOR_ONLY',nearMatch:{passed:[],pending:[],maxDistance:0.6}});
- const display=E.selectDisplay([monitor,est('ethereum',60)],{network:'ethereum',now:NOW});
- assert.deepEqual(display.map(x=>x.discoveryFilter),['B_QUALITY_EXPANSION','A_EARLY_DISCOVERY'],'A-class may now precede a Filter A row');
+ const weaker=early('ethereum',1,{activity:null,buys24h:null,sells24h:null});
+ const display=E.selectDisplay([weaker,est('ethereum',60)],{network:'ethereum',now:NOW});
+ assert.deepEqual(display.map(x=>x.discoveryFilter),['B_QUALITY_EXPANSION','A_EARLY_DISCOVERY'],'A-class may now precede a weaker Filter A row');
  const engine={networks:{ethereum:{source:{status:'OBSERVED',asOf:iso(0.01)},displayCandidates:display,counts:{},display:{shown:2,byClass:display.byClass,byTier:display.byTier},all:[]}},riskLedger:null};
  const snap=S.build(engine,{ethereum:{tokens:[],nearMiss:[],excluded:[],asOf:iso(0.01)}},{now:NOW,commit:'test'});
  assert.deepEqual(S.validate(snap),{ok:true});
@@ -132,14 +138,18 @@ test('V5-8. snapshot: tiers publish and validate; class order is enforced for ev
  assert.equal(b.discoveryTier,'ESTABLISHED');assert.equal(b.category,'ESTABLISHED_BLUE_CHIP');assert.equal(b.researchRank.version,'arcy-research-rank-1');
  assert.deepEqual(b.expansion.reviewedReasons,REVIEW);
  const clone=()=>structuredClone(snap);
- let bad=clone();bad.sections.ethereum.rows=[bad.sections.ethereum.rows[1],bad.sections.ethereum.rows[0]].map((r,i)=>({...r,rank:i+1}));
- assert.equal(S.validate(bad).ok,false,'a QUALIFIED row may never sit below a MONITOR_ONLY row');
+ let bad=clone();bad.sections.ethereum.rows[1].opportunity.researchTier='WATCH_ONLY';assert.equal(S.validate(bad).ok,false,'WATCH_ONLY never in the main list');
+ bad=clone();bad.sections.ethereum.rows[1].opportunity.discoveryClass='MONITOR_ONLY';assert.equal(S.validate(bad).ok,false,'MONITOR_ONLY never in the main list');
+ bad=clone();bad.sections.ethereum.rows[0].opportunity.researchTier='RESEARCH_CANDIDATE';bad.sections.ethereum.rows[1].opportunity.researchTier='RESEARCH_QUALIFIED';
+ assert.equal(S.validate(bad).ok,false,'a QUALIFIED research row may never sit below a CANDIDATE');
+ bad=clone();bad.sections.ethereum.rows[1].opportunity.identityLevel='EXACT_CONTRACT_OBSERVED';assert.equal(S.validate(bad).ok,false,'uncorroborated identity never in the main list');
+ bad=clone();bad.sections.ethereum.rows[1].opportunity.researchProfile.level='MINIMAL';assert.equal(S.validate(bad).ok,false,'a minimal profile never in the main list');
  bad=clone();bad.sections.ethereum.rows[0].opportunity.category='STABLECOIN';assert.equal(S.validate(bad).ok,false);
  bad=clone();bad.sections.ethereum.rows[0].opportunity.eligibility='EXCLUDE';assert.equal(S.validate(bad).ok,false);
  bad=clone();bad.sections.ethereum.rows[0].opportunity.discoveryFilter='A_EARLY_DISCOVERY';assert.equal(S.validate(bad).ok,false,'an established row may not pose as early discovery');
  bad=clone();bad.sections.ethereum.rows[0].opportunity.discoveryTier='EARLY';assert.equal(S.validate(bad).ok,false);
  bad=clone();bad.sections.ethereum.rows[0].opportunity.qualityRank.score=10;assert.equal(S.validate(bad).ok,false);
- const old=clone();old.sections.ethereum.rows=[old.sections.ethereum.rows[1]].map(r=>({...r,rank:1}));delete old.sections.ethereum.rows[0].opportunity.researchRank;
+ const old=clone();old.sections.ethereum.rows=[old.sections.ethereum.rows[1]].map(r=>({...r,rank:1}));for(const k of ['researchRank','researchTier','identityLevel','researchProfile','marketHistory','identityEvidence'])delete old.sections.ethereum.rows[0].opportunity[k];
  delete old.sections.ethereum.rows[0].opportunity.discoveryFilter;assert.equal(S.validate(old).ok,true,'pre-V5 rows stay valid');
 });
 
@@ -153,7 +163,7 @@ test('V5-9 (weakness 4). carry-forward re-checks published quality-expansion row
  byAddr(A(62)).change24hPct=45;                                           // price move now out of range
  byAddr(A(63)).opportunity.expansion.reviewedReasons=['SOMETHING_NEW'];   // unreviewed reason smuggled into a carried row
  byAddr(A(64)).volume24hUsd=9e7;                                          // churn far above liquidity
- byAddr(A(65)).opportunity.sourceEvidence.crossCheck=null;                // identity no longer corroborated
+ byAddr(A(65)).opportunity.sourceEvidence.crossCheck=null;byAddr(A(65)).opportunity.sourceEvidence.identity=null; // identity no longer corroborated
  const next={...prev,generatedAt:new Date(NOW).toISOString(),sections:{ethereum:{status:'NOT_BUILT',reason:'SOURCE_UNAVAILABLE',asOf:null,rows:[]}}};
  const m=S.merge(prev,next);
  assert.equal(m.sections.ethereum.carriedForward,true);
@@ -176,7 +186,7 @@ test('V5-11 (weakness 2). artwork is decorative: no logo never disqualifies, a b
  assert.equal(noLogo.length,2);
  const Q=require('../lib/radar-v2/intel/discovery-quality');
  assert.equal(Q.reason(early('arc',72,{discoveryClass:'MONITOR_ONLY',artwork:null}),'arc'),null);
- assert.equal(Q.reason(early('arc',73,{discoveryClass:'MONITOR_ONLY',artwork:ART,v3Verification:null,sourceEvidence:null}),'arc'),'EXACT_CONTRACT_IDENTITY_NOT_CORROBORATED','a logo does not stand in for identity');
+ assert.equal(Q.reason(early('arc',73,{discoveryClass:'MONITOR_ONLY',artwork:ART,v3Verification:null,sourceEvidence:null,universe:null}),'arc'),'EXACT_CONTRACT_IDENTITY_NOT_CORROBORATED','a logo does not stand in for identity');
  const {candidateArtwork}=require('../lib/radar-v2/artwork-evidence');
  assert.equal(candidateArtwork({network:'ethereum',address:A(74),logo:{url:'https://evil.example/aave.png',source:'GeckoTerminal'}}),null);
 });
@@ -260,7 +270,7 @@ test('V5-15. extreme 24h moves are not shown on Robinhood or Pons either; monito
   assert.equal(Q.reason({change24hPct:238},network),'ALREADY_SPIKED_24H');
   assert.equal(Q.reason({change24hPct:-34},network),null,'ordinary decline remains observable');
   assert.equal(Q.reason({change24hPct:1,artwork:null,discoveryClass:'MONITOR_ONLY'},network),'EXACT_CONTRACT_IDENTITY_NOT_CORROBORATED','BSWQ-like anonymous monitor row');
-  assert.equal(Q.reason({change24hPct:1,artwork:null,discoveryClass:'MONITOR_ONLY',v3Verification:{crossCheck:'MATCHED'}},network),null);
+  assert.equal(Q.reason({change24hPct:1,artwork:null,discoveryClass:'MONITOR_ONLY',v3Verification:{crossCheck:'MATCHED'},poolCreatedAt:iso(40),snapshotNow:NOW},network),null);
  }
 });
 
@@ -271,7 +281,10 @@ test('V5-16. a Robinhood monitor row may not carry the ticker of a different fac
  const out=E.selectDisplay([look,early('robinhood',902,{symbol:'DCTY'})],{network:'robinhood',now:NOW,foreignTickers:pons});
  assert.deepEqual(out.map(x=>x.address),[A(902)]);
  assert.equal(out.shortfall.droppedByReason.DUPLICATE_TICKER_CROSS_SECTION,1);
- assert.equal(E.selectDisplay([same],{network:'robinhood',now:NOW,foreignTickers:pons}).length,1);
+ // The exact factory contract itself is not a look-alike; as a monitor it is WATCH_ONLY (never main), as a qualified row it lists.
+ const sm=E.selectDisplay([same],{network:'robinhood',now:NOW,foreignTickers:pons});
+ assert.equal(sm.length,0);assert.deepEqual(sm.watch[0].reasons,['MONITOR_ONLY_CLASS']);
+ assert.equal(E.selectDisplay([{...same,discoveryClass:'QUALIFIED'}],{network:'robinhood',now:NOW,foreignTickers:pons}).length,1);
 });
 
 test('V5-17. a contract named after GameStop is an unverified issuer brand, not a discovery',()=>{
@@ -339,4 +352,19 @@ test('V5-22. explorer artwork for the exact contract is used only from allow-lis
  const bad=providers({explorer:{[AAVE]:{symbol:'AAVE',name:'Aave Token',exchange_rate:'100',icon_url:'https://evil.example/aave.png'}},pairs:[noImg]});
  ({rows}=await U.discover({network:'ethereum',fetcher:bad,now:NOW,o:{fetcher:bad},dexTokens:dex.tokens,dexTokenPairs:dex.tokenPairs}));
  assert.equal(rows.find(r=>r.address===AAVE).logo,null,'non-allow-listed host is dropped, row still evaluated');
+});
+
+test('V5-23. observed 2026-11-20 Robinhood rows: WANTED (+1280%), RUGPULL (+575%, self-declared), Maxxing (<24h, uncorroborated) never shown',()=>{
+ const Q=require('../lib/radar-v2/intel/discovery-quality'),C=require('../lib/radar-v2/intel/category');
+ const young=iso(0.2);
+ const wanted=early('robinhood',951,{symbol:'WANTED',change24hPct:1280.3,discoveryClass:'MONITOR_ONLY',poolCreatedAt:young,artwork:null,v3Verification:null,sourceEvidence:null});
+ const maxx=early('robinhood',952,{symbol:'Maxxing',change24hPct:47.9,discoveryClass:'MONITOR_ONLY',poolCreatedAt:young,artwork:null,v3Verification:null,sourceEvidence:null,universe:null});
+ assert.equal(Q.reason(wanted,'robinhood'),'ALREADY_SPIKED_24H');
+ assert.equal(Q.reason(maxx,'robinhood'),'EXACT_CONTRACT_IDENTITY_NOT_CORROBORATED');
+ assert.equal(Q.reason({...maxx,v3Verification:{crossCheck:'MATCHED'}},'robinhood'),'MATURE_POOL_NOT_EVIDENCED','even corroborated, a <24h pool is not a monitor candidate');
+ assert.equal(C.classify({chainId:4663,address:A(953),symbol:'RUGPULL',name:"It's a fucking rugpull"},'robinhood').category,'SELF_DECLARED_RUG_OR_SCAM');
+ assert.equal(C.classify({chainId:1,address:A(954),symbol:'HPOT',name:'Honey Pot Inu'},'ethereum').category,'SELF_DECLARED_RUG_OR_SCAM');
+ assert.equal(C.classify({chainId:1,address:A(955),symbol:'DRUG',name:'Drugstore'},'ethereum').category,'EARLY_STAGE_CANDIDATE','literal words only, no substring matches');
+ assert.ok(C.BLOCKED.has('SELF_DECLARED_RUG_OR_SCAM'));
+ const out=E.selectDisplay([wanted,maxx],{network:'robinhood',now:NOW});assert.equal(out.length,0);
 });

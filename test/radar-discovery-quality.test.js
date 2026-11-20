@@ -1,7 +1,10 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const Q=require('../lib/radar-v2/intel/discovery-quality');
-const {selectDisplay}=require('../lib/radar-v2/intel/engine');
+// V4-level selection semantics (research:false). The V5 research layer can only move rows from the main list to WATCH_ONLY,
+// never add one, so every exclusion/ordering guarantee tested here still holds in production; the layer itself is covered by
+// test/radar-v5-quality.test.js.
+const E0=require('../lib/radar-v2/intel/engine'),selectDisplay=(r,o={})=>E0.selectDisplay(r,{research:false,...o});
 const NOW=Date.parse('2026-11-18T18:00:00Z'),A=n=>'0x'+n.toString(16).padStart(40,'0');
 const row=(n,props={})=>({key:'5042:'+A(n),network:'arc',chainId:5042,address:A(n),symbol:'Token'+n,
  eligibility:'REVIEW',discoveryClass:'MONITOR_ONLY',reasons:[],marketObserved:true,
