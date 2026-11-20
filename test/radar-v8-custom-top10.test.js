@@ -44,6 +44,7 @@ test('V8: select actual Top 10 with weak candidates at the bottom, never invent 
  rows.push(r(201,{risk:['SELL_DISABLED'],volume24hUsd:9e8}));
  rows.push(r(202,{category:{category:'IMPERSONATION_SUSPECT'},volume24hUsd:9e8}));
  rows.push(r(203,{volume24hUsd:0}));
+ rows.push(r(204,{evidenceSummary:{risk:{sell:'SELL_DISABLED_VERIFIED'}}})); // integrity sees critical proof even if a pre-gate forgot it
  const out=E.selectDisplay(rows,{network:'ethereum',now:NOW,filterB:false,customFilter:true});
  assert.equal(out.length,10);
  assert.ok(out.every(x=>x.selectionBasis==='ARCY_CUSTOM_FILTER_1'));
@@ -51,6 +52,7 @@ test('V8: select actual Top 10 with weak candidates at the bottom, never invent 
  assert.ok(out.every(x=>x.displayTier==='WATCHLIST_NOT_VERIFIED'));
  assert.ok(out.every(x=>!['SELL_DISABLED','IMPERSONATION_SUSPECT'].includes(x.risk?.[0]||x.category?.category)));
  assert.equal(new Set(out.map(x=>x.address)).size,10);
+ assert.equal(out.some(x=>x.address===A(204)),false,'post-enrichment verified honeypot is excluded');
  assert.ok(out.every(x=>x.researchRank.researchScore>=0&&x.researchRank.researchScore<=100));
  assert.equal(out.shortfall,null);
  const short=E.selectDisplay([r(1),r(2,{risk:['SELL_DISABLED']}),r(3,{priceUsd:null})],{network:'ethereum',now:NOW,filterB:false,customFilter:true});
