@@ -36,12 +36,13 @@ test('TOLLY reviewed primary-source documentation adds research coverage but doe
  assert.equal(d.docsUrl,'https://tollylabs.com/guide');
  const r={chainId:5042,address:TOLLY,priceUsd:0.01,liquidityUsd:120000,volume24hUsd:18000,
   dossier:d,radarAsOf:new Date(NOW).toISOString(),
-  history:{observations:2,from:new Date(NOW-4*86400000).toISOString(),to:new Date(NOW).toISOString()},
+  history:{observations:30,from:new Date(NOW-29*86400000).toISOString(),to:new Date(NOW).toISOString()},
+  compression:{days:30,source:'ONCHAIN_RESERVE_SAMPLES',to:new Date(NOW).toISOString()},
   sourceEvidence:{crossCheck:'MATCHED'},marketSpread:{liquidityUsd:{min:120000,ratio:1.1,providers:2},
    volume24hUsd:{min:17000,ratio:1.2,providers:2}}};
  const p=PC.compute(r,{network:'arc',now:NOW,identity:{level:'METADATA_CROSS_CORROBORATED',evidence:['EXPLORER_DEX_MATCH']},researchFloor:20000});
  assert.equal(p.components.identity.score,12,'creator/project listing is not official issuer verification');
- assert.equal(p.components.official.score,6,'documented guide is counted but not invented source claim');
+ assert.equal(p.components.official.score,20,'genuine website, guide and documented project purpose earn real evidence points');
  assert.equal(p.components.market.score,20);
  assert.ok(p.score>=60,'real independent evidence may pass 60 without fabricated owner/exit checks');
  assert.equal(p.components.security.score,0);
