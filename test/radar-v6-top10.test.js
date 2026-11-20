@@ -108,7 +108,7 @@ test('V6-6. a genuine project with missing optional evidence (no X, no security 
  assert.equal(p.components.security.score,0);assert.equal(p.components.development.score,0);
  assert.ok(p.score>=60,String(p.score));
  const [x]=sel([r]);assert.ok(x);assert.notEqual(x.researchRank.researchBand,'TOP_RESEARCH_SIGNAL');
- assert.match(x.infoV4,/güvenlik 0\/15/);assert.match(x.infoV4,/zincir üstü kontrat analizi yapılmadı/);
+ assert.match(x.infoV4,/güvenlik 0\/15/);assert.match(x.infoV4,/Kontrat riski: analiz yapılmadı/);
  assert.doesNotMatch(x.infoV4,/güvenli(?!k)|\bsafe\b|yükselecek|garanti(?!si değildir)/i);
 });
 
@@ -176,7 +176,7 @@ test('V6-10. high volume from a few repeating wallets is SUSPICIOUS (never "frau
  assert.equal(i.summary,'MULTIPLE_SUSPICIOUS_SIGNALS');assert.ok(!JSON.stringify(i).match(/FRAUD|SCAM/));
  const [x]=sel([wash]);
  assert.equal(x.researchTier,'RESEARCH_CANDIDATE');assert.ok(x.researchTierReasons.includes('MULTIPLE_SUSPICIOUS_INTEGRITY_SIGNALS'));
- assert.equal(x.researchRank.researchBand,'ADDITIONAL_RESEARCH');assert.match(x.infoV4,/Manipülasyon göstergeleri: şüpheli: /);
+ assert.equal(x.researchRank.researchBand,'ADDITIONAL_RESEARCH');assert.match(x.infoV4,/Manipülasyon: şüpheli: /);
  const one=INT.assess(row('ethereum',41,{volume24hUsd:3e6,liquidityUsd:400000}));
  assert.deepEqual(one.suspicious,['THIN_LIQUIDITY_HIGH_VOLUME']);
  const [y]=sel([row('ethereum',41,{volume24hUsd:3e6,dailySeries:daily(),marketSpread:{liquidityUsd:spreadOk.liquidityUsd,volume24hUsd:{min:2.9e6,max:3e6,ratio:1.03,providers:2}}})]);
@@ -296,9 +296,9 @@ test('V6-16. OHLCV provider: keyless never on the schedule, cached pools are reu
 test('V6-17. Info explains every required element within the existing 12-part popover, ending with the data time',()=>{
  const [x]=sel([row('ethereum',100,{dailySeries:daily()})]);
  const parts=x.infoV4.split(';').map(s=>s.trim()).filter(Boolean);
- assert.ok(parts.length<=12,String(parts.length));assert.match(parts.at(-1),/^Veri: 2026-11-20 /);
- for(const re of [/^EN GÜÇLÜ ARAŞTIRMA SİNYALİ/,/Neden: /,/Ağ\/kontrat: Ethereum 0x000000…000064/,/Profil tamlığı %\d+ \(kimlik 20\/20/,/Kimlik: resmi kaynak kontratı yayınlıyor/,
-  /resmi site doğrulandı, dokümantasyon doğrulandı/,/Piyasa: likidite \$400K/,/Sıkışma: doğrulandı \(30 gün/,/Fiyat geçmişi: 2 gözlem/,/Manipülasyon göstergeleri: /,/Kontrat\/işlem riski kapsamı: mint, yetki, sahip dağılımı, çıkış incelendi/,/Sıra #1: araştırma puanı/])
+ assert.ok(parts.length<=12,String(parts.length));assert.ok(x.infoV4.length<=900,'compact for the mobile popover');assert.match(parts.at(-1),/^Veri: 2026-11-20 /);
+ for(const re of [/^EN GÜÇLÜ ARAŞTIRMA SİNYALİ \(tahmin değil\)/,/Neden: /,/Ethereum 0x0000…0064/,/Profil %\d+ \(kimlik 20\/20/,/Kimlik: resmi kaynak kontratı yayınlıyor/,
+  /site doğrulandı, dokümantasyon doğrulandı/,/Piyasa: likidite \$400K/,/Sıkışma: doğrulandı \(30 gün/,/Geçmiş: 2 gözlem, aşırı hareket yok/,/Manipülasyon: /,/Kontrat riski: mint, yetki, sahipler, çıkış incelendi/,/Sıra #1: puan/])
   assert.match(x.infoV4,re);
  assert.doesNotMatch(x.infoV4,/güvenli(?!k)|\bsafe\b|yükselecek|pump/i);
 });
