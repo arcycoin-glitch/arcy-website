@@ -246,3 +246,12 @@ test('F-16. market sources that disagree (>3x on liquidity or volume) never yiel
  const agree=E.selectDisplay([{...ok,marketSpread:{liquidityUsd:{min:1.3e6,max:1.42e6,ratio:1.09,providers:2}}}],{network:'robinhood',now:NOW});
  assert.equal(agree[0].researchTier,'RESEARCH_QUALIFIED');
 });
+
+test('F-17. Info fits the existing UI: at most 12 parts, the data time is always the last part shown (no frontend change)',()=>{
+ const rows=[est('ethereum',400),row('ethereum',401,{eligibility:'ELIGIBLE',reasons:[],infoV4:'NİTELİKLİ — tüm sıralama eşiklerini geçti; a; b; c; d'}),
+  row('ethereum',402,{marketSpread:{liquidityUsd:{min:210000,max:900000,ratio:4.29,providers:2}},history:pumped('1:'+A(402),20)})];
+ for(const r of E.selectDisplay(rows,{network:'ethereum',now:NOW})){
+  const parts=r.infoV4.split(';').map(x=>x.trim()).filter(Boolean);
+  assert.ok(parts.length<=12,r.symbol+' '+parts.length);assert.match(parts.at(-1),/^Veri: /);
+ }
+});
