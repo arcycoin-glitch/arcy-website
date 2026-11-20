@@ -298,13 +298,25 @@ test('V5-17. a contract named after GameStop is an unverified issuer brand, not 
  assert.equal(D.unverifiedIssuerBrand({name:'Greatest Meme Ever',symbol:'GME'}).reason,'ISSUER_AFFILIATION_NOT_VERIFIED','stock ticker on the tokenized-equity chain');
 });
 
-test('V5-18. registry: exact lowercase contracts, unique, Ethereum only; every listing is categorised as established (never early)',()=>{
+test('V5-18. curated contract registry is chain-scoped with unique exact addresses and source-backed official pages',()=>{
  const C=require('../lib/radar-v2/intel/category');
  const list=U.registryFor(1);
  assert.ok(list.length>=20);
  assert.equal(new Set(list.map(e=>e.address)).size,list.length);
  for(const e of list){assert.match(e.address,/^0x[0-9a-f]{40}$/);assert.notEqual(C.classify({chainId:1,address:e.address,symbol:e.symbol},'ethereum').category,'EARLY_STAGE_CANDIDATE',e.symbol);}
- assert.equal(U.registryFor(5042).length,0,'no Arc listing without Arc evidence');assert.equal(U.registryFor(4663).length,0);
+ for(const [chain,expected] of [[5042,['TOLLY','ARGUS','ARCANUS']],[4663,['HOOKR','FOBO','STONKBROKER','STATICS']]]){
+  const list=U.registryFor(chain);
+  assert.ok(list.length>=expected.length,'bounded exact-contract discovery sources exist for '+chain);
+  assert.equal(new Set(list.map(e=>e.address)).size,list.length,'no duplicate canonical address for '+chain);
+  for(const e of list){
+   assert.match(e.address,/^0x[0-9a-f]{40}$/);
+   assert.ok(e.official?.domains?.length>0&&e.official?.pages?.every(p=>p.startsWith('https://')));
+   assert.ok(e.official.pages.some(p=>e.official.domains.some(d=>new URL(p).hostname===d||new URL(p).hostname.endsWith('.'+d))),
+    'every curated source is on the reviewed project domain');
+  }
+  for(const symbol of expected)assert.ok(list.some(e=>e.symbol===symbol),'missing source-backed '+chain+' '+symbol);
+ }
+ // A registry is a lookup universe, NOT a security certification or guaranteed opportunity.
  for(const sym of ['USDC','USDT','DAI','WETH','WBTC','PEPE','SHIB'])assert.ok(!list.some(e=>e.symbol===sym),sym+' is not an A-class research candidate');
 });
 
