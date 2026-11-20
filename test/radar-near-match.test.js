@@ -213,8 +213,8 @@ test('Arc and Ethereum may populate 10 observation slots, while Robinhood retain
   assert.equal(out.shortfall,null);
  }
  const conservative=E.selectDisplay(Array.from({length:13},(_,i)=>monitor('robinhood',i)),{network:'robinhood'});
- assert.equal(conservative.length,3,'Robinhood retains existing conservative cap');
- assert.equal(conservative.shortfall.droppedByReason.MONITOR_ONLY_CAP,10);
+ assert.equal(conservative.length,0,'Robinhood observation-only rows must not appear as promoted research candidates');
+ assert.equal(conservative.shortfall.droppedByReason.PREMIUM_ACTIVITY_INSUFFICIENT,13);
  const candidates=Array.from({length:13},(_,i)=>monitor('ethereum',i));
  candidates[0].eligibility='EXCLUDE';candidates[0].reasons=['PERSISTENT_LOW_EXIT_LIQUIDITY'];
  candidates[1].discoveryClass='CONFLICT';
