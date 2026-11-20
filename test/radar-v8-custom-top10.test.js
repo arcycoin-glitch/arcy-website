@@ -185,4 +185,6 @@ test('ETR-7: snapshot guards — order, score range, critical findings, identity
  assert.equal(mut(x=>{x[0].opportunity.integrity.confirmedCritical=['HONEYPOT_OR_FAILED_EXIT'];}),false);
  assert.equal(mut(x=>{x[0].opportunity.identityLevel='EXACT_CONTRACT_OBSERVED';}),false,'unverifiable profile rejected');
  assert.equal(mut(x=>{x.push({...x.at(-1),rank:11,address:A(999)});}),false);
+ // #302 (`arcy-custom-filter-1`) data-branch snapshots remain readable, so the builder does not refuse the previous risk ledger
+ assert.equal(mut(x=>{for(const y of x){y.opportunity.researchRank.version='arcy-custom-filter-1';y.opportunity.researchRank.researchBand='MARKET_OPPORTUNITY_WATCH';}}),true);
 });
