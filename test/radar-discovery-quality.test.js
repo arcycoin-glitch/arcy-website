@@ -72,9 +72,15 @@ test('10 monitored rows only when all ten pass; existing critical holds and coll
  assert.equal(filtered.shortfall.droppedByReason.SOURCE_CONFLICT_V3,1);
  assert.equal(filtered.shortfall.droppedByReason.DUPLICATE_TICKER_UNRESOLVED,2);
 });
-test('other networks stay on their existing independent display policy',()=>{
- assert.equal(Q.reason(row(50,{liquidityUsd:0,change24hPct:300,artwork:null}),'robinhood'),null);
- assert.equal(selectDisplay([row(51,{liquidityUsd:0,artwork:null,change24hPct:300})],{network:'robinhood'}).length,1);
+test('Robinhood and Pons no longer exempt post-pumps or unverified watch-only from premium shortlist',()=>{
+ assert.equal(Q.reason(row(50,{liquidityUsd:0,change24hPct:300,artwork:null}),'robinhood'),'ALREADY_SPIKED_24H');
+ assert.equal(selectDisplay([row(51,{liquidityUsd:0,artwork:null,change24hPct:300})],{network:'robinhood'}).length,0);
+ assert.equal(Q.reason(row(52,{change24hPct:575.5,discoveryClass:'QUALIFIED',liquidityUsd:100000,volume24hUsd:20000}),'robinhood'),'ALREADY_SPIKED_24H');
+ assert.equal(Q.reason(row(53,{change24hPct:-71,discoveryClass:'QUALIFIED',liquidityUsd:100000,volume24hUsd:20000}),'robinhood'),'EXTREME_DRAWDOWN_24H');
+ assert.equal(Q.reason(row(54,{change24hPct:2,discoveryClass:'MONITOR_ONLY',liquidityUsd:100000,volume24hUsd:20000}),'robinhood'),'PRELIMINARY_WATCH_NOT_MAIN_RANKING');
+ assert.equal(Q.reason(row(55,{change24hPct:2,discoveryClass:'QUALIFIED',liquidityUsd:3000,volume24hUsd:20000}),'pons'),'PREMIUM_LIQUIDITY_INSUFFICIENT');
+ assert.equal(Q.reason(row(56,{change24hPct:2,discoveryClass:'QUALIFIED',liquidityUsd:26000,volume24hUsd:2000}),'pons'),'PREMIUM_ACTIVITY_INSUFFICIENT');
+ assert.equal(Q.reason(row(57,{change24hPct:2,discoveryClass:'QUALIFIED',liquidityUsd:26000,volume24hUsd:12000}),'pons'),null);
 });
 
 test('source outages cannot carry forward previously exposed +238% zero-liquidity monitored assets',()=>{
