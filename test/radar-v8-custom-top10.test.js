@@ -134,6 +134,12 @@ test('ETR-5: Pons priority — a contract listed under Pons never appears in Rob
  assert.equal(result.ponsExpansion.moved,1);
  assert.equal(result.ponsExpansion.confirmedExisting,1);
  assert.ok(calls[0].length<=40);
+ // the moved row is published with its observed Robinhood-intake market data and validates as a Pons row
+ const snap=S.build(result,{robinhood:robin,pons},{now:NOW});
+ assert.equal(S.validate(snap).ok,true,JSON.stringify(S.validate(snap)));
+ const pub=snap.sections.pons.rows.find(x=>x.address===ADDR(4));
+ assert.ok(pub,'moved launch published');assert.equal(pub.priceUsd,0.2);assert.equal(pub.launch.status,'ONCHAIN_VERIFIED');
+ assert.equal(snap.sections.robinhood.rows.some(x=>pAll.includes(x.address)),false);
  // membership failure: no guessing; Pons-listed contracts still leave Robinhood
  const r2=await E.run({sections:{robinhood:robin,pons},now:NOW,env:{},fetcher:async()=>{throw new Error('NO_NETWORK');},
   limits:{customFilter:true,exit:false,pace:false,crossCheck:false,universe:false,ponsMembership:async()=>{const e=new Error('x');e.code='RADAR_PONS_MEMBERSHIP_UNAVAILABLE';throw e;}}});

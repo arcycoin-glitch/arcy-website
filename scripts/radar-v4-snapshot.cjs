@@ -79,7 +79,9 @@ limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].c
    return e.symbol+':'+(m?'MAIN#'+m.rank+'('+m.researchRank?.researchBand+',pc'+m.profileCompleteness?.score+')':w?'WATCH('+(w.reasons||[]).join('+')+',pc'+w.profileCompleteness+')':r?'NOT_SHOWN('+(r.discoveryClass||'-')+')':'NOT_IN_INTAKE');}).join(' ');
   snap.v6Sources.filterB=Object.fromEntries(Object.entries(result.networks).map(([k,v])=>[k,v.display?.filterB?.droppedByReason||null]));}
  const v=S.validate(snap);
- if(!v.ok){console.error('Refusing to publish invalid snapshot:',JSON.stringify(v));process.exitCode=3;return;}
+ if(!v.ok){console.error('Refusing to publish invalid snapshot:',JSON.stringify(v));
+  for(const n of v.sections||[])console.error('invalid section '+n+':',JSON.stringify((snap.sections[n]?.rows||[]).map(x=>[x.rank,x.symbol,x.priceUsd,x.liquidityUsd,x.volume24hUsd,x.opportunity?.researchRank?.version,x.opportunity?.researchRank?.researchScore,x.opportunity?.identityLevel,x.opportunity?.category,x.launch?.status||null])).slice(0,3000));
+  process.exitCode=3;return;}
  fs.mkdirSync(path.dirname(out),{recursive:true});
  fs.writeFileSync(out,JSON.stringify(snap));
  if(memPath){fs.mkdirSync(path.dirname(memPath),{recursive:true});fs.writeFileSync(memPath,JSON.stringify(result.marketMemory));}
