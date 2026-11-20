@@ -57,6 +57,10 @@ async function main(){
  limits.ohlcv=oh.fn||undefined;limits.ohlcvMax=Number(process.env.RADAR_OHLCV_PER_NETWORK||10);limits.officialFetcher=global.fetch;
  // V8: verified critical risk veto, evidence-calibrated opportunity priority, up to 10 visible candidates per network.
  limits.customFilter=process.env.RADAR_CUSTOM_FILTER_ENABLED==='true';
+ // V8 exact Top 10: official Pons factory membership (targeted eth_call, chain-checked 4663, <=40 contracts) for Pons priority
+ // and Pons coverage expansion. Builder only; a failure leaves Pons/Robinhood as observed (reported, never guessed).
+ if(limits.customFilter){const ponsLib=require('../lib/radar-v2/pons');
+  limits.ponsMembership=async addrs=>(await ponsLib.membershipMany(process.env.RADAR_PONS_RPC_URL||'https://rpc.mainnet.chain.robinhood.com',addrs,{fetcher:global.fetch,now:Date.now})).members;}
 // Cached exact-pool history is reused for ALL 40 eligible candidates each cycle;
 // only uncached pools compete for the bounded provider-call allowance.
 const {NETWORKS}=require('../lib/radar-v2/sources');
@@ -65,8 +69,9 @@ limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].c
  const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}));
  const historyRemoved=S.applyMemory(snap,result.marketMemory);
  snap.marketMemoryStatus={version:MM.VERSION,status:memoryStatus,contracts:Object.keys(result.marketMemory.entries).length,carriedRowsRemovedByHistory:historyRemoved};
- snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ohlcv:Boolean(limits.ohlcv),officialCache:Object.keys(ofCache).length,officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
+ snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ponsMembership:Boolean(limits.ponsMembership),ohlcv:Boolean(limits.ohlcv),officialCache:Object.keys(ofCache).length,officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
  snap.v6Sources={ohlcv:{...oh.stats,cachedPools:Object.keys(ohCache.entries).length,perNetwork:result.v6?.ohlcv||{}},officialRecheck:result.v6?.official||{},officialDiscovery:result.v6?.discovery||{}};
+ snap.v6Sources.ponsExpansion=result.ponsExpansion||null;
  // Per listed Ethereum contract: where it ended (main / watch reason / Filter B gate / not in intake). Audit trail, not served.
  {const U=require('../lib/radar-v2/intel/universe'),n=result.networks.ethereum||{};const main=new Map((n.displayCandidates||[]).map(r=>[r.address,r]));
   const watch=new Map((n.display?.watch||[]).map(w=>[w.address,w]));const all=new Map((n.all||[]).map(r=>[r.address,r]));
@@ -74,7 +79,10 @@ limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].c
    return e.symbol+':'+(m?'MAIN#'+m.rank+'('+m.researchRank?.researchBand+',pc'+m.profileCompleteness?.score+')':w?'WATCH('+(w.reasons||[]).join('+')+',pc'+w.profileCompleteness+')':r?'NOT_SHOWN('+(r.discoveryClass||'-')+')':'NOT_IN_INTAKE');}).join(' ');
   snap.v6Sources.filterB=Object.fromEntries(Object.entries(result.networks).map(([k,v])=>[k,v.display?.filterB?.droppedByReason||null]));}
  const v=S.validate(snap);
- if(!v.ok){console.error('Refusing to publish invalid snapshot:',JSON.stringify(v));process.exitCode=3;return;}
+ if(!v.ok){console.error('Refusing to publish invalid snapshot:',JSON.stringify(v));
+  for(const n of v.sections||[])console.error('section '+n+' status',JSON.stringify({status:snap.sections[n]?.status,carriedForward:snap.sections[n]?.carriedForward||false,engineSource:result.networks?.[n]?.source||null}));
+  for(const n of v.sections||[])console.error('invalid section '+n+':',JSON.stringify((snap.sections[n]?.rows||[]).map(x=>[x.rank,x.symbol,x.priceUsd,x.liquidityUsd,x.volume24hUsd,x.opportunity?.researchRank?.version,x.opportunity?.researchRank?.researchScore,x.opportunity?.identityLevel,x.opportunity?.category,x.launch?.status||null])).slice(0,3000));
+  process.exitCode=3;return;}
  fs.mkdirSync(path.dirname(out),{recursive:true});
  fs.writeFileSync(out,JSON.stringify(snap));
  if(memPath){fs.mkdirSync(path.dirname(memPath),{recursive:true});fs.writeFileSync(memPath,JSON.stringify(result.marketMemory));}
@@ -108,6 +116,7 @@ limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].c
   console.log('::notice title=radar-v5 universe::'+esc(JSON.stringify(Object.fromEntries(Object.entries(snap.sections).filter(([,x])=>x.universe).map(([n,x])=>[n,{explorer:x.universe.explorer,
    considered:x.universe.considered,accepted:x.universe.accepted,enriched:x.universe.enriched||0,rejected:x.universe.rejected,sample:(x.universe.sample||[]).map(s=>s.join(':')).join(' ')}])))).slice(0,3800));
   console.log('::notice title=radar-v6 sources::'+esc(JSON.stringify(snap.v6Sources)).slice(0,3800));
+  for(const [n] of Object.entries(summary)){const cv=snap.sections[n]?.display?.customVetoes;if(cv)console.log('::notice title=radar-v8 vetoes '+n+'::'+esc(JSON.stringify({byReason:cv.byReason,sample:(cv.sample||[]).map(v=>[v.symbol,v.address,v.reason,v.category].join('|'))})).slice(0,3800));}
   for(const [n,x] of Object.entries(summary)){
    const d=v=>v===null||v===undefined?'-':Math.round(v);
    const sec=snap.sections[n];
