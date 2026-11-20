@@ -57,6 +57,10 @@ async function main(){
  limits.ohlcv=oh.fn||undefined;limits.ohlcvMax=Number(process.env.RADAR_OHLCV_PER_NETWORK||10);limits.officialFetcher=global.fetch;
  // V8: verified critical risk veto, evidence-calibrated opportunity priority, up to 10 visible candidates per network.
  limits.customFilter=process.env.RADAR_CUSTOM_FILTER_ENABLED==='true';
+ // V8 exact Top 10: official Pons factory membership (targeted eth_call, chain-checked 4663, <=40 contracts) for Pons priority
+ // and Pons coverage expansion. Builder only; a failure leaves Pons/Robinhood as observed (reported, never guessed).
+ if(limits.customFilter){const ponsLib=require('../lib/radar-v2/pons');
+  limits.ponsMembership=async addrs=>(await ponsLib.membershipMany(process.env.RADAR_PONS_RPC_URL||'https://rpc.mainnet.chain.robinhood.com',addrs,{fetcher:global.fetch,now:Date.now})).members;}
 // Cached exact-pool history is reused for ALL 40 eligible candidates each cycle;
 // only uncached pools compete for the bounded provider-call allowance.
 const {NETWORKS}=require('../lib/radar-v2/sources');
@@ -65,8 +69,9 @@ limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].c
  const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}));
  const historyRemoved=S.applyMemory(snap,result.marketMemory);
  snap.marketMemoryStatus={version:MM.VERSION,status:memoryStatus,contracts:Object.keys(result.marketMemory.entries).length,carriedRowsRemovedByHistory:historyRemoved};
- snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ohlcv:Boolean(limits.ohlcv),officialCache:Object.keys(ofCache).length,officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
+ snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ponsMembership:Boolean(limits.ponsMembership),ohlcv:Boolean(limits.ohlcv),officialCache:Object.keys(ofCache).length,officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
  snap.v6Sources={ohlcv:{...oh.stats,cachedPools:Object.keys(ohCache.entries).length,perNetwork:result.v6?.ohlcv||{}},officialRecheck:result.v6?.official||{},officialDiscovery:result.v6?.discovery||{}};
+ snap.v6Sources.ponsExpansion=result.ponsExpansion||null;
  // Per listed Ethereum contract: where it ended (main / watch reason / Filter B gate / not in intake). Audit trail, not served.
  {const U=require('../lib/radar-v2/intel/universe'),n=result.networks.ethereum||{};const main=new Map((n.displayCandidates||[]).map(r=>[r.address,r]));
   const watch=new Map((n.display?.watch||[]).map(w=>[w.address,w]));const all=new Map((n.all||[]).map(r=>[r.address,r]));
