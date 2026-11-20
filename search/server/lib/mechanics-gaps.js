@@ -11,7 +11,8 @@ const LABELS=Object.freeze({
 const PATH={tradingTaxes:'Fee',mintCapability:'Mint',ownerAdmin:'Admin',transferRestrictions:'Restriction'};
 const SHORT=Object.freeze({
  MECHANICS_IMPLEMENTATION_UNRESOLVED:()=>'Proxy implementation path unresolved.',
- MECHANICS_SOURCE_IDENTITY_UNVERIFIED:()=>'Published source does not match the deployed code.',
+ MECHANICS_SOURCE_IDENTITY_UNVERIFIED:()=>'Published source identity or deployed bytecode mismatch.',
+ MECHANICS_SOURCE_SCHEMA_INCOMPLETE:()=>'Bytecode matched; source ABI/metadata incomplete.',
  MECHANICS_SOURCE_READ_UNAVAILABLE:()=>'Source provider unavailable; retry later.',
  MECHANICS_VERIFIED_SOURCE_UNAVAILABLE:()=>'Verified source unavailable.',
  MECHANICS_EXECUTION_PATH_UNREVIEWED:key=>PATH[key]+' execution path not yet reviewed in the verified source.'
@@ -39,9 +40,15 @@ function explain(key,field,details){
  }else if(fails.some(f=>f.reason==='IMPLEMENTATION_EXECUTION_UNRESOLVED')){
   reasonCode='MECHANICS_IMPLEMENTATION_UNRESOLVED';
   reason='The executed implementation or delegated control path could not be independently established. '+label.hint;
- }else if(fails.some(f=>/SOURCE_BYTECODE_MISMATCH|SOURCE_IDENTITY_MISMATCH|SOURCE_SCHEMA_INVALID/.test(f.reason||''))){
+ }else if(fails.some(f=>/^(SOURCE_BYTECODE_MISMATCH|SOURCE_IDENTITY_MISMATCH)$/.test(f.reason||''))){
   reasonCode='MECHANICS_SOURCE_IDENTITY_UNVERIFIED';
-  reason='Published source did not pass exact contract and deployed-bytecode validation. '+label.hint;
+  reason='Published source identity or deployed bytecode failed exact-contract validation. '+label.hint;
+ }else if(fails.some(f=>f.reason==='SOURCE_SCHEMA_INVALID')){
+  // validateSource runs chain/address + EXACT runtime bytecode checks BEFORE ABI/source schema validation.
+  // SOURCE_SCHEMA_INVALID is therefore NOT evidence of a deployed-code mismatch.
+  // Do not infer mint/fee/admin permissions: the source metadata is still unusable.
+  reasonCode='MECHANICS_SOURCE_SCHEMA_INCOMPLETE';
+  reason='Exact identity and deployed-bytecode checks succeeded, but the source ABI or metadata payload failed schema validation. Tax, mint and admin execution remain unreviewed. '+label.hint;
  }else if(fails.some(f=>f.reason==='SOURCE_RATE_LIMIT'||f.reason==='SOURCE_TIMEOUT'||f.reason==='SOURCE_API_FAILED')){
   reasonCode='MECHANICS_SOURCE_READ_UNAVAILABLE';
   reason='Verified source retrieval was unavailable or timed out; no contract mechanic was inferred. '+label.hint;
