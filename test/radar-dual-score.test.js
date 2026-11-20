@@ -122,3 +122,41 @@ test('DS-8: a collapsed token is not an early-discovery opportunity',()=>{
  const mem=DS.opportunity(r(702,'pons',4663,{change24hPct:8,history:{observations:4,flags:['EXTREME_24H_DROP_OBSERVED'],worst24hPct:-95.2}}));
  assert.ok(mem.components.earlyDiscovery.evidence.some(e=>e.startsWith('COLLAPSED_NOT_EARLY')));
 });
+
+test('DS-9: missing data and genuinely poor results are reported differently',()=>{
+ const poor=DS.opportunity(r(800,'ethereum',1,{activity:{volumeUsd:{h1:null,h6:20000,h24:250000},trades:{h1:null,h6:10,h24:200},buyers:{h24:5},sellers:{h24:50}}}));
+ const none=DS.opportunity(r(801,'ethereum',1,{activity:null}));
+ assert.equal(poor.components.volumeAcceleration.state,'MEASURED_WEAK');
+ assert.equal(none.components.volumeAcceleration.state,'UNMEASURED');
+ assert.ok(poor.weak.includes('volumeAcceleration'));assert.ok(none.unmeasured.includes('volumeAcceleration'));
+ assert.ok(none.measuredScore===null||Number.isFinite(none.measuredScore));
+ assert.equal(DS.quality(r(802)).components.community.state,'UNMEASURED');
+});
+
+test('DS-10: low coverage never carries high confidence and never outranks a better-covered row',()=>{
+ const act={volumeUsd:{h1:null,h6:200000,h24:250000},trades:null,buyers:{h24:80},sellers:{h24:40}};
+ // strong acceleration but thin evidence (only early-discovery + acceleration = 40% coverage): LOW confidence
+ const thin=DS.opportunity(r(810,'pons',4663,{activity:act,poolCreatedAt:new Date(NOW-2*86400000).toISOString()}));
+ assert.ok(thin.coverage<50);assert.equal(thin.confidence,'LOW');
+ const series={days:30,from:new Date(NOW-31*86400000).toISOString(),to:new Date(NOW-1*86400000).toISOString(),status:'NO_COMPRESSION_EVIDENCE',metrics:{volumeEvidence:'DAILY_VOLUME',volatilityRatio:1.3}};
+ const covered=r(811,'pons',4663,{compression:series,activity:{volumeUsd:{h1:null,h6:65000,h24:250000},trades:{h1:null,h6:31,h24:120}}});
+ assert.notEqual(DS.opportunity(covered).confidence,'LOW');
+ const out=sel([r(810,'pons',4663,{activity:act,poolCreatedAt:new Date(NOW-2*86400000).toISOString()}),covered,...Array.from({length:9},(_,i)=>r(820+i,'pons',4663,{compression:series}))],{network:'pons'});
+ const sh=DS.shadow({networks:{pons:{displayCandidates:out}}},{now:NOW});
+ const ord=sh.networks.pons.rows.map(x=>x.key);
+ assert.ok(ord.indexOf('4663:'+A(810))>ord.indexOf('4663:'+A(811)),'LOW-confidence row ranked after covered rows');
+ assert.match(sh.networks.pons.rows[0].info,/kapsam %/);assert.match(sh.networks.pons.rows[0].info,/getiri tahmini değildir/);
+});
+
+test('DS-11: compression only from sufficient, recent, gap-free DAILY VOLUME history',()=>{
+ const mk=o=>({days:30,from:new Date(NOW-31*86400000).toISOString(),to:new Date(NOW-1*86400000).toISOString(),status:'COMPRESSION_CONFIRMED',metrics:{volumeEvidence:'DAILY_VOLUME'},...o});
+ const ok=DS.opportunity(r(830,'ethereum',1,{compression:mk({})}));
+ assert.equal(ok.components.volumeCompression.score,30);
+ const short=DS.opportunity(r(831,'ethereum',1,{compression:mk({days:14})}));
+ const noVol=DS.opportunity(r(832,'ethereum',1,{compression:mk({metrics:{volumeEvidence:'NOT_AVAILABLE'}})}));
+ const gaps=DS.opportunity(r(833,'ethereum',1,{compression:mk({days:22,from:new Date(NOW-60*86400000).toISOString()})}));
+ const old=DS.opportunity(r(834,'ethereum',1,{compression:mk({to:new Date(NOW-9*86400000).toISOString()})}));
+ for(const [x,why] of [[short,'DAILY_SERIES_UNDER_21_DAYS'],[noVol,'NO_DAILY_VOLUME_IN_SERIES'],[gaps,'SERIES_HAS_GAPS'],[old,'SERIES_NOT_RECENT']]){
+  assert.equal(x.components.volumeCompression.score,0);assert.equal(x.components.volumeCompression.state,'UNMEASURED');
+  assert.ok(x.components.volumeCompression.unmeasured.some(u=>u.startsWith(why)),why);}
+});
