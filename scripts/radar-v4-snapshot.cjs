@@ -99,7 +99,7 @@ async function main(){
   for(const [n,x] of Object.entries(summary)){
    const d=v=>v===null||v===undefined?'-':Math.round(v);
    const sec=snap.sections[n];
-   console.log('::notice title=radar-v6 '+n+'::'+esc(JSON.stringify({status:x.status,carriedForward:x.carriedForward,shown:sec.rows.length,byBand:sec.display?.byBand||null,
+   console.log('::notice title=radar-v6 '+n+'::'+esc(JSON.stringify({status:x.status,carriedForward:x.carriedForward,discovered:sec.counts?.candidates??null,funnel:sec.display?.v6Funnel||null,shown:sec.rows.length,byBand:sec.display?.byBand||null,
     watch:(sec.display?.watch||sec.watchOnly||[]).slice(0,10).map(w=>[w.symbol,(w.reasons||[]).join('+'),w.profileCompleteness??'-'].join('|')),
     rows:sec.rows.map(r=>{const o=r.opportunity;return [r.symbol,r.address,o.researchRank?.researchBand,o.researchRank?.researchScore,o.profileCompleteness?.score,o.compression?.status+':'+(o.compression?.days||0),
      o.integrity?.summary,o.qualityRank?.score,d(r.liquidityUsd),r.logo?'logo':'nologo'].join('|');})})).slice(0,3800));
