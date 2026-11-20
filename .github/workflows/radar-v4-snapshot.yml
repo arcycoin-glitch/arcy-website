@@ -13,36 +13,69 @@ on:
       - 'lib/radar-v2/**'
       - 'api/search/index.js'
       - 'scripts/radar-v4-snapshot.cjs'
+      - 'scripts/radar-snapshot-freshness.cjs'
       - '.github/workflows/radar-v4-snapshot.yml'
   schedule:
-    # Every two hours: independent of visits, serialized, bounded and fail-closed.
-    - cron: '41 */2 * * *'
+    # GitHub drops most scheduled triggers of this repository (a `41 */2` cron delivered ~2 runs/day, with 8-19 h gaps).
+    # The cron is therefore frequent; the `freshness` job builds only when the published Production snapshot is >= 100 min old,
+    # so the effective cadence stays ~2 h and provider usage does not grow. Off-peak minutes avoid the top-of-hour backlog.
+    - cron: '4,19,34,49 * * * *'
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Data branch to write: preview (safe test, default) or production'
+        type: choice
+        options: [preview, production]
+        default: preview
   pull_request:
     paths:
       - 'lib/radar-v2/**'
       - 'api/search/index.js'
       - 'scripts/radar-v4-snapshot.cjs'
+      - 'scripts/radar-snapshot-freshness.cjs'
       - '.github/workflows/radar-v4-snapshot.yml'
 permissions:
   contents: write
 concurrency:
-  group: radar-v4-snapshot-${{ github.event_name == 'pull_request' && 'preview' || 'main' }}
+  group: radar-v4-snapshot-${{ (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.target != 'production')) && 'preview' || 'main' }}
   cancel-in-progress: false
 jobs:
-  snapshot:
+  # Decides whether a scheduled run must build (Production snapshot >= 100 min old) and warns explicitly when it is stale.
+  freshness:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      build: ${{ steps.age.outputs.build }}
+      level: ${{ steps.age.outputs.level }}
+      age_min: ${{ steps.age.outputs.age_min }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/radar-snapshot-freshness.cjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - id: age
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SNAPSHOT_URL: https://raw.githubusercontent.com/${{ github.repository }}/radar-v4-snapshots/radar-v4/snapshot.json
+        run: node scripts/radar-snapshot-freshness.cjs
+  snapshot:
+    needs: freshness
+    if: needs.freshness.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      DATA_REF: ${{ github.event_name == 'pull_request' && 'radar-v4-snapshots-preview' || 'radar-v4-snapshots' }}
+      DATA_REF: ${{ (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.target != 'production')) && 'radar-v4-snapshots-preview' || 'radar-v4-snapshots' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Engine tests must pass before publishing
-        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-immutable-snapshot.test.js test/radar-near-match.test.js test/radar-v5-quality.test.js test/radar-v5-final.test.js test/radar-research-order.test.js test/radar-v6-top10.test.js test/radar-v6-owner-top10.test.js test/radar-v8-custom-top10.test.js test/radar-p0-production.test.js test/radar-discovery-quality.test.js test/radar-robinhood-pons-quality-p0.test.js test/radar-pre-catalyst.test.js
+        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-immutable-snapshot.test.js test/radar-near-match.test.js test/radar-v5-quality.test.js test/radar-v5-final.test.js test/radar-research-order.test.js test/radar-v6-top10.test.js test/radar-v6-owner-top10.test.js test/radar-v8-custom-top10.test.js test/radar-p0-production.test.js test/radar-snapshot-freshness.test.js test/radar-discovery-quality.test.js test/radar-robinhood-pons-quality-p0.test.js test/radar-pre-catalyst.test.js
       - name: Check out data branch (or create it the first time)
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -108,3 +141,31 @@ jobs:
            }
            console.log("::error title=radar-v4 readback::published snapshot not readable");process.exit(5);
           })();'
+  # Explicit alert instead of silently serving older data: one open issue while Production is stale or a Production build failed;
+  # closed automatically by the next successful Production publication. Read-only for the site; never changes data.
+  alert:
+    needs: [freshness, snapshot]
+    if: always() && github.event_name != 'pull_request' && !(github.event_name == 'workflow_dispatch' && inputs.target != 'production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      issues: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          LEVEL: ${{ needs.freshness.outputs.level }}
+          AGE: ${{ needs.freshness.outputs.age_min }}
+          BUILD: ${{ needs.snapshot.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Radar Production snapshot needs attention"
+          num=$(gh issue list -R "$REPO" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ "$BUILD" = "failure" ] || [ "$BUILD" = "cancelled" ] || { [ "$BUILD" = "skipped" ] && [ "$LEVEL" != "FRESH" ]; }; then
+            body="Production snapshot build: ${BUILD}. Published snapshot age before this run: ${AGE:-unknown} min (level ${LEVEL}). Run: ${RUN_URL}. The site keeps serving the last valid snapshot (STALE after 6 h, legacy fallback after 24 h) until a run publishes again."
+            echo "::error title=Radar snapshot alert::$body"
+            if [ -n "$num" ]; then gh issue comment "$num" -R "$REPO" --body "$body"; else gh issue create -R "$REPO" --title "$title" --body "$body"; fi
+          elif [ "$BUILD" = "success" ] && [ -n "$num" ]; then
+            gh issue close "$num" -R "$REPO" --comment "Recovered: Production snapshot published by ${RUN_URL}."
+          fi
+
