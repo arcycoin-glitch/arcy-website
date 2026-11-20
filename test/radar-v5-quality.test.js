@@ -268,9 +268,11 @@ test('V5-15. extreme 24h moves are not shown on Robinhood or Pons either; monito
  for(const network of ['robinhood','pons']){
   assert.equal(Q.reason({change24hPct:-71},network),'EXTREME_DRAWDOWN_24H',network+' WOOD-like crash');
   assert.equal(Q.reason({change24hPct:238},network),'ALREADY_SPIKED_24H');
-  assert.equal(Q.reason({change24hPct:-34},network),null,'ordinary decline remains observable');
-  assert.equal(Q.reason({change24hPct:1,artwork:null,discoveryClass:'MONITOR_ONLY'},network),'EXACT_CONTRACT_IDENTITY_NOT_CORROBORATED','BSWQ-like anonymous monitor row');
-  assert.equal(Q.reason({change24hPct:1,artwork:null,discoveryClass:'MONITOR_ONLY',v3Verification:{crossCheck:'MATCHED'},poolCreatedAt:iso(40),snapshotNow:NOW},network),null);
+  assert.equal(Q.reason({change24hPct:-34},network),'PRICE_NOT_OBSERVED','no market prices means no premium observation');
+  assert.equal(Q.reason({change24hPct:-34,priceUsd:1,liquidityUsd:30000,volume24hUsd:12000,discoveryClass:'QUALIFIED'},network),null,'ordinary decline with adequate verified market data is observable');
+  assert.equal(Q.reason({change24hPct:1,artwork:null,discoveryClass:'MONITOR_ONLY'},network),'PRICE_NOT_OBSERVED','no market is not a verified observation');
+  assert.equal(Q.reason({change24hPct:1,priceUsd:1,liquidityUsd:30000,volume24hUsd:12000,artwork:null,discoveryClass:'MONITOR_ONLY'},network),'PRELIMINARY_WATCH_NOT_MAIN_RANKING','anonymous monitor never enters main ranking');
+  assert.equal(Q.reason({change24hPct:1,priceUsd:1,liquidityUsd:30000,volume24hUsd:12000,artwork:null,discoveryClass:'MONITOR_ONLY',v3Verification:{crossCheck:'MATCHED'},poolCreatedAt:iso(40),snapshotNow:NOW},network),'PRELIMINARY_WATCH_NOT_MAIN_RANKING','even corroborated monitor stays outside premium list');
  }
 });
 
