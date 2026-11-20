@@ -49,12 +49,17 @@ async function main(){
  const OH=require('./radar-ohlcv.cjs'),ohPath=arg('ohlcv-cache');
  let ohCache=OH.loadCache(null);if(ohPath&&fs.existsSync(ohPath)){try{ohCache=OH.loadCache(JSON.parse(fs.readFileSync(ohPath,'utf8')));}catch{}}
  const oh=OH.provider({env:process.env,cache:ohCache,maxCalls:Number(process.env.RADAR_OHLCV_MAX_CALLS||36)});
+ // V6: builder official-page checks carried at most 7 days when a site is temporarily unreachable (data-branch file, bounded)
+ const ofPath=arg('official-cache');let ofCache={};
+ if(ofPath&&fs.existsSync(ofPath)){try{const d=JSON.parse(fs.readFileSync(ofPath,'utf8'));if(d?.version==='arcy-official-cache-1'&&d.entries&&typeof d.entries==='object')
+  for(const [k,e] of Object.entries(d.entries))if(/^\d+:0x[0-9a-f]{40}$/.test(k)&&e?.dossier?.source==='BUILDER_LIVE_CHECK'&&Number.isFinite(Date.parse(e.at)))ofCache[k]=e;}catch{}}
+ limits.officialCache=ofCache;
  limits.ohlcv=oh.fn||undefined;limits.ohlcvMax=Number(process.env.RADAR_OHLCV_PER_NETWORK||10);limits.officialFetcher=global.fetch;
  const result=await engine.run({sections:s.out,rpc,limits,priorRiskLedger:previous?.riskLedger||null,marketMemory:memory});
  const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}));
  const historyRemoved=S.applyMemory(snap,result.marketMemory);
  snap.marketMemoryStatus={version:MM.VERSION,status:memoryStatus,contracts:Object.keys(result.marketMemory.entries).length,carriedRowsRemovedByHistory:historyRemoved};
- snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ohlcv:Boolean(limits.ohlcv),officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
+ snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ohlcv:Boolean(limits.ohlcv),officialCache:Object.keys(ofCache).length,officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
  snap.v6Sources={ohlcv:{...oh.stats,cachedPools:Object.keys(ohCache.entries).length,perNetwork:result.v6?.ohlcv||{}},officialRecheck:result.v6?.official||{},officialDiscovery:result.v6?.discovery||{}};
  // Per listed Ethereum contract: where it ended (main / watch reason / Filter B gate / not in intake). Audit trail, not served.
  {const U=require('../lib/radar-v2/intel/universe'),n=result.networks.ethereum||{};const main=new Map((n.displayCandidates||[]).map(r=>[r.address,r]));
@@ -68,6 +73,7 @@ async function main(){
  fs.writeFileSync(out,JSON.stringify(snap));
  if(memPath){fs.mkdirSync(path.dirname(memPath),{recursive:true});fs.writeFileSync(memPath,JSON.stringify(result.marketMemory));}
  if(ohPath){fs.mkdirSync(path.dirname(ohPath),{recursive:true});fs.writeFileSync(ohPath,JSON.stringify(OH.pruneCache(ohCache)));}
+ if(ofPath){const keep=Object.entries(ofCache).filter(([,e])=>Date.now()-Date.parse(e.at)<=7*86400000).slice(-400);fs.mkdirSync(path.dirname(ofPath),{recursive:true});fs.writeFileSync(ofPath,JSON.stringify({version:'arcy-official-cache-1',entries:Object.fromEntries(keep)}));}
  // Bounded, auditable revision index (last 42 runs ~ 7 days at 4-hourly cadence). Git history of the data branch keeps the bytes.
  const indexPath=arg('index');
  if(indexPath){

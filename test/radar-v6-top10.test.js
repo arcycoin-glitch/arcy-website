@@ -359,3 +359,13 @@ test('V6-21. a collapse or a liquidity drain seen in the dated daily series is r
  const one=INT.assess(row('ethereum',501,{opportunity:{flags:['DEMAND_CONCENTRATED_OR_WASH']},evidenceSummary:{...row('ethereum',501).evidenceSummary,demand:{distinctBuyers:40,cluster:'CONCENTRATION_SUSPECTED',wash:'REVIEWED_NO_SELF_TRADE',hours:24}}}));
  assert.deepEqual(one.suspicious,['WALLET_CONCENTRATION']);
 });
+
+test('V6-22. official discovery reports a status per contract so unreachable sites and withdrawn addresses are told apart',async()=>{
+ const OD=require('../lib/radar-v2/intel/official-discovery');
+ const c1={chainId:4663,address:A(601),officialLinks:{websites:['https://p601.example/']}},c2={chainId:4663,address:A(602),officialLinks:{websites:['https://p602.example/']}};
+ const fetcher=async u=>u.startsWith('https://p601')?{ok:true,status:200,headers:new Map(),text:async()=>'<p>no contract here</p>'}:(()=>{throw new Error('down');})();
+ const {found,statuses}=await OD.discover([c1,c2],{fetcher,now:NOW});
+ assert.equal(found.size,0);
+ assert.equal(statuses.get('4663:'+A(601)),'ADDRESS_NOT_PUBLISHED','reached, no address: a cached check must be dropped');
+ assert.equal(statuses.get('4663:'+A(602)),'SITE_UNREACHABLE','unreachable: a recent cached check may be carried, labelled');
+});

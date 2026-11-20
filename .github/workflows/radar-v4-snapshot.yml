@@ -64,7 +64,7 @@ jobs:
           # non-scheduled runs (manual / pull request / merge), never on the cron schedule.
           COINGECKO_DEMO_API_KEY: ${{ secrets.COINGECKO_DEMO_API_KEY }}
           RADAR_OHLCV_KEYLESS: ${{ github.event_name != 'schedule' && '1' || '' }}
-        run: node scripts/radar-v4-snapshot.cjs --previous snap/radar-v4/snapshot.json --out snap/radar-v4/snapshot.json --index snap/radar-v4/index.json --responses snap/radar-v4/served --memory snap/radar-v4/market-memory.json --history hist/radar-v4/snapshot.json --ohlcv-cache snap/radar-v4/ohlcv-cache.json
+        run: node scripts/radar-v4-snapshot.cjs --previous snap/radar-v4/snapshot.json --out snap/radar-v4/snapshot.json --index snap/radar-v4/index.json --responses snap/radar-v4/served --memory snap/radar-v4/market-memory.json --history hist/radar-v4/snapshot.json --ohlcv-cache snap/radar-v4/ohlcv-cache.json --official-cache snap/radar-v4/official-cache.json
       - name: Commit (fast-forward only, never force)
         run: |
           cd snap
