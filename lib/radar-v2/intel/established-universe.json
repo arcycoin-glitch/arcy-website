@@ -1,6 +1,6 @@
 {
   "schema": "arcy-radar-established-universe/1",
-  "version": "2026-11-20.2",
+  "version": "2026-11-20.3",
   "policy": "Maintainer-listed canonical ERC-20 contracts of established projects, by exact chainId + contract address. A listing is a RESEARCH CANDIDATE, not an inclusion: at build time a row is accepted only if two independent indexers (Blockscout token record and DEX Screener base token) report the expected symbol for this exact contract, and every Radar market, category and risk gate passes. A listing is not owner approval, not a safety verdict and not a return forecast. Symbols are labels only; identity is the address. V6 (#279): `official` lists the project's official domains and the pages on them to check; the snapshot builder fetches those pages every run and grants official contract identity only when a page on an official domain publishes this exact contract (dated, re-checked each run). Domains are maintainer-reviewed claims; the address match is live evidence.",
   "networks": {
     "1": [
@@ -47,6 +47,7 @@
           ],
           "pages": [
             "https://uniswap.org/",
+            "https://raw.githubusercontent.com/Uniswap/sdk-core/main/src/addresses.ts",
             "https://developers.uniswap.org/"
           ],
           "github": "Uniswap"
@@ -112,6 +113,7 @@
           ],
           "pages": [
             "https://sky.money/",
+            "https://raw.githubusercontent.com/sky-ecosystem/spells-mainnet/master/src/test/addresses_mainnet.sol",
             "https://developers.sky.money/"
           ],
           "github": "sky-ecosystem"
