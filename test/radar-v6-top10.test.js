@@ -369,3 +369,42 @@ test('V6-22. official discovery reports a status per contract so unreachable sit
  assert.equal(statuses.get('4663:'+A(601)),'ADDRESS_NOT_PUBLISHED','reached, no address: a cached check must be dropped');
  assert.equal(statuses.get('4663:'+A(602)),'SITE_UNREACHABLE','unreachable: a recent cached check may be carried, labelled');
 });
+
+
+test('V7-1. continuous research ranks up to 40 evidence-qualified candidates with compressed A signals first',()=>{
+ const rows=Array.from({length:46},(_,i)=>row('ethereum',900+i,i<2?{dailySeries:daily()}:{...{}}));
+ const out=sel(rows);
+ assert.equal(out.length,40,'only the V6 path expands capacity');
+ assert.equal(new Set(out.map(x=>x.address)).size,40);
+ assert.deepEqual(out.slice(0,2).map(x=>x.researchRank.researchBand),['TOP_RESEARCH_SIGNAL','TOP_RESEARCH_SIGNAL']);
+ assert.ok(out.slice(2).every(x=>x.researchRank.researchBand!=='TOP_RESEARCH_SIGNAL'));
+ assert.ok(out.every((x,i)=>x.rank===i+1&&x.profileCompleteness.qualifiesMain));
+ const snap=snapOf(out);
+ assert.equal(snap.sections.ethereum.rows.length,40);
+ assert.deepEqual(S.validate(snap),{ok:true});
+ const tooMany=structuredClone(snap);
+ tooMany.sections.ethereum.rows.push({...tooMany.sections.ethereum.rows[0],rank:41,address:A(4000)});
+ assert.equal(S.validate(tooMany).ok,false,'a 41st result fails validation');
+});
+
+test('V7-2. profiles absent, risk-held contracts and conflicting identities never pad the 40',()=>{
+ const strong=Array.from({length:20},(_,i)=>row('ethereum',1000+i));
+ const anonymous=Array.from({length:30},(_,i)=>row('ethereum',1100+i,{dossier:null}));
+ const bad=row('ethereum',1200,{officialCheck:{status:'ADDRESS_NOT_FOUND',url:'https://docs.project1200.example/token',at:iso(0)}});
+ const held=new Set(['1:'+A(1210)]);
+ const blocked=row('ethereum',1210);
+ const out=sel([...strong,...anonymous,bad,blocked],'ethereum',{held});
+ assert.equal(out.length,20,'do not lower profile or safety gates to reach 40');
+ assert.ok(out.every(x=>x.profileCompleteness.score>=60));
+ assert.ok(!out.some(x=>x.address===bad.address||x.address===blocked.address));
+});
+
+test('V7-3. legacy V4 and V5 keep ten results for backward-compatible snapshot consumers',()=>{
+ const rows=Array.from({length:45},(_,i)=>row('ethereum',1300+i));
+ const v5=sel(rows,'ethereum',{v6:false});
+ assert.equal(v5.length,10);
+ assert.deepEqual(S.validate(snapOf(v5)),{ok:true});
+ const v4=sel(rows,'ethereum',{research:false});
+ assert.equal(v4.length,10);
+ assert.deepEqual(S.validate(snapOf(v4)),{ok:true});
+});
