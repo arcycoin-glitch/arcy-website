@@ -55,7 +55,13 @@ async function main(){
  const historyRemoved=S.applyMemory(snap,result.marketMemory);
  snap.marketMemoryStatus={version:MM.VERSION,status:memoryStatus,contracts:Object.keys(result.marketMemory.entries).length,carriedRowsRemovedByHistory:historyRemoved};
  snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ohlcv:Boolean(limits.ohlcv),officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
- snap.v6Sources={ohlcv:{...oh.stats,cachedPools:Object.keys(ohCache.entries).length,perNetwork:result.v6?.ohlcv||{}},officialRecheck:result.v6?.official||{}};
+ snap.v6Sources={ohlcv:{...oh.stats,cachedPools:Object.keys(ohCache.entries).length,perNetwork:result.v6?.ohlcv||{}},officialRecheck:result.v6?.official||{},officialDiscovery:result.v6?.discovery||{}};
+ // Per listed Ethereum contract: where it ended (main / watch reason / Filter B gate / not in intake). Audit trail, not served.
+ {const U=require('../lib/radar-v2/intel/universe'),n=result.networks.ethereum||{};const main=new Map((n.displayCandidates||[]).map(r=>[r.address,r]));
+  const watch=new Map((n.display?.watch||[]).map(w=>[w.address,w]));const all=new Map((n.all||[]).map(r=>[r.address,r]));
+  snap.v6Sources.registryOutcome=U.registryFor(1).map(e=>{const a=e.address,m=main.get(a),w=watch.get(a),r=all.get(a);
+   return e.symbol+':'+(m?'MAIN#'+m.rank+'('+m.researchRank?.researchBand+',pc'+m.profileCompleteness?.score+')':w?'WATCH('+(w.reasons||[]).join('+')+',pc'+w.profileCompleteness+')':r?'NOT_SHOWN('+(r.discoveryClass||'-')+')':'NOT_IN_INTAKE');}).join(' ');
+  snap.v6Sources.filterB=Object.fromEntries(Object.entries(result.networks).map(([k,v])=>[k,v.display?.filterB?.droppedByReason||null]));}
  const v=S.validate(snap);
  if(!v.ok){console.error('Refusing to publish invalid snapshot:',JSON.stringify(v));process.exitCode=3;return;}
  fs.mkdirSync(path.dirname(out),{recursive:true});

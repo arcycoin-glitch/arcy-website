@@ -20,7 +20,7 @@ const dossier=(n,o={})=>({id:'p'+n,status:'PRIMARY_SOURCE_VERIFIED',checkedAt:is
  github:{owner:'project'+n,repos:['project'+n+'/core'],linkedFromOfficialSite:true},missing:[],...o});
 const spreadOk={liquidityUsd:{min:390000,max:410000,ratio:1.05,providers:2},volume24hUsd:{min:290000,max:300000,ratio:1.03,providers:2}};
 // series: 30 daily points; volatile first, quiet last 7 (or as given); volume and liquidity per day
-function daily({days=30,quiet=7,amp=0.08,quietAmp=0.008,vol=200000,lastVol=null,liq=400000,ohlc=true,flat=false,last=NOW-3600000,rise=0}={}){
+function daily({days=30,quiet=7,amp=0.08,quietAmp=0.008,vol=200000,lastVol=null,liq=400000,ohlc=true,flat=false,last=Math.floor(NOW/DAY)*DAY-DAY,rise=0}={}){
  const pts=[];let p=1;
  for(let i=0;i<days;i++){const t=last-(days-1-i)*DAY,q=i>=days-quiet,a=q?quietAmp:amp;p=flat?1:rise&&i>=days-3?p*(1+rise):p*(1+(i%2?a:-a*0.97));
   const v=lastVol!==null&&i>=days-3?lastVol:vol;
@@ -142,6 +142,8 @@ test('V6-8. compression conditions are separated: no volume evidence, strong vol
  const stale=CX.compute({series:daily({last:NOW-6*DAY}),liquidityUsd:400000,floor:200000,now:NOW});
  assert.equal(stale.status,'INSUFFICIENT_HISTORY');assert.deepEqual(stale.reasons,['SERIES_NOT_RECENT']);
  assert.equal(CX.compute({series:null,now:NOW}).status,'INSUFFICIENT_HISTORY','no candles are ever invented from current price');
+ // the current, still-forming UTC day of provider OHLCV is never measured (partial volume would fake a volume collapse)
+ const withToday=daily({last:NOW});assert.equal(CX.compute({series:withToday,liquidityUsd:400000,floor:200000,now:NOW}).days,29);
  // draining liquidity is not compression
  const drain={...onchain,points:onchain.points.map((p,i)=>({...p,liq:i<25?900000:300000}))};
  assert.equal(CX.compute({series:drain,liquidityUsd:300000,floor:200000,now:NOW}).reasons[0],'LIQUIDITY_DRAINING');
@@ -345,4 +347,15 @@ test('V6-20. a builder-verified official page makes official identity in the eng
  const r=row('ethereum',400,{dossier:{...live},officialCheck:{status:'ADDRESS_FOUND',url:live.evidenceUrl,at:iso(0)}});
  assert.equal(RS.identityLevel(r,{now:NOW}).level,'OFFICIAL_CONTRACT_VERIFIED');
  assert.ok(pc(r).score>=60);
+});
+
+test('V6-21. a collapse or a liquidity drain seen in the dated daily series is reported; one demand review is counted once',()=>{
+ // observed 2026-11-20 preview: a Pons launch fell 43% in three days while pool liquidity drained
+ const s=daily({ohlc:false});const pts=s.points.map((p,i,a)=>({...p,c:i>=a.length-3?p.c*0.5:p.c,liq:i>=a.length-5?150000:400000}));
+ const r=row('pons',500,{launch:{status:'ONCHAIN_VERIFIED'},dailySeries:{...s,points:pts},liquidityUsd:150000,marketSpread:null});
+ const out=sel([r],'pons');
+ assert.equal(out.length,0);assert.ok(out.watch[0].reasons.includes('INTEGRITY_PRICE_EVENT_HISTORY'));
+ // the same on-chain review behind a demand flag is not two independent suspicious signals
+ const one=INT.assess(row('ethereum',501,{opportunity:{flags:['DEMAND_CONCENTRATED_OR_WASH']},evidenceSummary:{...row('ethereum',501).evidenceSummary,demand:{distinctBuyers:40,cluster:'CONCENTRATION_SUSPECTED',wash:'REVIEWED_NO_SELF_TRADE',hours:24}}}));
+ assert.deepEqual(one.suspicious,['WALLET_CONCENTRATION']);
 });
