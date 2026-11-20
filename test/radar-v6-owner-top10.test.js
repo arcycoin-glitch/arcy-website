@@ -95,3 +95,12 @@ test('two-way self-published exact contract and independently matched providers 
  const contradiction=RS.identityLevel({...base,officialCheck:{status:'ADDRESS_NOT_FOUND'}},{now:NOW});
  assert.equal(contradiction.level,'IDENTITY_SOURCE_CONFLICT');
 });
+
+test('official discovery includes V3 ranked contracts already in the Radar window by exact curated address',()=>{
+ const row={chainId:4663,network:'robinhood',address:HOOKR,symbol:'HOOKR',officialLinks:{websites:[]}};
+ const plan=OD.plan(row);
+ assert.equal(plan.basis,'REGISTRY_OFFICIAL_DOMAIN');
+ assert.equal(plan.pages[0],'https://hookr.fun/docs/reference/contracts-and-addresses');
+ const fake={...row,address:'0x0000000000000000000000000000000000000002'};
+ assert.equal(OD.plan(fake),null,'same ticker must not inherit an official site');
+});
