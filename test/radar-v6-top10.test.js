@@ -311,3 +311,38 @@ test('V6-18. ten slots are never filled with WATCH_ONLY: twelve sub-60 profiles 
  const ref=sel(set.map(r=>structuredClone(r))).map(x=>x.address);
  for(let i=0;i<5;i++)assert.deepEqual(sel(set.map(r=>structuredClone(r)).sort(()=>Math.random()-0.5)).map(x=>x.address),ref);
 });
+
+test('V6-19. live official-source discovery: only a page on an official domain that publishes the exact contract counts',async()=>{
+ const OD=require('../lib/radar-v2/intel/official-discovery');
+ const pages={'https://project1.example/':'<meta name="description" content="Lending protocol for agents on Ethereum."><a href="https://github.com/proj1org">GitHub</a><a href="https://docs.project1.example/">Docs</a>',
+  'https://docs.project1.example/token':'<p>Token contract: '+A(1)+'</p>','https://docs.project1.example/':'<p>Docs home</p>'};
+ const fetcher=async u=>{const b=pages[u];return b===undefined?{ok:false,status:404,headers:new Map(),text:async()=>''}:{ok:true,status:200,headers:new Map(),text:async()=>b};};
+ const reg={chainId:1,address:A(1),universe:{registry:{official:{domains:['project1.example'],pages:['https://project1.example/','https://docs.project1.example/token'],github:'proj1org'}}}};
+ const r=await OD.inspect(reg,{fetcher,now:NOW});
+ assert.equal(r.status,'ADDRESS_PUBLISHED');assert.equal(r.dossier.status,'PRIMARY_SOURCE_VERIFIED');assert.equal(r.dossier.evidenceUrl,'https://docs.project1.example/token');
+ assert.deepEqual(r.dossier.github,{owner:'proj1org',repos:[],linkedFromOfficialSite:true});assert.match(r.dossier.siteContext,/^Lending protocol for agents/);
+ // creator-submitted website: two-way link is PARTIAL evidence only (identity stays metadata-level)
+ const cr=await OD.inspect({chainId:4663,address:A(1),officialLinks:{websites:['https://x.com/proj','https://project1.example/']}},{fetcher:async u=>u==='https://project1.example/'?{ok:true,status:200,headers:new Map(),text:async()=>'<b>'+A(1)+'</b>'}:fetcher(u),now:NOW});
+ assert.equal(cr.dossier.status,'PARTIAL_EVIDENCE');
+ const id=RS.identityLevel(row('robinhood',1,{dossier:cr.dossier,officialCheck:cr.officialCheck}),{now:NOW});
+ assert.notEqual(id.level,'OFFICIAL_CONTRACT_VERIFIED','a creator-submitted site never makes official identity on its own');
+ // no address on the page, an off-site redirect, an unsafe host, and social-only links produce no dossier
+ assert.equal((await OD.inspect({chainId:1,address:A(2),officialLinks:{websites:['https://project1.example/']}},{fetcher,now:NOW})).status,'ADDRESS_NOT_PUBLISHED');
+ const redir=async()=>({ok:false,status:302,headers:new Map([['location','https://evil.example/a']]),text:async()=>''});
+ assert.equal((await OD.inspect({chainId:1,address:A(1),officialLinks:{websites:['https://project1.example/']}},{fetcher:redir,now:NOW})).status,'SITE_UNREACHABLE');
+ assert.equal(OD.plan({officialLinks:{websites:['https://127.0.0.1/','https://t.me/x','https://localhost/']}}),null);
+ assert.equal(OD.safeUrl('http://project1.example/'),null);
+ // a registry page outside the official domains is never fetched as evidence
+ assert.deepEqual(OD.plan({universe:{registry:{official:{domains:['project1.example'],pages:['https://elsewhere.example/p']}}}}).pages,['https://project1.example/']);
+ // budget is enforced
+ const b={max:1,used:0};await OD.inspect(reg,{fetcher,now:NOW,budget:b});assert.equal(b.used,1);
+});
+
+test('V6-20. a builder-verified official page makes official identity in the engine; the reviewed dossier still wins',async()=>{
+ const live={id:'live:1:'+A(400),source:'BUILDER_LIVE_CHECK',status:'PRIMARY_SOURCE_VERIFIED',checkedAt:iso(0),recheckedAt:iso(0),siteShowsExactAddress:true,
+  officialSite:'https://project400.example/',officialDomains:['project400.example'],evidenceUrl:'https://docs.project400.example/token',evidenceStatic:true,docsUrl:'https://docs.project400.example/',
+  siteContext:'Protocol (self-description on the official page)',github:null,missing:[]};
+ const r=row('ethereum',400,{dossier:{...live},officialCheck:{status:'ADDRESS_FOUND',url:live.evidenceUrl,at:iso(0)}});
+ assert.equal(RS.identityLevel(r,{now:NOW}).level,'OFFICIAL_CONTRACT_VERIFIED');
+ assert.ok(pc(r).score>=60);
+});

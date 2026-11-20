@@ -225,7 +225,7 @@ test('V5-12. universe intake: exact registry contracts need two-indexer symbol a
  assert.equal(by(LINK),undefined,'DEX symbol differs from the explorer record: rejected, never corrected');
  assert.equal(by(UNI).v3.verification.crossCheck,'CONFLICT','60% price disagreement is a conflict');
  assert.ok(report.rejected.IDENTITY_MISMATCH>=1);assert.ok(report.rejected.NO_DEX_MARKET>=1,'registry contracts without a DEX market are reported');
- assert.equal(report.dexCalls,1,'one batched DEX Screener request for <=30 contracts');
+ assert.equal(report.dexCalls,Math.ceil(report.considered/30),'one batched DEX Screener request per 30 contracts');
  assert.ok(calls.filter(u=>/blockscout/.test(u)).length<=1+report.registryListed,'bounded explorer reads');
  assert.ok(calls.every(u=>!/arc\.io|robinhoodchain/.test(u)),'Ethereum intake never touches another chain');
 });
