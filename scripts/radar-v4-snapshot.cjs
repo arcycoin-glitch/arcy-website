@@ -60,13 +60,14 @@ async function main(){
  // V8 exact Top 10: official Pons factory membership (targeted eth_call, chain-checked 4663, <=80 contracts) for Pons priority
  // and Pons coverage expansion. Builder only; a failure leaves Pons/Robinhood as observed (reported, never guessed).
  if(limits.customFilter){limits.ponsMembershipMax=80;const ponsLib=require('../lib/radar-v2/pons');
-  limits.ponsMembership=async addrs=>(await ponsLib.membershipMany(process.env.RADAR_PONS_RPC_URL||'https://rpc.mainnet.chain.robinhood.com',addrs,{fetcher:global.fetch,now:Date.now})).members;}
+  // membershipAll: the 80-contract budget runs as sequential 40-contract checks (membershipMany alone truncates to 40).
+  limits.ponsMembership=async addrs=>(await ponsLib.membershipAll(process.env.RADAR_PONS_RPC_URL||'https://rpc.mainnet.chain.robinhood.com',addrs,{fetcher:global.fetch,now:Date.now})).members;}
 // Cached exact-pool history is reused for ALL 40 eligible candidates each cycle;
 // only uncached pools compete for the bounded provider-call allowance.
 const {NETWORKS}=require('../lib/radar-v2/sources');
 limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].chainId+':'+String(row.pool||'').toLowerCase()]);
  const result=await engine.run({sections:s.out,rpc,limits,priorRiskLedger:previous?.riskLedger||null,marketMemory:memory});
- const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}));
+ const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}),{requireRankVersion:limits.customFilter?require('../lib/radar-v2/intel/custom-filter').VERSION:null});
  const historyRemoved=S.applyMemory(snap,result.marketMemory);
  snap.marketMemoryStatus={version:MM.VERSION,status:memoryStatus,contracts:Object.keys(result.marketMemory.entries).length,carriedRowsRemovedByHistory:historyRemoved};
  snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ponsMembership:Boolean(limits.ponsMembership),ohlcv:Boolean(limits.ohlcv),officialCache:Object.keys(ofCache).length,officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};

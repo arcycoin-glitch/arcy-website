@@ -9,18 +9,31 @@
 const fs=require('node:fs');
 const engine=require('../lib/radar-v2/intel/engine');
 const BASE='https://www.arcyusdc.xyz',CHAINS=['arc','ethereum','robinhood','pons'];
-async function sections(fetcher=global.fetch){
+// The legacy-v3 Robinhood/Pons window is rebuilt on a cold edge cache (Pons factory reads + provider pages) and can exceed 15 s.
+// A timeout / 5xx is retried with a longer budget (the first request usually finishes server-side and warms the cache).
+// The last attempt stays under the 60 s function limit. A section that still fails is reported, never guessed.
+const ATTEMPTS=[20000,45000,58000];
+async function sections(fetcher=global.fetch,{attempts=ATTEMPTS,pauseMs=3000}={}){
  const out={},timing={};
  for(const chain of CHAINS){
-  const t0=Date.now();
-  try{
-   const r=await fetcher(BASE+'/api/search?action=radar&chain='+chain+'&source=legacy-v3&discovery=v5-expanded',{headers:{referer:BASE+'/',accept:'application/json','sec-fetch-site':'same-origin'},redirect:'error',signal:AbortSignal.timeout(15000)});
-   timing[chain]={http:r.status,ms:Date.now()-t0};
-   const body=r.ok?await r.json():{ok:false,http:r.status};
-   // Circular-input guard: a V4-served section (deployed handler without the legacy-v3 bypass) is never used as engine input.
-   if(body?.opportunity?.servedList==='V4_OPPORTUNITY'){timing[chain].circular=true;out[chain]={ok:false,reason:'CIRCULAR_V4_INPUT_REFUSED'};}
-   else out[chain]=body;
-  }catch(e){timing[chain]={error:e?.name||'ERROR',ms:Date.now()-t0};out[chain]={ok:false};}
+  const t0=Date.now(),tries=[];
+  for(let i=0;i<attempts.length;i++){
+   const t1=Date.now();
+   try{
+    const r=await fetcher(BASE+'/api/search?action=radar&chain='+chain+'&source=legacy-v3&discovery=v5-expanded',{headers:{referer:BASE+'/',accept:'application/json','sec-fetch-site':'same-origin'},redirect:'error',signal:AbortSignal.timeout(attempts[i])});
+    tries.push({http:r.status,ms:Date.now()-t1});
+    if(r.status>=500&&i<attempts.length-1){await new Promise(z=>setTimeout(z,pauseMs));continue;}
+    const body=r.ok?await r.json():{ok:false,http:r.status};
+    // Circular-input guard: a V4-served section (deployed handler without the legacy-v3 bypass) is never used as engine input.
+    if(body?.opportunity?.servedList==='V4_OPPORTUNITY'){out[chain]={ok:false,reason:'CIRCULAR_V4_INPUT_REFUSED'};timing[chain]={http:r.status,ms:Date.now()-t0,circular:true,attempts:tries};}
+    else{out[chain]=body;timing[chain]={http:r.status,ms:Date.now()-t0,attempts:tries};}
+    break;
+   }catch(e){
+    tries.push({error:e?.name||'ERROR',ms:Date.now()-t1});
+    if(i<attempts.length-1){await new Promise(z=>setTimeout(z,pauseMs));continue;}
+    out[chain]={ok:false};timing[chain]={error:e?.name||'ERROR',ms:Date.now()-t0,attempts:tries};
+   }
+  }
  }
  return {out,timing};
 }

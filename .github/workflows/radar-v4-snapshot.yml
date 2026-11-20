@@ -42,7 +42,7 @@ jobs:
         with:
           node-version: '22'
       - name: Engine tests must pass before publishing
-        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-immutable-snapshot.test.js test/radar-near-match.test.js test/radar-v5-quality.test.js test/radar-v5-final.test.js test/radar-research-order.test.js test/radar-v6-top10.test.js test/radar-v6-owner-top10.test.js test/radar-v8-custom-top10.test.js test/radar-discovery-quality.test.js test/radar-robinhood-pons-quality-p0.test.js test/radar-pre-catalyst.test.js
+        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-immutable-snapshot.test.js test/radar-near-match.test.js test/radar-v5-quality.test.js test/radar-v5-final.test.js test/radar-research-order.test.js test/radar-v6-top10.test.js test/radar-v6-owner-top10.test.js test/radar-v8-custom-top10.test.js test/radar-p0-production.test.js test/radar-discovery-quality.test.js test/radar-robinhood-pons-quality-p0.test.js test/radar-pre-catalyst.test.js
       - name: Check out data branch (or create it the first time)
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -72,15 +72,11 @@ jobs:
         if: env.DATA_REF == 'radar-v4-snapshots'
         run: |
           node -e '
-          const fs=require("node:fs");
+          const fs=require("node:fs"),S=require("./lib/radar-v2/v4-snapshot");
           const s=JSON.parse(fs.readFileSync("snap/radar-v4/snapshot.json","utf8"));
-          const expected=process.env.GITHUB_SHA;
-          const counts=Object.fromEntries(["arc","ethereum","robinhood","pons"].map(n=>[n,s.sections?.[n]?.rows?.length??0]));
-          console.log(JSON.stringify({engineCommit:s.engineCommit,expected,counts}));
-          if(s.engineCommit!==expected||Object.values(counts).some(n=>n!==10)){
-            console.error("Refusing to publish stale or incomplete Radar Top 10 snapshot");
-            process.exit(1);
-          }
+          const g=S.publishable(s,{commit:process.env.GITHUB_SHA});
+          console.log(JSON.stringify({engineCommit:s.engineCommit,expected:process.env.GITHUB_SHA,generatedAt:s.generatedAt,...g}));
+          if(!g.ok){console.error("Refusing to publish stale, carried-forward or incomplete Radar Top 10 snapshot: "+g.problems.join(", "));process.exit(1);}
           '
       - name: Commit (fast-forward only, never force)
         run: |
