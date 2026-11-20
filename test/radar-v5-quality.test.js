@@ -2,7 +2,10 @@
 // Radar V5 (#279): three-tier discovery — EARLY (Filter A), GROWTH, ESTABLISHED QUALITY (A-class) — from the V3 window AND a
 // separate bounded established/growth universe, ranked together by `arcy-research-rank-1`. Hard safety gates never relax.
 const test=require('node:test'),assert=require('node:assert/strict');
-const E=require('../lib/radar-v2/intel/engine'),QX=require('../lib/radar-v2/intel/quality-expansion'),QR=require('../lib/radar-v2/intel/quality-rank');
+// V5-level selection semantics (v6:false). The V6 layer (#279: profile completeness >= 60, compression, integrity, rank-3) can only
+// move rows from the main list to WATCH_ONLY or reorder them, never add one; its behaviour is tested in test/radar-v6-top10.test.js.
+const E0=require('../lib/radar-v2/intel/engine'),E={...E0,selectDisplay:(r,o={})=>E0.selectDisplay(r,{v6:false,...o}),run:(a={})=>E0.run({...a,limits:{v6:false,...(a.limits||{})}})};
+const QX=require('../lib/radar-v2/intel/quality-expansion'),QR=require('../lib/radar-v2/intel/quality-rank');
 const S=require('../lib/radar-v2/v4-snapshot'),RH=require('../lib/radar-v2/intel/risk-holds'),F=require('../lib/radar-v2/intel/fetch'),D=require('../lib/radar-v2/discovery');
 const U=require('../lib/radar-v2/intel/universe');
 const DAY=86400000,NOW=Date.parse('2026-11-20T10:00:00Z');

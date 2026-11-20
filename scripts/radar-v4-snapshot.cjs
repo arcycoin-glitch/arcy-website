@@ -45,16 +45,23 @@ async function main(){
  const rpc={arc:require('../search/server/lib/arc-rpc').rpc,robinhood:require('../search/server/lib/robinhood-rpc').rpc,ethereum:require('../search/server/lib/eth').rpc};
  const limits={unregisteredOnchain:Number(process.env.RADAR_V4_ONCHAIN_PER_NETWORK||6),rpcPerNetwork:Number(process.env.RADAR_V4_RPC_PER_NETWORK||900),
   httpPerRun:Number(process.env.RADAR_V4_HTTP_PER_RUN||200),concurrency:1,maxCandidatesPerNetwork:45,crossCheckFetcher:global.fetch,universeFetcher:global.fetch};
+ // V6: provider OHLCV (bounded, cached on the data branch) for the compression engine, and live re-check of reviewed official pages.
+ const OH=require('./radar-ohlcv.cjs'),ohPath=arg('ohlcv-cache');
+ let ohCache=OH.loadCache(null);if(ohPath&&fs.existsSync(ohPath)){try{ohCache=OH.loadCache(JSON.parse(fs.readFileSync(ohPath,'utf8')));}catch{}}
+ const oh=OH.provider({env:process.env,cache:ohCache,maxCalls:Number(process.env.RADAR_OHLCV_MAX_CALLS||36)});
+ limits.ohlcv=oh.fn||undefined;limits.ohlcvMax=Number(process.env.RADAR_OHLCV_PER_NETWORK||10);limits.officialFetcher=global.fetch;
  const result=await engine.run({sections:s.out,rpc,limits,priorRiskLedger:previous?.riskLedger||null,marketMemory:memory});
  const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}));
  const historyRemoved=S.applyMemory(snap,result.marketMemory);
  snap.marketMemoryStatus={version:MM.VERSION,status:memoryStatus,contracts:Object.keys(result.marketMemory.entries).length,carriedRowsRemovedByHistory:historyRemoved};
- snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits};
+ snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ohlcv:Boolean(limits.ohlcv),officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
+ snap.v6Sources={ohlcv:{...oh.stats,cachedPools:Object.keys(ohCache.entries).length,perNetwork:result.v6?.ohlcv||{}},officialRecheck:result.v6?.official||{}};
  const v=S.validate(snap);
  if(!v.ok){console.error('Refusing to publish invalid snapshot:',JSON.stringify(v));process.exitCode=3;return;}
  fs.mkdirSync(path.dirname(out),{recursive:true});
  fs.writeFileSync(out,JSON.stringify(snap));
  if(memPath){fs.mkdirSync(path.dirname(memPath),{recursive:true});fs.writeFileSync(memPath,JSON.stringify(result.marketMemory));}
+ if(ohPath){fs.mkdirSync(path.dirname(ohPath),{recursive:true});fs.writeFileSync(ohPath,JSON.stringify(OH.pruneCache(ohCache)));}
  // Bounded, auditable revision index (last 42 runs ~ 7 days at 4-hourly cadence). Git history of the data branch keeps the bytes.
  const indexPath=arg('index');
  if(indexPath){
@@ -82,14 +89,14 @@ async function main(){
   // GitHub truncates annotation messages near 4 KB: one compact header + one compact row list per section.
   console.log('::notice title=radar-v5 universe::'+esc(JSON.stringify(Object.fromEntries(Object.entries(snap.sections).filter(([,x])=>x.universe).map(([n,x])=>[n,{explorer:x.universe.explorer,
    considered:x.universe.considered,accepted:x.universe.accepted,enriched:x.universe.enriched||0,rejected:x.universe.rejected,sample:(x.universe.sample||[]).map(s=>s.join(':')).join(' ')}])))).slice(0,3800));
+  console.log('::notice title=radar-v6 sources::'+esc(JSON.stringify(snap.v6Sources)).slice(0,3800));
   for(const [n,x] of Object.entries(summary)){
-   console.log('::notice title=radar-v4 '+n+'::'+esc(JSON.stringify({legacyTop:x.legacyTop,legacyKept:x.legacyKept,status:x.status,carriedForward:x.carriedForward,shown:x.shown,counts:x.counts,categories:x.categories,bySource:x.bySource,history:x.history,shortfall:x.shortfall})).slice(0,3800));
    const d=v=>v===null||v===undefined?'-':Math.round(v);
    const sec=snap.sections[n];
-   console.log('::notice title=radar-v5 '+n+'::'+esc(JSON.stringify({shown:sec.rows.length,byTier:sec.display?.byTier||null,byClass:sec.display?.byClass||null,filterB:sec.display?.filterB?.droppedByReason||null,
-    universe:sec.universe?{explorer:sec.universe.explorer,considered:sec.universe.considered,accepted:sec.universe.accepted,rejected:sec.universe.rejected}:null,
-    rows:sec.rows.map(r=>[r.symbol,r.opportunity.discoveryTier,r.opportunity.discoveryClass,r.opportunity.researchRank?.score??'-',r.opportunity.qualityRank?.score??'-',
-     r.change24hPct===null?'-':Math.round(r.change24hPct),r.liquidityUsd===null?'-':Math.round(r.liquidityUsd),r.logo?'logo':'nologo'].join('|'))})).slice(0,3800));
+   console.log('::notice title=radar-v6 '+n+'::'+esc(JSON.stringify({status:x.status,carriedForward:x.carriedForward,shown:sec.rows.length,byBand:sec.display?.byBand||null,
+    watch:(sec.display?.watch||sec.watchOnly||[]).slice(0,10).map(w=>[w.symbol,(w.reasons||[]).join('+'),w.profileCompleteness??'-'].join('|')),
+    rows:sec.rows.map(r=>{const o=r.opportunity;return [r.symbol,r.address,o.researchRank?.researchBand,o.researchRank?.researchScore,o.profileCompleteness?.score,o.compression?.status+':'+(o.compression?.days||0),
+     o.integrity?.summary,o.qualityRank?.score,d(r.liquidityUsd),r.logo?'logo':'nologo'].join('|');})})).slice(0,3800));
   }
  }
 }

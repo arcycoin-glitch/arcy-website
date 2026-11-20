@@ -3,7 +3,10 @@
 // WATCH_ONLY) and the failure conditions around them. Fixtures carry the evidence a real engine row carries; every test below also
 // checks the failure path (what must NOT reach the main ranking), not only the happy path.
 const test=require('node:test'),assert=require('node:assert/strict');
-const E=require('../lib/radar-v2/intel/engine'),MM=require('../lib/radar-v2/intel/market-memory'),RS=require('../lib/radar-v2/intel/research');
+// V5-level selection semantics (v6:false). The V6 layer (#279: profile completeness >= 60, compression, integrity, rank-3) can only
+// move rows from the main list to WATCH_ONLY or reorder them, never add one; its behaviour is tested in test/radar-v6-top10.test.js.
+const E0=require('../lib/radar-v2/intel/engine'),E={...E0,selectDisplay:(r,o={})=>E0.selectDisplay(r,{v6:false,...o}),run:(a={})=>E0.run({...a,limits:{v6:false,...(a.limits||{})}})};
+const MM=require('../lib/radar-v2/intel/market-memory'),RS=require('../lib/radar-v2/intel/research');
 const S=require('../lib/radar-v2/v4-snapshot'),RH=require('../lib/radar-v2/intel/risk-holds');
 const DAY=86400000,H=3600000,NOW=Date.parse('2026-11-20T10:00:00Z');
 const A=n=>'0x'+n.toString(16).padStart(40,'0');

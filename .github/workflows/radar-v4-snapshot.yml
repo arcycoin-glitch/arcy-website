@@ -32,7 +32,7 @@ jobs:
   snapshot:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       DATA_REF: ${{ github.event_name == 'pull_request' && 'radar-v4-snapshots-preview' || 'radar-v4-snapshots' }}
     steps:
@@ -41,7 +41,7 @@ jobs:
         with:
           node-version: '22'
       - name: Engine tests must pass before publishing
-        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-immutable-snapshot.test.js test/radar-near-match.test.js test/radar-v5-quality.test.js test/radar-v5-final.test.js test/radar-research-order.test.js test/radar-discovery-quality.test.js test/radar-robinhood-pons-quality-p0.test.js test/radar-pre-catalyst.test.js
+        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-immutable-snapshot.test.js test/radar-near-match.test.js test/radar-v5-quality.test.js test/radar-v5-final.test.js test/radar-research-order.test.js test/radar-v6-top10.test.js test/radar-discovery-quality.test.js test/radar-robinhood-pons-quality-p0.test.js test/radar-pre-catalyst.test.js
       - name: Check out data branch (or create it the first time)
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -60,7 +60,11 @@ jobs:
       - name: Build and validate snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/radar-v4-snapshot.cjs --previous snap/radar-v4/snapshot.json --out snap/radar-v4/snapshot.json --index snap/radar-v4/index.json --responses snap/radar-v4/served --memory snap/radar-v4/market-memory.json --history hist/radar-v4/snapshot.json
+          # V6 compression: provider OHLCV via an operator-configured CoinGecko Demo key when present; the keyless tier only on
+          # non-scheduled runs (manual / pull request / merge), never on the cron schedule.
+          COINGECKO_DEMO_API_KEY: ${{ secrets.COINGECKO_DEMO_API_KEY }}
+          RADAR_OHLCV_KEYLESS: ${{ github.event_name != 'schedule' && '1' || '' }}
+        run: node scripts/radar-v4-snapshot.cjs --previous snap/radar-v4/snapshot.json --out snap/radar-v4/snapshot.json --index snap/radar-v4/index.json --responses snap/radar-v4/served --memory snap/radar-v4/market-memory.json --history hist/radar-v4/snapshot.json --ohlcv-cache snap/radar-v4/ohlcv-cache.json
       - name: Commit (fast-forward only, never force)
         run: |
           cd snap
