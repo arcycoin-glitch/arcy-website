@@ -77,13 +77,13 @@ test('10 monitored rows only when all ten pass; existing critical holds and coll
  assert.equal(filtered.shortfall.droppedByReason.SOURCE_CONFLICT_V3,1);
  assert.equal(filtered.shortfall.droppedByReason.DUPLICATE_TICKER_UNRESOLVED,2);
 });
-test('other networks keep their microcap liquidity/artwork policy; V5 applies only the extreme-move rule there',()=>{
- assert.equal(Q.reason(row(50,{liquidityUsd:0,change24hPct:5,artwork:null,discoveryClass:'QUALIFIED'}),'robinhood'),null);
- assert.equal(selectDisplay([row(51,{liquidityUsd:0,artwork:null,change24hPct:5,discoveryClass:'QUALIFIED'})],{network:'robinhood'}).length,1);
- // V5: the weakest class (MONITOR_ONLY) needs sourced artwork on every network.
- assert.equal(Q.reason(row(53,{change24hPct:5,v3Verification:null}),'robinhood'),'EXACT_CONTRACT_IDENTITY_NOT_CORROBORATED');
- // V5 (#279): an observed +300% day is not shown as a research candidate on any network.
- assert.equal(Q.reason(row(52,{liquidityUsd:0,change24hPct:300,artwork:null}),'robinhood'),'ALREADY_SPIKED_24H');
+test('P0 #297: V5 cannot weaken Robinhood/Pons premium quality floors',()=>{
+ assert.equal(Q.reason(row(50,{liquidityUsd:0,change24hPct:5,artwork:null,discoveryClass:'QUALIFIED'}),'robinhood'),'PREMIUM_LIQUIDITY_INSUFFICIENT');
+ assert.equal(selectDisplay([row(51,{liquidityUsd:0,artwork:null,change24hPct:5,discoveryClass:'QUALIFIED'})],{network:'robinhood'}).length,0);
+ assert.equal(Q.reason(row(52,{liquidityUsd:30000,volume24hUsd:20000,change24hPct:300,artwork:null}),'robinhood'),'ALREADY_SPIKED_24H');
+ assert.equal(Q.reason(row(53,{change24hPct:5,v3Verification:null,liquidityUsd:30000,volume24hUsd:20000}),'robinhood'),'PRELIMINARY_WATCH_NOT_MAIN_RANKING');
+ assert.equal(Q.reason(row(54,{liquidityUsd:3008,volume24hUsd:2607,change24hPct:0,discoveryClass:'QUALIFIED'}),'pons'),'PREMIUM_LIQUIDITY_INSUFFICIENT');
+ assert.equal(Q.reason(row(55,{liquidityUsd:30000,volume24hUsd:12000,change24hPct:0,discoveryClass:'QUALIFIED'}),'pons'),null);
 });
 
 test('source outages cannot carry forward previously exposed +238% zero-liquidity monitored assets',()=>{
