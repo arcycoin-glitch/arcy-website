@@ -408,3 +408,112 @@ test('V7-3. legacy V4 and V5 keep ten results for backward-compatible snapshot c
  assert.equal(v4.length,10);
  assert.deepEqual(S.validate(snapOf(v4)),{ok:true});
 });
+
+// ── V7 hardening (engineering audit of PR #300) ──────────────────────────────────────────────────────────────────
+test('V7-H1. OHLCV planning: fresh cache costs nothing, new candidates get the bounded calls before stale refreshes',()=>{
+ const rows=Array.from({length:40},(_,i)=>({key:'k'+i}));
+ // first 10 fresh, next 10 stale (fetched >20h ago), remaining 20 never fetched
+ const status=r=>{const i=Number(r.key.slice(1));return i<10?'FRESH':i<20?'STALE':'NONE';};
+ const p=E.ohlcvPlan(rows,{status,maxNew:10});
+ assert.deepEqual(p.want.slice(0,10).map(r=>r.key),rows.slice(0,10).map(r=>r.key));
+ assert.deepEqual(p.uncached.map(r=>r.key),rows.slice(20,30).map(r=>r.key),'the next ten uncached are reached, not the same first ten');
+ assert.deepEqual(p.want.slice(20).map(r=>r.key),rows.slice(10,20).map(r=>r.key),'stale refreshes come last');
+ assert.equal(p.deferred,10);
+ // simulated successive runs: every uncached candidate is eventually reached
+ const fetched=new Set();for(let run=0;run<3;run++){const q=E.ohlcvPlan(rows,{status:r=>fetched.has(r.key)||Number(r.key.slice(1))<20?'FRESH':'NONE',maxNew:10});q.uncached.forEach(r=>fetched.add(r.key));}
+ assert.equal(fetched.size,20);
+});
+
+test('V7-H2. official-page checks rotate over all eligible contracts instead of the same most-liquid slice',()=>{
+ const cands=Array.from({length:60},(_,i)=>({chainId:1,address:A(5000+i),liquidityUsd:1e6-i}));
+ const ledger={},lastChecked=c=>{const t=Date.parse(ledger[c.chainId+':'+c.address]||'');return Number.isFinite(t)?t:0;};
+ const seen=new Set();
+ for(let run=0;run<4;run++){const pick=E.officialPick(cands,{lastChecked,max:18});pick.forEach(c=>{seen.add(c.address);ledger['1:'+c.address]=new Date(NOW+run*7200000).toISOString();});}
+ assert.equal(seen.size,60,'four 2-hourly runs of 18 checks reach all 60 contracts');
+ // never-checked first, then oldest; deterministic order for equal keys
+ const a=E.officialPick(cands,{lastChecked:()=>0,max:5}).map(c=>c.address),b=E.officialPick([...cands].reverse(),{lastChecked:()=>0,max:5}).map(c=>c.address);
+ assert.deepEqual(a,b);
+});
+
+test('V7-H3. an exhausted fetch budget is not a check: the rotation ledger does not record it',async()=>{
+ const OD=require('../lib/radar-v2/intel/official-discovery');
+ const c={chainId:4663,address:A(5100),officialLinks:{websites:['https://p5100.example/']}};
+ const r=await OD.inspect(c,{fetcher:async()=>{throw new Error('must not fetch');},now:NOW,budget:{max:0,used:0}});
+ assert.equal(r.status,'NOT_CHECKED_BUDGET');
+ const {statuses,report}=await OD.discover([c],{fetcher:async()=>{throw new Error('must not fetch');},now:NOW,budget:{max:0,used:0}});
+ assert.equal(statuses.get('4663:'+A(5100)),'NOT_CHECKED_BUDGET');assert.equal(report.unreachable,0);assert.equal(report.notChecked,1);
+});
+
+test('V7-H4. OHLCV provider: 429 stops calls, empty or broken answers never erase history, increments merge, cache-only reuse',async()=>{
+ const pool=A(0x77),key='1:'+pool,old=[[Math.floor((NOW-3*DAY)/1000),1,1,1,1,10],[Math.floor((NOW-2*DAY)/1000),1,1,1,1,11]];
+ const mk=()=>({version:'arcy-ohlcv-cache-1',entries:{[key]:{fetchedAt:new Date(NOW-30*3600000).toISOString(),source:'GECKOTERMINAL_OHLCV_KEYLESS',url:null,rows:structuredClone(old)}}});
+ let calls=0;
+ const p429=OH.provider({env:{RADAR_OHLCV_KEYLESS:'1'},cache:OH.loadCache(mk()),fetcher:async()=>{calls++;return {ok:false,status:429};},now:()=>NOW});
+ assert.equal(p429.status('ethereum',{pool}),'STALE');assert.equal(p429.status('ethereum',{pool:A(0x78)}),'NONE');
+ const a=await p429.fn('ethereum',{pool});assert.equal(a.rows.length,2,'stale history still served');
+ assert.equal(await p429.fn('ethereum',{pool:A(0x78)}),null);assert.equal(calls,1,'no further provider call after a 429');
+ assert.equal(p429.stats.errors.SKIPPED_AFTER_HTTP_429,1);
+ const cEmpty=OH.loadCache(mk());
+ const pe=OH.provider({env:{RADAR_OHLCV_KEYLESS:'1'},cache:cEmpty,fetcher:async()=>({ok:true,status:200,json:async()=>({data:{attributes:{ohlcv_list:[]}}})}),now:()=>NOW});
+ assert.equal((await pe.fn('ethereum',{pool})).rows.length,2);assert.equal(cEmpty.entries[key].rows.length,2,'empty answer does not erase');
+ const cMerge=OH.loadCache(mk());
+ const pm=OH.provider({env:{RADAR_OHLCV_KEYLESS:'1'},cache:cMerge,fetcher:async()=>({ok:true,status:200,json:async()=>({data:{attributes:{ohlcv_list:[[Math.floor((NOW-DAY)/1000),2,2,2,2,12],[Math.floor((NOW-2*DAY)/1000),1,1.1,0.9,1.05,13]]}}})}),now:()=>NOW});
+ const m=await pm.fn('ethereum',{pool});
+ assert.deepEqual(m.rows.map(x=>x[5]),[10,13,12],'union by day, newer value wins, ordered');
+ const off=OH.provider({env:{},cache:OH.loadCache(mk()),fetcher:async()=>{throw new Error('no calls');},now:()=>NOW});
+ assert.equal(off.fn,null);const co=await off.cacheOnly('ethereum',{pool});assert.equal(co.rows.length,2);assert.equal(co.cached,true);
+ // stale cached candles (> 3 days old) can never produce a compression signal
+ const staleSeries=CX.fromOhlcv(old.map(x=>[x[0]-10*86400,...x.slice(1)]));
+ assert.equal(CX.compute({series:staleSeries,now:NOW}).status,'INSUFFICIENT_HISTORY');
+});
+
+test('V7-H5. a gapped OHLCV series (days without candles) is not continuous history and cannot read as compression',()=>{
+ const full=daily();
+ assert.equal(CX.compute({series:full,liquidityUsd:400000,floor:200000,now:NOW}).status,'COMPRESSION_CONFIRMED');
+ // same 30 candles, but every third trading day missing over a longer span: same "quiet" tail, not continuous
+ const sparse={...full,points:full.points.map((p,i)=>({...p,t:p.t-Math.floor((29-i)/2)*DAY}))};
+ const c=CX.compute({series:sparse,liquidityUsd:400000,floor:200000,now:NOW});
+ assert.equal(c.status,'INSUFFICIENT_HISTORY');assert.deepEqual(c.reasons,['SERIES_HAS_GAPS']);assert.ok(c.metrics.dailyCoverage<0.8);
+});
+
+test('V7-H6. persisted GitHub research is reused inside its TTL and transient failures are never persisted',async()=>{
+ const P={entries:{}},log={cacheHits:0};let calls=0;
+ E._setPersist(P);E._clearCache();
+ try{
+  const ok=[{status:'OK',repo:'o/r',commits90d:5}];
+  await E._cached('activity','proj-a',async()=>{calls++;return ok;},NOW,log);
+  E._clearCache(); // a new builder process
+  const again=await E._cached('activity','proj-a',async()=>{calls++;return [];},NOW+3600000,log);
+  assert.equal(calls,1);assert.deepEqual(again,ok);assert.equal(log.persistHits,1);
+  await E._cached('activity','proj-b',async()=>{calls++;return [{status:'UNAVAILABLE'}];},NOW,log);
+  assert.equal(P.entries['activity|proj-b'],undefined,'a failed GitHub read is not cached for the next run');
+  E._clearCache();
+  await E._cached('activity','proj-a',async()=>{calls++;return ok;},NOW+7*3600000,log);
+  assert.equal(calls,3,'expired entries are fetched again');
+  await E._cached('identity','x',async()=>({proofs:[],problems:[{reason:'GITHUB_UNAVAILABLE',transient:true}]}),NOW,log);
+  assert.equal(P.entries['identity|x'],undefined);
+ }finally{E._setPersist(null);E._clearCache();}
+});
+
+test('V7-H7. near-qualifying WATCH rows beyond the 10 published are still visible to the engine; 40-row order is deterministic',()=>{
+ const rows=Array.from({length:15},(_,i)=>row('ethereum',6000+i,{dossier:dossier(6000+i,{github:null,docsUrl:null,siteContext:null}),evidenceSummary:{risk:{}},history:null}));
+ const out=sel(rows);
+ assert.equal(out.length,0);assert.equal(out.watch.length,10);assert.equal(out.watchAll.length,15);
+ assert.ok(!('watchAll' in JSON.parse(JSON.stringify({w:out}).replace(/"w":/,'"w":'))),'not serialised');
+ assert.equal(Object.keys(out).includes('watchAll'),false);
+ const many=Array.from({length:45},(_,i)=>row('ethereum',7000+i,{liquidityUsd:400000+i*1000,evidenceConfidence:{score:50-(i%3)}}));
+ const ref=sel(many.map(r=>structuredClone(r))).map(x=>x.address);
+ assert.equal(ref.length,40);
+ for(let k=0;k<4;k++)assert.deepEqual(sel(many.map(r=>structuredClone(r)).sort(()=>Math.random()-0.5)).map(x=>x.address),ref);
+});
+
+test('V7-H8. 40 rows on all four networks build, validate and stay under the publish size limit; oversize is refused',()=>{
+ const nets=['arc','ethereum','robinhood','pons'],engine={networks:{},riskLedger:null},sections={};
+ nets.forEach((n,k)=>{const d=sel(Array.from({length:40},(_,i)=>row(n,8000+k*100+i,n==='pons'?{launch:{status:'ONCHAIN_VERIFIED'}}:{})),n);
+  engine.networks[n]={source:{status:'OBSERVED',asOf:iso(0.01)},displayCandidates:d,counts:{},display:{shown:d.length,target:40,byBand:d.byBand,watch:d.watch},all:d};sections[n]={tokens:[],asOf:iso(0.01)};});
+ const snap=S.build(engine,sections,{now:NOW,commit:'t'});
+ for(const n of nets)assert.equal(snap.sections[n].rows.length,40,n);
+ assert.deepEqual(S.validate(snap),{ok:true});
+ const size=S.publishable(JSON.stringify(snap));assert.equal(size.ok,true);assert.ok(size.limit<S.MAX_BYTES,'publish limit leaves read headroom');
+ assert.equal(S.publishable('x'.repeat(S.PUBLISH_MAX_BYTES+1)).ok,false);
+});
