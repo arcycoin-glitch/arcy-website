@@ -57,9 +57,9 @@ async function main(){
  limits.ohlcv=oh.fn||undefined;limits.ohlcvMax=Number(process.env.RADAR_OHLCV_PER_NETWORK||10);limits.officialFetcher=global.fetch;
  // V8: verified critical risk veto, evidence-calibrated opportunity priority, up to 10 visible candidates per network.
  limits.customFilter=process.env.RADAR_CUSTOM_FILTER_ENABLED==='true';
- // V8 exact Top 10: official Pons factory membership (targeted eth_call, chain-checked 4663, <=40 contracts) for Pons priority
+ // V8 exact Top 10: official Pons factory membership (targeted eth_call, chain-checked 4663, <=80 contracts) for Pons priority
  // and Pons coverage expansion. Builder only; a failure leaves Pons/Robinhood as observed (reported, never guessed).
- if(limits.customFilter){const ponsLib=require('../lib/radar-v2/pons');
+ if(limits.customFilter){limits.ponsMembershipMax=80;const ponsLib=require('../lib/radar-v2/pons');
   limits.ponsMembership=async addrs=>(await ponsLib.membershipMany(process.env.RADAR_PONS_RPC_URL||'https://rpc.mainnet.chain.robinhood.com',addrs,{fetcher:global.fetch,now:Date.now})).members;}
 // Cached exact-pool history is reused for ALL 40 eligible candidates each cycle;
 // only uncached pools compete for the bounded provider-call allowance.
