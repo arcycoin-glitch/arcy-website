@@ -2,6 +2,36 @@
  "schema": "arcy-radar-v4-snapshot-index/1",
  "revisions": [
   {
+   "generatedAt": "2026-11-20T10:00:16.286Z",
+   "engineCommit": "ee7f7e1880babe8932d38a52b40803a6a30ac3db",
+   "sections": {
+    "arc": {
+     "status": "BUILT",
+     "asOf": "2026-11-20T10:00:16.286Z",
+     "shown": 0,
+     "carriedForward": false
+    },
+    "ethereum": {
+     "status": "BUILT",
+     "asOf": "2026-11-20T10:00:16.286Z",
+     "shown": 7,
+     "carriedForward": false
+    },
+    "robinhood": {
+     "status": "BUILT",
+     "asOf": "2026-11-20T10:00:16.286Z",
+     "shown": 2,
+     "carriedForward": false
+    },
+    "pons": {
+     "status": "BUILT",
+     "asOf": "2026-11-20T10:00:16.286Z",
+     "shown": 2,
+     "carriedForward": false
+    }
+   }
+  },
+  {
    "generatedAt": "2026-11-20T09:56:52.190Z",
    "engineCommit": "75930702bc643588688589a5907815c0c06f9c3a",
    "sections": {
@@ -1204,36 +1234,6 @@
   {
    "generatedAt": "2026-11-18T14:33:22.527Z",
    "engineCommit": "cb55b83ad3b6affbb60db84af29f93741d0c353f",
-   "sections": {
-    "arc": {
-     "status": "BUILT",
-     "asOf": "2026-11-18T13:25:19.815Z",
-     "shown": 4,
-     "carriedForward": true
-    },
-    "ethereum": {
-     "status": "BUILT",
-     "asOf": "2026-11-18T13:25:19.815Z",
-     "shown": 0,
-     "carriedForward": true
-    },
-    "robinhood": {
-     "status": "BUILT",
-     "asOf": "2026-11-18T13:25:19.815Z",
-     "shown": 8,
-     "carriedForward": true
-    },
-    "pons": {
-     "status": "BUILT",
-     "asOf": "2026-11-18T13:25:19.815Z",
-     "shown": 10,
-     "carriedForward": true
-    }
-   }
-  },
-  {
-   "generatedAt": "2026-11-18T14:09:01.914Z",
-   "engineCommit": "0f648db8565f63ec3026d622a53ce38e081b2576",
    "sections": {
     "arc": {
      "status": "BUILT",
