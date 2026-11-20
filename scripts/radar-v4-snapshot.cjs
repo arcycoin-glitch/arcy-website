@@ -50,11 +50,19 @@ async function main(){
  let ohCache=OH.loadCache(null);if(ohPath&&fs.existsSync(ohPath)){try{ohCache=OH.loadCache(JSON.parse(fs.readFileSync(ohPath,'utf8')));}catch{}}
  const oh=OH.provider({env:process.env,cache:ohCache,maxCalls:Number(process.env.RADAR_OHLCV_MAX_CALLS||36)});
  // V6: builder official-page checks carried at most 7 days when a site is temporarily unreachable (data-branch file, bounded)
- const ofPath=arg('official-cache');let ofCache={};
+ const ofPath=arg('official-cache');let ofCache={},ofChecked={};
  if(ofPath&&fs.existsSync(ofPath)){try{const d=JSON.parse(fs.readFileSync(ofPath,'utf8'));if(d?.version==='arcy-official-cache-1'&&d.entries&&typeof d.entries==='object')
-  for(const [k,e] of Object.entries(d.entries))if(/^\d+:0x[0-9a-f]{40}$/.test(k)&&e?.dossier?.source==='BUILDER_LIVE_CHECK'&&Number.isFinite(Date.parse(e.at)))ofCache[k]=e;}catch{}}
- limits.officialCache=ofCache;
- limits.ohlcv=oh.fn||undefined;limits.ohlcvMax=Number(process.env.RADAR_OHLCV_PER_NETWORK||10);limits.officialFetcher=global.fetch;
+  for(const [k,e] of Object.entries(d.entries))if(/^\d+:0x[0-9a-f]{40}$/.test(k)&&e?.dossier?.source==='BUILDER_LIVE_CHECK'&&Number.isFinite(Date.parse(e.at)))ofCache[k]=e;
+  // V7 rotation ledger: when each contract's official pages were last checked (any outcome), so later runs reach the rest
+  if(d?.version==='arcy-official-cache-1'&&d.checked&&typeof d.checked==='object')for(const [k,t] of Object.entries(d.checked))if(/^\d+:0x[0-9a-f]{40}$/.test(k)&&Number.isFinite(Date.parse(t)))ofChecked[k]=t;}catch{}}
+ limits.officialCache=ofCache;limits.officialChecked=ofChecked;
+ // V7: persisted GitHub research (TTL-bounded; transient failures never stored)
+ const icPath=arg('intel-cache');const intelCache={version:'arcy-intel-cache-1',entries:{}};
+ if(icPath&&fs.existsSync(icPath)){try{const d=JSON.parse(fs.readFileSync(icPath,'utf8'));if(d?.version===intelCache.version&&d.entries&&typeof d.entries==='object')
+  for(const [k,e] of Object.entries(d.entries))if(/^(identity|repos|activity)\|/.test(k)&&Number.isFinite(e?.expires)&&Number.isFinite(e?.at)&&e.expires>Date.now())intelCache.entries[k]=e;}catch{}}
+ limits.intelCache=intelCache;
+ // Scheduled runs without a provider key still reuse collected candles (cache-only: no request; age judged by the compression model).
+ limits.ohlcv=oh.fn||oh.cacheOnly;limits.ohlcvStatus=oh.status;limits.ohlcvMax=Number(process.env.RADAR_OHLCV_PER_NETWORK||10);limits.officialFetcher=global.fetch;
 // Cached exact-pool history is reused for ALL 40 eligible candidates each cycle;
 // only uncached pools compete for the bounded provider-call allowance.
 const {NETWORKS}=require('../lib/radar-v2/sources');
@@ -63,7 +71,7 @@ limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].c
  const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}));
  const historyRemoved=S.applyMemory(snap,result.marketMemory);
  snap.marketMemoryStatus={version:MM.VERSION,status:memoryStatus,contracts:Object.keys(result.marketMemory.entries).length,carriedRowsRemovedByHistory:historyRemoved};
- snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ohlcv:Boolean(limits.ohlcv),officialCache:Object.keys(ofCache).length,officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
+ snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ohlcv:Boolean(limits.ohlcv),officialCache:Object.keys(ofCache).length,officialChecked:Object.keys(ofChecked).length,ohlcvStatus:undefined,ohlcvHasCached:undefined,intelCache:Object.keys(intelCache.entries).length,officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
  snap.v6Sources={ohlcv:{...oh.stats,cachedPools:Object.keys(ohCache.entries).length,perNetwork:result.v6?.ohlcv||{}},officialRecheck:result.v6?.official||{},officialDiscovery:result.v6?.discovery||{}};
  // Per listed Ethereum contract: where it ended (main / watch reason / Filter B gate / not in intake). Audit trail, not served.
  {const U=require('../lib/radar-v2/intel/universe'),n=result.networks.ethereum||{};const main=new Map((n.displayCandidates||[]).map(r=>[r.address,r]));
@@ -73,11 +81,18 @@ limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].c
   snap.v6Sources.filterB=Object.fromEntries(Object.entries(result.networks).map(([k,v])=>[k,v.display?.filterB?.droppedByReason||null]));}
  const v=S.validate(snap);
  if(!v.ok){console.error('Refusing to publish invalid snapshot:',JSON.stringify(v));process.exitCode=3;return;}
+ const body=JSON.stringify(snap),size=S.publishable(body);
+ snap.sizeBytes=size.bytes;
+ if(!size.ok){console.error('Refusing to publish oversize snapshot (previous snapshot stays live):',JSON.stringify(size));process.exitCode=3;return;}
  fs.mkdirSync(path.dirname(out),{recursive:true});
- fs.writeFileSync(out,JSON.stringify(snap));
+ fs.writeFileSync(out,body);
  if(memPath){fs.mkdirSync(path.dirname(memPath),{recursive:true});fs.writeFileSync(memPath,JSON.stringify(result.marketMemory));}
  if(ohPath){fs.mkdirSync(path.dirname(ohPath),{recursive:true});fs.writeFileSync(ohPath,JSON.stringify(OH.pruneCache(ohCache)));}
- if(ofPath){const keep=Object.entries(ofCache).filter(([,e])=>Date.now()-Date.parse(e.at)<=7*86400000).slice(-400);fs.mkdirSync(path.dirname(ofPath),{recursive:true});fs.writeFileSync(ofPath,JSON.stringify({version:'arcy-official-cache-1',entries:Object.fromEntries(keep)}));}
+ if(icPath){const keep=Object.entries(intelCache.entries).filter(([,e])=>e.expires>Date.now()).sort((a,b)=>b[1].at-a[1].at).slice(0,800);
+  fs.mkdirSync(path.dirname(icPath),{recursive:true});fs.writeFileSync(icPath,JSON.stringify({version:intelCache.version,entries:Object.fromEntries(keep)}));}
+ if(ofPath){const keep=Object.entries(ofCache).filter(([,e])=>Date.now()-Date.parse(e.at)<=7*86400000).slice(-400);
+  const checked=Object.entries(ofChecked).filter(([,t])=>Date.now()-Date.parse(t)<=14*86400000).sort((a,b)=>Date.parse(b[1])-Date.parse(a[1])).slice(0,2000);
+  fs.mkdirSync(path.dirname(ofPath),{recursive:true});fs.writeFileSync(ofPath,JSON.stringify({version:'arcy-official-cache-1',entries:Object.fromEntries(keep),checked:Object.fromEntries(checked)}));}
  // Bounded, auditable revision index (last 84 runs ~ 7 days at the 2-hourly cadence). Git history of the data branch keeps the bytes.
  const indexPath=arg('index');
  if(indexPath){
@@ -101,7 +116,7 @@ limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].c
  console.log(JSON.stringify({generatedAt:snap.generatedAt,cost:snap.cost,run:snap.run,riskLedger:riskSummary,summary},null,1));
  if(process.env.GITHUB_ACTIONS==='true'){
   const esc=x=>String(x).replace(/%/g,'%25').replace(/\r/g,'%0D').replace(/\n/g,'%0A');
-  console.log('::notice title=radar-v4 cost::'+esc(JSON.stringify({generatedAt:snap.generatedAt,cost:snap.cost,run:snap.run,registry:snap.registry,memory:snap.marketMemoryStatus})));
+  console.log('::notice title=radar-v4 cost::'+esc(JSON.stringify({generatedAt:snap.generatedAt,sizeBytes:snap.sizeBytes,cost:snap.cost,run:snap.run,registry:snap.registry,memory:snap.marketMemoryStatus})));
   // GitHub truncates annotation messages near 4 KB: one compact header + one compact row list per section.
   console.log('::notice title=radar-v5 universe::'+esc(JSON.stringify(Object.fromEntries(Object.entries(snap.sections).filter(([,x])=>x.universe).map(([n,x])=>[n,{explorer:x.universe.explorer,
    considered:x.universe.considered,accepted:x.universe.accepted,enriched:x.universe.enriched||0,rejected:x.universe.rejected,sample:(x.universe.sample||[]).map(s=>s.join(':')).join(' ')}])))).slice(0,3800));
