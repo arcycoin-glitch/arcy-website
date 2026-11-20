@@ -195,6 +195,12 @@ test('ETR-7: snapshot guards — order, score range, critical findings, identity
  assert.equal(mut(x=>{x.push({...x.at(-1),rank:11,address:A(999)});}),false);
  assert.equal(mut(x=>{x[0].opportunity.researchRank.projectProfile={level:'TOKEN_IDENTITY_ONLY',evidence:[]};}),false,'token identity only is not a project profile');
  assert.equal(mut(x=>{for(const y of x){y.opportunity.researchRank.version='arcy-custom-filter-2';delete y.opportunity.researchRank.projectProfile;}}),true,'earlier #303 snapshots readable');
+ // a section that fails to build next run is carried forward valid: custom rows are not re-filtered by P0, positions renumbered
+ {const prev=structuredClone(s);prev.sections.ethereum.rows[0].change24hPct=150;prev.sections.ethereum.rows[1].liquidityUsd=3000;
+  const next={...structuredClone(s),generatedAt:new Date(NOW+3600000).toISOString(),sections:{ethereum:{status:'NOT_BUILT',reason:'SOURCE_UNAVAILABLE',asOf:null,rows:[]}}};
+  const m=S.merge(prev,next);assert.equal(m.sections.ethereum.carriedForward,true);
+  assert.equal(m.sections.ethereum.rows.length,10);assert.equal(S.validate(m).ok,true,JSON.stringify(S.validate(m)));
+  m.sections.ethereum.rows.forEach((x,i)=>assert.equal(x.opportunity.researchRank.position,i+1));}
  // #302 (`arcy-custom-filter-1`) data-branch snapshots remain readable, so the builder does not refuse the previous risk ledger
  assert.equal(mut(x=>{for(const y of x){y.opportunity.researchRank.version='arcy-custom-filter-1';y.opportunity.researchRank.researchBand='MARKET_OPPORTUNITY_WATCH';}}),true);
 });
