@@ -255,7 +255,7 @@ const change24hReason=item=>{
  }
  function validOverview(network,data){
   return data?.ok===true&&data.version===2&&data.network===network&&data.chainId===CHAIN_ID[network]&&
-   Array.isArray(data.tokens)&&data.tokens.length<=10&&data.tokens.every((item,i)=>item?.rank===i+1&&
+   Array.isArray(data.tokens)&&data.tokens.length<=40&&data.tokens.every((item,i)=>item?.rank===i+1&&
     /^0x[0-9a-f]{40}$/i.test(item.address)&&typeof item.symbol==='string'&&typeof item.name==='string'&&item.fields&&typeof item.fields==='object');
  }
  function renderOverview(network,data,{loading=false}={}){
@@ -272,7 +272,7 @@ const change24hReason=item=>{
   }
   list.append(headings);
   if(verified)overviewData.set(network,data);else overviewData.delete(network);
-  const tokens=Array.isArray(data?.tokens)?data.tokens.slice(0,expandedNetwork===network?10:5):[];
+  const tokens=Array.isArray(data?.tokens)?data.tokens.slice(0,expandedNetwork===network?40:5):[];
   const total=card.querySelector('.arcy-radar-overview-count');
   const allCount=Array.isArray(data?.tokens)?data.tokens.length:0;
   const lastUpdated=card.querySelector('.arcy-radar-overview-updated');
