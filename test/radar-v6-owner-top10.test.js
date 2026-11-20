@@ -58,3 +58,22 @@ test('pre-breakout A-filter needs actual measured compression despite two other 
  assert.equal(TOP.topSignal(base).ok,false);
  assert.ok(TOP.topSignal(base).why.includes('COMPRESSION_NOT_CONFIRMED'));
 });
+
+test('reviewed project GitHub source can verify exact contract only for the allowlisted owner',async()=>{
+ const UNI='0x1f9840a85d5af5bf1d1762f925bdaddc4201f984';
+ const raw='https://raw.githubusercontent.com/Uniswap/sdk-core/main/src/addresses.ts';
+ assert.equal(OD.reviewedRaw(raw,'Uniswap'),true);
+ assert.equal(OD.reviewedRaw('https://raw.githubusercontent.com/random-attacker/sdk-core/main/src/addresses.ts','Uniswap'),false);
+ assert.equal(OD.reviewedRaw('https://raw.githubusercontent.com/Uniswap/sdk-core/main/../../attacker','Uniswap'),false);
+ const c=candidate(1,UNI,'UNI');
+ const fetcher=async url=>fetched(String(url).includes('raw.githubusercontent.com')?
+  'export const UNI_ADDRESSES = {1:"'+UNI+'"};':
+  '<html><meta name="description" content="Uniswap decentralized exchange."><a href="https://github.com/Uniswap/sdk-core">source</a></html>');
+ const r=await OD.inspect(c,{now:NOW,fetcher});
+ assert.equal(r.status,'ADDRESS_PUBLISHED');
+ assert.equal(r.dossier.status,'PRIMARY_SOURCE_VERIFIED');
+ assert.equal(r.dossier.evidenceUrl,raw);
+ assert.equal(r.dossier.docsUrl,raw);
+ assert.equal(DOS.officialUrl(raw,r.dossier),true);
+ assert.equal(DOS.officialUrl('https://raw.githubusercontent.com/random-attacker/sdk-core/main/src/addresses.ts',r.dossier),false);
+});
