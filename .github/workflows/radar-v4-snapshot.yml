@@ -68,6 +68,20 @@ jobs:
           RADAR_CUSTOM_FILTER_ENABLED: 'true'
           RADAR_OHLCV_KEYLESS: ${{ github.event_name != 'schedule' && '1' || '' }}
         run: node scripts/radar-v4-snapshot.cjs --previous snap/radar-v4/snapshot.json --out snap/radar-v4/snapshot.json --index snap/radar-v4/index.json --responses snap/radar-v4/served --memory snap/radar-v4/market-memory.json --history hist/radar-v4/snapshot.json --ohlcv-cache snap/radar-v4/ohlcv-cache.json --official-cache snap/radar-v4/official-cache.json
+      - name: Verify exact Top 10 and current engine before publishing
+        if: env.DATA_REF == 'radar-v4-snapshots'
+        run: |
+          node -e '
+          const fs=require("node:fs");
+          const s=JSON.parse(fs.readFileSync("snap/radar-v4/snapshot.json","utf8"));
+          const expected=process.env.GITHUB_SHA;
+          const counts=Object.fromEntries(["arc","ethereum","robinhood","pons"].map(n=>[n,s.sections?.[n]?.rows?.length??0]));
+          console.log(JSON.stringify({engineCommit:s.engineCommit,expected,counts}));
+          if(s.engineCommit!==expected||Object.values(counts).some(n=>n!==10)){
+            console.error("Refusing to publish stale or incomplete Radar Top 10 snapshot");
+            process.exit(1);
+          }
+          '
       - name: Commit (fast-forward only, never force)
         run: |
           cd snap
