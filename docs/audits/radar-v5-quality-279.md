@@ -121,3 +121,34 @@ Revert the merge commit and dispatch `radar-v4-snapshot.yml`. Pre-V5 snapshots s
 - **Arc / Robinhood:** an explorer token index reachable from the builder, or a verified registry of Arc-native and Robinhood-native projects with official contract evidence.
 - **Ethereum Quality:** unique-participant data (on-chain buyer review for listed contracts) and official repository/development evidence for registry projects. Today these score 0 instead of being assumed.
 - **Pons:** this is a market fact, not a filter defect. More factory launches need real DEX markets.
+
+# V5 final — quality, safety and discovery engineering (2026-11-20, PR #295 commits b6b81fb…b04b406)
+
+## What changed
+| Layer | Module | Rule |
+|---|---|---|
+| Market memory | `intel/market-memory.js` (`arcy-market-memory-1`) | Real builder observations per exact `chainId:contract` (≤90 obs, 30-day retention, ≤1,200 contracts, 30-min dedupe), validated on load (corrupt ⇒ reset). Seeded once from already-published snapshots of the data branch and, read-only, the Production data branch (`scripts/radar-memory-history.cjs`). 14-day window flags: 24h ≥ +70 %, 24h ≤ −50 %, ≥3× price run-up, ≥60 % collapse from peak. No 7d/30d value is ever invented. |
+| Identity | `intel/research.js` `identityLevel` | IMPERSONATION_EVIDENCE (blocked category, unverified issuer brand, ticker owned by another explorer-listed contract on the same chain, foreign Pons ticker) → IDENTITY_SOURCE_CONFLICT → OFFICIAL_CONTRACT_VERIFIED (official site publishes the exact address) → METADATA_CROSS_CORROBORATED (explorer-linked market listing, two-indexer symbol match, Pons factory) → EXACT_CONTRACT_OBSERVED → OFFICIAL_IDENTITY_UNESTABLISHED. A registry or symbol agreement never reaches OFFICIAL. |
+| Canonical identity | `intel/canonical-identity.json` | Arc (75) and Robinhood (200) tokens that the network's own Blockscout explorer links to aggregator market data, captured 2026-11-20 05:50 UTC in a browser because CI receives HTTP 403 from both explorers (no user-agent spoofing). Ambiguous tickers (USDC/DUKE/ARCLIGHT on Arc, APE/UP/VRAX on Robinhood) give no one ownership. Expires 2027-01-04. Metadata corroboration only. |
+| Research profile | `arcy-research-profile-1` | 10 sections (identity, official website, official X — never inferred, documentation, purpose, token role, market structure, contract controls, activity, history). COMPLETE ≥ 60 %, PARTIAL ≥ 30 %, MINIMAL otherwise. Not a security assessment. |
+| Research tier | `tier` | WATCH_ONLY if: monitor class, identity < METADATA_CROSS_CORROBORATED, liquidity below research floor (ETH $200k, Arc $20k, Robinhood $25k, Pons $10k; lower provider value when providers contradict), remembered extreme move (except ESTABLISHED: context only), MINIMAL profile, stale source. RESEARCH_QUALIFIED: QUALIFIED class, profile ≥ PARTIAL, V4 ELIGIBLE or Quality ≥ 40, providers within 3× on liquidity and volume. Otherwise RESEARCH_CANDIDATE. WATCH_ONLY never fills the main ten. |
+| Layer | `layer` | EARLY (<90 d pool), ESTABLISHED (A-class list), GROWTH only with observed activity growth over ≥72 h, else MATURE. |
+| Snapshot | `v4-snapshot.js` | Publishes researchTier, reasons, identity level/evidence, compact profile, market spread, market history, `watchOnly`; validator rejects WATCH_ONLY/MONITOR/uncorroborated/MINIMAL rows and CANDIDATE above QUALIFIED; carried-forward rows re-checked against memory (`applyMemory`). Canonical explorer icon used only for the exact listed contract. Persistent risk holds excluded from the watch list too. |
+| Info | `engine.researchInfo` | Tier, class, layer, identity + profile (missing sections), evidence, quality, market (+ provider spread), history, missing verification, rank reason, data time — ≤12 parts so the existing popover always shows the data time. |
+
+## Real data — Preview snapshot runs (CI, Production legacy-V3 input)
+| Run | Time (UTC) | Memory | Arc | Ethereum | Robinhood | Pons |
+|---|---|---|---|---|---|---|
+| 1 (b6b81fb) | 06:14 | BACKFILLED 986 obs / 201 contracts (preview 33 + Production 14 snapshots) | 3 (TOLLY, UBI, LONG) / watch 3 | 6 (LINK, UNI, CVX, ETHFI, AAVE, COMP) / watch 3 | 5 (CASHCAT, HOOKR, AI, FOBO, DELTA) / watch 1 | 3 (PRIORS, ORBIO, PONS) / watch 10 |
+| 2 (438f8b2) | 06:22 | LOADED (persisted) | 3 | 5 (AAVE wrongly WATCH: partial-coverage provider treated as contradiction → fixed in b04b406) | 5 (AI, CASHCAT → CANDIDATE: providers 15–21× apart) | 3 (PRIORS, PONS → CANDIDATE: volume 9–30× apart) |
+
+Remembered in market memory and kept out of the main list after their 24h window reset: WANTED +1,280 %, RUGPULL +575 %, SHARK +239 %, Gamooor +203 %, Louie +200 % (Arc), WASTED +31,766 % (Ethereum, now WATCH_ONLY: HISTORICAL_EXTREME_MOVE), ANSEMWIF (+371 %, 3.99× run-up). Production before this change showed WANTED/RUGPULL/Maxxing (Robinhood), MORI with $3k liquidity (Pons) and GME "GameStop" (Ethereum).
+
+## Mobile (no frontend change)
+Preview served responses injected into the Production `/radar` page in the browser: no horizontal overflow at 320/390/768/1024/1440 px, no broken logos, Info popover 260 px wide at 320 px.
+
+## Known limits
+- Official X accounts and documentation are not evidenced by any configured source → profiles are PARTIAL at best for most tokens; never inferred.
+- Arc/Robinhood canonical identity is a dated browser capture (CI 403); it must be refreshed before 2027-01-04 or identity falls back.
+- The Ethereum A-class registry stays at 28 maintainer-listed contracts; no unverified expansion was added.
+- The Production schedule is irregular (GitHub cron delays); freshness gates hide stale rows rather than show them.
