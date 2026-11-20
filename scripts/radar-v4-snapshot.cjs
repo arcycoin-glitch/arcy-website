@@ -8,7 +8,7 @@
 // Usage: node scripts/radar-v4-snapshot.cjs --out radar-v4/snapshot.json [--previous radar-v4/snapshot.json]
 // Never deploys, never writes Railway, never publishes an invalid snapshot (exit code 3 instead).
 const fs=require('node:fs'),path=require('node:path');
-const engine=require('../lib/radar-v2/intel/engine'),S=require('../lib/radar-v2/v4-snapshot');
+const engine=require('../lib/radar-v2/intel/engine'),S=require('../lib/radar-v2/v4-snapshot'),MM=require('../lib/radar-v2/intel/market-memory');
 const {sections}=require('./probe-radar-intel.cjs');
 const arg=k=>{const i=process.argv.indexOf('--'+k);return i>0?process.argv[i+1]:null;};
 async function main(){
@@ -26,17 +26,35 @@ async function main(){
    previous=doc;
   }
  }
+ // V5 market memory: a separate data-branch file (never served to visitors). First run: seed it from the snapshots already
+ // published on this data branch (real, timestamped rows) — never from estimates.
+ const memPath=arg('memory');let memory=null,memoryStatus='NONE';
+ if(memPath&&fs.existsSync(memPath)){try{const m=JSON.parse(fs.readFileSync(memPath,'utf8'));if(MM.validate(m).ok&&m.version===MM.VERSION){memory=MM.load(m);memoryStatus='LOADED';}else memoryStatus='INVALID_RESET';}catch{memoryStatus='UNREADABLE_RESET';}}
+ // Seed sources: this data branch and, read-only, the Production data branch (`--history`), so a PR preview run remembers the
+ // moves Production already observed (e.g. WANTED +1,280% on 2026-11-20) instead of starting blind.
+ if(!memory){
+  memory=MM.empty();
+  const {publishedSnapshots}=require('./radar-memory-history.cjs');
+  const parts=[];let added=0;
+  for(const p of [prevPath,...String(arg('history')||'').split(',').filter(Boolean)]){
+   const h=publishedSnapshots(p);added+=MM.backfill(memory,h.docs);parts.push(path.basename(path.dirname(path.dirname(path.resolve(p||'.'))))+':'+h.status);
+  }
+  memoryStatus='BACKFILLED:'+added+'_OBSERVATIONS('+parts.join(',')+')';
+ }
  const s=await sections();
  const rpc={arc:require('../search/server/lib/arc-rpc').rpc,robinhood:require('../search/server/lib/robinhood-rpc').rpc,ethereum:require('../search/server/lib/eth').rpc};
  const limits={unregisteredOnchain:Number(process.env.RADAR_V4_ONCHAIN_PER_NETWORK||6),rpcPerNetwork:Number(process.env.RADAR_V4_RPC_PER_NETWORK||900),
-  httpPerRun:Number(process.env.RADAR_V4_HTTP_PER_RUN||200),concurrency:1,maxCandidatesPerNetwork:45,crossCheckFetcher:global.fetch};
- const result=await engine.run({sections:s.out,rpc,limits,priorRiskLedger:previous?.riskLedger||null});
+  httpPerRun:Number(process.env.RADAR_V4_HTTP_PER_RUN||200),concurrency:1,maxCandidatesPerNetwork:45,crossCheckFetcher:global.fetch,universeFetcher:global.fetch};
+ const result=await engine.run({sections:s.out,rpc,limits,priorRiskLedger:previous?.riskLedger||null,marketMemory:memory});
  const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}));
+ const historyRemoved=S.applyMemory(snap,result.marketMemory);
+ snap.marketMemoryStatus={version:MM.VERSION,status:memoryStatus,contracts:Object.keys(result.marketMemory.entries).length,carriedRowsRemovedByHistory:historyRemoved};
  snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits};
  const v=S.validate(snap);
  if(!v.ok){console.error('Refusing to publish invalid snapshot:',JSON.stringify(v));process.exitCode=3;return;}
  fs.mkdirSync(path.dirname(out),{recursive:true});
  fs.writeFileSync(out,JSON.stringify(snap));
+ if(memPath){fs.mkdirSync(path.dirname(memPath),{recursive:true});fs.writeFileSync(memPath,JSON.stringify(result.marketMemory));}
  // Bounded, auditable revision index (last 42 runs ~ 7 days at 4-hourly cadence). Git history of the data branch keeps the bytes.
  const indexPath=arg('index');
  if(indexPath){
@@ -60,12 +78,18 @@ async function main(){
  console.log(JSON.stringify({generatedAt:snap.generatedAt,cost:snap.cost,run:snap.run,riskLedger:riskSummary,summary},null,1));
  if(process.env.GITHUB_ACTIONS==='true'){
   const esc=x=>String(x).replace(/%/g,'%25').replace(/\r/g,'%0D').replace(/\n/g,'%0A');
-  console.log('::notice title=radar-v4 cost::'+esc(JSON.stringify({generatedAt:snap.generatedAt,cost:snap.cost,run:snap.run,registry:snap.registry})));
+  console.log('::notice title=radar-v4 cost::'+esc(JSON.stringify({generatedAt:snap.generatedAt,cost:snap.cost,run:snap.run,registry:snap.registry,memory:snap.marketMemoryStatus})));
   // GitHub truncates annotation messages near 4 KB: one compact header + one compact row list per section.
+  console.log('::notice title=radar-v5 universe::'+esc(JSON.stringify(Object.fromEntries(Object.entries(snap.sections).filter(([,x])=>x.universe).map(([n,x])=>[n,{explorer:x.universe.explorer,
+   considered:x.universe.considered,accepted:x.universe.accepted,enriched:x.universe.enriched||0,rejected:x.universe.rejected,sample:(x.universe.sample||[]).map(s=>s.join(':')).join(' ')}])))).slice(0,3800));
   for(const [n,x] of Object.entries(summary)){
    console.log('::notice title=radar-v4 '+n+'::'+esc(JSON.stringify({legacyTop:x.legacyTop,legacyKept:x.legacyKept,status:x.status,carriedForward:x.carriedForward,shown:x.shown,counts:x.counts,categories:x.categories,bySource:x.bySource,history:x.history,shortfall:x.shortfall})).slice(0,3800));
    const d=v=>v===null||v===undefined?'-':Math.round(v);
-   console.log('::notice title=radar-v4 rows '+n+'::'+esc(x.rows.map(r=>{const m=JSON.parse(r[3]||'{}');return [r[0],r[1]==='ELIGIBLE'?'E':'W',r[2],'p'+d(m.product)+' t'+d(m.team)+' a'+d(m.adoption)+' c'+d(m.catalyst)+' d'+d(m.divergence)+' m'+d(m.market),r[4]].join('|');}).join(' ; ')).slice(0,3800));
+   const sec=snap.sections[n];
+   console.log('::notice title=radar-v5 '+n+'::'+esc(JSON.stringify({shown:sec.rows.length,byTier:sec.display?.byTier||null,byClass:sec.display?.byClass||null,filterB:sec.display?.filterB?.droppedByReason||null,
+    universe:sec.universe?{explorer:sec.universe.explorer,considered:sec.universe.considered,accepted:sec.universe.accepted,rejected:sec.universe.rejected}:null,
+    rows:sec.rows.map(r=>[r.symbol,r.opportunity.discoveryTier,r.opportunity.discoveryClass,r.opportunity.researchRank?.score??'-',r.opportunity.qualityRank?.score??'-',
+     r.change24hPct===null?'-':Math.round(r.change24hPct),r.liquidityUsd===null?'-':Math.round(r.liquidityUsd),r.logo?'logo':'nologo'].join('|'))})).slice(0,3800));
   }
  }
 }

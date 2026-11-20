@@ -1,7 +1,10 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const Q=require('../lib/radar-v2/intel/discovery-quality');
-const {selectDisplay}=require('../lib/radar-v2/intel/engine');
+// V4-level selection semantics (research:false). The V5 research layer can only move rows from the main list to WATCH_ONLY,
+// never add one, so every exclusion/ordering guarantee tested here still holds in production; the layer itself is covered by
+// test/radar-v5-quality.test.js.
+const E0=require('../lib/radar-v2/intel/engine'),selectDisplay=(r,o={})=>E0.selectDisplay(r,{research:false,...o});
 const NOW=Date.parse('2026-11-18T18:00:00Z'),A=n=>'0x'+n.toString(16).padStart(40,'0');
 const row=(n,props={})=>({key:'5042:'+A(n),network:'arc',chainId:5042,address:A(n),symbol:'Token'+n,
  eligibility:'REVIEW',discoveryClass:'MONITOR_ONLY',reasons:[],marketObserved:true,
@@ -9,6 +12,7 @@ const row=(n,props={})=>({key:'5042:'+A(n),network:'arc',chainId:5042,address:A(
  poolCreatedAt:new Date(NOW-3*86400000).toISOString(),snapshotNow:NOW,
  artwork:{url:'https://assets.geckoterminal.com/verified-decorative-art'},
  nearMatch:{maxDistance:0.3,pending:['INDEPENDENT_CROSS_CHECK_PENDING'],passed:['PRICE_EVIDENCE']},
+ v3Verification:{crossCheck:'MATCHED'},
  opportunity:{score:23,dimensions:{product:0,team:0,adoption:0}},
  evidenceConfidence:{score:20,missing:['IDENTITY','EXIT','SELL']},...props});
 test('actual post-rally and zero-liquidity patterns cannot fill Arc watchlist',()=>{
@@ -38,7 +42,7 @@ test('unverified or micro-liquidity cannot be promoted even with a good score an
   [{volume24hUsd:1249},'ORGANIC_ACTIVITY_NOT_ESTABLISHED'],
   [{volume24hUsd:180000,liquidityUsd:20000},'HIGH_VOLUME_TO_LIQUIDITY_RATIO'],
   [{trades24h:null},'TRADES_INSUFFICIENT'],
-  [{artwork:null},'TOKEN_ARTWORK_NOT_SOURCED'],
+  [{v3Verification:null},'EXACT_CONTRACT_IDENTITY_NOT_CORROBORATED'],
   [{priceUsd:null},'PRICE_NOT_OBSERVED']
  ];
  for(const [p,code] of cases)assert.equal(Q.reason({...base,...p},'arc'),code,JSON.stringify(p));
@@ -47,10 +51,11 @@ test('unverified or micro-liquidity cannot be promoted even with a good score an
  assert.equal(Q.reason({...eth,liquidityUsd:99999},'ethereum'),'LIQUIDITY_DEPTH_INSUFFICIENT');
  assert.equal(Q.reason({...eth,volume24hUsd:24999},'ethereum'),'ORGANIC_ACTIVITY_NOT_ESTABLISHED');
 });
-test('monitor-only pool must be established and artwork must be exact-contract sourced, not fabricated',()=>{
+test('monitor-only pool must be established and identity corroborated; a logo is decorative, never evidence (V5)',()=>{
  assert.equal(Q.reason(row(30,{poolCreatedAt:null}),'arc'),'MATURE_POOL_NOT_EVIDENCED');
  assert.equal(Q.reason(row(31,{poolCreatedAt:new Date(NOW-2*3600000).toISOString()}),'arc'),'MATURE_POOL_NOT_EVIDENCED');
- assert.equal(Q.reason(row(32,{artwork:null}),'arc'),'TOKEN_ARTWORK_NOT_SOURCED');
+ assert.equal(Q.reason(row(32,{v3Verification:null}),'arc'),'EXACT_CONTRACT_IDENTITY_NOT_CORROBORATED');
+ assert.equal(Q.reason(row(34,{artwork:null}),'arc'),null,'missing artwork alone never disqualifies a corroborated contract');
  const q=row(33,{discoveryClass:'NEAR_MATCH',poolCreatedAt:null});
  assert.equal(Q.reason(q,'arc'),null,'near match has separate V3 pool age verification');
 });
@@ -60,27 +65,25 @@ test('10 monitored rows only when all ten pass; existing critical holds and coll
  assert.equal(out.length,10);
  assert.ok(out.every(r=>r.displayTier==='WATCHLIST_NOT_VERIFIED'));
  const mixed=good.map(r=>({...r}));
- mixed[0].liquidityUsd=0;mixed[1].artwork=null;mixed[2].change24hPct=200;
+ mixed[0].liquidityUsd=0;mixed[1].v3Verification=null;mixed[2].change24hPct=200;
  mixed[3].eligibility='EXCLUDE';mixed[3].reasons=['PERSISTENT_LOW_EXIT_LIQUIDITY'];
  mixed[4].discoveryClass='CONFLICT';mixed[5].symbol='COLLIDE';mixed[6].symbol='COLLIDE';
  const filtered=selectDisplay(mixed,{network:'arc'});
  assert.equal(filtered.length,5);
  assert.deepEqual(filtered.shortfall?.droppedByReason?.ALREADY_SPIKED_24H,1);
  assert.deepEqual(filtered.shortfall?.droppedByReason?.LIQUIDITY_DEPTH_INSUFFICIENT,1);
- assert.deepEqual(filtered.shortfall?.droppedByReason?.TOKEN_ARTWORK_NOT_SOURCED,1);
+ assert.deepEqual(filtered.shortfall?.droppedByReason?.EXACT_CONTRACT_IDENTITY_NOT_CORROBORATED,1);
  assert.equal(filtered.shortfall.droppedByReason.PERSISTENT_RISK_HOLD,1);
  assert.equal(filtered.shortfall.droppedByReason.SOURCE_CONFLICT_V3,1);
  assert.equal(filtered.shortfall.droppedByReason.DUPLICATE_TICKER_UNRESOLVED,2);
 });
-test('Robinhood and Pons no longer exempt post-pumps or unverified watch-only from premium shortlist',()=>{
- assert.equal(Q.reason(row(50,{liquidityUsd:0,change24hPct:300,artwork:null}),'robinhood'),'ALREADY_SPIKED_24H');
- assert.equal(selectDisplay([row(51,{liquidityUsd:0,artwork:null,change24hPct:300})],{network:'robinhood'}).length,0);
- assert.equal(Q.reason(row(52,{change24hPct:575.5,discoveryClass:'QUALIFIED',liquidityUsd:100000,volume24hUsd:20000}),'robinhood'),'ALREADY_SPIKED_24H');
- assert.equal(Q.reason(row(53,{change24hPct:-71,discoveryClass:'QUALIFIED',liquidityUsd:100000,volume24hUsd:20000}),'robinhood'),'EXTREME_DRAWDOWN_24H');
- assert.equal(Q.reason(row(54,{change24hPct:2,discoveryClass:'MONITOR_ONLY',liquidityUsd:100000,volume24hUsd:20000}),'robinhood'),'PRELIMINARY_WATCH_NOT_MAIN_RANKING');
- assert.equal(Q.reason(row(55,{change24hPct:2,discoveryClass:'QUALIFIED',liquidityUsd:3000,volume24hUsd:20000}),'pons'),'PREMIUM_LIQUIDITY_INSUFFICIENT');
- assert.equal(Q.reason(row(56,{change24hPct:2,discoveryClass:'QUALIFIED',liquidityUsd:26000,volume24hUsd:2000}),'pons'),'PREMIUM_ACTIVITY_INSUFFICIENT');
- assert.equal(Q.reason(row(57,{change24hPct:2,discoveryClass:'QUALIFIED',liquidityUsd:26000,volume24hUsd:12000}),'pons'),null);
+test('P0 #297: V5 cannot weaken Robinhood/Pons premium quality floors',()=>{
+ assert.equal(Q.reason(row(50,{liquidityUsd:0,change24hPct:5,artwork:null,discoveryClass:'QUALIFIED'}),'robinhood'),'PREMIUM_LIQUIDITY_INSUFFICIENT');
+ assert.equal(selectDisplay([row(51,{liquidityUsd:0,artwork:null,change24hPct:5,discoveryClass:'QUALIFIED'})],{network:'robinhood'}).length,0);
+ assert.equal(Q.reason(row(52,{liquidityUsd:30000,volume24hUsd:20000,change24hPct:300,artwork:null}),'robinhood'),'ALREADY_SPIKED_24H');
+ assert.equal(Q.reason(row(53,{change24hPct:5,v3Verification:null,liquidityUsd:30000,volume24hUsd:20000}),'robinhood'),'PRELIMINARY_WATCH_NOT_MAIN_RANKING');
+ assert.equal(Q.reason(row(54,{liquidityUsd:3008,volume24hUsd:2607,change24hPct:0,discoveryClass:'QUALIFIED'}),'pons'),'PREMIUM_LIQUIDITY_INSUFFICIENT');
+ assert.equal(Q.reason(row(55,{liquidityUsd:30000,volume24hUsd:12000,change24hPct:0,discoveryClass:'QUALIFIED'}),'pons'),null);
 });
 
 test('source outages cannot carry forward previously exposed +238% zero-liquidity monitored assets',()=>{

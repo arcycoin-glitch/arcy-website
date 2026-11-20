@@ -1,0 +1,39 @@
+{
+ "schema": "arcy-radar-established-universe/1",
+ "version": "2026-11-20.0",
+ "policy": "Maintainer-listed canonical ERC-20 contracts of established projects, by exact chainId + contract address. A listing is a RESEARCH CANDIDATE, not an inclusion: at build time a row is accepted only if two independent indexers (Blockscout token record and DEX Screener base token) report the expected symbol for this exact contract, and every Radar market, category and risk gate passes. A listing is not owner approval, not a safety verdict and not a return forecast. Symbols are labels only; identity is the address.",
+ "networks": {
+  "1": [
+   {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", "symbol": "AAVE", "project": "Aave", "kind": "LENDING_GOVERNANCE"},
+   {"address": "0x514910771af9ca656af840dff83e8264ecf986ca", "symbol": "LINK", "project": "Chainlink", "kind": "ORACLE_NETWORK"},
+   {"address": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", "symbol": "UNI", "project": "Uniswap", "kind": "DEX_GOVERNANCE"},
+   {"address": "0x5a98fcbea516cf06857215779fd812ca3bef1b32", "symbol": "LDO", "project": "Lido", "kind": "LIQUID_STAKING_GOVERNANCE"},
+   {"address": "0x57e114b691db790c35207b2e685d4a43181e6061", "symbol": "ENA", "project": "Ethena", "kind": "SYNTHETIC_DOLLAR_GOVERNANCE"},
+   {"address": "0xd533a949740bb3306d119cc777fa900ba034cd52", "symbol": "CRV", "project": "Curve", "kind": "DEX_GOVERNANCE"},
+   {"address": "0x56072c95faa701256059aa122697b133aded9279", "symbol": "SKY", "project": "Sky (formerly Maker)", "kind": "STABLECOIN_PROTOCOL_GOVERNANCE"},
+   {"address": "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", "symbol": "MKR", "project": "Maker", "kind": "STABLECOIN_PROTOCOL_GOVERNANCE"},
+   {"address": "0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3", "symbol": "ONDO", "project": "Ondo", "kind": "RWA_PROTOCOL_GOVERNANCE"},
+   {"address": "0xc00e94cb662c3520282e6f5717214004a7f26888", "symbol": "COMP", "project": "Compound", "kind": "LENDING_GOVERNANCE"},
+   {"address": "0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f", "symbol": "SNX", "project": "Synthetix", "kind": "DERIVATIVES_PROTOCOL"},
+   {"address": "0xc18360217d8f7ab5e7c516566761ea12ce7f9d72", "symbol": "ENS", "project": "Ethereum Name Service", "kind": "NAMING_GOVERNANCE"},
+   {"address": "0x808507121b80c02388fad14726482e061b8da827", "symbol": "PENDLE", "project": "Pendle", "kind": "YIELD_PROTOCOL"},
+   {"address": "0xfe0c30065b384f05761f15d0cc899d4f9f9cc0eb", "symbol": "ETHFI", "project": "ether.fi", "kind": "RESTAKING_GOVERNANCE"},
+   {"address": "0xc944e90c64b2c07662a292be6244bdf05cda44a7", "symbol": "GRT", "project": "The Graph", "kind": "INDEXING_NETWORK"},
+   {"address": "0x111111111117dc0aa78b770fa6a738034120c302", "symbol": "1INCH", "project": "1inch", "kind": "DEX_AGGREGATOR_GOVERNANCE"},
+   {"address": "0xba100000625a3754423978a60c9317c58a424e3d", "symbol": "BAL", "project": "Balancer", "kind": "DEX_GOVERNANCE"},
+   {"address": "0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e", "symbol": "YFI", "project": "Yearn", "kind": "YIELD_PROTOCOL"},
+   {"address": "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2", "symbol": "SUSHI", "project": "SushiSwap", "kind": "DEX_GOVERNANCE"},
+   {"address": "0xd33526068d116ce69f19a9ee46f0bd304f21a51f", "symbol": "RPL", "project": "Rocket Pool", "kind": "LIQUID_STAKING_PROTOCOL"},
+   {"address": "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b", "symbol": "CVX", "project": "Convex", "kind": "YIELD_PROTOCOL"},
+   {"address": "0xec53bf9167f50cdeb3ae105f56099aaab9061f83", "symbol": "EIGEN", "project": "EigenLayer", "kind": "RESTAKING_PROTOCOL"},
+   {"address": "0x5afe3855358e112b5647b952709e6165e1c1eeee", "symbol": "SAFE", "project": "Safe", "kind": "WALLET_INFRASTRUCTURE"},
+   {"address": "0x6810e776880c02933d47db1b9fc05908e5386b96", "symbol": "GNO", "project": "Gnosis", "kind": "INFRASTRUCTURE_GOVERNANCE"},
+   {"address": "0x58b6a8a3302369daec383334672404ee733ab239", "symbol": "LPT", "project": "Livepeer", "kind": "VIDEO_INFRASTRUCTURE"},
+   {"address": "0xf57e7e7c23978c3caec3c3548e3d615c346e79ff", "symbol": "IMX", "project": "Immutable", "kind": "GAMING_INFRASTRUCTURE"},
+   {"address": "0x58d97b57bb95320f9a05dc918aef65434969c2b2", "symbol": "MORPHO", "project": "Morpho", "kind": "LENDING_PROTOCOL"},
+   {"address": "0xe41d2489571d322189246dafa5ebde1f4699f498", "symbol": "ZRX", "project": "0x Protocol", "kind": "DEX_INFRASTRUCTURE"}
+  ],
+  "5042": [],
+  "4663": []
+ }
+}

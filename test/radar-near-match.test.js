@@ -1,7 +1,10 @@
 'use strict';
 // Radar V3/V4 near-match discovery (issue #279): adaptive discovery, never adaptive safety.
 const test=require('node:test'),assert=require('node:assert/strict');
-const E=require('../lib/radar-v2/intel/engine'),NM=require('../lib/radar-v2/intel/near-match'),S=require('../lib/radar-v2/v4-snapshot');
+// V4-level selection semantics (research:false). The V5 research layer can only move rows from the main list to WATCH_ONLY,
+// never add one, so every exclusion/ordering guarantee tested here still holds in production; the layer itself is covered by
+// test/radar-v5-quality.test.js.
+const E0=require('../lib/radar-v2/intel/engine'),E={...E0,selectDisplay:(r,o={})=>E0.selectDisplay(r,{research:false,...o}),run:(a={})=>E0.run({...a,limits:{research:false,...(a.limits||{})}})},NM=require('../lib/radar-v2/intel/near-match'),S=require('../lib/radar-v2/v4-snapshot');
 const RH=require('../lib/radar-v2/intel/risk-holds'),F=require('../lib/radar-v2/intel/fetch');
 const DAY=86400000,NOW=Date.parse('2026-11-18T14:00:00Z');
 const A=n=>'0x'+n.toString(16).padStart(40,'0');
@@ -108,8 +111,12 @@ test('10. coverage counters reconcile with discovery and exclusion stages',async
  const sum=Object.values(f.classes).reduce((a,b)=>a+b,0);assert.equal(sum,f.v4Candidates);
  assert.equal(f.v4Candidates,r.networks.ethereum.all.length);
  assert.equal(Object.values(f.shownByClass).reduce((a,b)=>a+b,0),r.networks.ethereum.displayCandidates.length);
- assert.deepEqual(f.shownByClass,{NEAR_MATCH:1,MONITOR_ONLY:1});
- assert.equal(r.networks.ethereum.display.shortfall.droppedByReason.MATURE_POOL_NOT_EVIDENCED,1,'young pool must not be used to fill the ranking');
+ // V5 (#279): a monitor row needs corroborated exact-contract identity (a logo is no longer accepted as a proxy);
+ // the BELOW_SHORTLIST row was never cross-checked, so it is withheld and counted.
+ assert.deepEqual(f.shownByClass,{NEAR_MATCH:1});
+ // the young (<24h) pool row has no cross-check either: it is withheld at the identity gate before its pool-age gate.
+ assert.equal(r.networks.ethereum.display.shortfall.droppedByReason.EXACT_CONTRACT_IDENTITY_NOT_CORROBORATED,2);
+ assert.ok(!r.networks.ethereum.displayCandidates.some(x=>x.address===A(12)),'young pool must not be used to fill the ranking');
 });
 test('11. V3/V4 fallback cannot leak excluded assets (category, impersonation, wrapped) into near-match rows',async()=>{
  const sec=ethSection({tokens:[],excluded:[
@@ -136,7 +143,8 @@ test('12. near-match layer adds zero network/RPC calls and stays bounded with ov
  assert.ok(r.networks.ethereum.displayCandidates.filter(x=>x.discoveryClass==='MONITOR_ONLY').length<=10);
 });
 test('Ethereum uses remaining slots for adequately observed monitored candidates, not young unverified pools',async()=>{
- const mature=Array.from({length:6},(_,i)=>({...miss(30+i),reason:'INELIGIBLE_AFTER_VERIFICATION',detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:null,poolCreatedAt:iso(5)}));
+ // cross-checked contracts whose volume is far below the floor (monitor class); identity corroborated (V5 rule)
+ const mature=Array.from({length:6},(_,i)=>({...miss(30+i,{volume24hUsd:30000}),reason:'INELIGIBLE_AFTER_VERIFICATION',detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:verified(),poolCreatedAt:iso(5)}));
  const r=await run({ethereum:ethSection({excluded:[{...miss(40,{volume24hUsd:95000}),detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:verified()},...mature]})});
  const shown=r.networks.ethereum.displayCandidates;
  assert.equal(shown[0].discoveryClass,'NEAR_MATCH');assert.equal(shown.filter(x=>x.discoveryClass==='MONITOR_ONLY').length,6);
@@ -199,7 +207,7 @@ test('Arc and Ethereum may populate 10 observation slots, while Robinhood retain
   eligibility:'REVIEW',discoveryClass:'MONITOR_ONLY',reasons:[],marketObserved:true,
   priceUsd:0.1,liquidityUsd:network==='ethereum'?120000:25000,volume24hUsd:network==='ethereum'?26000:2000,
   change24hPct:4,trades24h:36,poolCreatedAt:iso(6),snapshotNow:NOW,
-  artwork:{url:'https://assets.geckoterminal.com/observed-fixture'},nearMatch:{passed:['PRICE_EVIDENCE'],pending:['INDEPENDENT_CROSS_CHECK_PENDING'],maxDistance:0.3},
+  artwork:{url:'https://assets.geckoterminal.com/observed-fixture'},nearMatch:{passed:['PRICE_EVIDENCE'],pending:['INDEPENDENT_CROSS_CHECK_PENDING'],maxDistance:0.3},v3Verification:{crossCheck:'MATCHED'},
   opportunity:{score:20,dimensions:{product:0,team:0,adoption:0}},
   evidenceConfidence:{score:20,missing:['EXIT','SELL']}
   ,...props
@@ -213,7 +221,7 @@ test('Arc and Ethereum may populate 10 observation slots, while Robinhood retain
   assert.equal(out.shortfall,null);
  }
  const conservative=E.selectDisplay(Array.from({length:13},(_,i)=>monitor('robinhood',i)),{network:'robinhood'});
- assert.equal(conservative.length,0,'Robinhood observation-only rows must not appear as promoted research candidates');
+ assert.equal(conservative.length,0,'Robinhood preliminary monitors never enter the premium main ranking');
  assert.equal(conservative.shortfall.droppedByReason.PREMIUM_ACTIVITY_INSUFFICIENT,13);
  const candidates=Array.from({length:13},(_,i)=>monitor('ethereum',i));
  candidates[0].eligibility='EXCLUDE';candidates[0].reasons=['PERSISTENT_LOW_EXIT_LIQUIDITY'];
@@ -225,7 +233,7 @@ test('Arc and Ethereum may populate 10 observation slots, while Robinhood retain
 });
 
 test('snapshot validator accepts expanded genuine Ethereum monitors but rejects four Robinhood monitors',async()=>{
- const monitored=Array.from({length:8},(_,i)=>({...miss(1100+i),reason:'INELIGIBLE_AFTER_VERIFICATION',detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:null,poolCreatedAt:iso(5)}));
+ const monitored=Array.from({length:8},(_,i)=>({...miss(1100+i,{volume24hUsd:30000}),reason:'INELIGIBLE_AFTER_VERIFICATION',detail:'VOLUME_BELOW_NETWORK_FLOOR',verification:verified(),poolCreatedAt:iso(5)}));
  const sec=ethSection({tokens:[],excluded:monitored});
  const result=await run({ethereum:sec});
  const snapshot=S.build(result,{ethereum:sec},{now:NOW});

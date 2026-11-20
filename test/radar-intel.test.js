@@ -3,7 +3,7 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const F=require('../lib/radar-v2/intel/fetch'),R=require('../lib/radar-v2/intel/registry'),SEAL=require('../lib/radar-v2/intel/seal');
 const OC=require('../lib/radar-v2/intel/onchain'),GH=require('../lib/radar-v2/intel/github'),GOV=require('../lib/radar-v2/intel/governance');
-const EX=require('../lib/radar-v2/intel/explorer'),E=require('../lib/radar-v2/intel/engine'),P=require('../lib/radar-v2/pre-catalyst');
+const EX=require('../lib/radar-v2/intel/explorer'),E0=require('../lib/radar-v2/intel/engine'),E={...E0,selectDisplay:(r,o={})=>E0.selectDisplay(r,{research:false,...o}),run:(a={})=>E0.run({...a,limits:{research:false,...(a.limits||{})}})},P=require('../lib/radar-v2/pre-catalyst');
 const DAY=86400000,NOW=Date.parse('2026-11-18T12:00:00Z');
 const TOKEN='0x1111111111111111111111111111111111111111',USDC='0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',POOL='0x2222222222222222222222222222222222222222';
 const UNI_V2='0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f',ROUTER='0x3333333333333333333333333333333333333333';

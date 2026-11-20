@@ -23,7 +23,7 @@ const KEYS=Object.freeze({
  report:['address','chain'],
  progress:['address','chain'],
  chart:['address','chain','interval','range','timeframe','period'],
- radar:['chain','source'],
+ radar:['chain','source','discovery'],
  privileges:['address','chain'],
  onchain:['chain'],
  exitquote:['chain','pool','token','amount'],

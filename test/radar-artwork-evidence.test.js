@@ -3,7 +3,10 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const A=require('../lib/radar-v2/artwork-evidence');
-const E=require('../lib/radar-v2/intel/engine');
+// V4-level selection semantics (research:false). The V5 research layer can only move rows from the main list to WATCH_ONLY,
+// never add one, so every exclusion/ordering guarantee tested here still holds in production; the layer itself is covered by
+// test/radar-v5-quality.test.js.
+const E0=require('../lib/radar-v2/intel/engine'),E={...E0,selectDisplay:(r,o={})=>E0.selectDisplay(r,{research:false,...o}),run:(a={})=>E0.run({...a,limits:{research:false,...(a.limits||{})}})};
 const S=require('../lib/radar-v2/v4-snapshot');
 const F=require('../lib/radar-v2/intel/fetch');
 const ADDR=n=>'0x'+n.toString(16).padStart(40,'0'),NOW=Date.parse('2026-11-18T16:00:00Z');
@@ -42,6 +45,9 @@ test('V4 near-match snapshot retains only contract-matched allowed artwork witho
  const spoof={...s,excluded:[sectionRow(addr,{url:'https://bad.invalid/icon.png',source:'GeckoTerminal'})]};
  const spoofSnap=S.build(await E.run({sections:{ethereum:spoof},now:NOW,env:{},fetcher:async()=>{throw Error('NO_NETWORK')},rpc:{},
   registryDoc:{schema:'arcy-radar-project-registry/1',version:'test',projects:[]},limits:{concurrency:1,pace:false}}),{ethereum:spoof},{now:NOW});
- assert.equal(spoofSnap.sections.ethereum.rows.length,0,'unverified artwork cannot fill a premium watch slot');
- assert.equal(spoofSnap.sections.ethereum.display.shortfall.droppedByReason.TOKEN_ARTWORK_NOT_SOURCED,1);
+ // V5 (#279): an untrusted image is dropped (never shown, never borrowed), but artwork is decorative, not evidence:
+ // the corroborated contract stays and the UI uses its existing placeholder.
+ assert.equal(spoofSnap.sections.ethereum.rows.length,1);
+ assert.equal(spoofSnap.sections.ethereum.rows[0].logo,null,'unverified artwork is never published');
+ assert.equal(spoofSnap.sections.ethereum.rows[0].address,addr);
 });
