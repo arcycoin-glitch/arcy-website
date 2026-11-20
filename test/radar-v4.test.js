@@ -176,7 +176,7 @@ test('public path: outage, invalid JSON, oversize and tampered snapshots fall ba
  const env={RADAR_V4_OPPORTUNITY_ENABLED:'true'},snap=S.build(engineResult(),sections,{now:NOW});
  S._reset();let r=await S.apply('arc',live('arc'),{env,fetcher:fetcherFor(snap,{status:503}),now:NOW});assert.equal(r.opportunity.reason,'SNAPSHOT_HTTP_503');
  S._reset();r=await S.apply('arc',live('arc'),{env,fetcher:async()=>({ok:true,status:200,text:async()=>'{"schema":'}),now:NOW});assert.equal(r.opportunity.reason,'SNAPSHOT_INVALID_JSON');
- S._reset();r=await S.apply('arc',live('arc'),{env,fetcher:async()=>({ok:true,status:200,text:async()=>'x'.repeat(700000)}),now:NOW});assert.equal(r.opportunity.reason,'SNAPSHOT_TOO_LARGE');
+ S._reset();r=await S.apply('arc',live('arc'),{env,fetcher:async()=>({ok:true,status:200,text:async()=>'x'.repeat(3000001)}),now:NOW});assert.equal(r.opportunity.reason,'SNAPSHOT_TOO_LARGE');
  const t=structuredClone(snap);t.sections.arc.rows[0].opportunity.eligibility='EXCLUDE';
  S._reset();r=await S.apply('arc',live('arc'),{env,fetcher:fetcherFor(t),now:NOW});assert.equal(r.opportunity.reason,'SNAPSHOT_SECTION_INVALID');
  S._reset();await S.apply('arc',live('arc'),{env,fetcher:fetcherFor(snap),now:NOW});

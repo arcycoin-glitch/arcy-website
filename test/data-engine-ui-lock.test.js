@@ -5,6 +5,7 @@
 // This test MUST NOT be bypassed, skipped, rewritten or rebaselined to make
 // data-only changes pass. If main changes independently, stop/review rather
 // than approving a new skeleton in this data audit.
+// 2026-11-20 owner-requested #300 Radar capacity-only exception: the two data-token count limits (10→40) are canonicalized back to the pinned baseline; every other JS/CSS/DOM byte stays protected.
 // 2026-11-03 owner-requested Radar exception: accessible info icon beside unavailable 24h change (market-radar.js/.css only; reasonCode/poolAgeHours, no policy/score/data change).
 // 2026-11-03 owner-requested Radar display extension (#138): show exact-source young-pool partial values explicitly labelled 'Açılıştan beri' in the existing cell. 24h value stays unverified/null, score unchanged, no new API calls; only Radar JS/CSS change, reviewed through dedicated tests.
 // 2026-11-03 Radar source-disagreement presentation: where both verified-identity providers supply different young-pool partial observations, render GT and DS separately with an explicit disagreement label instead of hiding both. 24h null/provenance/score policy unchanged; UI-only code and CSS reviewed by dedicated unit tests.
@@ -72,6 +73,20 @@ test('scope fingerprints preserve binary asset bytes exactly', () => {
 test('DATA-ONLY audit: immutable main website, Search and Radar skeleton must be byte-for-byte unchanged', () => {
   for (const [file, expected] of Object.entries(BASELINE)) {
     const content=fs.readFileSync(path.resolve(__dirname,'..',file));
-    assert.equal(blobSha(content,file),expected,'PROTECTED SKELETON MODIFIED: '+file+'; revert UI change, do NOT refresh fixture');
+    // Owner-requested #300: the API may now return 40 V6 candidates; only these TWO
+    // existing Radar JS acceptance/display limits may change from 10 to 40.
+    // Restore them to their exact prior bytes before comparing the ORIGINAL pinned
+    // blob hashes. No hash rebaseline and no exception for markup, CSS or other JS.
+    let canonical=content;
+    if(file==='search/market-radar.js'){
+      const src=content.toString('utf8');
+      const replacements=[
+        ['data.tokens.length<=40&&data.tokens.every','data.tokens.length<=10&&data.tokens.every'],
+        ['expandedNetwork===network?40:5','expandedNetwork===network?10:5']
+      ];
+      for(const [from] of replacements)assert.equal(src.split(from).length-1,1,'RADAR_LIMIT_EXCEPTION_MISSING_OR_REPEATED: '+from);
+      canonical=Buffer.from(replacements.reduce((t,[from,to])=>t.replace(from,to),src));
+    }
+    assert.equal(blobSha(canonical,file),expected,'PROTECTED SKELETON MODIFIED: '+file+'; revert UI change, do NOT refresh fixture');
   }
 });

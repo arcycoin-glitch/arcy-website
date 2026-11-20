@@ -2,7 +2,10 @@
 // Radar V5 (#279): three-tier discovery — EARLY (Filter A), GROWTH, ESTABLISHED QUALITY (A-class) — from the V3 window AND a
 // separate bounded established/growth universe, ranked together by `arcy-research-rank-1`. Hard safety gates never relax.
 const test=require('node:test'),assert=require('node:assert/strict');
-const E=require('../lib/radar-v2/intel/engine'),QX=require('../lib/radar-v2/intel/quality-expansion'),QR=require('../lib/radar-v2/intel/quality-rank');
+// V5-level selection semantics (v6:false). The V6 layer (#279: profile completeness >= 60, compression, integrity, rank-3) can only
+// move rows from the main list to WATCH_ONLY or reorder them, never add one; its behaviour is tested in test/radar-v6-top10.test.js.
+const E0=require('../lib/radar-v2/intel/engine'),E={...E0,selectDisplay:(r,o={})=>E0.selectDisplay(r,{v6:false,...o}),run:(a={})=>E0.run({...a,limits:{v6:false,...(a.limits||{})}})};
+const QX=require('../lib/radar-v2/intel/quality-expansion'),QR=require('../lib/radar-v2/intel/quality-rank');
 const S=require('../lib/radar-v2/v4-snapshot'),RH=require('../lib/radar-v2/intel/risk-holds'),F=require('../lib/radar-v2/intel/fetch'),D=require('../lib/radar-v2/discovery');
 const U=require('../lib/radar-v2/intel/universe');
 const DAY=86400000,NOW=Date.parse('2026-11-20T10:00:00Z');
@@ -26,18 +29,18 @@ const est=(network,n,o={})=>({key:CID[network]+':'+A(n),network,chainId:CID[netw
  universe:{identity:{status:'TWO_SOURCE_SYMBOL_MATCH'},registry:{project:'Blue',kind:'LENDING_GOVERNANCE'}},history:HIST(),
  nearMatch:{passed:[],maxDistance:0},opportunity:{score:10,dimensions:{product:null,team:null,adoption:null},flags:[]},evidenceConfidence:{score:10,missing:[]},evidenceSummary:{risk:{}},infoV4:'x',...o});
 
-test('V5-1. combined ranking: a corroborated A-class project outranks a weak MONITOR row; class order and verified evidence still lead; Info explains',()=>{
+test('V5-1. research-rank-2 prioritizes evidence quality: established verified project outranks weaker early review; Info explains',()=>{
  const monitor=early('ethereum',3,{discoveryClass:'MONITOR_ONLY',symbol:'WEAK',nearMatch:{passed:[],pending:['POOL_AGE_UNKNOWN'],maxDistance:0.4}});
  const eligible=early('ethereum',1,{eligibility:'ELIGIBLE',reasons:[],opportunity:{score:70,dimensions:{product:80,team:80,adoption:80},flags:[]}});
  const out=E.selectDisplay([monitor,eligible,est('ethereum',50)],{network:'ethereum',now:NOW});
- assert.deepEqual(out.map(x=>x.address),[A(1),A(50)],'verified-evidence first, then A-class; the weak monitor never fills the main list');
+ assert.deepEqual(out.map(x=>x.address),[A(50),A(1)],'research-qualified established project leads an insufficiently evidenced early candidate');
  assert.deepEqual(out.watch.map(x=>x.address),[A(3)]);assert.ok(out.watch[0].reasons.includes('MONITOR_ONLY_CLASS'));
- assert.deepEqual(out.map(x=>x.discoveryTier),['EARLY','ESTABLISHED']);
- const b=out[1];
+ assert.deepEqual(out.map(x=>x.discoveryTier),['ESTABLISHED','EARLY']);
+ const b=out[0];
  assert.equal(b.discoveryFilter,'B_QUALITY_EXPANSION');assert.equal(b.eligibility,'QUALITY_EXPANSION_REVIEW');assert.equal(b.displayTier,'WATCHLIST_NOT_VERIFIED');
- assert.equal(b.researchRank.version,'arcy-research-rank-1');assert.equal(b.researchRank.position,2);
+ assert.equal(b.researchRank.version,'arcy-research-rank-2');assert.equal(b.researchRank.researchBand,'RESEARCH_QUALIFIED');assert.equal(b.researchRank.position,1);
  for(const part of [/^ARAŞTIRMAYA UYGUN \(güvenlik sertifikası değildir\); A-SINIFI YERLEŞİK PROJE — yerleşik proje kalitesi, getiri tahmini veya güvenlik garantisi değildir; /,/Kimlik: kontrat bağımsız kaynaklarla eşleşti \(resmi ihraççı doğrulaması değil\)/,/Profil: %\d+ kanıtlı \(eksik: /,/Geçmiş: 3 gözlem/,/Neden: listelenmiş kontrat, iki kaynakta kimlik eşleşti/,
-  /Kalite Sıralaması \d+\/100/,/Piyasa: likidite \$8\.0M, 24s hacim \$3\.0M, 900 işlem/,/Eksik doğrulama: /,/Sıra #2: araştırma sınıfı, sınıf \(nitelikli\)/,/Veri: 2026-11-20 10:00 UTC/])
+  /Kalite Sıralaması \d+\/100/,/Piyasa: likidite \$8\.0M, 24s hacim \$3\.0M, 900 işlem/,/Eksik doğrulama: /,/Sıra #1: kanıtlı kaliteli araştırma, kalite \d+, sınıf nitelikli/,/Veri: 2026-11-20 10:00 UTC/])
   assert.match(b.infoV4,part);
  assert.doesNotMatch(b.infoV4,/güvenli(?!k)|\bsafe\b|yükselecek|pump/i);
  assert.deepEqual(out.byTier,{EARLY:1,ESTABLISHED:1});
@@ -135,7 +138,7 @@ test('V5-8. snapshot: tiers publish and validate; class order is enforced for ev
  const snap=S.build(engine,{ethereum:{tokens:[],nearMiss:[],excluded:[],asOf:iso(0.01)}},{now:NOW,commit:'test'});
  assert.deepEqual(S.validate(snap),{ok:true});
  const b=snap.sections.ethereum.rows[0].opportunity;
- assert.equal(b.discoveryTier,'ESTABLISHED');assert.equal(b.category,'ESTABLISHED_BLUE_CHIP');assert.equal(b.researchRank.version,'arcy-research-rank-1');
+ assert.equal(b.discoveryTier,'ESTABLISHED');assert.equal(b.category,'ESTABLISHED_BLUE_CHIP');assert.equal(b.researchRank.version,'arcy-research-rank-2');
  assert.deepEqual(b.expansion.reviewedReasons,REVIEW);
  const clone=()=>structuredClone(snap);
  let bad=clone();bad.sections.ethereum.rows[1].opportunity.researchTier='WATCH_ONLY';assert.equal(S.validate(bad).ok,false,'WATCH_ONLY never in the main list');
@@ -222,7 +225,7 @@ test('V5-12. universe intake: exact registry contracts need two-indexer symbol a
  assert.equal(by(LINK),undefined,'DEX symbol differs from the explorer record: rejected, never corrected');
  assert.equal(by(UNI).v3.verification.crossCheck,'CONFLICT','60% price disagreement is a conflict');
  assert.ok(report.rejected.IDENTITY_MISMATCH>=1);assert.ok(report.rejected.NO_DEX_MARKET>=1,'registry contracts without a DEX market are reported');
- assert.equal(report.dexCalls,1,'one batched DEX Screener request for <=30 contracts');
+ assert.equal(report.dexCalls,Math.ceil(report.considered/30),'one batched DEX Screener request per 30 contracts');
  assert.ok(calls.filter(u=>/blockscout/.test(u)).length<=1+report.registryListed,'bounded explorer reads');
  assert.ok(calls.every(u=>!/arc\.io|robinhoodchain/.test(u)),'Ethereum intake never touches another chain');
 });
@@ -295,13 +298,25 @@ test('V5-17. a contract named after GameStop is an unverified issuer brand, not 
  assert.equal(D.unverifiedIssuerBrand({name:'Greatest Meme Ever',symbol:'GME'}).reason,'ISSUER_AFFILIATION_NOT_VERIFIED','stock ticker on the tokenized-equity chain');
 });
 
-test('V5-18. registry: exact lowercase contracts, unique, Ethereum only; every listing is categorised as established (never early)',()=>{
+test('V5-18. curated contract registry is chain-scoped with unique exact addresses and source-backed official pages',()=>{
  const C=require('../lib/radar-v2/intel/category');
  const list=U.registryFor(1);
  assert.ok(list.length>=20);
  assert.equal(new Set(list.map(e=>e.address)).size,list.length);
  for(const e of list){assert.match(e.address,/^0x[0-9a-f]{40}$/);assert.notEqual(C.classify({chainId:1,address:e.address,symbol:e.symbol},'ethereum').category,'EARLY_STAGE_CANDIDATE',e.symbol);}
- assert.equal(U.registryFor(5042).length,0,'no Arc listing without Arc evidence');assert.equal(U.registryFor(4663).length,0);
+ for(const [chain,expected] of [[5042,['TOLLY','ARGUS','ARCANUS']],[4663,['HOOKR','FOBO','STONKBROKER','STATICS']]]){
+  const list=U.registryFor(chain);
+  assert.ok(list.length>=expected.length,'bounded exact-contract discovery sources exist for '+chain);
+  assert.equal(new Set(list.map(e=>e.address)).size,list.length,'no duplicate canonical address for '+chain);
+  for(const e of list){
+   assert.match(e.address,/^0x[0-9a-f]{40}$/);
+   assert.ok(e.official?.domains?.length>0&&e.official?.pages?.every(p=>p.startsWith('https://')));
+   assert.ok(e.official.pages.some(p=>e.official.domains.some(d=>new URL(p).hostname===d||new URL(p).hostname.endsWith('.'+d))),
+    'every curated source is on the reviewed project domain');
+  }
+  for(const symbol of expected)assert.ok(list.some(e=>e.symbol===symbol),'missing source-backed '+chain+' '+symbol);
+ }
+ // A registry is a lookup universe, NOT a security certification or guaranteed opportunity.
  for(const sym of ['USDC','USDT','DAI','WETH','WBTC','PEPE','SHIB'])assert.ok(!list.some(e=>e.symbol===sym),sym+' is not an A-class research candidate');
 });
 

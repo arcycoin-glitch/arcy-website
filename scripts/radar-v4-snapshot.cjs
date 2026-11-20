@@ -44,24 +44,47 @@ async function main(){
  const s=await sections();
  const rpc={arc:require('../search/server/lib/arc-rpc').rpc,robinhood:require('../search/server/lib/robinhood-rpc').rpc,ethereum:require('../search/server/lib/eth').rpc};
  const limits={unregisteredOnchain:Number(process.env.RADAR_V4_ONCHAIN_PER_NETWORK||6),rpcPerNetwork:Number(process.env.RADAR_V4_RPC_PER_NETWORK||900),
-  httpPerRun:Number(process.env.RADAR_V4_HTTP_PER_RUN||200),concurrency:1,maxCandidatesPerNetwork:45,crossCheckFetcher:global.fetch,universeFetcher:global.fetch};
+  httpPerRun:Number(process.env.RADAR_V4_HTTP_PER_RUN||200),concurrency:1,maxCandidatesPerNetwork:60,crossCheckFetcher:global.fetch,universeFetcher:global.fetch};
+ // V6: provider OHLCV (bounded, cached on the data branch) for the compression engine, and live re-check of reviewed official pages.
+ const OH=require('./radar-ohlcv.cjs'),ohPath=arg('ohlcv-cache');
+ let ohCache=OH.loadCache(null);if(ohPath&&fs.existsSync(ohPath)){try{ohCache=OH.loadCache(JSON.parse(fs.readFileSync(ohPath,'utf8')));}catch{}}
+ const oh=OH.provider({env:process.env,cache:ohCache,maxCalls:Number(process.env.RADAR_OHLCV_MAX_CALLS||36)});
+ // V6: builder official-page checks carried at most 7 days when a site is temporarily unreachable (data-branch file, bounded)
+ const ofPath=arg('official-cache');let ofCache={};
+ if(ofPath&&fs.existsSync(ofPath)){try{const d=JSON.parse(fs.readFileSync(ofPath,'utf8'));if(d?.version==='arcy-official-cache-1'&&d.entries&&typeof d.entries==='object')
+  for(const [k,e] of Object.entries(d.entries))if(/^\d+:0x[0-9a-f]{40}$/.test(k)&&e?.dossier?.source==='BUILDER_LIVE_CHECK'&&Number.isFinite(Date.parse(e.at)))ofCache[k]=e;}catch{}}
+ limits.officialCache=ofCache;
+ limits.ohlcv=oh.fn||undefined;limits.ohlcvMax=Number(process.env.RADAR_OHLCV_PER_NETWORK||10);limits.officialFetcher=global.fetch;
+// Cached exact-pool history is reused for ALL 40 eligible candidates each cycle;
+// only uncached pools compete for the bounded provider-call allowance.
+const {NETWORKS}=require('../lib/radar-v2/sources');
+limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].chainId+':'+String(row.pool||'').toLowerCase()]);
  const result=await engine.run({sections:s.out,rpc,limits,priorRiskLedger:previous?.riskLedger||null,marketMemory:memory});
  const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}));
  const historyRemoved=S.applyMemory(snap,result.marketMemory);
  snap.marketMemoryStatus={version:MM.VERSION,status:memoryStatus,contracts:Object.keys(result.marketMemory.entries).length,carriedRowsRemovedByHistory:historyRemoved};
- snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits};
+ snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ohlcv:Boolean(limits.ohlcv),officialCache:Object.keys(ofCache).length,officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
+ snap.v6Sources={ohlcv:{...oh.stats,cachedPools:Object.keys(ohCache.entries).length,perNetwork:result.v6?.ohlcv||{}},officialRecheck:result.v6?.official||{},officialDiscovery:result.v6?.discovery||{}};
+ // Per listed Ethereum contract: where it ended (main / watch reason / Filter B gate / not in intake). Audit trail, not served.
+ {const U=require('../lib/radar-v2/intel/universe'),n=result.networks.ethereum||{};const main=new Map((n.displayCandidates||[]).map(r=>[r.address,r]));
+  const watch=new Map((n.display?.watch||[]).map(w=>[w.address,w]));const all=new Map((n.all||[]).map(r=>[r.address,r]));
+  snap.v6Sources.registryOutcome=U.registryFor(1).map(e=>{const a=e.address,m=main.get(a),w=watch.get(a),r=all.get(a);
+   return e.symbol+':'+(m?'MAIN#'+m.rank+'('+m.researchRank?.researchBand+',pc'+m.profileCompleteness?.score+')':w?'WATCH('+(w.reasons||[]).join('+')+',pc'+w.profileCompleteness+')':r?'NOT_SHOWN('+(r.discoveryClass||'-')+')':'NOT_IN_INTAKE');}).join(' ');
+  snap.v6Sources.filterB=Object.fromEntries(Object.entries(result.networks).map(([k,v])=>[k,v.display?.filterB?.droppedByReason||null]));}
  const v=S.validate(snap);
  if(!v.ok){console.error('Refusing to publish invalid snapshot:',JSON.stringify(v));process.exitCode=3;return;}
  fs.mkdirSync(path.dirname(out),{recursive:true});
  fs.writeFileSync(out,JSON.stringify(snap));
  if(memPath){fs.mkdirSync(path.dirname(memPath),{recursive:true});fs.writeFileSync(memPath,JSON.stringify(result.marketMemory));}
- // Bounded, auditable revision index (last 42 runs ~ 7 days at 4-hourly cadence). Git history of the data branch keeps the bytes.
+ if(ohPath){fs.mkdirSync(path.dirname(ohPath),{recursive:true});fs.writeFileSync(ohPath,JSON.stringify(OH.pruneCache(ohCache)));}
+ if(ofPath){const keep=Object.entries(ofCache).filter(([,e])=>Date.now()-Date.parse(e.at)<=7*86400000).slice(-400);fs.mkdirSync(path.dirname(ofPath),{recursive:true});fs.writeFileSync(ofPath,JSON.stringify({version:'arcy-official-cache-1',entries:Object.fromEntries(keep)}));}
+ // Bounded, auditable revision index (last 84 runs ~ 7 days at the 2-hourly cadence). Git history of the data branch keeps the bytes.
  const indexPath=arg('index');
  if(indexPath){
   let idx={schema:'arcy-radar-v4-snapshot-index/1',revisions:[]};
   try{const prev=JSON.parse(fs.readFileSync(indexPath,'utf8'));if(Array.isArray(prev?.revisions))idx.revisions=prev.revisions;}catch{}
   idx.revisions.unshift({generatedAt:snap.generatedAt,engineCommit:snap.engineCommit,sections:Object.fromEntries(Object.entries(snap.sections).map(([n,x])=>[n,{status:x.status,asOf:x.asOf,shown:x.rows.length,carriedForward:!!x.carriedForward}]))});
-  idx.revisions=idx.revisions.slice(0,42);fs.writeFileSync(indexPath,JSON.stringify(idx,null,1));
+  idx.revisions=idx.revisions.slice(0,84);fs.writeFileSync(indexPath,JSON.stringify(idx,null,1));
  }
  // Optional: the exact public responses the serving code would return (used for flag-ON browser verification).
  const respDir=arg('responses');
@@ -82,14 +105,14 @@ async function main(){
   // GitHub truncates annotation messages near 4 KB: one compact header + one compact row list per section.
   console.log('::notice title=radar-v5 universe::'+esc(JSON.stringify(Object.fromEntries(Object.entries(snap.sections).filter(([,x])=>x.universe).map(([n,x])=>[n,{explorer:x.universe.explorer,
    considered:x.universe.considered,accepted:x.universe.accepted,enriched:x.universe.enriched||0,rejected:x.universe.rejected,sample:(x.universe.sample||[]).map(s=>s.join(':')).join(' ')}])))).slice(0,3800));
+  console.log('::notice title=radar-v6 sources::'+esc(JSON.stringify(snap.v6Sources)).slice(0,3800));
   for(const [n,x] of Object.entries(summary)){
-   console.log('::notice title=radar-v4 '+n+'::'+esc(JSON.stringify({legacyTop:x.legacyTop,legacyKept:x.legacyKept,status:x.status,carriedForward:x.carriedForward,shown:x.shown,counts:x.counts,categories:x.categories,bySource:x.bySource,history:x.history,shortfall:x.shortfall})).slice(0,3800));
    const d=v=>v===null||v===undefined?'-':Math.round(v);
    const sec=snap.sections[n];
-   console.log('::notice title=radar-v5 '+n+'::'+esc(JSON.stringify({shown:sec.rows.length,byTier:sec.display?.byTier||null,byClass:sec.display?.byClass||null,filterB:sec.display?.filterB?.droppedByReason||null,
-    universe:sec.universe?{explorer:sec.universe.explorer,considered:sec.universe.considered,accepted:sec.universe.accepted,rejected:sec.universe.rejected}:null,
-    rows:sec.rows.map(r=>[r.symbol,r.opportunity.discoveryTier,r.opportunity.discoveryClass,r.opportunity.researchRank?.score??'-',r.opportunity.qualityRank?.score??'-',
-     r.change24hPct===null?'-':Math.round(r.change24hPct),r.liquidityUsd===null?'-':Math.round(r.liquidityUsd),r.logo?'logo':'nologo'].join('|'))})).slice(0,3800));
+   console.log('::notice title=radar-v6 '+n+'::'+esc(JSON.stringify({status:x.status,carriedForward:x.carriedForward,discovered:sec.counts?.candidates??null,funnel:sec.display?.v6Funnel||null,shown:sec.rows.length,byBand:sec.display?.byBand||null,
+    watch:(sec.display?.watch||sec.watchOnly||[]).slice(0,10).map(w=>[w.symbol,(w.reasons||[]).join('+'),w.profileCompleteness??'-'].join('|')),
+    rows:sec.rows.map(r=>{const o=r.opportunity;return [r.symbol,r.address,o.researchRank?.researchBand,o.researchRank?.researchScore,o.profileCompleteness?.score,o.compression?.status+':'+(o.compression?.days||0),
+     o.integrity?.summary,o.qualityRank?.score,d(r.liquidityUsd),r.logo?'logo':'nologo'].join('|');})})).slice(0,3800));
   }
  }
 }
