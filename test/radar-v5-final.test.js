@@ -230,3 +230,19 @@ test('F-15. persistent risk holds (AF) stay out of both the main ranking and the
  const out=E.selectDisplay([r],{network:'arc',held,now:NOW});
  assert.equal(out.length,0);assert.equal(out.watch.some(w=>w.address===AF),false);
 });
+
+test('F-16. market sources that disagree (>3x on liquidity or volume) never yield RESEARCH_QUALIFIED; the lower depth decides the floor',()=>{
+ // observed 2026-11-20 (Robinhood AI): GeckoTerminal token liquidity $1.42M vs DEX Screener $93k; volume $1.15M vs $54k
+ const spread={liquidityUsd:{min:93487,max:1418484,ratio:15.17,providers:2,scope:'TOKEN'},volume24hUsd:{min:53960,max:1153646,ratio:21.38,providers:2,scope:'TOKEN'}};
+ const ok=est('robinhood',300,{liquidityUsd:1418484,volume24hUsd:1153646});
+ const base=E.selectDisplay([ok],{network:'robinhood',now:NOW});assert.equal(base[0].researchTier,'RESEARCH_QUALIFIED');
+ const d=E.selectDisplay([{...ok,marketSpread:spread}],{network:'robinhood',now:NOW});
+ assert.equal(d[0].researchTier,'RESEARCH_CANDIDATE');assert.deepEqual(d[0].researchTierReasons,['MARKET_SOURCES_DISAGREE_LIQUIDITY','MARKET_SOURCES_DISAGREE_VOLUME']);
+ assert.match(d[0].infoV4,/piyasa kaynakları uyuşmuyor/);
+ // when the lower provider value is below the research floor, the row is WATCH_ONLY even if the higher value clears it
+ const thin=E.selectDisplay([{...ok,liquidityUsd:400000,marketSpread:{liquidityUsd:{min:9000,max:400000,ratio:44.4,providers:2}}}],{network:'robinhood',now:NOW});
+ assert.equal(thin.length,0);assert.ok(thin.watch[0].reasons.includes('LIQUIDITY_BELOW_RESEARCH_FLOOR'));
+ // providers that agree change nothing
+ const agree=E.selectDisplay([{...ok,marketSpread:{liquidityUsd:{min:1.3e6,max:1.42e6,ratio:1.09,providers:2}}}],{network:'robinhood',now:NOW});
+ assert.equal(agree[0].researchTier,'RESEARCH_QUALIFIED');
+});
