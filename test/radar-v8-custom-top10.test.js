@@ -6,7 +6,8 @@ const E=require('../lib/radar-v2/intel/engine');
 const S=require('../lib/radar-v2/v4-snapshot');
 const NOW=Date.parse('2026-11-20T13:00:00Z'),A=n=>'0x'+n.toString(16).padStart(40,'0');
 // independently corroborated exact contract (explorer + DEX symbol match) = verifiable project profile
-const PROFILE={universe:{identity:{status:'TWO_SOURCE_SYMBOL_MATCH'}}};
+// + creator-provided project channels on the exact-contract listing (project profile beyond token identity)
+const PROFILE={universe:{identity:{status:'TWO_SOURCE_SYMBOL_MATCH'}},officialLinks:{websites:['https://project.example'],socials:[]}};
 const r=(n,opts={})=>({
  key:'1:'+A(n),network:'ethereum',chainId:1,address:A(n),symbol:'X'+n,name:'Project '+n,
  category:{category:'EARLY_STAGE_CANDIDATE'},eligibility:'REVIEW',reasons:['IDENTITY_NOT_VERIFIED'],risk:[],
@@ -48,8 +49,9 @@ test('ETR-1: hard eligibility — scams, honeypots, dangerous contracts, imperso
  const out=sel([...Array.from({length:10},(_,i)=>r(400+i)),r(450,{evidenceSummary:{risk:{sell:'SELL_DISABLED_VERIFIED'}},volume24hUsd:9e8})]);
  assert.equal(out.some(x=>x.address===A(450)),false);
  // no verifiable profile (no corroborating source) is dropped after enrichment
- const out2=sel([...Array.from({length:10},(_,i)=>r(500+i)),r(560,{universe:null,volume24hUsd:9e8})]);
+ const out2=sel([...Array.from({length:10},(_,i)=>r(500+i)),r(560,{universe:null,volume24hUsd:9e8}),r(561,{officialLinks:null,volume24hUsd:9e8})]);
  assert.equal(out2.some(x=>x.address===A(560)),false);
+ assert.equal(out2.some(x=>x.address===A(561)),false,'explorer + DEX symbol agreement alone is token identity, not a project profile');
  assert.equal(out2.length,10);
 });
 
@@ -115,7 +117,7 @@ test('ETR-4: upside asymmetry (15/100) — undervalued + growing beats merely ch
 
 test('ETR-5: Pons priority — a contract listed under Pons never appears in Robinhood; Robinhood refills before selection',async()=>{
  const ADDR=n=>A(n);
- const rh=(n,o={})=>({address:ADDR(n),chainId:4663,symbol:'R'+n,name:'R'+n,priceUsd:0.2,liquidityUsd:90000,volume24hUsd:60000,change24hPct:-4,...o});
+ const rh=(n,o={})=>({address:ADDR(n),chainId:4663,symbol:'R'+n,name:'R'+n,priceUsd:0.2,liquidityUsd:90000,volume24hUsd:60000,change24hPct:-4,officialLinks:{websites:['https://r'+n+'.example'],socials:[]},...o});
  const pons={ok:true,network:'pons',chainId:4663,asOf:new Date(NOW).toISOString(),freshness:'FRESH',
   tokens:[{...rh(1),symbol:'P1',launch:{status:'ONCHAIN_VERIFIED'}},{...rh(2),symbol:'P2'}]};
  const robin={ok:true,network:'robinhood',chainId:4663,asOf:new Date(NOW).toISOString(),freshness:'FRESH',
@@ -193,4 +195,51 @@ test('ETR-7: snapshot guards — order, score range, critical findings, identity
  assert.equal(mut(x=>{x.push({...x.at(-1),rank:11,address:A(999)});}),false);
  // #302 (`arcy-custom-filter-1`) data-branch snapshots remain readable, so the builder does not refuse the previous risk ledger
  assert.equal(mut(x=>{for(const y of x){y.opportunity.researchRank.version='arcy-custom-filter-1';y.opportunity.researchRank.researchBand='MARKET_OPPORTUNITY_WATCH';}}),true);
+});
+
+test('ETR-8: pegged / stable assets need a declared peg AND a price at that peg; a $1 project is not a stablecoin',()=>{
+ const CAT=require('../lib/radar-v2/intel/category');
+ const c=o=>CAT.classify({chainId:4663,address:A(77),...o},'robinhood',NOW).category;
+ assert.equal(c({symbol:'U',name:'United Stables',priceUsd:0.9992}),'STABLECOIN','Robinhood U');
+ assert.equal(c({symbol:'GBPA',name:'Agant GBP',priceUsd:1.31,change24hPct:-0.08}),'STABLECOIN','Arc GBPA (GBP peg band)');
+ assert.equal(c({symbol:'KAIRO',name:'Kairo',priceUsd:1.0,change24hPct:0.1}),'EARLY_STAGE_CANDIDATE','price near $1 alone is not a peg');
+ assert.equal(c({symbol:'GBPA',name:'Agant GBP',priceUsd:0.42}),'EARLY_STAGE_CANDIDATE','declared but off-peg is not classified stable');
+ assert.equal(c({symbol:'USDX',name:'USDX',priceUsd:1.0,change24hPct:9}),'EARLY_STAGE_CANDIDATE','a volatile 24h move contradicts a peg');
+ assert.equal(c({symbol:'STABLE',name:'Stable Protocol',priceUsd:0.31}),'EARLY_STAGE_CANDIDATE');
+ assert.equal(CF.veto(r(78,{category:{category:'STABLECOIN'}})),'PEGGED_OR_STABLE_ASSET');
+ assert.equal(CF.veto(r(79,{category:{category:'WRAPPED_OR_BASE_ASSET'}})),'WRAPPED_OR_REPRESENTATION_ASSET');
+});
+
+test('ETR-9: project profile is separate from token identity and ranked by strength',()=>{
+ const t=o=>CF.projectProfile(r(80,{identity:{level:'METADATA_CROSS_CORROBORATED',evidence:['EXPLORER_AND_DEX_SYMBOL_MATCH']},...o})).level;
+ assert.equal(t({officialLinks:null}),'TOKEN_IDENTITY_ONLY');
+ assert.equal(t({}),'PROJECT_CHANNELS_LISTED');
+ assert.equal(t({officialLinks:null,dossier:{status:'PARTIAL_EVIDENCE',siteShowsExactAddress:true},officialCheck:{status:'ADDRESS_FOUND'}}),'SELF_PUBLISHED_PROJECT_SITE');
+ assert.equal(t({officialLinks:null,dossier:{status:'PARTIAL_EVIDENCE',siteShowsExactAddress:true},officialCheck:{status:'ADDRESS_NOT_FOUND'}}),'TOKEN_IDENTITY_ONLY');
+ assert.equal(CF.projectProfile(r(81,{identity:{level:'OFFICIAL_CONTRACT_VERIFIED'}})).level,'OFFICIAL_PROJECT');
+ const pi=o=>CF.compute(r(82,o)).components.projectIdentity;
+ assert.ok(pi({identity:{level:'OFFICIAL_CONTRACT_VERIFIED'}})>pi({identity:{level:'METADATA_CROSS_CORROBORATED'},dossier:{status:'PARTIAL_EVIDENCE',siteShowsExactAddress:true}}));
+ assert.ok(pi({identity:{level:'METADATA_CROSS_CORROBORATED'},dossier:{status:'PARTIAL_EVIDENCE',siteShowsExactAddress:true}})>pi({identity:{level:'METADATA_CROSS_CORROBORATED'}}));
+ assert.ok(CF.compute(r(83,{identity:{level:'METADATA_CROSS_CORROBORATED'}})).warnings.includes('PROJECT_CHANNELS_UNVERIFIED'));
+});
+
+test('ETR-10: extreme volume/liquidity and fresh spikes are ranking penalties, not exclusions; large caps have limited asymmetry',()=>{
+ const clean=r(90,{volume24hUsd:250000,liquidityUsd:450000});
+ const churn=r(91,{volume24hUsd:1336571,liquidityUsd:9509,marketSpread:null}); // CATMARIO-like: 140x turnover
+ const spiked=r(92,{change24hPct:529,volume24hUsd:67948,liquidityUsd:6277,marketSpread:null}); // ANSEMWIF-like
+ const cc=CF.compute(clean),ch=CF.compute(churn),sp=CF.compute(spiked);
+ assert.ok(ch.components.organicVolume<0.2,'churn is not organic volume: '+ch.components.organicVolume);
+ assert.ok(sp.components.organicVolume<0.3);
+ assert.ok(cc.score>ch.score&&cc.score>sp.score);
+ assert.ok(ch.warnings.includes('EXCESSIVE_VOLUME_TO_LIQUIDITY'));
+ assert.ok(sp.warnings.includes('ALREADY_SPIKED_24H'));
+ assert.equal(CF.veto(churn),null);assert.equal(CF.veto(spiked),null,'penalties never become security exclusions');
+ const out=sel([churn,spiked,...Array.from({length:8},(_,i)=>r(600+i))]);
+ assert.equal(out.length,10);assert.deepEqual(out.slice(-2).map(x=>x.address).sort(),[A(91),A(92)].sort(),'weakest two rank #9/#10');
+ // established large cap vs early growing project with the same market quality
+ const blue=r(93,{category:{category:'ESTABLISHED_BLUE_CHIP'},eligibility:'EXCLUDE',reasons:['NOT_EARLY_STAGE_CATEGORY'],marketCapUsd:5e9,fdvUsd:5.2e9});
+ const early=r(94,{marketCapUsd:2e7,fdvUsd:2.2e7,history:{observations:5,flags:['ACTIVITY_GROWTH_OBSERVED'],drawdownFromPeakPct:-32}});
+ assert.ok(CF.compute(early).components.upsideAsymmetry>CF.compute(blue).components.upsideAsymmetry);
+ assert.ok(CF.compute(blue).warnings.includes('LARGE_CAP_LIMITED_ASYMMETRY'));
+ assert.equal(CF.veto(blue),null,'established projects are not excluded');
 });
