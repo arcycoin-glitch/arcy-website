@@ -77,3 +77,21 @@ test('reviewed project GitHub source can verify exact contract only for the allo
  assert.equal(DOS.officialUrl(raw,r.dossier),true);
  assert.equal(DOS.officialUrl('https://raw.githubusercontent.com/random-attacker/sdk-core/main/src/addresses.ts',r.dossier),false);
 });
+
+test('two-way self-published exact contract and independently matched providers corroborate identity without claiming official issuer',()=>{
+ const RS=require('../lib/radar-v2/intel/research');
+ const base={chainId:5042,network:'arc',symbol:'ARCOON',address:'0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed',
+  category:{category:'EARLY_STAGE_CANDIDATE'},discoveryClass:'QUALIFIED',sourceEvidence:{crossCheck:'MATCHED'},
+  dossier:{status:'PARTIAL_EVIDENCE',siteShowsExactAddress:true,evidenceUrl:'https://arcoon.io/'},
+  officialCheck:{status:'ADDRESS_FOUND',url:'https://arcoon.io/'}};
+ const good=RS.identityLevel(base,{now:NOW});
+ assert.equal(good.level,'METADATA_CROSS_CORROBORATED');
+ assert.ok(good.evidence.some(x=>x.includes('NOT_OFFICIAL')));
+ assert.notEqual(good.level,'OFFICIAL_CONTRACT_VERIFIED');
+ const noSite=RS.identityLevel({...base,officialCheck:{status:'UNREACHABLE'}},{now:NOW});
+ assert.notEqual(noSite.level,'METADATA_CROSS_CORROBORATED');
+ const noMarket=RS.identityLevel({...base,sourceEvidence:{crossCheck:null}},{now:NOW});
+ assert.notEqual(noMarket.level,'METADATA_CROSS_CORROBORATED');
+ const contradiction=RS.identityLevel({...base,officialCheck:{status:'ADDRESS_NOT_FOUND'}},{now:NOW});
+ assert.equal(contradiction.level,'IDENTITY_SOURCE_CONFLICT');
+});
