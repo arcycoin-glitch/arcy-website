@@ -116,6 +116,7 @@ limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].c
   console.log('::notice title=radar-v5 universe::'+esc(JSON.stringify(Object.fromEntries(Object.entries(snap.sections).filter(([,x])=>x.universe).map(([n,x])=>[n,{explorer:x.universe.explorer,
    considered:x.universe.considered,accepted:x.universe.accepted,enriched:x.universe.enriched||0,rejected:x.universe.rejected,sample:(x.universe.sample||[]).map(s=>s.join(':')).join(' ')}])))).slice(0,3800));
   console.log('::notice title=radar-v6 sources::'+esc(JSON.stringify(snap.v6Sources)).slice(0,3800));
+  for(const [n] of Object.entries(summary)){const cv=snap.sections[n]?.display?.customVetoes;if(cv)console.log('::notice title=radar-v8 vetoes '+n+'::'+esc(JSON.stringify({byReason:cv.byReason,sample:(cv.sample||[]).map(v=>[v.symbol,v.address,v.reason,v.category].join('|'))})).slice(0,3800));}
   for(const [n,x] of Object.entries(summary)){
    const d=v=>v===null||v===undefined?'-':Math.round(v);
    const sec=snap.sections[n];
