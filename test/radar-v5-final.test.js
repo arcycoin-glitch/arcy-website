@@ -162,7 +162,7 @@ test('F-9. Pons: factory verification is not market depth — a thin-liquidity v
  assert.equal(RS.identityLevel(thin,{now:NOW}).level,'METADATA_CROSS_CORROBORATED');
  const out=E.selectDisplay([thin],{network:'pons',now:NOW});
  assert.equal(out.length,0);assert.ok(out.watch[0].reasons.includes('LIQUIDITY_BELOW_RESEARCH_FLOOR'));
- assert.equal(E.selectDisplay([{...thin,liquidityUsd:RS.RESEARCH_LIQUIDITY.pons}],{network:'pons',now:NOW}).length,1);
+ assert.equal(E.selectDisplay([{...thin,liquidityUsd:RS.RESEARCH_LIQUIDITY.pons,volume24hUsd:12000}],{network:'pons',now:NOW}).length,1,'P0 requires sufficient volume as well as liquidity');
  for(const n of ['ethereum','arc','robinhood','pons'])assert.ok(RS.RESEARCH_LIQUIDITY[n]>0);
 });
 
