@@ -387,3 +387,49 @@ test('V3: on-chain new pools group renders with honest flags',async()=>{
  assert.match(box.querySelector('.arcy-radar-categories-counts').textContent,/3 zincirde yeni havuz/);
  assert.match(box.querySelector('.arcy-radar-categories-flags').textContent,/sağlayıcı listesinde yok · incelenmemiş factory/);
 });
+
+
+test('Radar Info: V8 research codes become readable Turkish sections without losing evidence',async()=>{
+ const sample=token(51.8);sample.symbol='FOBO';sample.name='Fobo';
+ sample.discovery.reason='ARCY sıralaması #2 — MARKET_OPPORTUNITY_WATCH; Öncelik puanı 52.28/100 (yükseliş olasılığı değildir), veri kapsamı %100; En güçlü ölçütler: likidite/çıkış, organik hacim; Hacim $65K, likidite $224K, 24s -0.0%; Sıkışma: COMPRESSION_EMERGING; Değerleme: piyasa değeri $7.8M, FDV $7.9M, ağ içi göreli değerleme yüzdeliği 55 (araştırma sinyali, 2x/10x getiri tahmini değildir); Kimlik: METADATA_CROSS_CORROBORATED, proje profili SELF_PUBLISHED_PROJECT_SITE, profil 68/100; Uyarılar: SUSPICIOUS_ACTIVITY, UNLOCK_SCHEDULE_NOT_MEASURED, ISSUER_NOT_OFFICIALLY_VERIFIED; Ölçülemeyen: yok; Güvenlik garantisi değildir, kontrat ve çıkış koşulları bağımsız incelenmelidir; Veri 2026-11-20 16:11 UTC';
+ const {detail,body,calls}=await mount({overrides:{robinhood:{...data('robinhood'),tokens:[sample]}}});
+ const info=panel(detail,'robinhood').querySelector('.arcy-radar-overview-reason-info');
+ assert.ok(info);
+ assert.match(info.dataset.reason,/Piyasa fırsatı izleme listesi/);
+ assert.match(info.dataset.reason,/52\.28\/100/);
+ assert.match(info.dataset.reason,/veri kapsamı %100/);
+ assert.match(info.dataset.reason,/24s hacim \$65K/);
+ assert.match(info.dataset.reason,/tam seyreltilmiş değer \(FDV\) \$7\.9M/);
+ assert.match(info.dataset.reason,/Sıkışma belirtileri oluşuyor/);
+ assert.match(info.dataset.reason,/Şüpheli işlem etkinliği sinyali/);
+ assert.match(info.dataset.reason,/Token kilit açılış takvimi ölçülmedi/);
+ assert.match(info.dataset.reason,/resmî kaynaklarla doğrulanamadı/);
+ assert.doesNotMatch(info.dataset.reason,/MARKET_OPPORTUNITY_WATCH|COMPRESSION_EMERGING|SUSPICIOUS_ACTIVITY|SELF_PUBLISHED_PROJECT_SITE/);
+ const event={preventDefault(){},stopPropagation(){}};
+ info.events.click[0](event);
+ const pop=body.children[0];
+ assert.equal(pop.getAttribute('role'),'dialog');
+ assert.equal(pop.classList.contains('is-overview'),true);
+ assert.equal(pop.querySelectorAll('.arcy-radar-info-section').length,11);
+ assert.match(pop.textContent,/FOBO · Neden listede\?/);
+ assert.match(pop.textContent,/Bağımsız kontrol uyarısı/);
+ assert.match(pop.textContent,/2026-11-20 16:11 UTC/);
+ assert.ok(parseInt(pop.style.maxHeight,10)>200,'long mobile Info scrolls in a bounded viewport');
+ const close=pop.querySelector('.arcy-radar-info-close');
+ assert.ok(close);
+ close.events.click[0](event);
+ assert.equal(pop.hidden,true);
+ assert.equal(info.focused,true);
+ assert.equal(calls.length,4,'Info remains source-backed and makes no extra request');
+});
+test('Radar Info: unknown research codes remain visible and CSS enables mobile reading',async()=>{
+ const sample=token();sample.discovery.reason='ARCY sıralaması #4 — NEW_UNKNOWN_SIGNAL; Uyarılar: SOME_NEW_RISK; Güvenlik garantisi değildir';
+ const {detail}=await mount({overrides:{robinhood:{...data('robinhood'),tokens:[sample]}}});
+ const info=panel(detail,'robinhood').querySelector('.arcy-radar-overview-reason-info');
+ assert.match(info.dataset.reason,/Açıklanmamış analiz kodu \(NEW_UNKNOWN_SIGNAL\)/);
+ assert.match(info.dataset.reason,/Açıklanmamış analiz kodu \(SOME_NEW_RISK\)/);
+ assert.match(css,/\.arcy-radar-info-pop\.is-overview\{/);
+ assert.match(css,/overflow-y:auto/);
+ assert.match(css,/-webkit-overflow-scrolling:touch/);
+ assert.match(js,/info\._radarSections=why\.sections/);
+});
