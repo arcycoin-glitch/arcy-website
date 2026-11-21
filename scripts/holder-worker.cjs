@@ -23,7 +23,12 @@ async function main(){
    const unlocks=await refreshUnlocks();
    try{results=await refresh.run({limit:5,budgetMs:40000,incompleteDelayMs:5000});
     for(const result of results)if(process.env.ARC_HOLDER_PUBLISHED_DIR&&['COMPLETE','STALE'].includes(result.state)){try{const snapshot=await storage.snapshot(result.contract+'-candidates');if(snapshot)await require('../lib/holder-publication').publish(result.contract,snapshot);}catch{console.error(JSON.stringify({event:'HOLDER_PUBLICATION_FAILED',contract:result.contract}));}}
-    console.log(JSON.stringify({event:'HOLDER_WORKER_BATCH',results,unlocks}));}
+    console.log(JSON.stringify({event:'HOLDER_WORKER_BATCH',results,unlocks}));
+    // Opt-in additional holder chains (ARC_HOLDER_CHAINS, default '5042' = Arc only): same storage, leases, publication and signing.
+    for(const chainId of require('../lib/holder-chains').enabledChains().filter(id=>id!==5042)){
+     try{const chainResults=await require('../lib/holder-chain-worker').slice(chainId,{limit:3,sliceMs:15000});console.log(JSON.stringify({event:'HOLDER_CHAIN_BATCH',chainId,results:chainResults}));}
+     catch{console.error(JSON.stringify({event:'HOLDER_CHAIN_UNAVAILABLE',chainId}));}
+    }}
    catch{console.error(JSON.stringify({event:'HOLDER_WORKER_STORAGE_UNAVAILABLE'}));if(once)throw Error('Holder worker unavailable');}
    if(once||stopped)break;
    try{await sleep(results.length?5000:30000,undefined,{signal:idle.signal});}catch(e){if(e.name!=='AbortError')throw e;}

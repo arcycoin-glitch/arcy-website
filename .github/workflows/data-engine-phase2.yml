@@ -1,0 +1,98 @@
+name: Data engine phase 2 (real-chain, read-only)
+# Real-chain evidence for PR #316 phase 2. Read-only: public RPC / public report API / DEX Screener pool reads only.
+# Never writes production data, never deploys, holds no secrets.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/phase2-probe.cjs'
+      - 'scripts/mechanics-target-probe.cjs'
+      - 'scripts/market-onchain-probe.cjs'
+      - 'scripts/chain4663-capacity-probe.cjs'
+      - 'scripts/holder-chain-census.cjs'
+      - 'scripts/coverage-compare.cjs'
+      - 'scripts/ci-publication-server.cjs'
+      - 'lib/holder-*.js'
+      - 'search/server/lib/**'
+      - 'search/server/lib/market-onchain.js'
+      - 'search/server/lib/market-cross.js'
+      - '.github/workflows/data-engine-phase2.yml'
+permissions:
+  contents: read
+# One real-chain run at a time per branch (public RPC rate limits); a newer push waits instead of competing.
+concurrency:
+  group: data-engine-phase2-${{ github.head_ref || github.ref }}
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: On-chain market verification on the fixed cohort (DEX Screener pools re-read at a pinned block)
+        run: node scripts/market-onchain-probe.cjs
+      - name: Mechanics target probe (Robinhood contracts with unresolved architecture)
+        if: always()
+        run: node scripts/mechanics-target-probe.cjs 0x2d8d6f4a93acd7a916a5a654ec8b690ba3b3eadd 0x2e8c31162b855a2ffa90f6f8634643ad6f111e18
+  ab:
+    # Fixed-cohort A/B in ONE environment: main vs this branch, both served locally from the runner with identical env and network.
+    # Real chains only: chain-4663 census from the public RPC, DEX Screener + on-chain pool re-reads. Ephemeral CI signing key; nothing
+    # is written anywhere except the runner's temp directories.
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: branch
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Ephemeral CI key + localhost certificate
+        run: |
+          node -e "const c=require('crypto');const {privateKey,publicKey}=c.generateKeyPairSync('ed25519');require('fs').writeFileSync('/tmp/sign.pem',privateKey.export({format:'pem',type:'pkcs8'}));require('fs').writeFileSync('/tmp/pub.pem',publicKey.export({format:'pem',type:'spki'}))"
+          openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/tls.key -out /tmp/tls.crt -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost" 2>/dev/null
+      - name: Chain-4663 durable census (real Robinhood Chain RPC, Robinhood + Pons cohort)
+        working-directory: branch
+        env:
+          ARC_HOLDER_STORAGE: local
+          ARC_INDEX_CACHE_DIR: /tmp/holder-index
+          ARC_HOLDER_PUBLISHED_DIR: /tmp/holder-pub
+          CENSUS_BUDGET_MS: '2700000'
+        run: |
+          export ARC_HOLDER_SIGNING_KEY="$(cat /tmp/sign.pem)"
+          node scripts/holder-chain-census.cjs
+          ls -la /tmp/holder-pub/4663 | head -30 || true
+      - name: Start publication server, main and branch
+        run: |
+          sudo "$(which node)" branch/scripts/ci-publication-server.cjs /tmp/holder-pub /tmp/tls.crt /tmp/tls.key > /tmp/pubsrv.log 2>&1 &
+          export NODE_EXTRA_CA_CERTS=/tmp/tls.crt ARC_HOLDER_PUBLISHED_URL=https://localhost/snapshots/ ARC_HOLDER_PUBLIC_KEY="$(cat /tmp/pub.pem)"
+          (cd main && PORT=3001 node dev.cjs > /tmp/main.log 2>&1 &)
+          (cd branch && PORT=3002 SEARCH_MARKET_ONCHAIN_CHECK=on node dev.cjs > /tmp/branch.log 2>&1 &)
+          sleep 3; curl -sk -o /dev/null -w "pub %{http_code}\n" https://localhost/snapshots/4663/0x0000000000000000000000000000000000000000.json || true
+      - name: Verified coverage - main (before)
+        working-directory: branch
+        env:
+          ARCY_BASE: http://127.0.0.1:3001
+          COVERAGE_OUT: /tmp/cov-main.json
+          COVERAGE_PACE_MS: '1500'
+        run: node scripts/radar-verified-coverage.cjs
+      - name: Verified coverage - branch (after)
+        working-directory: branch
+        env:
+          ARCY_BASE: http://127.0.0.1:3002
+          COVERAGE_OUT: /tmp/cov-branch.json
+          COVERAGE_PACE_MS: '1500'
+        run: node scripts/radar-verified-coverage.cjs
+      - name: Fixed-cohort comparison per chain x metric
+        working-directory: branch
+        run: node scripts/coverage-compare.cjs /tmp/cov-main.json /tmp/cov-branch.json "main -> branch (same CI environment)"
+      - name: Server error tails
+        if: always()
+        run: tail -n 20 /tmp/main.log /tmp/branch.log /tmp/pubsrv.log || true

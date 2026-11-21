@@ -1,0 +1,293 @@
+{
+ "version": "arcy-coverage-cohort-1",
+ "frozenAt": "2026-11-21T10:35:06.923Z",
+ "source": {
+  "dataBranch": "radar-v4-snapshots",
+  "commit": "26136c9149a4046e94c1adf378d3d19299e3d56d",
+  "snapshotGeneratedAt": "2026-11-21T08:19:39.870Z",
+  "engineCommit": "49523aae38d1b05c00688856a6a7714aeb50c5e4"
+ },
+ "rule": "Production Radar Top 10 per section at the pinned data-branch commit. Fixed for before/after comparison; never re-selected.",
+ "tokens": [
+  {
+   "section": "arc",
+   "network": "arc",
+   "chainId": 5042,
+   "address": "0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+   "symbol": "TOLLY"
+  },
+  {
+   "section": "arc",
+   "network": "arc",
+   "chainId": 5042,
+   "address": "0xece5ca8bf9220718e5727754026757512212cb3c",
+   "symbol": "ARGUS"
+  },
+  {
+   "section": "arc",
+   "network": "arc",
+   "chainId": 5042,
+   "address": "0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed",
+   "symbol": "ARCOON"
+  },
+  {
+   "section": "arc",
+   "network": "arc",
+   "chainId": 5042,
+   "address": "0x394d38f807ee0027a182216f5e67a15ae441fa2e",
+   "symbol": "FAZE"
+  },
+  {
+   "section": "arc",
+   "network": "arc",
+   "chainId": 5042,
+   "address": "0x2164bb17a2d38c1b5170e987b2c0416df1efc752",
+   "symbol": "LONG"
+  },
+  {
+   "section": "arc",
+   "network": "arc",
+   "chainId": 5042,
+   "address": "0x3ead4e80e9e5bc0e01682d7ee74c4881b040d3ea",
+   "symbol": "KAIRO"
+  },
+  {
+   "section": "arc",
+   "network": "arc",
+   "chainId": 5042,
+   "address": "0x70857041fef0ced97f9e01e7ccc21889afe3f6f4",
+   "symbol": "CRA"
+  },
+  {
+   "section": "arc",
+   "network": "arc",
+   "chainId": 5042,
+   "address": "0x28f986a61e078795639f239675582a12b4cf7f01",
+   "symbol": "oBrain"
+  },
+  {
+   "section": "arc",
+   "network": "arc",
+   "chainId": 5042,
+   "address": "0x29316db42ff99f640fd4d1bb169635b6318cd430",
+   "symbol": "ARCANUS"
+  },
+  {
+   "section": "arc",
+   "network": "arc",
+   "chainId": 5042,
+   "address": "0x091f0c7e675a787a4018eb47c30bed3fa2013b65",
+   "symbol": "MSS2"
+  },
+  {
+   "section": "ethereum",
+   "network": "ethereum",
+   "chainId": 1,
+   "address": "0x56072c95faa701256059aa122697b133aded9279",
+   "symbol": "SKY"
+  },
+  {
+   "section": "ethereum",
+   "network": "ethereum",
+   "chainId": 1,
+   "address": "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
+   "symbol": "CVX"
+  },
+  {
+   "section": "ethereum",
+   "network": "ethereum",
+   "chainId": 1,
+   "address": "0x5a98fcbea516cf06857215779fd812ca3bef1b32",
+   "symbol": "LDO"
+  },
+  {
+   "section": "ethereum",
+   "network": "ethereum",
+   "chainId": 1,
+   "address": "0x58d97b57bb95320f9a05dc918aef65434969c2b2",
+   "symbol": "MORPHO"
+  },
+  {
+   "section": "ethereum",
+   "network": "ethereum",
+   "chainId": 1,
+   "address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+   "symbol": "AAVE"
+  },
+  {
+   "section": "ethereum",
+   "network": "ethereum",
+   "chainId": 1,
+   "address": "0x57e114b691db790c35207b2e685d4a43181e6061",
+   "symbol": "ENA"
+  },
+  {
+   "section": "ethereum",
+   "network": "ethereum",
+   "chainId": 1,
+   "address": "0x0b38210ea11411557c13457d4da7dc6ea731b88a",
+   "symbol": "API3"
+  },
+  {
+   "section": "ethereum",
+   "network": "ethereum",
+   "chainId": 1,
+   "address": "0x514910771af9ca656af840dff83e8264ecf986ca",
+   "symbol": "LINK"
+  },
+  {
+   "section": "ethereum",
+   "network": "ethereum",
+   "chainId": 1,
+   "address": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+   "symbol": "UNI"
+  },
+  {
+   "section": "ethereum",
+   "network": "ethereum",
+   "chainId": 1,
+   "address": "0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+   "symbol": "YFI"
+  },
+  {
+   "section": "robinhood",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x2d8d6f4a93acd7a916a5a654ec8b690ba3b3eadd",
+   "symbol": "STATICS"
+  },
+  {
+   "section": "robinhood",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x000de658153f47f23e92973c8eb1e89762703676",
+   "symbol": "FOBO"
+  },
+  {
+   "section": "robinhood",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111",
+   "symbol": "TORCH"
+  },
+  {
+   "section": "robinhood",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x5ab3d4c385b400f3abb49e80de2faf6a88a7b691",
+   "symbol": "FLOCK"
+  },
+  {
+   "section": "robinhood",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0xe934e36a439c94017b64a3fece66af12099abf50",
+   "symbol": "STONKBROKER"
+  },
+  {
+   "section": "robinhood",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x6245e67affa44a23077f0ea7f981a8dc743a0c47",
+   "symbol": "FRONG"
+  },
+  {
+   "section": "robinhood",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0xf3081494b87e8d5fb7960f066e931d1d0e6e3d67",
+   "symbol": "TAO"
+  },
+  {
+   "section": "robinhood",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x2e8c31162b855a2ffa90f6f8634643ad6f111e18",
+   "symbol": "AI"
+  },
+  {
+   "section": "robinhood",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x45242320dbb855eea8fd36804c6487e10e97fcf9",
+   "symbol": "TENDIES"
+  },
+  {
+   "section": "robinhood",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x18e674231a58c239dc7daedcffe15ec3a24cff5c",
+   "symbol": "HOOKR"
+  },
+  {
+   "section": "pons",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0xe8ffd7e24187f72afb08d75b1bb13088a989a791",
+   "symbol": "DELTA"
+  },
+  {
+   "section": "pons",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x7fe995a80075df3dc8ae11a9b82c7fe4202cd87f",
+   "symbol": "HMM"
+  },
+  {
+   "section": "pons",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x7dbf38976f6d3b9c529e7d9484a71898b409ee6a",
+   "symbol": "ZZZ"
+  },
+  {
+   "section": "pons",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x39dbed3a2bd333467115de45665cc57f813c4571",
+   "symbol": "PONS"
+  },
+  {
+   "section": "pons",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x07ebb29a38fbcb41563817e5e19f2cec619c90d2",
+   "symbol": "BUN"
+  },
+  {
+   "section": "pons",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0xaa07a0e9209e16ac99708c3ec70159c6ef3128a3",
+   "symbol": "ORBIO"
+  },
+  {
+   "section": "pons",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x2edd2762ec5a928f749380309eca0e33941b3e3e",
+   "symbol": "COFR"
+  },
+  {
+   "section": "pons",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x8e75c1108190aa421c91865744fcdcd8b7df753e",
+   "symbol": "VENIN"
+  },
+  {
+   "section": "pons",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0xaa1f4de6b9f7cdf11fb8aa97ce163d35d731cdb1",
+   "symbol": "CORBEL"
+  },
+  {
+   "section": "pons",
+   "network": "robinhood",
+   "chainId": 4663,
+   "address": "0x3ed7e776d6b6a87d486a369c24b340dc7266e31d",
+   "symbol": "HALBROOK"
+  }
+ ]
+}
