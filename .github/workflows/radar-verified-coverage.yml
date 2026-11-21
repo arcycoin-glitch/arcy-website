@@ -1,0 +1,67 @@
+name: Radar verified data coverage (read-only)
+# Measures verified core-field coverage on the FIXED cohort (data/verified-coverage/radar-cohort-20261121.json) against Production
+# (before) and, when Vercel reports a successful Preview deployment of this branch, against that Preview (after).
+# Read-only: public report API only, paced under the per-IP limiter. Never writes data, never deploys.
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'Site to measure'
+        default: 'https://www.arcyusdc.xyz'
+  pull_request:
+    paths:
+      - 'search/server/lib/verified-coverage.js'
+      - 'search/server/lib/holder-intelligence.js'
+      - 'scripts/radar-verified-coverage.cjs'
+      - 'scripts/holder-role-probe.cjs'
+      - 'data/verified-coverage/**'
+      - '.github/workflows/radar-verified-coverage.yml'
+  deployment_status:
+permissions:
+  contents: read
+jobs:
+  production:
+    if: github.event_name != 'deployment_status'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verified coverage on the fixed cohort
+        env:
+          ARCY_BASE: ${{ inputs.base || 'https://www.arcyusdc.xyz' }}
+          COVERAGE_OUT: /tmp/coverage-production.json
+        run: node scripts/radar-verified-coverage.cjs
+      - name: Holder role proofs on real Ethereum data (read-only RPC)
+        if: always()
+        env:
+          ROLE_OUT: /tmp/holder-roles.json
+        run: node scripts/holder-role-probe.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verified-coverage-production
+          path: /tmp/*.json
+  preview:
+    # Vercel sets deployment.ref to the commit SHA; this workflow file only exists on commits that carry it, so any
+    # successful Preview of such a commit is measured (read-only).
+    if: github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Preview'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verified coverage on the same cohort against this Preview
+        env:
+          ARCY_BASE: ${{ github.event.deployment_status.environment_url }}
+          COVERAGE_OUT: /tmp/coverage-preview.json
+        run: node scripts/radar-verified-coverage.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verified-coverage-preview
+          path: /tmp/coverage-preview.json

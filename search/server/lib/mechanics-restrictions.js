@@ -42,7 +42,7 @@ async function derive({profile,fields,details,proof,word,address,block,kind=null
  if(!profile||fields.transferRestrictions)return null;
  // Any delegating path other than a fixed EIP-1167 clone can have its executed code replaced (implementation slot,
  // legacy slot or beacon), so an absence finding there is qualified as current-implementation only.
- const upgradeable=Boolean(kind)&&!direct&&kind!=='EIP-1167 minimal proxy'||UPGRADEABLE.has(kind);
+ const upgradeable=Boolean(kind)&&!direct&&!['EIP-1167 minimal proxy','Minimal proxy (Solady LibClone, 44-byte)'].includes(kind)||UPGRADEABLE.has(kind);
  const out=(value,method,scope,status='VERIFIED_SOURCE',extra={})=>({value,method,scope,status,extra:{...extra,
   ...(upgradeable?{upgradeCaveat:'Upgradeable proxy ('+kind+'): this finding covers the current implementation only; the upgrade authority can replace it.'}:{})}});
  if(Object.hasOwn(SIMPLE,profile)){

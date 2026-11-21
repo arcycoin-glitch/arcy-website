@@ -101,10 +101,12 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
  const runtimeCodeHash=keccak(Buffer.from(code.slice(2),'hex'));details.runtimeCodeHash=runtimeCodeHash;
  const sourcePromise=sourceLoader(cfg,address,code,diagnostics);
  let target=address,targetCode=code,beacon=null,kind=null,admin=null;
- const clone=/^0x363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3$/i.exec(code);
+ // Exact immutable forwarders only: canonical EIP-1167 (45 bytes) and the Solady LibClone 44-byte variant (PUSH0-free, RETURNDATASIZE
+ // zeros). Both are pure CALLDATACOPY -> DELEGATECALL(impl) -> RETURNDATACOPY/RETURN|REVERT with no storage, admin or upgrade path.
+ const cloneMatch=/^0x(?:363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3|3d3d3d3d363d3d37363d73([0-9a-f]{40})5af43d3d93803e602a57fd5bf3)$/i.exec(code),clone=cloneMatch?[cloneMatch[0],cloneMatch[1]||cloneMatch[2]]:null,cloneKind=cloneMatch?(cloneMatch[1]?'EIP-1167 minimal proxy':'Minimal proxy (Solady LibClone, 44-byte)'):null;
  const deployed=async a=>{if(!a||a===address)return null;const c=await safe('eth_getCode',[a,block]);return CODE.test(c||'')&&!/^0xef/i.test(c)?c:null;};
  if(nonDelegating(code))fields.contractArchitecture=fact('NON-PROXY · runtime verified','Conservative complete runtime control-flow inspection',{runtimeCodeHash,scope:'No reachable DELEGATECALL, CALLCODE or SELFDESTRUCT; all JUMPDESTs are roots, metadata retained. External forwarding, permissions and future governance remain separate.'});
- else if(clone){target='0x'+clone[1].toLowerCase();targetCode=await deployed(target);if(targetCode)kind='EIP-1167 minimal proxy';}
+ else if(clone){target='0x'+clone[1].toLowerCase();targetCode=await deployed(target);if(targetCode)kind=cloneKind;}
  else{
   const entries=await Promise.all(Object.entries(SLOTS).map(async([key,slot])=>[key,addressWord(await safe('eth_getStorageAt',[address,slot,block]))]));const slots=Object.fromEntries(entries);admin=slots.admin;
   for(const [key,label]of [['implementation','EIP-1967 implementation'],['legacy','Legacy implementation slot']]){const c=await deployed(slots[key]);if(c){target=slots[key];targetCode=c;kind=label;break;}}

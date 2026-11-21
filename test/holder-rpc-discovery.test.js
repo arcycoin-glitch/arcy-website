@@ -165,7 +165,7 @@ test('benchmarked span allowance is identity-bound: exact address AND exact depl
  assert.deepEqual(ok.discoverySpanAllowance,{deployBlock:e.deployBlock,span:10008621,maxSpan:e.maxSpan,basis:'BENCHMARKED_EXACT_RECONCILIATION'});
  assert.throws(()=>RD.handoff(mk(e.maxSpan+1),[],syrup),x=>x.code==='HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED'&&x.maxSpan===e.maxSpan);
  assert.throws(()=>RD.handoff(mk(10008621),[],A),x=>x.code==='HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED'&&x.maxSpan===RD.DEFAULT_MAX_SPAN);
- assert.deepEqual(Object.keys(RD.BENCHMARKED_SPANS).sort(),['0x0dc6b79f3c3854e4d74514fd4d29be6c96beee39','0x178b01f61cbea1d2a5581fe1621be607835ec349','0xbbe6aab0ed76e90aea0d1cd978ec231c8adcdf8b'],'only benchmarked contracts (XAUM added with #262 exact-reconciliation evidence)');
+ assert.deepEqual(Object.keys(RD.BENCHMARKED_SPANS).sort(),['0x0dc6b79f3c3854e4d74514fd4d29be6c96beee39','0x178b01f61cbea1d2a5581fe1621be607835ec349','0x29316db42ff99f640fd4d1bb169635b6318cd430','0x70857041fef0ced97f9e01e7ccc21889afe3f6f4','0xbbe6aab0ed76e90aea0d1cd978ec231c8adcdf8b'],'only benchmarked contracts (XAUM #262, CRA PR #316, each with exact-reconciliation evidence)');
  for(const [k,v] of Object.entries(RD.BENCHMARKED_SPANS)){assert.ok(Object.isFrozen(v)&&v.maxSpan>RD.DEFAULT_MAX_SPAN&&v.maxSpan<=RD.HARD_MAX_SPAN,k);assert.equal(RD.allowedSpan(k,v.deployBlock-1),RD.DEFAULT_MAX_SPAN);}
  const gbpa='0xbbe6aab0ed76e90aea0d1cd978ec231c8adcdf8b',g=RD.BENCHMARKED_SPANS[gbpa];
  assert.equal(RD.handoff({deploySearch:{head:g.deployBlock+18556172-1},deployBlock:g.deployBlock,addresses:[]},[],gbpa).phase,'READ');
@@ -182,4 +182,17 @@ test('#262 XAUM benchmarked span: applies only to the exact recorded deployment 
  assert.throws(()=>RD.handoff({deploySearch:{head:19784073+15000000},deployBlock:19784073,addresses:[]},[],xaum),e=>e.code==='HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED');
  const s=RD.handoff({deploySearch:{head:31664125},deployBlock:19784073,addresses:[]},[],xaum);
  assert.equal(s.phase,'READ');assert.equal(s.discoverySpanAllowance.basis,'BENCHMARKED_EXACT_RECONCILIATION');
+});
+
+test('PR #316 CRA benchmarked span: exact deployment block only; proof span covered; beyond maxSpan still refused',()=>{
+ const cra='0x70857041fef0ced97f9e01e7ccc21889afe3f6f4',e=RD.BENCHMARKED_SPANS[cra];
+ assert.ok(Object.isFrozen(e));assert.equal(e.deployBlock,21139514);assert.ok(e.maxSpan>11255647&&e.maxSpan<=RD.HARD_MAX_SPAN);
+ assert.equal(RD.allowedSpan(cra,21139515),RD.DEFAULT_MAX_SPAN,'any other deployment block: global bound');
+ assert.equal(RD.handoff({deploySearch:{head:32395161},deployBlock:21139514,addresses:[]},[],cra).phase,'READ');
+ assert.throws(()=>RD.handoff({deploySearch:{head:21139514+e.maxSpan+1},deployBlock:21139514,addresses:[]},[],cra),x=>x.code==='HOLDER_RPC_DISCOVERY_SPAN_EXCEEDED');
+});
+test('PR #316 ARCANUS benchmarked span: exact deployment block only',()=>{
+ const a='0x29316db42ff99f640fd4d1bb169635b6318cd430',e=RD.BENCHMARKED_SPANS[a];
+ assert.equal(e.deployBlock,21186598);assert.ok(e.maxSpan>11219718);assert.equal(RD.allowedSpan(a,21186599),RD.DEFAULT_MAX_SPAN);
+ assert.equal(RD.handoff({deploySearch:{head:32406316},deployBlock:21186598,addresses:[]},[],a).phase,'READ');
 });

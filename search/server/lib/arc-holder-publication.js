@@ -27,7 +27,7 @@ function parseConfiguration(env=process.env){
  if(key.asymmetricKeyType!=='ed25519')return null;
  return {url,key};
 }
-function verifyDocument(document,address,key,now=Date.now()){
+function verifyDocument(document,address,key,now=Date.now(),chainId=5042){
  if(!document||typeof document!=='object'||typeof document.payload!=='string'||
     typeof document.signature!=='string'||document.payload.length>440000||
     !/^[A-Za-z0-9+/]+={0,2}$/.test(document.signature)||document.signature.length>512)return null;
@@ -36,7 +36,7 @@ function verifyDocument(document,address,key,now=Date.now()){
  if(sig.length!==64||!crypto.verify(null,Buffer.from(document.payload),key,sig))return null;
  let documentPayload;
  try{documentPayload=JSON.parse(document.payload)}catch{return null}
- if(documentPayload?.chainId!==5042||documentPayload?.address!==address)return null;
+ if(documentPayload?.chainId!==chainId||documentPayload?.address!==address)return null;
  const x=documentPayload.snapshot;
  if(x?.status!=='ONCHAIN_VERIFIED'||x?.coverage?.complete!==true||
     !BLOCK.test(x.block||'')||x.snapshot?.block!==x.block||
@@ -69,34 +69,40 @@ function methodology(snapshot){
  const excluded=Array.isArray(snapshot.excluded)?snapshot.excluded.filter(x=>ADDRESS.test(x?.address||'')&&/^\d+$/.test(x?.balanceRaw||'')):[];
  return require('./holder-attribution').concentrationScope(excluded.map(x=>({address:x.address,balance:BigInt(x.balanceRaw)})));
 }
-function toCard(snapshot,address){
- const observedAt=snapshot.snapshot.completedAt;
- return {description:'Signed COMPLETE reconciled Arc holder snapshot; historical as of '+observedAt+'.',
-  snapshot:{block:snapshot.block,completedAt:observedAt,freshness:'LAST_VERIFIED'},
+// A signed COMPLETE snapshot completed within CURRENT_MAX_AGE_MS is a CURRENT observation (state FRESH); older ones stay explicitly
+// historical (LAST_VERIFIED). The worker refreshes COMPLETE tokens every 10 minutes and treats > 1 h as stale (ARC_HOLDER_MAX_SNAPSHOT_AGE_SECONDS).
+const CURRENT_MAX_AGE_MS=3600*1000;
+function toCard(snapshot,address,{network='arc',now=Date.now()}={}){
+ const c=network==='arc'?cfg:chain(network);
+ const observedAt=snapshot.snapshot.completedAt,age=now-Date.parse(observedAt),current=Number.isFinite(age)&&age>=-60000&&age<=CURRENT_MAX_AGE_MS;
+ const state=current?'FRESH':'LAST_VERIFIED';
+ return {description:'Signed COMPLETE reconciled '+c.label+' holder snapshot; '+(current?'current (completed '+Math.max(0,Math.round(age/60000))+' min ago) as of ':'historical as of ')+observedAt+'.',
+  snapshot:{block:snapshot.block,completedAt:observedAt,freshness:state},
   fields:Object.fromEntries(KEYS.map(k=>[k,{
    value:snapshot[k],status:'SIGNED_ONCHAIN_SNAPSHOT',dataState:'DATA_FOUND',
-   freshness:{state:'LAST_VERIFIED',observedAt,block:snapshot.block},
-   chainId:cfg.chainId,network:cfg.id,
-   source:'Arc signed COMPLETE holder publication',
-   evidence:[{network:cfg.id,chainId:cfg.chainId,address,
+   freshness:{state,observedAt,block:snapshot.block,ageSeconds:Number.isFinite(age)?Math.max(0,Math.round(age/1000)):null,currentMaxAgeSeconds:CURRENT_MAX_AGE_MS/1000},
+   chainId:c.chainId,network:c.id,
+   source:c.label+' signed COMPLETE holder publication',
+   evidence:[{network:c.id,chainId:c.chainId,address,
     block:snapshot.block,completedAt:observedAt,
     anchor:snapshot.evidence.find(e=>e.block===snapshot.block&&HASH.test(e.anchor||''))?.anchor,
     method:'Ed25519 signature + original pinned-block reconciliation',
-    scope:'Historical verified publication; not a claim about latest balances.',
+    scope:current?'Verified publication completed within the current window; balances can change after the pinned block.':'Historical verified publication; not a claim about latest balances.',
     ...(k==='holderCount'?{holderCountIncludesBurnAddresses:false}:methodology(snapshot))}]
   }]))};
 }
-async function load(address,{env=process.env,fetcher=fetch,now=Date.now()}={}){
- if(!ADDRESS.test(address))return empty('Invalid Arc contract address');
+async function load(address,{env=process.env,fetcher=fetch,now=Date.now(),network='arc'}={}){
+ const chainId=network==='arc'?5042:chain(network).chainId;
+ if(!ADDRESS.test(address))return empty('Invalid '+(network==='arc'?'Arc':chain(network).label)+' contract address');
  const configuration=parseConfiguration(env);
  if(!configuration)return empty('A secure signed holder publication feed is not configured.');
- const url=new URL(address+'.json',configuration.url);
+ const url=new URL((chainId===5042?'':chainId+'/')+address+'.json',configuration.url);
  if(url.origin!==configuration.url.origin)return empty('Invalid publication URL.');
  const cacheKey=url.href+'#'+configuration.key.export({format:'der',type:'spki'}).toString('base64');
  const unavailable=reason=>{
   const previous=lastVerified.get(cacheKey);
   if(!previous)return empty(reason);
-  const card=toCard(structuredClone(previous),address);
+  const card=toCard(structuredClone(previous),address,{network,now});
   card.description+=' Publication refresh unavailable; previous verified snapshot retained.';
   return card;
  };
@@ -106,13 +112,13 @@ async function load(address,{env=process.env,fetcher=fetch,now=Date.now()}={}){
   if(!response.ok)return unavailable(response.status===404?NOT_PUBLISHED:
    'Arc signed publication source unavailable.');
   const body=await readJson(response,512*1024);
-  const snapshot=verifyDocument(body,address,configuration.key,now);
+  const snapshot=verifyDocument(body,address,configuration.key,now,chainId);
   if(!snapshot)return unavailable('Signature, source chain or COMPLETE snapshot proof invalid.');
   const previous=lastVerified.get(cacheKey);
   const selected=previous&&Date.parse(previous.snapshot.completedAt)>Date.parse(snapshot.snapshot.completedAt)?previous:snapshot;
   lastVerified.delete(cacheKey);lastVerified.set(cacheKey,structuredClone(selected));
   while(lastVerified.size>32)lastVerified.delete(lastVerified.keys().next().value);
-  return toCard(structuredClone(selected),address);
+  return toCard(structuredClone(selected),address,{network,now});
  }catch{return unavailable('Arc signed publication request failed or timed out.')}
 }
-module.exports={KEYS,NOT_PUBLISHED,load,empty,toCard,parseConfiguration,verifyDocument};
+module.exports={KEYS,NOT_PUBLISHED,CURRENT_MAX_AGE_MS,load,empty,toCard,parseConfiguration,verifyDocument};

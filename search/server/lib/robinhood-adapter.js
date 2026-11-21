@@ -59,6 +59,12 @@ async function supply(base){
  }};
 }
 async function holder({address,base}){
+ // Durable chain-4663 census (lib/holder-chain-worker.js): a CURRENT signed COMPLETE publication, reconciled to totalSupply at a pinned
+ // block, replaces explorer/candidate-based values for all four fields. Historical or absent publications fall back to the path below.
+ try{const signed=await require('./arc-holder-publication').load(address,{network:'robinhood'});
+  if(signed?.snapshot?.freshness==='FRESH'&&['holderCount','largestWalletPct','top10Pct','top20Pct'].every(k=>signed.fields?.[k]?.dataState==='DATA_FOUND'))
+   return {description:signed.description+' Full positive-balance census from the Transfer ledger; beneficial ownership is not inferred.',snapshot:signed.snapshot,fields:signed.fields};
+ }catch{}
  const fields={
   holderCount:NO('No contract-scoped Blockscout holder count available; optional PRO source not configured or unavailable.'),
   largestWalletPct:NO('No complete pinned-block holder ranking with supply reconciliation.'),
@@ -114,8 +120,8 @@ async function mechanics({address,base}){
   try{
    const code=await rpc('eth_getCode',[base.proxyImplementation,base.block]);
    if(typeof code==='string'&&/^0x(?:[0-9a-f]{2})+$/i.test(code)&&code!=='0x')
-    cloneArchitecture=evidence('EIP-1167 minimal proxy → '+base.proxyImplementation,'Robinhood RPC',{
-     address,block:base.block,method:'exact EIP-1167 runtime bytecode + eth_getCode(implementation)',
+    cloneArchitecture=evidence((base.proxyKind||'EIP-1167 minimal proxy')+' → '+base.proxyImplementation,'Robinhood RPC',{
+     address,block:base.block,method:base.proxyKind==='Minimal proxy (Solady LibClone, 44-byte)'?'exact Solady LibClone 44-byte runtime bytecode + eth_getCode(implementation)':'exact EIP-1167 runtime bytecode + eth_getCode(implementation)',
      implementation:base.proxyImplementation,scope:'Implementation bytecode exists at the same pinned Robinhood block. This does not establish whether implementation behavior or control can change.'
     },'ON_CHAIN');
   }catch{} // A missing implementation read leaves architecture unverified.
