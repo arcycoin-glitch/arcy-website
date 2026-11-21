@@ -38,11 +38,16 @@ test('UI-3 Token Unlocks phones: compact records, no forced 690 px table, nothin
  assert.doesNotMatch(phone,/min-width:690px/);
  assert.doesNotMatch(phone,/overflow-x:auto/);
  assert.match(phone,/#unlocks tbody tr\{display:grid/);
- assert.match(phone,/td:nth-child\(3\)::before\{content:"Unlock date"\}/);
- assert.match(phone,/td:nth-child\(4\)::before\{content:"Unlock amount"\}/);
- assert.match(phone,/td:nth-child\(5\)::before\{content:"% Circ\. supply"\}/);
- assert.doesNotMatch(phone,/display:none/,'no cell is hidden');
- assert.match(phone,/#unlocks thead\{position:absolute;[^}]*clip-path:inset\(50%\)/,'headers stay available to screen readers');
+ assert.match(phone,/#unlocks thead\{display:block;position:static/,'mobile uses the real accessible table header once');
+ assert.match(phone,/#unlocks thead tr\{display:grid/,'header labels align to the same columns as the mobile records');
+ assert.match(phone,/#unlocks thead th:nth-child\(3\)\{grid-area:date\}/);
+ assert.match(phone,/#unlocks thead th:nth-child\(4\)\{grid-area:amount\}/);
+ assert.match(phone,/#unlocks thead th:nth-child\(5\)\{grid-area:pct\}/);
+ assert.doesNotMatch(phone,/tbody td:nth-child\(\d+\)::before\{content:/,'column labels cannot be repeated inside each data row');
+ assert.doesNotMatch(phone,/display:none/,'no field or header cell is hidden');
+ const html=read('index.html');
+ assert.match(html,/<th>#<\/th><th>TOKEN<\/th><th>UNLOCK DATE<\/th><th>UNLOCK AMOUNT<\/th><th>% CIRCULATING SUPPLY<\/th>/,'the five original accessible column titles are retained');
+ assert.match(css,/#unlocks thead tr,#unlocks tbody tr\{grid-template-columns/,'the 320 px header and values stay aligned');
  assert.match(css,/@media\(min-width:561px\) and \(max-width:860px\)\{\s*#unlocks table\{min-width:0;width:100%\}/,'768 px tablets fit');
 });
 
