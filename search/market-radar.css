@@ -991,6 +991,12 @@
 .arcy-radar-info:focus-visible{outline:2px solid #70dfbf;outline-offset:2px}
 .arcy-radar-info-pop{position:fixed;z-index:2147483000;box-sizing:border-box;padding:9px 11px;border:1px solid #2a4658;border-radius:10px;background:#07131d;color:#dbe8f2;font:500 12px/1.45 system-ui,sans-serif;text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.45);pointer-events:none}
 .arcy-radar-info-pop[hidden]{display:none}
+/* Info-only readability: never modify Radar data, cards, scores or ranking. */
+.arcy-radar-info-pop{white-space:pre-wrap;overflow-wrap:anywhere;overscroll-behavior:contain;line-height:1.65;scrollbar-width:thin;touch-action:pan-y;pointer-events:auto}
+@media(max-width:600px){
+ .arcy-radar-info-pop{font-size:13px;padding:14px 15px;border-radius:12px}
+}
+
 /* #272: compact Info replaces the always-visible discovery rationale.
    Existing overview grid areas, mobile card structure and token links are unchanged. */
 #tokenDetail .arcy-radar-overview-reason-info{

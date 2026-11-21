@@ -163,6 +163,16 @@ const change24hReason=item=>{
   if(!gecko||dex&&Math.abs(gecko.value-dex.value)>3)return null;
   return {kind:'single',value:gecko.value,source:dex?'GeckoTerminal + DEX Screener':'GeckoTerminal'};
  };
+ // Presentation-only translations: keep raw API values, scores and evidence unchanged.
+ const readableRadarInfo=raw=>String(raw||'').replace(/\b(MARKET_OPPORTUNITY_WATCH|COMPRESSION_EMERGING|METADATA_CROSS_CORROBORATED|SELF_PUBLISHED_PROJECT_SITE|SUSPICIOUS_ACTIVITY|UNLOCK_SCHEDULE_NOT_MEASURED|ISSUER_NOT_OFFICIALLY_VERIFIED)\b/g,code=>({
+  MARKET_OPPORTUNITY_WATCH:'Piyasa fırsatı izleme',
+  COMPRESSION_EMERGING:'Hacim sıkışması oluşuyor',
+  METADATA_CROSS_CORROBORATED:'Proje bilgileri birden fazla kaynakla karşılaştırıldı',
+  SELF_PUBLISHED_PROJECT_SITE:'Projenin kendi yayımladığı web sitesi',
+  SUSPICIOUS_ACTIVITY:'Şüpheli işlem aktivitesi',
+  UNLOCK_SCHEDULE_NOT_MEASURED:'Token kilit açılış takvimi ölçülemedi',
+  ISSUER_NOT_OFFICIALLY_VERIFIED:'Tokenı çıkaran ekip resmî olarak doğrulanmadı'
+ })[code]||code);
  let infoPop=null,infoOwner=null,infoPinned=false;
  const closeInfo=()=>{
   if(infoOwner){infoOwner.setAttribute('aria-expanded','false');infoOwner.removeAttribute('aria-describedby');}
@@ -181,13 +191,17 @@ const change24hReason=item=>{
   if(!infoPop){infoPop=el('div','arcy-radar-info-pop');infoPop.id='arcyRadarInfoPop';infoPop.setAttribute('role','tooltip');infoPop.hidden=true;document.body.append(infoPop);}
   if(infoOwner&&infoOwner!==icon)closeInfo();
   infoOwner=icon;infoPinned=!!pinned;
-  infoPop.textContent=icon.dataset.reason;infoPop.hidden=false;
+  infoPop.textContent=readableRadarInfo(icon.dataset.reason);infoPop.hidden=false;
   icon.setAttribute('aria-expanded','true');icon.setAttribute('aria-describedby',infoPop.id);
-  const r=icon.getBoundingClientRect(),w=Math.min(260,document.documentElement.clientWidth-16);
-  infoPop.style.maxWidth=w+'px';
+  const r=icon.getBoundingClientRect(),vw=document.documentElement.clientWidth,vh=window.innerHeight;
+  const overview=icon.classList.contains('arcy-radar-overview-reason-info');
+  const w=Math.min(overview?420:300,vw-24);
+  infoPop.style.width=w+'px';infoPop.style.maxWidth=w+'px';
+  infoPop.style.maxHeight=Math.max(120,vh-32)+'px';
+  infoPop.style.overflowY='auto';
   const h=infoPop.offsetHeight;
-  infoPop.style.left=Math.max(8,Math.min(r.left+r.width/2-w/2,document.documentElement.clientWidth-w-8))+'px';
-  infoPop.style.top=(r.bottom+h+10>window.innerHeight&&r.top>h+10?r.top-h-6:r.bottom+6)+'px';
+  infoPop.style.left=Math.max(12,Math.min(r.left+r.width/2-w/2,vw-w-12))+'px';
+  infoPop.style.top=Math.max(12,Math.min(r.bottom+h+10>vh&&r.top>h+10?r.top-h-6:r.bottom+6,vh-h-12))+'px';
  };
  const withInfo=(cell,item)=>{
   const partial=partialSinceLaunch(item);
