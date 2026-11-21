@@ -1,0 +1,48 @@
+/* Additive readable Info sheet; original Radar card/grid and tooltip CSS are untouched. */
+.arcy-radar-readable-info{
+ position:fixed;z-index:2147483001;box-sizing:border-box;
+ max-width:calc(100vw - 24px);
+ overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+ border:1px solid #376a83;border-radius:15px;background:#081a26;
+ box-shadow:0 20px 60px rgba(0,0,0,.7);
+ color:#e2eef7;text-align:left;
+ font:500 13px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+.arcy-radar-readable-info-head{
+ position:sticky;top:0;z-index:2;
+ display:flex;justify-content:space-between;align-items:center;gap:10px;
+ padding:13px 14px;border-bottom:1px solid #285366;
+ background:#102c3b;
+}
+.arcy-radar-readable-info-title{color:#eafaff;font-size:14px;font-weight:800;line-height:1.4}
+.arcy-radar-readable-info-close{
+ min-height:38px;min-width:66px;flex-shrink:0;cursor:pointer;
+ border:1px solid #45798e;border-radius:9px;padding:7px 10px;
+ background:#184052;color:#eaf9ff;font:750 12px system-ui,sans-serif;
+}
+.arcy-radar-readable-info-close:focus-visible{outline:2px solid #7deaff;outline-offset:2px}
+.arcy-radar-readable-info-score-note{
+ margin:0;padding:12px 14px;border-bottom:1px solid #27586e;
+ background:#103245;color:#c0e6f6;font-size:12px;line-height:1.55;
+}
+.arcy-radar-readable-info-section{
+ margin:0;padding:10px 14px;border-bottom:1px solid rgba(119,178,202,.16);
+}
+.arcy-radar-readable-info-section:last-child{border-bottom:0}
+.arcy-radar-readable-info-label{
+ display:block;color:#83ddeb;font-size:11px;font-weight:800;line-height:1.5;
+}
+.arcy-radar-readable-info-copy{
+ margin:5px 0 0;color:#e1edf5;line-height:1.6;font-size:13px;font-weight:500;
+ overflow-wrap:anywhere;white-space:normal;
+}
+.arcy-radar-readable-info-section.is-warning .arcy-radar-readable-info-label{color:#ffcb8b}
+@media(max-width:640px){
+ .arcy-radar-readable-info{
+  width:calc(100vw - 24px);border-radius:16px;
+  -webkit-overflow-scrolling:touch;
+ }
+ .arcy-radar-readable-info-head{padding:12px 13px}
+ .arcy-radar-readable-info-section{padding:12px 14px}
+ .arcy-radar-readable-info-copy{font-size:14px;line-height:1.6}
+}
