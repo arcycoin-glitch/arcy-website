@@ -232,10 +232,40 @@ const change24hReason=item=>{
  const overviewData=new Map();
  const overviewPending=new Map(),overviewRetryAt=new Map(),overviewRetryTimers=new Map();
  let expandedNetwork=null;
- // UI-only: explain the source-backed V3 score without extra provider requests.
+ // UI-only: explain the published research facts in Turkish; no new API calls or score changes.
+ // Unknown source codes stay visibly marked as unknown, never silently treated as safe.
+ const RADAR_CODE_TR=Object.freeze({
+  MARKET_OPPORTUNITY_WATCH:'Piyasa fırsatı izleme listesi (yatırım önerisi değil)',
+  STRONG_RESEARCH_SIGNAL:'Güçlü araştırma sinyali (yatırım önerisi değil)',
+  LOW_CONFIDENCE_WATCH:'Düşük güven düzeyinde izleme',
+  COMPRESSION_EMERGING:'Sıkışma belirtileri oluşuyor; kesinleşmiş değil',
+  NO_COMPRESSION_EVIDENCE:'Sıkışmayı doğrulayacak yeterli veri yok',
+  INSUFFICIENT_HISTORY:'Geçmiş veri yetersiz',
+  OFFICIAL_CONTRACT_VERIFIED:'Kontrat adresi resmî kaynakla eşleştirildi; güvenlik denetimi değildir',
+  METADATA_CROSS_CORROBORATED:'Token bilgileri birden fazla kaynakla karşılaştırıldı; ihraççı doğrulaması değildir',
+  OFFICIAL_PROJECT:'Resmî proje profiliyle eşleştirildi',
+  SELF_PUBLISHED_PROJECT_SITE:'Projenin yayımladığı internet sitesi; bağımsız doğrulama değildir',
+  PROJECT_CHANNELS_LISTED:'Proje kanalları listelenmiş; resmîlikleri ayrıca doğrulanmalı',
+  SUSPICIOUS_ACTIVITY:'Şüpheli işlem etkinliği sinyali; kesin manipülasyon kanıtı değildir',
+  UNLOCK_SCHEDULE_NOT_MEASURED:'Token kilit açılış takvimi ölçülmedi',
+  ISSUER_NOT_OFFICIALLY_VERIFIED:'Tokenı çıkaran taraf resmî kaynaklarla doğrulanamadı',
+  INCOMPLETE_RESEARCH_PROFILE:'Proje araştırma profilinde eksik bilgiler var',
+  PROJECT_CHANNELS_UNVERIFIED:'Projenin iletişim kanalları doğrulanamadı',
+  LARGE_CAP_LIMITED_ASYMMETRY:'Yüksek piyasa değeri erken keşif potansiyelini sınırlayabilir',
+  SINGLE_POOL_CONCENTRATION:'İşlem hacmi tek havuzda yoğunlaşmış',
+  BELOW_RESEARCH_LIQUIDITY_FLOOR:'Araştırma için belirlenen likidite eşiğinin altında',
+  CIRCULATING_SUPPLY_NOT_MEASURED:'Dolaşımdaki arz ölçülmedi',
+  CRASH_NOT_UNDERVALUATION:'Sert düşüş, düşük değerlemenin kanıtı değildir',
+  DILUTION_RISK_LOW_CIRCULATING_SHARE:'Düşük dolaşım oranı nedeniyle token seyrelme riski',
+  EXCESSIVE_VOLUME_TO_LIQUIDITY:'Hacim/likidite oranı olağan dışı yüksek',
+  HISTORICAL_PRICE_EVENT:'Geçmişte önemli fiyat hareketi gözlemlenmiş',
+  SHARP_DAILY_FALL:'Son 24 saatte sert fiyat düşüşü'
+ });
  function explainDiscovery(raw){
-  if(typeof raw!=='string'||!raw.trim())return {short:'NOT VERIFIED',full:'NOT VERIFIED'};
-  const parts=raw.split(';').map(x=>x.trim()).filter(Boolean).slice(0,12);
+  if(typeof raw!=='string'||!raw.trim())return {short:'NOT VERIFIED',full:'NOT VERIFIED',sections:[]};
+  const parts=raw.split(';').map(x=>x.trim()).filter(Boolean).slice(0,24);
+  const codes=part=>part.replace(/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g,
+   code=>RADAR_CODE_TR[code]||'Açıklanmamış analiz kodu ('+code+')');
   const tr=part=>{
    let m;
    if((m=/^new pool \((<1|\d+) d\)$/i.exec(part)))return 'Yeni havuz ('+m[1]+' gün)';
@@ -245,13 +275,31 @@ const change24hReason=item=>{
    if(/^liquidity /i.test(part))return part.replace(/^liquidity /i,'Likidite ');
    if(part==='independently cross-verified')return 'İki bağımsız kaynakla karşılaştırıldı';
    if(part==='tokenized equity')return 'Tokenize hisse';
-   if(/^watch:/i.test(part))return '⚠ İzleme sinyali: '+part.replace(/^watch:\s*/i,'');
-   return part;
+   if(/^watch:/i.test(part))return '⚠ İzleme sinyali: '+codes(part.replace(/^watch:\s*/i,''));
+   if(/^Değerleme:/i.test(part))return codes(part).replace(/\bFDV\b/g,'tam seyreltilmiş değer (FDV)');
+   if(/^Hacim \$/i.test(part))return codes(part).replace(/^Hacim /,'24s hacim ');
+   return codes(part);
   };
-  const translated=parts.map(tr),warnings=translated.filter(x=>x.startsWith('⚠'));
+  const label=part=>{
+   if(/^ARCY sıralaması/i.test(part))return 'Sıralama ve araştırma sinyali';
+   if(/^Öncelik puanı/i.test(part))return 'Öncelik puanı ve veri kapsamı';
+   if(/^En güçlü ölçütler/i.test(part))return 'Puanı etkileyen ölçütler';
+   if(/^Hacim \$/i.test(part))return 'Hacim, likidite ve fiyat değişimi';
+   if(/^Sıkışma:/i.test(part))return 'Sıkışma değerlendirmesi';
+   if(/^Değerleme:/i.test(part))return 'Piyasa değeri ve değerleme';
+   if(/^Kimlik:/i.test(part))return 'Proje kimliği ve kanıt düzeyi';
+   if(/^Uyarılar:/i.test(part)||/^watch:/i.test(part))return 'Risk ve dikkat noktaları';
+   if(/^Ölçülemeyen:/i.test(part))return 'Ölçülemeyen alanlar';
+   if(/^Güvenlik garantisi/i.test(part))return 'Bağımsız kontrol uyarısı';
+   if(/^Veri \d{4}-/.test(part))return 'Veri zamanı (UTC)';
+   return 'Araştırma notu';
+  };
+  const translated=parts.map(tr);
+  const sections=parts.map((part,i)=>({title:label(part),text:translated[i]}));
+  const warnings=translated.filter(x=>x.startsWith('⚠'));
   const featured=translated.filter(x=>!x.startsWith('⚠')).slice(0,3);
   if(warnings.length)featured.push(warnings.join(' · '));
-  return {short:featured.join(' · ')||'NOT VERIFIED',full:translated.join(' · ')||'NOT VERIFIED'};
+  return {short:featured.join(' · ')||'NOT VERIFIED',full:translated.join(' · ')||'NOT VERIFIED',sections};
  }
  function validOverview(network,data){
   return data?.ok===true&&data.version===2&&data.network===network&&data.chainId===CHAIN_ID[network]&&
