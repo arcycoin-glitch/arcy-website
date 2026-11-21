@@ -59,6 +59,12 @@ async function main(){
  limits.customFilter=process.env.RADAR_CUSTOM_FILTER_ENABLED==='true';
  // V8 exact Top 10: official Pons factory membership (targeted eth_call, chain-checked 4663, <=80 contracts) for Pons priority
  // and Pons coverage expansion. Builder only; a failure leaves Pons/Robinhood as observed (reported, never guessed).
+ // Pons launch ledger (immutable on-chain factory membership): previous ledger + launch-verified Pons rows of the previous
+ // snapshot and, for preview builds, of the read-only Production snapshot (`--history`). Never inferred from a symbol.
+ if(limits.customFilter){const {seedLedger}=require('../lib/radar-v2/pons-ledger'),{publishedSnapshots}=require('./radar-memory-history.cjs');
+  // bounded: the data branches' last 24 published revisions (git history of the clones the workflow already makes)
+  const docs=[previous];for(const p of [prevPath,...String(arg('history')||'').split(',').filter(Boolean)])docs.push(...publishedSnapshots(p,{limit:24}).docs);
+  limits.ponsLaunchLedger=seedLedger(docs);}
  if(limits.customFilter){limits.ponsMembershipMax=80;const ponsLib=require('../lib/radar-v2/pons');
   // membershipAll: the 80-contract budget runs as sequential 40-contract checks (membershipMany alone truncates to 40).
   limits.ponsMembership=async addrs=>(await ponsLib.membershipAll(process.env.RADAR_PONS_RPC_URL||'https://rpc.mainnet.chain.robinhood.com',addrs,{fetcher:global.fetch,now:Date.now})).members;}
@@ -70,9 +76,10 @@ limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].c
  const snap=S.merge(previous,S.build(result,s.out,{commit:process.env.GITHUB_SHA||null}),{requireRankVersion:limits.customFilter?require('../lib/radar-v2/intel/custom-filter').VERSION:null});
  const historyRemoved=S.applyMemory(snap,result.marketMemory);
  snap.marketMemoryStatus={version:MM.VERSION,status:memoryStatus,contracts:Object.keys(result.marketMemory.entries).length,carriedRowsRemovedByHistory:historyRemoved};
- snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ponsMembership:Boolean(limits.ponsMembership),ohlcv:Boolean(limits.ohlcv),officialCache:Object.keys(ofCache).length,officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
+ snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ponsLaunchLedger:Array.isArray(limits.ponsLaunchLedger)?limits.ponsLaunchLedger.length:0,ponsMembership:Boolean(limits.ponsMembership),ohlcv:Boolean(limits.ohlcv),officialCache:Object.keys(ofCache).length,officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
  snap.v6Sources={ohlcv:{...oh.stats,cachedPools:Object.keys(ohCache.entries).length,perNetwork:result.v6?.ohlcv||{}},officialRecheck:result.v6?.official||{},officialDiscovery:result.v6?.discovery||{}};
  snap.v6Sources.ponsExpansion=result.ponsExpansion||null;
+ if(Array.isArray(result.ponsLaunchLedger))snap.ponsLaunchLedger=result.ponsLaunchLedger;
  // Per listed Ethereum contract: where it ended (main / watch reason / Filter B gate / not in intake). Audit trail, not served.
  {const U=require('../lib/radar-v2/intel/universe'),n=result.networks.ethereum||{};const main=new Map((n.displayCandidates||[]).map(r=>[r.address,r]));
   const watch=new Map((n.display?.watch||[]).map(w=>[w.address,w]));const all=new Map((n.all||[]).map(r=>[r.address,r]));
