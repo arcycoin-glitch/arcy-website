@@ -1,0 +1,22 @@
+name: Data engine phase 2 (real-chain, read-only)
+# Real-chain evidence for PR #316 phase 2. Read-only: public RPC / public report API / DEX Screener pool reads only.
+# Never writes production data, never deploys, holds no secrets.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/phase2-probe.cjs'
+      - '.github/workflows/data-engine-phase2.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Cohort sizing probe (Production report + pools + chain facts)
+        run: node scripts/phase2-probe.cjs
