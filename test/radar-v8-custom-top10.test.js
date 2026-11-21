@@ -251,3 +251,34 @@ test('ETR-10: extreme volume/liquidity and fresh spikes are ranking penalties, n
  assert.ok(CF.compute(blue).warnings.includes('LARGE_CAP_LIMITED_ASYMMETRY'));
  assert.equal(CF.veto(blue),null,'established projects are not excluded');
 });
+
+
+test('ETR-11: repeated swaps without independently measured wallets are volume, not proven organic adoption',()=>{
+ const base=r(900,{network:'robinhood',chainId:4663,key:'4663:'+A(900),priceUsd:0.0047,
+  volume24hUsd:336771.81,liquidityUsd:3323059.47,trades24h:1262,buys24h:800,sells24h:462,
+  change24hPct:-8.7,marketCapUsd:3400000,fdvUsd:4700000});
+ const unknown=CF.compute(base);
+ assert.ok(unknown.warnings.includes('UNIQUE_PARTICIPANTS_NOT_OBSERVED'));
+ assert.ok(unknown.unmeasured.includes('organicVolume'));
+ assert.ok(unknown.unmeasured.includes('buyerParticipation'));
+ assert.ok(unknown.components.organicVolume<=0.45);
+ assert.ok(unknown.components.buyerParticipation<=0.35);
+ assert.ok(!unknown.signals.includes('HEALTHY_ORGANIC_VOLUME'));
+ assert.ok(!unknown.signals.includes('BUYER_PARTICIPATION_RISING'));
+ assert.notEqual(unknown.band,'STRONG_RESEARCH_SIGNAL','trade count alone cannot prove strong organic participation');
+ assert.equal(CF.veto(base),null,'unknown wallet breadth is NOT a scam veto');
+ const broad=CF.compute({...base,activity:{buyers:{h24:90},sellers:{h24:80}}});
+ assert.ok(broad.components.organicVolume>unknown.components.organicVolume);
+ assert.ok(broad.score>unknown.score);
+ assert.ok(broad.signals.includes('HEALTHY_ORGANIC_VOLUME'),'source-backed participant breadth can support organic volume');
+ const churn=CF.compute({...base,activity:{buyers:{h24:1},sellers:{h24:1}}});
+ assert.ok(churn.warnings.includes('CONCENTRATED_TRADING_ACTIVITY'));
+ assert.ok(churn.components.organicVolume<unknown.components.organicVolume);
+ assert.ok(churn.components.buyerParticipation<=0.25);
+ assert.ok(!churn.signals.includes('HEALTHY_ORGANIC_VOLUME'));
+ assert.equal(CF.veto({...base,activity:{buyers:{h24:1},sellers:{h24:1}}}),null,
+  'concentrated transactions are a research warning, NOT proof of manipulation');
+ const verified=CF.compute({...base,evidenceSummary:{demand:{distinctBuyers:40,
+  cluster:'REVIEWED_NO_CONCENTRATION',wash:'REVIEWED_NO_SELF_TRADE'}}});
+ assert.ok(verified.signals.includes('HEALTHY_ORGANIC_VOLUME'),'reviewed onchain demand can support the signal');
+});
