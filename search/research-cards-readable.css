@@ -29,3 +29,12 @@
 .arcy-rc-when.is-warn{color:#ffd28a}
 .arcy-rc-link{color:#7fe3ff;text-decoration:underline;text-underline-offset:2px}
 @media(max-width:420px){.arcy-rc-panel{padding:11px 11px}.arcy-rc-bar{grid-template-columns:minmax(74px,auto) 1fr auto;gap:7px}.arcy-rc-chip{white-space:normal}}
+
+/* Secondary, optional context — the four original metric rows remain first. */
+.arcy-rc-disclosure{margin:12px 0 13px;border:1px solid #2a5065;border-radius:13px;background:#071b29;overflow:hidden}
+.arcy-rc-disclosure-toggle{list-style:revert;cursor:pointer;padding:13px 14px;min-height:44px;display:list-item;list-style-position:inside;color:#aeeaff;font:750 12px/1.5 Inter,ui-sans-serif,system-ui,sans-serif}
+.arcy-rc-disclosure-toggle::marker{color:#49cce3}
+.arcy-rc-disclosure-toggle:focus-visible{outline:2px solid #54dce9;outline-offset:-3px}
+.arcy-rc-disclosure[open] .arcy-rc-disclosure-toggle{border-bottom:1px solid #2a5065;color:#e8f9ff}
+.arcy-rc-disclosure .arcy-rc-panel{border:0;border-radius:0;margin:0;padding:12px 13px;background:transparent}
+@media(max-width:420px){.arcy-rc-disclosure-toggle{padding:12px 11px;font-size:12px}}
