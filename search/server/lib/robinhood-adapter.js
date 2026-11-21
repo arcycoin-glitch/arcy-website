@@ -59,6 +59,12 @@ async function supply(base){
  }};
 }
 async function holder({address,base}){
+ // Durable chain-4663 census (lib/holder-chain-worker.js): a CURRENT signed COMPLETE publication, reconciled to totalSupply at a pinned
+ // block, replaces explorer/candidate-based values for all four fields. Historical or absent publications fall back to the path below.
+ try{const signed=await require('./arc-holder-publication').load(address,{network:'robinhood'});
+  if(signed?.snapshot?.freshness==='FRESH'&&['holderCount','largestWalletPct','top10Pct','top20Pct'].every(k=>signed.fields?.[k]?.dataState==='DATA_FOUND'))
+   return {description:signed.description+' Full positive-balance census from the Transfer ledger; beneficial ownership is not inferred.',snapshot:signed.snapshot,fields:signed.fields};
+ }catch{}
  const fields={
   holderCount:NO('No contract-scoped Blockscout holder count available; optional PRO source not configured or unavailable.'),
   largestWalletPct:NO('No complete pinned-block holder ranking with supply reconciliation.'),
