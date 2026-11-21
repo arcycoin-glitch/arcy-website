@@ -107,3 +107,23 @@ test('UI-8 locked skeleton files are untouched by this change set',()=>{
  for(const f of ['index.html','search/index.html','search/market-radar.js','search/market-radar.css','radar.html'])
   assert.doesNotMatch(read(f),/radar-search|research-cards-readable/,f);
 });
+
+
+test('UI-9 Holder and Mechanics keep the original four-row card first; long notes are below and opt-in',()=>{
+ const js=read('search/research-cards-readable.js');
+ const css=read('search/research-cards-readable.css');
+ const html=read('search/index.html');
+ assert.match(js,/el\('details','arcy-rc-disclosure'\)/,'supplementary research notes are a native disclosure');
+ assert.match(js,/el\('summary','arcy-rc-disclosure-toggle'/,'readable summary control is keyboard accessible');
+ assert.match(js,/disclosure\.open=false/,'long explanations are collapsed by default');
+ assert.match(js,/const status=section\.querySelector\(':scope > \.statusLine'\)/);
+ assert.match(js,/if\(status\)status\.before\(disclosure\)/,'notes appear after original metrics, before original evidence status');
+ assert.match(js,/id==='holders'\?\s*'Cüzdan yoğunlaşması/);
+ assert.match(js,/'Kontrat mekanikleri · Ayrıntılı açıklamaları göster'/);
+ assert.doesNotMatch(js,/\.description'\)\?\.(?:after|before)\(panel\)/,'no supplemental card above the metrics');
+ assert.match(css,/\.arcy-rc-disclosure-toggle:focus-visible/);
+ assert.match(css,/\.arcy-rc-disclosure\[open\]/);
+ assert.match(html,/for\(const \[key,label\] of spec\.fields\)/,'the locked four-field renderer remains intact');
+ assert.match(html,/section\.append\(status\)/,'original source-backed status remains on screen');
+ assert.match(html,/section\.append\(details\)/,'original source evidence remains available');
+});
