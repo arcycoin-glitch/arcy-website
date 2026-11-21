@@ -43,7 +43,7 @@ jobs:
     # Real chains only: chain-4663 census from the public RPC, DEX Screener + on-chain pool re-reads. Ephemeral CI signing key; nothing
     # is written anywhere except the runner's temp directories.
     runs-on: ubuntu-latest
-    timeout-minutes: 100
+    timeout-minutes: 170
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,7 +65,7 @@ jobs:
           ARC_HOLDER_STORAGE: local
           ARC_INDEX_CACHE_DIR: /tmp/holder-index
           ARC_HOLDER_PUBLISHED_DIR: /tmp/holder-pub
-          CENSUS_BUDGET_MS: '2700000'
+          CENSUS_BUDGET_MS: '5400000'
         run: |
           export ARC_HOLDER_SIGNING_KEY="$(cat /tmp/sign.pem)"
           node scripts/holder-chain-census.cjs

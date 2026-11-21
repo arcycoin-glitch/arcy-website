@@ -100,3 +100,11 @@ test('HC-7 signed publication: chain 4663 documents carry chainId 4663, live und
  if(card.fields.holderCount.dataState==='DATA_FOUND'){assert.equal(card.fields.holderCount.value,3);assert.equal(card.snapshot.freshness,'FRESH');assert.equal(card.fields.holderCount.chainId,4663);}
  delete process.env.ARC_HOLDER_SIGNING_KEY;delete process.env.ARC_HOLDER_PUBLISHED_DIR;
 });
+test('HC-8 growth damping: after a range-limited window the width is held for 4 windows instead of oscillating',async()=>{
+ fs.rmSync(path.join(dir,'chain-4663'),{recursive:true,force:true});
+ const dense=Array.from({length:40},(_,i)=>log(45000000+i*1000,0,A,B,1n));
+ const {rpc,calls}=chain({logs:[...LOGS,...dense],balances:{[A]:660n,[B]:240n,[C]:100n},logLimit:6});
+ const r=await census(rpc);assert.equal(r.status,'ONCHAIN_VERIFIED');
+ const limited=calls.spans.filter((s,i)=>i>0&&calls.spans[i-1]&&s>calls.spans[i-1]*1.9).length;
+ assert.ok(calls.getLogs<200,'bounded log queries: '+calls.getLogs);assert.ok(limited<calls.getLogs/2,'no tight double/halve oscillation');
+});
