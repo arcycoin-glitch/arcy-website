@@ -61,7 +61,11 @@ for(let i=0;i<before.rows.length;i++){
  // Eligible only where main proved delegation for an UNBOUND outer runtime and this branch binds it to reviewed source.
  // A contract that was not newly bound may only use these kinds to replace requests main ALSO made but could not replay
  // (its own pre-existing replay misses); everything above that needs the new reviewed binding.
- const newlyBound=/· delegation proven$/.test(b.f.contractArchitecture.value||'')&&!/· delegation proven$/.test(a.f.contractArchitecture.value||'');
+ // Also newly bound (PR #316): main could not resolve the target at all (ARCHITECTURE_TARGET_UNRESOLVED) and the branch binds it through an
+ // exact immutable-forwarder runtime (canonical EIP-1167 or Solady LibClone 44-byte). Budget, pinning and every field check are unchanged.
+ const forwarderBound=b.f.contractArchitecture.reason==='ARCHITECTURE_TARGET_UNRESOLVED'&&!b.f.contractArchitecture.ok&&a.f.contractArchitecture.ok&&
+  /^(EIP-1167 minimal proxy|Minimal proxy \(Solady LibClone, 44-byte\))/.test(a.f.contractArchitecture.value||'');
+ const newlyBound=forwarderBound||/· delegation proven$/.test(b.f.contractArchitecture.value||'')&&!/· delegation proven$/.test(a.f.contractArchitecture.value||'');
  if(binding>(b.net.replayMiss||0))assert.ok(newlyBound,'Proxy-binding reads spent on a contract that was not newly bound: '+id);
  if(binding){budgets.binding+=binding;budgets.bindingContracts++;}
  assert.ok(restriction<=RESTRICTION_BUDGET,'Transfer-restriction state read budget exceeded for '+id+' ('+restriction+'>'+RESTRICTION_BUDGET+')');

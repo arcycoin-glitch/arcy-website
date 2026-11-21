@@ -114,3 +114,15 @@ test('V5: a not-newly-bound contract may use binding kinds only to replace its o
  const b2=rows(),a2=rows();b2[3].net.replayMiss=1;a2[3].net.replayMiss=0;a2[3].net.rpc+=2;a2[3].net.augBinding=2;
  assert.match(gate(b2,a2).out,/not newly bound/);
 });
+
+test('PR #316: binding reads allowed only when an UNRESOLVED target is newly bound as an exact immutable forwarder; budget unchanged',()=>{
+ const unresolved={ok:false,cls:'NOT_VERIFIED',status:'NOT_VERIFIED',reason:'ARCHITECTURE_TARGET_UNRESOLVED',value:'',scope:''};
+ const mk=(value,n)=>{const b=rows(32,(r,i)=>{if(i===24)r.f.contractArchitecture=unresolved;});const a=rows(32,(r,i)=>{if(i===24){r.f.contractArchitecture={...field(true),value};r.net.rpc+=n;r.net.augBinding=n;}});return gate(b,a);};
+ assert.equal(mk('Minimal proxy (Solady LibClone, 44-byte)',3).ok,true);
+ assert.equal(mk('EIP-1167 minimal proxy',3).ok,true);
+ assert.match(mk('Minimal proxy (Solady LibClone, 44-byte)',9).out,/Proxy-binding read budget exceeded/);
+ assert.match(mk('DELEGATECALL opcode present; proxy target/authority unresolved',2).out,/not newly bound/,'any other architecture text is not a binding');
+ // a target that main had resolved is never "newly bound"
+ const b=rows(),a=rows(32,(r,i)=>{if(i===24){r.f.contractArchitecture={...field(true),value:'Minimal proxy (Solady LibClone, 44-byte)'};r.net.rpc+=2;r.net.augBinding=2;}});
+ const r=gate(b,a);assert.equal(r.ok,false);assert.match(r.out,/not newly bound|Previously verified field changed/);
+});
