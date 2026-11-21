@@ -17,6 +17,10 @@ on:
       - 'search/server/lib/report.js'
       - 'lib/mechanics-*.js'
       - 'lib/verified-source.js'
+      # shared transport/scope code: a core.batch change regressed CRA mechanics in PR #316 without touching mechanics files
+      - 'lib/core.js'
+      - 'lib/search-request.js'
+      - 'lib/holder-chains.js'
   workflow_dispatch:
 concurrency:
   group: mechanics-bench-${{ github.ref }}
