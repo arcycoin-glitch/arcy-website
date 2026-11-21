@@ -1,0 +1,30 @@
+name: Arc holder span proof (read-only)
+# Proof scans for Arc contracts whose worker discovery exceeds the default RPC span bound (procedure of #187 / #262).
+# Read-only: public Arc RPC + public production job status. Writes, queues and publishes nothing.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/arc-span-proof.cjs'
+      - '.github/workflows/arc-span-proof.yml'
+permissions:
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        token:
+          - '0x70857041fe' # CRA (resolved below)
+          - '0x29316db42f' # ARCANUS
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Proof scan
+        run: |
+          A=$(node -e "const c=require('./data/verified-coverage/radar-cohort-20261121.json');const t=c.tokens.find(t=>t.address.startsWith('${{ matrix.token }}'));process.stdout.write(t.address)")
+          ARC_HOLDER_LOG_WINDOW_MAX=2000 node scripts/arc-span-proof.cjs "$A"
