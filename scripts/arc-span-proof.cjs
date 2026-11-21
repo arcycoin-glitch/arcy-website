@@ -25,4 +25,6 @@ async function proof(a){
  out.anchorStable=(await core.rpc('eth_getBlockByNumber',[pin,false]))?.hash===anchor;out.anchor=anchor;out.ms=Date.now()-out.t0;delete out.t0;
  return out;
 }
-(async()=>{for(const a of process.argv.slice(2).map(x=>x.toLowerCase())){try{console.log('SPAN_PROOF '+JSON.stringify(await proof(a)));}catch(e){console.log('SPAN_PROOF '+JSON.stringify({address:a,error:e.code||e.message}));}}})();
+// All index calls run through the throttled Arc client (pacing 250 ms, 1 in flight, 429/5xx backoff honouring Retry-After).
+const chains=require('../lib/holder-chains'),client=chains.rpcClient(5042);
+(async()=>{for(const a of process.argv.slice(2).map(x=>x.toLowerCase())){try{const r=await chains.run(5042,()=>proof(a),{rpc:client});console.log('SPAN_PROOF '+JSON.stringify({...r,rpc:client.metrics}));}catch(e){console.log('SPAN_PROOF '+JSON.stringify({address:a,error:e.code||e.message,rpc:client.metrics}));}}})();

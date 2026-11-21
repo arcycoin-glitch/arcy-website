@@ -9,12 +9,16 @@ on:
       - '.github/workflows/arc-span-proof.yml'
 permissions:
   contents: read
+concurrency:
+  group: arc-span-proof-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 jobs:
   proof:
     runs-on: ubuntu-latest
     timeout-minutes: 150
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         token:
           - '0x70857041fe' # CRA (resolved below)
