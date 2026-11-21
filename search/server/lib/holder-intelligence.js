@@ -111,13 +111,23 @@ async function classifyRole(address,{token,block,rpc,network='ethereum'}){
  }
  return {role:'UNKNOWN_CONTRACT',roleEvidence:ev('contract code present; no verified DEX pool binding')};
 }
-async function classifyRoles(candidates,{token,block,rpc,network='ethereum',max=12}={}){
- const out=[];
+// Strict request budget (audit correction): role proofs are optional, sequential and must never dominate a report.
+// Worst case per candidate is 6 RPC calls (getCode, factory, token0, token1, fee, getPool). Defaults: 36 calls / 2.5 s.
+// A candidate that cannot be started inside the remaining budget keeps role UNKNOWN (never guessed); the profile says so.
+const ROLE_BUDGET=Object.freeze({maxCalls:36,maxMs:2500,perCandidateWorstCase:6});
+async function classifyRoles(candidates,{token,block,rpc,network='ethereum',max=12,maxCalls=ROLE_BUDGET.maxCalls,maxMs=ROLE_BUDGET.maxMs,now=Date.now}={}){
+ const out=[],t0=now(),profile={calls:0,ms:0,classified:0,skippedBudget:0,skippedMax:0,budget:{maxCalls,maxMs,max}};
+ const counted=async(m,p)=>{if(profile.calls>=maxCalls)throw Object.assign(Error('ROLE_BUDGET_EXHAUSTED'),{code:'ROLE_BUDGET_EXHAUSTED'});profile.calls++;return rpc(m,p);};
  for(const [i,c] of (Array.isArray(candidates)?candidates:[]).entries()){
-  if(c.role==='BURN_ADDRESS'||i>=max){out.push(c);continue;}
-  const r=await classifyRole(c.address,{token,block,rpc,network});
+  if(c.role==='BURN_ADDRESS'){out.push(c);continue;}
+  if(i>=max){profile.skippedMax++;out.push(c);continue;}
+  if(maxCalls-profile.calls<ROLE_BUDGET.perCandidateWorstCase||now()-t0>=maxMs){profile.skippedBudget++;out.push(c);continue;}
+  const r=await classifyRole(c.address,{token,block,rpc:counted,network});
+  if(r.role!=='UNKNOWN')profile.classified++;
   out.push(r.role==='UNKNOWN'?c:{...c,role:r.role,roleEvidence:r.roleEvidence});
  }
+ profile.ms=now()-t0;profile.budgetExhausted=profile.skippedBudget>0;
+ Object.defineProperty(out,'profile',{value:profile,enumerable:false});
  return out;
 }
-module.exports={VERSION,ROLES,INFRA,ETH,census,concentration,intelligence,classifyRole,classifyRoles,enabled};
+module.exports={VERSION,ROLE_BUDGET,COMPLETE_STATUSES,ROLES,INFRA,ETH,census,concentration,intelligence,classifyRole,classifyRoles,enabled};

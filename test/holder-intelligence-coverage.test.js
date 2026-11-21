@@ -98,11 +98,16 @@ test('COV-1 fixed denominator: 12 core observations per token; failed reports st
  const tok={section:'ethereum',network:'ethereum',address:TOKEN,symbol:'X'};
  const ok=V.observe(tok,rep());
  assert.equal(ok.length,12);
- const top20=ok.find(o=>o.key==='top20Pct');assert.equal(top20.applicable,false);assert.match(top20.inapplicableReason,/FEWER_THAN_20_HOLDERS \(12\)/);
+ // audit correction: an explorer-reported count below 20 is NOT reliable enough to drop top20Pct from the denominator
+ assert.equal(ok.find(o=>o.key==='top20Pct').applicable,true);
+ const census=rep({holders:{fields:{holderCount:f(12,'RECONCILED_SNAPSHOT'),largestWalletPct:f(40,'RECONCILED_SNAPSHOT'),top10Pct:f(99,'RECONCILED_SNAPSHOT'),top20Pct:f(100,'RECONCILED_SNAPSHOT')}}});
+ const top20=V.observe(tok,census).find(o=>o.key==='top20Pct');assert.equal(top20.applicable,false);assert.match(top20.inapplicableReason,/FEWER_THAN_20_HOLDERS_COMPLETE_CENSUS \(12\)/);
+ const histCensus=rep({holders:{fields:{holderCount:f(12,'RECONCILED_SNAPSHOT',{freshness:{state:'LAST_VERIFIED',observedAt:'2026-10-01T00:00:00Z'}}),largestWalletPct:f(40,'RECONCILED_SNAPSHOT'),top10Pct:f(99,'RECONCILED_SNAPSHOT'),top20Pct:f(100,'RECONCILED_SNAPSHOT')}}});
+ assert.equal(V.observe(tok,histCensus).find(o=>o.key==='top20Pct').applicable,true,'historical count is not reliable for exclusion');
  const failed=V.observe(tok,null,{error:'HTTP_502'});
  assert.equal(failed.length,12);assert.ok(failed.every(o=>o.applicable&&o.tier==='NOT_VERIFIED'&&/REPORT_UNAVAILABLE/.test(o.reason)));
  const r=V.report([...ok,...failed]);
- assert.equal(r.overall.expected,24);assert.equal(r.overall.inapplicable,1);assert.equal(r.overall.applicable,23);
+ assert.equal(r.overall.expected,24);assert.equal(r.overall.inapplicable,0);assert.equal(r.overall.applicable,24);
  // single-source market rows are evidence, not verified
  assert.equal(ok.find(o=>o.key==='liquidityUsd').tier,'SOURCE_BACKED');
  assert.equal(ok.find(o=>o.key==='priceUsd').tier,'VERIFIED');
@@ -130,4 +135,27 @@ test('COV-3 the cohort is fixed, unique per chain+contract and Pons maps to the 
  const rh=new Set(c.tokens.filter(t=>t.section==='robinhood').map(t=>t.address));
  assert.equal(c.tokens.filter(t=>t.section==='pons').filter(t=>rh.has(t.address)).length,0,'no Pons/Robinhood overlap in the cohort');
  assert.match(c.source.commit,/^[0-9a-f]{40}$/);
+});
+
+test('COV-4 definitions: historical never counts as current evidence; compare() reports per chain x field on the same cohort',()=>{
+ const tok={section:'arc',network:'arc',address:A(3),symbol:'H'};
+ const hist=rep({holders:{fields:{holderCount:f(50,'HISTORICAL_ONCHAIN_VERIFIED',{freshness:{state:'LAST_VERIFIED',observedAt:'2026-10-01T00:00:00Z'}}),largestWalletPct:f(9,'ON_CHAIN'),top10Pct:f(9,'ON_CHAIN'),top20Pct:f(9,'ON_CHAIN')}}});
+ const before=V.report(V.observe(tok,hist)),after=V.report(V.observe(tok,rep({holders:{fields:{holderCount:f(50,'ON_CHAIN'),largestWalletPct:f(9,'ON_CHAIN'),top10Pct:f(9,'ON_CHAIN'),top20Pct:f(9,'ON_CHAIN')}}})));
+ assert.equal(before.overall.historical,1);assert.ok(before.overall.historicalCoveragePct>0);
+ assert.equal(before.overall.evidenceCoveragePct,Math.round(10000*(before.overall.verified+before.overall.sourceBacked)/before.overall.applicable)/100);
+ before.rows=V.observe(tok,hist);after.rows=V.observe(tok,rep({holders:{fields:{holderCount:f(50,'ON_CHAIN'),largestWalletPct:f(9,'ON_CHAIN'),top10Pct:f(9,'ON_CHAIN'),top20Pct:f(9,'ON_CHAIN')}}}));
+ const d=V.compare(before,after);
+ assert.equal(d.sameCohort,true);assert.equal(d.byField['holders.holderCount'].gained,1);assert.equal(d.byChainField['arc|holders.holderCount'].after,1);
+ assert.equal(d.transitions['HISTORICAL->VERIFIED'],1);
+ assert.equal(V.compare(before,{rows:after.rows.slice(1)}).sameCohort,false,'a different token/field set is never compared as before/after');
+});
+
+test('HI-5 role proofs obey a strict RPC budget and report a profile',async()=>{
+ let calls=0;const rpc=async(m)=>{calls++;return m==='eth_getCode'?'0x6080':null;};
+ const cands=Array.from({length:12},(_,i)=>({address:'0x'+String(i+1).padStart(40,'1'),rank:i+1,sharePct:1,role:'UNKNOWN'}));
+ const out=await HI.classifyRoles(cands,{token:TOKEN,block:'0x1',rpc,maxCalls:12});
+ assert.ok(calls<=12,'never exceeds maxCalls ('+calls+')');
+ assert.equal(out.length,12);assert.ok(out.profile.skippedBudget>0);assert.equal(out.profile.budgetExhausted,true);
+ assert.ok(out.slice(-1)[0].role==='UNKNOWN','budget-skipped candidates stay UNKNOWN');
+ const slow=await HI.classifyRoles(cands,{token:TOKEN,block:'0x1',rpc,maxMs:0});assert.equal(slow.profile.classified,0);
 });

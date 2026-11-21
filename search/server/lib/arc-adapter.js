@@ -231,6 +231,15 @@ async function activity({address,base},cardId){
  const fields=Object.fromEntries(keys.map(k=>[k,
   restored[k]?.dataState==='DATA_FOUND'?restored[k]:
    fallback[k]||NO('Exact-contract evidence unavailable.','MARKET_SOURCE_NOT_VERIFIED')]));
+ // On-chain cross-check bridge: the displayed legacy value may carry the fallback's on-chain crossCheck ONLY when it is the same
+ // DEX Screener observation (same provider, value within 0.5%), i.e. the exact pool set the chain re-read. Otherwise unchanged.
+ for(const key of ['priceUsd','liquidityUsd']){
+  const shown=fields[key],fb=fallback?.[key];
+  if(!shown||shown===fb||shown.dataState!=='DATA_FOUND'||shown.crossCheck||!fb?.crossCheck||typeof shown.value!=='number'||typeof fb.value!=='number')continue;
+  const same=/dex ?screener/i.test(String(shown.source||''))&&/dex ?screener/i.test(String(fb.source||''))&&Math.abs(shown.value-fb.value)<=0.005*Math.max(Math.abs(shown.value),Math.abs(fb.value));
+  if(same)fields[key]={...shown,crossCheck:{...fb.crossCheck,bridge:'displayed legacy DEX Screener value equals the exact-pool DEX Screener observation (<=0.5%) that was re-read on-chain'},
+   evidence:[...(shown.evidence||[]),...(fb.evidence||[]).filter(e=>e?.role==='cross-check')]};
+ }
  if(cardId==='activity'){
   fields.valuation=validateArcMarketCap(fields.valuation,base,fields.priceUsd);
   fields.valuation=deriveArcFullyDilutedValue(fields.valuation,base,fields.priceUsd);

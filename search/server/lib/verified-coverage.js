@@ -15,9 +15,16 @@ const CORE=Object.freeze([
  ['MECHANICS','mechanics','tradingTaxes'],['MECHANICS','mechanics','mintCapability'],['MECHANICS','mechanics','ownerAdmin'],['MECHANICS','mechanics','contractArchitecture']]);
 const FAMILIES=['MARKET','SUPPLY','HOLDERS','MECHANICS'];
 // Auditable applicability rules. Nothing else may leave the denominator.
+// Audit correction (phase 2): top20Pct may leave the denominator ONLY when the holder count itself is reliable, i.e. a COMPLETE
+// census (holder-intelligence census().complete) whose count field is current (not historical, stale, conflicting or missing).
+// An explorer-reported or candidate-based count below 20 keeps top20Pct in the denominator.
 const INAPPLICABLE=Object.freeze({
- 'holders.top20Pct':r=>{const f=r?.cards?.holders?.fields?.holderCount;const n=Number(f?.value);
-  return f?.dataState==='DATA_FOUND'&&Number.isSafeInteger(n)&&n>0&&n<20?'FEWER_THAN_20_HOLDERS ('+n+')':null;}
+ 'holders.top20Pct':(r,{now=Date.now()}={})=>{const h=r?.cards?.holders,f=h?.fields?.holderCount;const n=Number(f?.value);
+  if(!(f?.dataState==='DATA_FOUND'&&Number.isSafeInteger(n)&&n>0&&n<20))return null;
+  const HI=require('./holder-intelligence'),census=HI.census(h.fields,{network:r?.network||null});
+  if(!census.complete||!HI.COMPLETE_STATUSES.has(f.status))return null;
+  const t=tierOf(f,'holders',now).tier;
+  return t==='VERIFIED'||t==='SOURCE_BACKED'?'FEWER_THAN_20_HOLDERS_COMPLETE_CENSUS ('+n+')':null;}
 });
 function fieldOf(report,card,key){
  const c=report?.cards?.[card];
@@ -41,7 +48,7 @@ function observe(token,report,{now=Date.now(),error=null}={}){
  return CORE.map(([family,card,key])=>{
   const id=card+'.'+key,base={section:token.section,network:token.network,address:token.address,symbol:token.symbol||null,family,card,key};
   if(!report||error)return {...base,applicable:true,tier:'NOT_VERIFIED',reason:'REPORT_UNAVAILABLE'+(error?':'+String(error).slice(0,60):'')};
-  const why=INAPPLICABLE[id]?.(report);
+  const why=INAPPLICABLE[id]?.(report,{now});
   if(why)return {...base,applicable:false,inapplicableReason:why,tier:'INAPPLICABLE'};
   return {...base,applicable:true,...tierOf(fieldOf(report,card,key),card,now)};
  });
@@ -52,7 +59,11 @@ function summarise(rows,keyOf){
  for(const r of rows){const k=keyOf(r);const t=out[k]||={expected:0,applicable:0,inapplicable:0,verified:0,sourceBacked:0,stale:0,historical:0,conflicting:0,notVerified:0};
   t.expected++;if(!r.applicable){t.inapplicable++;continue;}t.applicable++;
   ({VERIFIED:()=>t.verified++,SOURCE_BACKED:()=>t.sourceBacked++,STALE:()=>t.stale++,HISTORICAL:()=>t.historical++,CONFLICTING:()=>t.conflicting++,NOT_VERIFIED:()=>t.notVerified++})[r.tier]?.();}
- for(const t of Object.values(out)){t.verifiedCoveragePct=pct(t.verified,t.applicable);t.evidenceCoveragePct=pct(t.verified+t.sourceBacked,t.applicable);}
+ // Definitions (audit correction): evidenceCoveragePct = CURRENT evidence only (verified + fresh single-source);
+ // historicalCoveragePct = last-verified snapshots older than their freshness window, reported separately and never mixed into
+ // current evidence; anyValuePct = every applicable field that carries a real value of any age (verified+source+stale+historical).
+ for(const t of Object.values(out)){t.verifiedCoveragePct=pct(t.verified,t.applicable);t.evidenceCoveragePct=pct(t.verified+t.sourceBacked,t.applicable);
+  t.historicalCoveragePct=pct(t.historical,t.applicable);t.staleCoveragePct=pct(t.stale,t.applicable);t.anyValuePct=pct(t.verified+t.sourceBacked+t.stale+t.historical,t.applicable);}
  return out;
 }
 function failures(rows){
@@ -63,8 +74,20 @@ function failures(rows){
 function report(rows,{cohort=null,base=null,at=new Date().toISOString(),census=null,timings=null}={}){
  const all=summarise(rows,()=> 'ALL').ALL||null;
  return {version:VERSION,at,base,cohort,definition:{core:CORE.map(([f,c,k])=>f+':'+c+'.'+k),verified:'evidence-class ON_CHAIN_VERIFIED | CROSS_VERIFIED, fresh, not conflicting',
-   evidence:'verified + SINGLE_SOURCE (fresh, not conflicting)',inapplicable:Object.keys(INAPPLICABLE)},
+   evidence:'CURRENT evidence: verified + SINGLE_SOURCE (fresh, not conflicting); historical and stale are excluded and reported separately',historical:'last-verified snapshot outside its freshness window (never counted as current evidence)',inapplicable:Object.keys(INAPPLICABLE)},
   overall:all,byChain:summarise(rows,r=>r.section),byFamily:summarise(rows,r=>r.family),byChainFamily:summarise(rows,r=>r.section+'|'+r.family),
   byToken:summarise(rows,r=>r.section+'|'+r.symbol+'|'+r.address),byField:summarise(rows,r=>r.card+'.'+r.key),failures:failures(rows),census,timings};
 }
-module.exports={VERSION,CORE,FAMILIES,INAPPLICABLE,fieldOf,tierOf,observe,summarise,report};
+// Fixed-cohort before/after comparison: same token set required; gains are reported per chain, per field and per chain x field.
+function compare(before,after){
+ const key=r=>r.section+'|'+r.address+'|'+r.card+'.'+r.key,b=new Map((before?.rows||[]).map(r=>[key(r),r])),a=new Map((after?.rows||[]).map(r=>[key(r),r]));
+ const same=b.size>0&&b.size===a.size&&[...b.keys()].every(k=>a.has(k));
+ const transitions={},cell=(m,k)=>m[k]||={before:0,after:0,gained:0,lost:0,applicableBefore:0,applicableAfter:0};
+ const byChain={},byField={},byChainField={};
+ for(const [k,rb] of b){const ra=a.get(k);if(!ra)continue;const id=rb.card+'.'+rb.key,vb=rb.applicable&&rb.tier==='VERIFIED',va=ra.applicable&&ra.tier==='VERIFIED';
+  const tk=(rb.applicable?rb.tier:'INAPPLICABLE')+'->'+(ra.applicable?ra.tier:'INAPPLICABLE');transitions[tk]=(transitions[tk]||0)+1;
+  for(const c of [cell(byChain,rb.section),cell(byField,id),cell(byChainField,rb.section+'|'+id)]){c.before+=vb;c.after+=va;c.gained+=(!vb&&va);c.lost+=(vb&&!va);c.applicableBefore+=rb.applicable;c.applicableAfter+=ra.applicable;}}
+ for(const m of [byChain,byField,byChainField])for(const c of Object.values(m)){c.beforePct=pct(c.before,c.applicableBefore);c.afterPct=pct(c.after,c.applicableAfter);}
+ return {sameCohort:same,overall:{before:before?.overall?.verifiedCoveragePct??null,after:after?.overall?.verifiedCoveragePct??null},byChain,byField,byChainField,transitions};
+}
+module.exports={VERSION,compare,CORE,FAMILIES,INAPPLICABLE,fieldOf,tierOf,observe,summarise,report};

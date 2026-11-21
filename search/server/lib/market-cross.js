@@ -7,7 +7,7 @@
 //  * AGREE needs both providers' pool-level values within the documented tolerance; anything else stays single-source
 //  * if the primary has no value and the secondary does, the secondary's field is used AS SINGLE SOURCE (never cross-verified)
 //  * a 429/5xx from the secondary starts a cooldown; during it no secondary call is made (reasonCode says so)
-const dex=require('./dex-market'),gecko=require('./gecko-market');
+const dex=require('./dex-market'),gecko=require('./gecko-market'),onchain=require('./market-onchain');
 // Pool-level evidence (Radar probe): DEX Screener vs GeckoTerminal liquidity ratio 0.99-1.03 on shared pools. Volume windows differ slightly.
 const TOLERANCE=Object.freeze({liquidityUsd:0.10,volume24h:0.30,priceUsd:0.03});
 const KEYS=Object.keys(TOLERANCE);
@@ -33,7 +33,7 @@ function merge(primary,secondary,{now,secondaryReason}){
    out[key]={...a,crossCheck:{state:!same?'SCOPE_MISMATCH':agree?'AGREE':'DISAGREE',providers:[a.source,b.source],values:{[a.source]:a.value,[b.source]:b.value},relativeDifference:+diff.toFixed(4),tolerance:tol,checkedAt:at,
     ...(agree?{}:{reasonCode:!same?'POOL_SCOPE_MISMATCH':'PROVIDER_DISAGREEMENT'})},evidence:[...(a.evidence||[]),...(b.evidence||[]).map(e=>({...e,role:'cross-check'}))]};
   }else if(found(a)){
-   out[key]={...a,crossCheck:{state:'UNAVAILABLE',providers:[a.source],reasonCode:secondaryReason||(b?.reasonCode)||'SECONDARY_SOURCE_NO_DATA',checkedAt:at}};
+   out[key]={...a,crossCheck:{state:'UNAVAILABLE',providers:[a.source],reasonCode:(secondaryReason&&typeof secondaryReason==='object'?secondaryReason[key]||secondaryReason.all:secondaryReason)||(b?.reasonCode)||'SECONDARY_SOURCE_NO_DATA',checkedAt:at}};
   }else if(found(b)){
    out[key]={...b,crossCheck:{state:'SINGLE_PROVIDER_FALLBACK',providers:[b.source],reasonCode:a?.reasonCode||'PRIMARY_SOURCE_NO_DATA',checkedAt:at}};
   }
@@ -41,9 +41,18 @@ function merge(primary,secondary,{now,secondaryReason}){
  for(const key of Object.keys(secondary||{})){if(KEYS.includes(key))continue;if(!found(out[key])&&found(secondary[key])&&out[key]?.dataState!=='DATA_FOUND')out[key]=secondary[key];}
  return out;
 }
-async function inspect(network,address,{dexInspect=dex.inspect,geckoInspect=gecko.inspect,now=Date.now,env=process.env}={}){
+function attachProfile(fields,profile){if(profile)Object.defineProperty(fields,'onchainProfile',{value:profile,enumerable:false});return fields;}
+async function inspect(network,address,{dexInspect=dex.inspect,geckoInspect=gecko.inspect,onchainInspect=onchain.inspect,now=Date.now,env=process.env}={}){
  const t=now();
- if(!enabled(env))return dexInspect(network,address);
+ // GeckoTerminal stays opt-in (terms review). Optional secondary (SEARCH_MARKET_ONCHAIN_CHECK=on) = the chain itself (market-onchain.js): the provider's own pools
+ // re-read at a pinned block; free, permitted, budgeted (<=24 calls, 2.5 s) and isolated (a failure only adds a reasonCode).
+ if(!enabled(env)){
+  const primary=await dexInspect(network,address);
+  if(!onchainInspect||!onchain.enabled(env))return primary;
+  let r;try{r=await onchainInspect(network,address,primary);}catch{return primary;}
+  if(!r||!r.fields||!Object.keys(r.fields).length)return attachProfile(merge(primary,null,{now:t,secondaryReason:r?.profile?.reasons||{all:'ONCHAIN_NO_DATA'}}),r?.profile);
+  return attachProfile(merge(primary,r.fields,{now:t,secondaryReason:r.profile?.reasons||{}}),r.profile);
+ }
  const useSecondary=t>=coolUntil;
  const [d,g]=await Promise.allSettled([dexInspect(network,address),useSecondary?geckoInspect(network,address):Promise.reject(Object.assign(Error('skipped'),{code:'SECONDARY_COOLDOWN'}))]);
  const primary=d.status==='fulfilled'?d.value:null;

@@ -118,7 +118,7 @@ function formatCard(cardId,raw,cfg,context){
   ...(supplementary?{supplementary}:{}),
   ...(holderCandidates.length?{holderCandidates}:{}),
   // Additive holder census / concentration summary (never changes the four schema fields or the 20-check tally)
-  ...(cardId==='holders'?{holderIntelligence:require('./holder-intelligence').intelligence(fields,{holderCandidates,network:cfg.id,block:context?.block||null,token:context?.address?.toLowerCase()||null})}:{}),
+  ...(cardId==='holders'?{holderIntelligence:{...require('./holder-intelligence').intelligence(fields,{holderCandidates,network:cfg.id,block:context?.block||null,token:context?.address?.toLowerCase()||null}),...(raw?.roleProfile&&Number.isSafeInteger(raw.roleProfile.calls)?{roleProfile:{calls:raw.roleProfile.calls,ms:raw.roleProfile.ms,classified:raw.roleProfile.classified,skippedBudget:raw.roleProfile.skippedBudget,budget:raw.roleProfile.budget}}:{})}}:{}),
   ...(disclosed.length?{supplementalEvidence:disclosed}:{}),
   researchNotes:[...require('./research-notes').notes(cardId,fields,{supplementary}),...issuerNotes],
   fields,status:count===keys.length?'SOURCE_BACKED':

@@ -110,7 +110,7 @@ async function inspect(token,block,supplyRaw,count,{getPage=fetchPage,getBalance
   // Optional (ARCY_HOLDER_ROLE_ONCHAIN=true): prove candidate roles at the same pinned block (EOA / verified DEX pool /
   // pool manager / token contract). Any failure leaves the candidate UNKNOWN; the four published metrics never change.
   const HI=require('./holder-intelligence');
-  if(HI.enabled()){try{result.holderCandidates=await HI.classifyRoles(result.holderCandidates,{token:token.toLowerCase(),block,rpc:(m,p)=>rpc(m,p),network:'ethereum'});}catch{}}
+  if(HI.enabled()){try{const roled=await HI.classifyRoles(result.holderCandidates,{token:token.toLowerCase(),block,rpc:(m,p)=>rpc(m,p),network:'ethereum'});result.holderCandidates=[...roled];result.roleProfile=roled.profile;}catch{}}
   return {...card(result.fields,'Source-ranked top-20 balances reconciled with pinned Ethereum RPC; ranked completeness remains explorer-reported.'),
    holderCandidates:result.holderCandidates,rankedEvidence:'SOURCE_REPORTED_RPC_RECONCILED'};
  }catch(e){
