@@ -173,21 +173,48 @@ const change24hReason=item=>{
  const bindInfoGlobals=()=>{
   if(infoGlobals)return;infoGlobals=true;
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&infoOwner){const o=infoOwner;closeInfo();o.focus();}});
-  document.addEventListener('click',e=>{if(infoOwner&&!(e.target&&e.target.closest&&e.target.closest('.arcy-radar-info')))closeInfo();});
+  document.addEventListener('click',e=>{const t=e.target; if(infoOwner&&!(t?.closest?.('.arcy-radar-info')||t?.closest?.('.arcy-radar-info-pop')))closeInfo();});
   window.addEventListener('scroll',()=>{if(infoOwner)closeInfo();},{passive:true});
  };
  const openInfo=(icon,pinned)=>{
   bindInfoGlobals();
-  if(!infoPop){infoPop=el('div','arcy-radar-info-pop');infoPop.id='arcyRadarInfoPop';infoPop.setAttribute('role','tooltip');infoPop.hidden=true;document.body.append(infoPop);}
+  if(!infoPop){infoPop=el('div','arcy-radar-info-pop');infoPop.id='arcyRadarInfoPop';infoPop.hidden=true;document.body.append(infoPop);}
   if(infoOwner&&infoOwner!==icon)closeInfo();
   infoOwner=icon;infoPinned=!!pinned;
-  infoPop.textContent=icon.dataset.reason;infoPop.hidden=false;
+  const sections=Array.isArray(icon._radarSections)?icon._radarSections:null;
+  const detailed=!!sections?.length;
+  infoPop.classList.toggle('is-overview',detailed);
+  infoPop.setAttribute('role',detailed?'dialog':'tooltip');
+  if(detailed){
+   infoPop.setAttribute('aria-label',(icon.dataset.symbol||'Token')+' Radar araştırma açıklaması');
+   infoPop.replaceChildren();
+   const top=el('div','arcy-radar-info-head');
+   top.append(el('strong','arcy-radar-info-heading',(icon.dataset.symbol||'Token')+' · Neden listede?'));
+   const dismiss=el('button','arcy-radar-info-close','Kapat ×');
+   dismiss.type='button';
+   dismiss.setAttribute('aria-label','Bilgi penceresini kapat');
+   dismiss.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const owner=infoOwner;closeInfo();owner?.focus();});
+   top.append(dismiss);infoPop.append(top);
+   for(const part of sections){
+    const section=el('section','arcy-radar-info-section');
+    if(/^(Risk ve dikkat noktaları|Bağımsız kontrol uyarısı)$/.test(part.title))section.classList.add('is-warning');
+    section.append(el('strong','arcy-radar-info-section-title',part.title),el('p','arcy-radar-info-section-text',part.text));
+    infoPop.append(section);
+   }
+  }else{infoPop.setAttribute('aria-label','Veri açıklaması');infoPop.textContent=icon.dataset.reason;}
+  infoPop.hidden=false;
+  infoPop.scrollTop=0;
   icon.setAttribute('aria-expanded','true');icon.setAttribute('aria-describedby',infoPop.id);
-  const r=icon.getBoundingClientRect(),w=Math.min(260,document.documentElement.clientWidth-16);
-  infoPop.style.maxWidth=w+'px';
-  const h=infoPop.offsetHeight;
-  infoPop.style.left=Math.max(8,Math.min(r.left+r.width/2-w/2,document.documentElement.clientWidth-w-8))+'px';
-  infoPop.style.top=(r.bottom+h+10>window.innerHeight&&r.top>h+10?r.top-h-6:r.bottom+6)+'px';
+  const viewport=Math.max(200,document.documentElement.clientWidth);
+  const width=Math.min(detailed?440:260,viewport-24);
+  const viewportHeight=Math.max(240,window.innerHeight||800);
+  infoPop.style.maxWidth=width+'px';
+  infoPop.style.maxHeight=detailed?Math.max(180,Math.floor(viewportHeight*.78))+'px':'';
+  infoPop.style.overflowY=detailed?'auto':'';
+  const rect=icon.getBoundingClientRect(),height=infoPop.offsetHeight;
+  infoPop.style.left=Math.max(8,Math.min(rect.left+rect.width/2-width/2,viewport-width-8))+'px';
+  infoPop.style.top=detailed&&viewport<=640?Math.max(8,Math.round(viewportHeight*.09))+'px':
+   (rect.bottom+height+10>viewportHeight&&rect.top>height+10?rect.top-height-6:rect.bottom+6)+'px';
  };
  const withInfo=(cell,item)=>{
   const partial=partialSinceLaunch(item);
@@ -435,7 +462,7 @@ const change24hReason=item=>{
     info.setAttribute('role','button');info.tabIndex=0;
     info.setAttribute('aria-label',(item.symbol||'Token')+' neden seçildi?');
     info.setAttribute('aria-expanded','false');
-    info.dataset.reason=why.full;
+    info.dataset.reason=why.full;info.dataset.symbol=item.symbol||'Token';info._radarSections=why.sections;
     const stop=e=>{e.preventDefault();e.stopPropagation();};
     const toggle=e=>{stop(e);if(infoOwner===info&&infoPinned)closeInfo();else openInfo(info,true);};
     info.addEventListener('click',toggle);
