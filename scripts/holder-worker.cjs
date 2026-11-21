@@ -17,6 +17,10 @@ async function main(){
  const stop=()=>{stopped=true;idle.abort();};process.once('SIGTERM',stop);process.once('SIGINT',stop);
  const server=require('../lib/holder-worker-http').start();
  console.log(JSON.stringify({event:'HOLDER_WORKER_STARTED',chainId:5042,storage:storage.mode()}));
+ // Chain-specific seeds are opt-in and bounded. No 4663 queue writes happen under the default Arc-only setting.
+ try{
+  await require('../lib/holder-chain-seeds').enqueue({emit:entry=>console.log(JSON.stringify({event:'HOLDER_CHAIN_SEEDED',...entry}))});
+ }catch(error){console.error(JSON.stringify({event:'HOLDER_CHAIN_SEED_FAILED',reasonCode:error?.code||'HOLDER_CHAIN_SEED_UNAVAILABLE'}));}
  try{
   do{
    let results=[];
