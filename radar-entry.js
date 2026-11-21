@@ -28,3 +28,13 @@
   if(!opened)entryStatus.textContent='Verified Radar data is temporarily unavailable. No unverified rankings are shown. Please try again later.';
  },11000);
 })();
+
+
+// Optional, additive Radar Info readability layer (only the selection Info popup).
+// Keep immutable Market Radar renderer/CSS unchanged; if the asset fails, its original popup still works.
+(()=>{
+ if(typeof document==='undefined'||document.querySelector('script[src="/search/radar-info-readable.js"]'))return;
+ const style=document.createElement('link');style.rel='stylesheet';style.href='/search/radar-info-readable.css';
+ const script=document.createElement('script');script.src='/search/radar-info-readable.js';script.async=true;
+ (document.head||document.documentElement).append(style,script);
+})();
