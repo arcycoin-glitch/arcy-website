@@ -130,7 +130,7 @@
   const st=stateOf(arch);
   if(st!=='NOT_VERIFIED'){
    const s=String(arch.value);
-   if(/NON-PROXY/i.test(s))return [st,'Kontrat proxy değil: çalışan kod sonradan değiştirilemez (yükseltilemez).'];
+   if(/NON-PROXY/i.test(s))return [st,'İncelenen kanıtta standart proxy mimarisi tespit edilmedi. Bu sonuç, tüm dolaylı yükseltme veya yetki yollarının bulunmadığını tek başına kanıtlamaz.'];
    if(/proxy|UUPS|beacon|implementation/i.test(s))return [st,'Yükseltilebilir (proxy) kontrat: yönetici kontratın kodunu sonradan değiştirebilir. Bugünkü güvenli görünüm yarın değişebilir; yükseltme yetkisinin kimde olduğu ve zaman kilidi ayrıca incelenmeli.'];
   }
   if(present(ownerF)&&/Proxy admin/i.test(String(ownerF.value)))return [stateOf(ownerF),'Bir proxy yöneticisi raporlandı: kontrat kodu yükseltilebilir olabilir; ayrıca incelenmeli.'];
@@ -138,7 +138,8 @@
   return ['NOT_VERIFIED','Proxy / yükseltme durumu doğrulanamadı. Yükseltilemez olduğu varsayılmamalı.'];
  }
  function pause(ownerF,notes){
-  if(present(ownerF)&&/\bpause/i.test(String(ownerF.value)))return [stateOf(ownerF),'Durdurma (pause / unpause) yetkisi var: yetkili adres transferleri geçici olarak durdurabilir. Bu, satış yapılamaması anlamına gelebilir.'];
+  if(present(ownerF)){const s=String(ownerF.value);const negative=/\bno\s+(?:direct\s+)?pause\b|\bpause\b.{0,35}\b(?:not detected|not found|unavailable|unsupported|absent|disabled)\b/i;
+   if(/\bpause\b/i.test(s)&&!negative.test(s))return [stateOf(ownerF),'İncelenen owner/admin kanıtında durdurma (pause / unpause) yetkisi bildiriliyor. Bu yetki transferleri etkileyebilir; hangi rolün kullanabildiği ayrıca doğrulanmalı.'];}
   const note=(Array.isArray(notes)?notes:[]).find(n=>typeof n==='string'&&/\bno pause\b/i.test(n));
   if(note)return ['NOTE','İncelenen kaynak kodunda pause fonksiyonu bulunmadığı not edilmiş. Bu not kaynak incelemesine dayanır; ayrı bir zincir üstü kontrol değildir.'];
   return ['NOT_VERIFIED','Durdurma (pause / unpause) yetkisi bu motor tarafından ayrıca raporlanmadı. Yetki olmadığı anlamına gelmez.'];
