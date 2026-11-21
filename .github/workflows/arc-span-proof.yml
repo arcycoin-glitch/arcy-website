@@ -11,7 +11,7 @@ permissions:
   contents: read
 concurrency:
   group: arc-span-proof-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   proof:
     runs-on: ubuntu-latest

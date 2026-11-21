@@ -16,7 +16,7 @@ const tokens=args.length?args.map(address=>({address})):cohort.tokens.filter(t=>
  await worker.enqueue(chainId,tokens.map(t=>t.address));
  while(Date.now()-t0<budgetMs&&[...state.values()].some(s=>s.state!=='COMPLETE')){
   const results=await worker.slice(chainId,{limit:5,sliceMs:20000,maxRanges:400});
-  for(const r of results){const s=state.get(r.contract);if(!s)continue;s.slices++;s.ms+=r.ms||0;for(const [k,v] of Object.entries(r.rpc||{}))s.rpc[k]=(s.rpc[k]||0)+v;Object.assign(s,{state:r.state,reasonCode:r.reasonCode||null,block:r.block||s.block||null,holderCount:r.holderCount??s.holderCount??null,top10Pct:r.top10Pct??s.top10Pct??null,published:r.published||s.published||false});}
+  for(const r of results){const s=state.get(r.contract);if(!s)continue;s.slices++;s.ms+=r.ms||0;for(const [k,v] of Object.entries(r.rpc||{}))s.rpc[k]=(s.rpc[k]||0)+v;Object.assign(s,{state:r.state,reasonCode:r.reasonCode||null,block:r.block||s.block||null,holderCount:r.holderCount??s.holderCount??null,top10Pct:r.top10Pct??s.top10Pct??null,published:r.published||s.published||false,balanceReadMethods:r.balanceReadMethods||s.balanceReadMethods||null,transferLogs:r.transferLogs??s.transferLogs??null,logWindows:r.logWindows??s.logWindows??null});}
   if(!results.length)await new Promise(r=>setTimeout(r,500));
  }
  for(const [address,s] of state)console.log('CENSUS '+JSON.stringify({address,...s}));

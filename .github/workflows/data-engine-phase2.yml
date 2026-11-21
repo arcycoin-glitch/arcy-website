@@ -11,6 +11,7 @@ on:
       - 'scripts/chain4663-capacity-probe.cjs'
       - 'scripts/holder-chain-census.cjs'
       - 'scripts/coverage-compare.cjs'
+      - 'scripts/coverage-ab.cjs'
       - 'scripts/ci-publication-server.cjs'
       - 'lib/holder-*.js'
       - 'search/server/lib/**'
@@ -76,20 +77,15 @@ jobs:
           (cd main && PORT=3001 node dev.cjs > /tmp/main.log 2>&1 &)
           (cd branch && PORT=3002 SEARCH_MARKET_ONCHAIN_CHECK=on node dev.cjs > /tmp/branch.log 2>&1 &)
           sleep 3; curl -sk -o /dev/null -w "pub %{http_code}\n" https://localhost/snapshots/4663/0x0000000000000000000000000000000000000000.json || true
-      - name: Verified coverage - main (before)
+      - name: Interleaved verified coverage - main (A) vs branch (B), same tokens at the same moments
         working-directory: branch
         env:
-          ARCY_BASE: http://127.0.0.1:3001
-          COVERAGE_OUT: /tmp/cov-main.json
-          COVERAGE_PACE_MS: '1500'
-        run: node scripts/radar-verified-coverage.cjs
-      - name: Verified coverage - branch (after)
-        working-directory: branch
-        env:
-          ARCY_BASE: http://127.0.0.1:3002
-          COVERAGE_OUT: /tmp/cov-branch.json
-          COVERAGE_PACE_MS: '1500'
-        run: node scripts/radar-verified-coverage.cjs
+          AB_BASE_A: http://127.0.0.1:3001
+          AB_BASE_B: http://127.0.0.1:3002
+          AB_OUT_A: /tmp/cov-main.json
+          AB_OUT_B: /tmp/cov-branch.json
+          COVERAGE_PACE_MS: '1200'
+        run: node scripts/coverage-ab.cjs
       - name: Fixed-cohort comparison per chain x metric
         working-directory: branch
         run: node scripts/coverage-compare.cjs /tmp/cov-main.json /tmp/cov-branch.json "main -> branch (same CI environment)"
