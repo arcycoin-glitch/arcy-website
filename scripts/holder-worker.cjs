@@ -15,6 +15,8 @@ async function main(){
  for(const a of addresses){if(!/^0x[0-9a-f]{40}$/.test(a))throw Error('Exact contract address required');if(!await storage.enqueue(a))throw Error('Holder queue full');}
  let stopped=false;const idle=new AbortController();
  const stop=()=>{stopped=true;idle.abort();};process.once('SIGTERM',stop);process.once('SIGINT',stop);
+ // Remove temp files left by interrupted writes (exact atomicWrite pattern only) before any new work.
+ for(const root of [process.env.ARC_INDEX_CACHE_DIR,process.env.ARC_HOLDER_PUBLISHED_DIR].filter(Boolean)){try{const r=await require('../lib/holder-disk').sweepTmp(root);if(r.removed)console.log(JSON.stringify({event:'HOLDER_TMP_SWEPT',...r}));}catch{}}
  const server=require('../lib/holder-worker-http').start();
  console.log(JSON.stringify({event:'HOLDER_WORKER_STARTED',chainId:5042,storage:storage.mode()}));
  // Chain-specific seeds are opt-in and bounded. No 4663 queue writes happen under the default Arc-only setting.

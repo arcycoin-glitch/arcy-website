@@ -12,6 +12,7 @@ on:
       - 'scripts/holder-chain-census.cjs'
       - 'scripts/coverage-compare.cjs'
       - 'scripts/coverage-ab.cjs'
+      - 'lib/holder-disk.js'
       - 'scripts/ci-publication-server.cjs'
       - 'lib/holder-*.js'
       - 'search/server/lib/**'
@@ -59,22 +60,35 @@ jobs:
         run: |
           node -e "const c=require('crypto');const {privateKey,publicKey}=c.generateKeyPairSync('ed25519');require('fs').writeFileSync('/tmp/sign.pem',privateKey.export({format:'pem',type:'pkcs8'}));require('fs').writeFileSync('/tmp/pub.pem',publicKey.export({format:'pem',type:'spki'}))"
           openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/tls.key -out /tmp/tls.crt -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost" 2>/dev/null
+      # Checkpoints persist across runs (same role as the Railway volume): heavy histories (AI, PONS) resume, never restart from 0.
+      - name: Restore chain-4663 checkpoints from the previous run
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/holder-index
+          key: holder-index-4663-${{ github.run_id }}
+          restore-keys: holder-index-4663-
       - name: Chain-4663 durable census (real Robinhood Chain RPC, Robinhood + Pons cohort)
         working-directory: branch
         env:
           ARC_HOLDER_STORAGE: local
           ARC_INDEX_CACHE_DIR: /tmp/holder-index
           ARC_HOLDER_PUBLISHED_DIR: /tmp/holder-pub
-          CENSUS_BUDGET_MS: '5400000'
+          CENSUS_BUDGET_MS: '4500000'
         run: |
           export ARC_HOLDER_SIGNING_KEY="$(cat /tmp/sign.pem)"
           node scripts/holder-chain-census.cjs
           ls -la /tmp/holder-pub/4663 | head -30 || true
+      - name: Save chain-4663 checkpoints for the next run
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/holder-index
+          key: holder-index-4663-${{ github.run_id }}
       - name: Start publication server, main and branch
         run: |
           sudo "$(which node)" branch/scripts/ci-publication-server.cjs /tmp/holder-pub /tmp/tls.crt /tmp/tls.key > /tmp/pubsrv.log 2>&1 &
           export NODE_EXTRA_CA_CERTS=/tmp/tls.crt ARC_HOLDER_PUBLISHED_URL=https://localhost/snapshots/ ARC_HOLDER_PUBLIC_KEY="$(cat /tmp/pub.pem)"
-          (cd main && PORT=3001 node dev.cjs > /tmp/main.log 2>&1 &)
+          (cd main && PORT=3001 SEARCH_MARKET_ONCHAIN_CHECK=on node dev.cjs > /tmp/main.log 2>&1 &)
           (cd branch && PORT=3002 SEARCH_MARKET_ONCHAIN_CHECK=on node dev.cjs > /tmp/branch.log 2>&1 &)
           sleep 3; curl -sk -o /dev/null -w "pub %{http_code}\n" https://localhost/snapshots/4663/0x0000000000000000000000000000000000000000.json || true
       - name: Interleaved verified coverage - main (A) vs branch (B), same tokens at the same moments

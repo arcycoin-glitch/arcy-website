@@ -18,6 +18,17 @@ async function get(base,t){const t0=Date.now();try{const r=await fetch(base+'/ap
  // evidence losses per chain x field (any tier drop), to separate code regressions from provider drift
  const key=r=>r.section+'|'+r.address+'|'+r.card+'.'+r.key,bm=new Map(rows.A.map(r=>[key(r),r])),drops={};
  const rank={VERIFIED:3,SOURCE_BACKED:2,HISTORICAL:1,STALE:1,CONFLICTING:1,NOT_VERIFIED:0,INAPPLICABLE:-1};
- for(const r of rows.B){const a=bm.get(key(r));if(a&&rank[r.tier]<rank[a.tier]){const k=r.section+'|'+r.card+'.'+r.key+'|'+a.tier+'->'+r.tier+'|'+String(r.reason||'').slice(0,50);drops[k]=(drops[k]||0)+1;}}
+ const dropTokens=new Map();
+ for(const r of rows.B){const a=bm.get(key(r));if(a&&rank[r.tier]<rank[a.tier]){const k=r.section+'|'+r.symbol+'|'+r.card+'.'+r.key+'|'+a.tier+'->'+r.tier+'|'+String(r.reason||'').slice(0,50);drops[k]=(drops[k]||0)+1;dropTokens.set(r.address,cohort.tokens.find(t=>t.address===r.address));}}
  console.log('AB_DROPS '+JSON.stringify(drops));
+ // Repeatability: every token with a drop is requested twice more from BOTH engines. A drop that does not reappear, or that also
+ // appears on A, is provider drift; one that reappears only on B is a deterministic regression of the branch.
+ for(const t of dropTokens.values()){const seen={A:[],B:[]};
+  for(let i=0;i<2;i++)for(const [k,base] of [['A',A],['B',B]]){const r=await get(base,t);const obs=V.observe(t,r.body||null,{error:r.error||null});seen[k].push(Object.fromEntries(obs.map(o=>[o.card+'.'+o.key,o.tier])));await wait(PACE);}
+  const fields=Object.keys(drops).filter(k=>k.split('|')[1]===t.symbol&&k.split('|')[0]===t.section).map(k=>k.split('|')[2]);
+  console.log('AB_REPEAT '+JSON.stringify({section:t.section,symbol:t.symbol,address:t.address,fields:Object.fromEntries(fields.map(f=>[f,{A:seen.A.map(x=>x[f]),B:seen.B.map(x=>x[f])}]))}));}
+ // Every provider/chain price disagreement on B, with the evidence needed to judge it.
+ for(const t of cohort.tokens){const r=rows.B.find(x=>x.address===t.address&&x.key==='priceUsd');if(r?.tier!=='CONFLICTING')continue;
+  const rep=await get(B,t);const f=rep.body?.cards?.activity?.fields?.priceUsd;
+  console.log('AB_CONFLICT '+JSON.stringify({section:t.section,symbol:t.symbol,address:t.address,value:f?.value??null,crossCheck:f?.crossCheck||null,pools:(f?.evidence||[]).map(e=>({provider:e.provider||e.source,pairs:e.pairs,kind:e.kind||null,block:e.block||null,quote:e.quoteAsset||null,priceInQuote:e.priceInQuote??null,quoteUsd:e.quoteUsd??null,checkedAt:e.checkedAt||null}))}));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

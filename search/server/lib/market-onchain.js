@@ -32,14 +32,21 @@ const FEEDS=Object.freeze({
  ETH:{address:'0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419',description:'ETH / USD',maxAgeS:3600+600},
  USDC:{address:'0x8fffffd4afb6115b954bd326cbe7b4ba576818f6',description:'USDC / USD',maxAgeS:86400+600},
  USDT:{address:'0x3e7d1eab13ad0104d2750b8863b489d65364e32d',description:'USDT / USD',maxAgeS:86400+600},
- DAI:{address:'0xaed0c38402a5d19df6e4c03f4e2dced6e29c1ee9',description:'DAI / USD',maxAgeS:3600+600}});
+ DAI:{address:'0xaed0c38402a5d19df6e4c03f4e2dced6e29c1ee9',description:'DAI / USD',maxAgeS:3600+600},
+ // No address is hard-coded here: Chainlink publishes this feed only as the ENS name usds-usd.data.eth (data.chain.link). The name is
+ // resolved on-chain through the ENS registry at the pinned Ethereum block, then description() must still equal 'USDS / USD'.
+ USDS:{ens:'usds-usd.data.eth',description:'USDS / USD',maxAgeS:86400+600}});
+const ENS_REGISTRY='0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e';
+function namehash(name){let node=Buffer.alloc(32);for(const label of name.split('.').reverse()){const h=Buffer.from(keccak(Buffer.from(label)).slice(2),'hex');node=Buffer.from(keccak(Buffer.concat([node,h])).slice(2),'hex');}return '0x'+node.toString('hex');}
+const ensCache=new Map();
 // Quote registry: exact addresses only. `decimals` for the native currency is fixed by the chain; ERC-20 decimals are read on-chain.
 const QUOTES=Object.freeze({
  ethereum:{[NATIVE]:{asset:'ETH',decimals:18,basis:'native ETH (Uniswap v4 currency 0)'},
   '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2':{asset:'ETH',basis:'canonical WETH9'},
   '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48':{asset:'USDC',basis:'Circle USDC'},
   '0xdac17f958d2ee523a2206206994597c13d831ec7':{asset:'USDT',basis:'Tether USDT'},
-  '0x6b175474e89094c44da98b954eedeac495271d0f':{asset:'DAI',basis:'MakerDAO DAI'}},
+  '0x6b175474e89094c44da98b954eedeac495271d0f':{asset:'DAI',basis:'MakerDAO DAI'},
+  '0xdc035d45d973e3ec169d2276ddab16f1e407384f':{asset:'USDS',basis:'Sky USDS (Sky Protocol stablecoin contract)'}},
  robinhood:{[NATIVE]:{asset:'ETH',decimals:18,basis:'native ETH gas token (Arbitrum Orbit, Uniswap v4 currency 0)'},
   '0x0bd7d308f8e1639fab988df18a8011f41eacad73':{asset:'ETH',basis:'Robinhood Chain WETH (pool quote asset; 1:1 ETH wrapper)'}},
  arc:{[NATIVE]:{asset:'USDC',decimals:18,basis:'Arc native USDC gas token (18-decimal native accounting, Uniswap v4 currency 0)'},
@@ -72,12 +79,16 @@ async function quoteUsd(asset,{ethRpc,now}){
  const f=FEEDS[asset];if(!f)throw code('QUOTE_USD_UNVERIFIED');
  const block=await ethRpc('eth_blockNumber',[]);
  const call=(to,data)=>ethRpc('eth_call',[{to,data},block]);
- const desc=require('./eth').abiString?.(await call(f.address,SEL.description));
+ let feed=f.address;
+ if(!feed&&f.ens){const c=ensCache.get(f.ens);if(c&&now-c.at<3600000)feed=c.address;else{const node=namehash(f.ens);
+  const resolver='0x'+String(await call(ENS_REGISTRY,'0x0178b8bf'+node.slice(2))).slice(-40);if(/^0x0{40}$/.test(resolver))throw code('QUOTE_FEED_ENS_UNRESOLVED');
+  feed='0x'+String(await call(resolver,'0x3b3b57de'+node.slice(2))).slice(-40).toLowerCase();if(/^0x0{40}$/.test(feed))throw code('QUOTE_FEED_ENS_UNRESOLVED');ensCache.set(f.ens,{address:feed,at:now});}}
+ const desc=require('./eth').abiString?.(await call(feed,SEL.description));
  if(desc!==f.description)throw code('QUOTE_FEED_IDENTITY_MISMATCH');
- const w=words(await call(f.address,SEL.latestRoundData));const answer=signed(w[1],256),updatedAt=Number(w[3]);
+ const w=words(await call(feed,SEL.latestRoundData));const answer=signed(w[1],256),updatedAt=Number(w[3]);
  if(answer<=0n)throw code('QUOTE_FEED_INVALID');
  const age=Math.floor(now/1000)-updatedAt;if(!(age>=-60&&age<=f.maxAgeS))throw code('QUOTE_FEED_STALE',{age});
- return {usd:Number(answer)/1e8,evidence:{feed:f.address,description:f.description,ethereumBlock:block,updatedAt:new Date(updatedAt*1000).toISOString(),ageSeconds:age}};
+ return {usd:Number(answer)/1e8,evidence:{feed,...(f.ens?{ens:f.ens}:{}),description:f.description,ethereumBlock:block,updatedAt:new Date(updatedAt*1000).toISOString(),ageSeconds:age}};
 }
 // PoolKey resolution, cheapest first; every candidate must hash to the poolId (so the source of the candidate is irrelevant):
 //  1) PositionManager.poolKeys(bytes25(poolId)) - one eth_call; PositionManager.poolManager() must equal the official PoolManager
@@ -173,7 +184,8 @@ async function inspect(network,address,primary,{rpc=rpcFor(network),ethRpc=rpcFo
     evidence:ev(liqPools,{pools:parts,basis:'sum of pool token balances x on-chain token price x Chainlink quote USD'}),
     freshness:{retrievedAt:at,ageMs:0,basis:'pinned-block chain read at '+block}};
   }catch(e){profile.reasons.liquidityUsd=e.code||'ONCHAIN_READ_FAILED';}
-  profile.reasons.volume24h='VOLUME_REQUIRES_SWAP_LOG_AGGREGATION';
+  try{const vol=await require('./market-volume').inspect(network,token,primary,{rpc,usdOf,block,now});profile.volume=vol.profile;
+   if(vol.field)fields.volume24h=vol.field;else profile.reasons.volume24h=vol.profile.reason;}catch(e){profile.reasons.volume24h=e.code||'VOLUME_READ_FAILED';}
  }catch(e){profile.reasons.all=e.code||'ONCHAIN_READ_FAILED';}
  profile.calls=state.calls;profile.ms=Date.now()-t0;
  if(cache.size>500)cache.delete(cache.keys().next().value);
@@ -181,4 +193,4 @@ async function inspect(network,address,primary,{rpc=rpcFor(network),ethRpc=rpcFo
  return {fields,profile};
 }
 function _reset(){cache.clear();poolKeys.clear();}
-module.exports={VERSION,V4,FEEDS,QUOTES,TOLERANCE,MAX_CALLS,inspect,readPool,poolId,fromSqrt,quoteUsd,enabled,_reset};
+module.exports={VERSION,V4,FEEDS,QUOTES,NATIVE,SOURCE,TOLERANCE,MAX_CALLS,inspect,v4Key,rpcFor,namehash,readPool,poolId,fromSqrt,quoteUsd,enabled,_reset};
