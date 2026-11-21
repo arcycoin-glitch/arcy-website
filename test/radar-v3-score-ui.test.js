@@ -412,6 +412,8 @@ test('Radar Info: V8 research codes become readable Turkish sections without los
  assert.equal(pop.classList.contains('is-overview'),true);
  assert.equal(pop.querySelectorAll('.arcy-radar-info-section').length,11);
  assert.match(pop.textContent,/FOBO · Neden listede\?/);
+ assert.match(pop.textContent,/Karttaki 51\.8\/100 Discovery Score/);
+ assert.match(pop.textContent,/farklı araştırma ölçümleridir/);
  assert.match(pop.textContent,/Bağımsız kontrol uyarısı/);
  assert.match(pop.textContent,/2026-11-20 16:11 UTC/);
  assert.ok(parseInt(pop.style.maxHeight,10)>200,'long mobile Info scrolls in a bounded viewport');
