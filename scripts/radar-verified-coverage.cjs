@@ -47,6 +47,8 @@ async function get(p,retried=false){
  md+='\n'+head+'\n';for(const [k,t] of Object.entries(doc.byFamily))md+=line(k,t)+'\n';
  md+='\n'+head+'\n';for(const [k,t] of Object.entries(doc.byField))md+=line(k,t)+'\n';
  md+='\nHolder census states: `'+JSON.stringify(census)+'`\n';
+ const errs={};for(const t of timings)if(t.error)errs[t.error]=(errs[t.error]||0)+1;
+ if(Object.keys(errs).length)md+='\nReport failures by reason: `'+JSON.stringify(errs)+'`'+(errs.HTTP_401||errs.HTTP_403?' — deployment protection; set VERCEL_BYPASS to measure this Preview.':'')+'\n';
  if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,md);
  console.log(md);
  console.log('::notice title=verified coverage::'+JSON.stringify({base:BASE,overall:doc.overall,byChain:Object.fromEntries(Object.entries(doc.byChain).map(([k,t])=>[k,t.verifiedCoveragePct+'/'+t.evidenceCoveragePct])),census}));
