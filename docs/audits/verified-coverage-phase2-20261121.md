@@ -74,3 +74,48 @@ The first full build covered 18 tokens COMPLETE and 2 still building: AI and PON
 - **Production deployment:**
   - `SEARCH_MARKET_ONCHAIN_CHECK=on` (Vercel) and `ARC_HOLDER_CHAINS=5042,4663` (Railway) are opt-in flags and need owner authorization.
   - Merging and deploying also need authorization.
+
+## Mechanics benchmark regression (CRA) — root cause and fix (commits a131542, 40dbcb8)
+
+- **Symptom:** In the paired replay, CRA (`0x7085…f6f4`) `tradingTaxes` moved from "Buy 1% · Sell 1% · Transfer 0%" (`ON_CHAIN_VERIFIED_UNITS`) to "Transfer 0% · DEX/hook fees NOT VERIFIED".
+- **Before/after evidence:**
+  - main replay: 36 RPC requests, 0 replay misses.
+  - branch replay: 62 RPC requests, **18 replay misses**.
+- **Root cause:** a Phase-2 change made `core.batch` split every JSON-RPC batch into single calls whenever a scoped RPC existed. The Arc legacy mechanics path runs inside `search-request.withRpc`, so its batches changed shape and volume. The pinned storage reads of the reviewed tax formula were lost, and the engine fell back to the weaker template conclusion. The same change would have multiplied Arc RPC volume in production.
+- **Old evidence is valid:**
+  - The branch's live run reproduces "Buy 1% · Sell 1%" with `ON_CHAIN_VERIFIED_UNITS`.
+  - The value depends on live provider answers: main's own live run on 40dbcb8 returned the weaker form.
+  - Nothing was restored from stored data.
+- **Fix:** batches are re-routed only inside a non-Arc holder-chain scope (`holder-chains.client()`), where the Arc transport would answer from the wrong chain. Arc search scopes keep the original batch transport (test HC-9). After the fix, CRA replay shows 37 requests, 0 misses, identical to main.
+- **Second gate failure:** the gate flagged STATICS for "proxy-binding reads on a contract not newly bound". Main had `ARCHITECTURE_TARGET_UNRESOLVED`; the branch binds STATICS through the exact Solady 44-byte forwarder. That transition is now recognised as newly bound. The 8-read budget, pinning, the "previously verified field" correctness gate and all other request checks are unchanged; gate tests cover acceptance, budget overflow, non-forwarder text and already-resolved targets.
+
+## Re-run on the latest commit 40dbcb8 (run 44925113539, interleaved A/B, real chains)
+
+**Verified coverage: 17.71% → 39.38%. Current evidence: 76.04% → 85.63%.** Each side had one HTTP 502 report, on different Ethereum tokens.
+
+| Network | Before | After |
+|---|---|---|
+| arc | 20.00% | 26.67% |
+| ethereum | 17.50% | 25.00% |
+| robinhood | 15.83% | 53.33% |
+| pons | 17.50% | 52.50% |
+
+| Metric | Before | After |
+|---|---|---|
+| priceUsd | 0% | 67.5% (standalone probe on the same commit: 31/40 AGREE, 0 DISAGREE) |
+| liquidityUsd | 0% | 0% |
+| volume24h | 0% | 0% |
+| totalSupply | 97.5% | 97.5% |
+| holderCount / largestWalletPct / top10Pct / top20Pct | 0% | 45% each (18/20 chain-4663 censuses) |
+| tradingTaxes | 2.5% | 2.5% |
+| mintCapability | 10% | 12.5% |
+| ownerAdmin | 12.5% | 15% |
+| contractArchitecture | 90% | 97.5% |
+
+**Census:** 18/20 COMPLETE and published; 21,783 calls, 826 HTTP 429 retried.
+
+**Evidence drops (B below A):**
+- 14 come from the single HTTP 502 report on one Ethereum token.
+- 5 are provider drift on Arc: one token's signed publication, one token's Sourcify source.
+- 2 are on a Robinhood implementation-unresolved token.
+- None is a value change on verified data.
