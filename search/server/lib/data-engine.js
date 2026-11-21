@@ -67,7 +67,9 @@ function formatCard(cardId,raw,cfg,context){
    if(!ADDRESS.test(address)||seen.has(address)||row.rank!==holderCandidates.length+1||
       typeof row.sharePct!=='number'||!Number.isFinite(row.sharePct)||
       row.sharePct<0||row.sharePct>100||!/^0x[0-9a-f]+$/i.test(row.block||'')||
-      (row.role!=='UNKNOWN'&&row.role!=='BURN_ADDRESS')||
+      !require('./holder-intelligence').ROLES.has(row.role)||
+      // a proven role must carry its evidence pinned to the same block; otherwise the row is rejected (fail closed)
+      (!['UNKNOWN','BURN_ADDRESS'].includes(row.role)&&(row.roleEvidence?.block!==row.block||typeof row.roleEvidence?.method!=='string'))||
       (row.role==='BURN_ADDRESS'&&require('./holder-attribution').classify({network:cfg.id,chainId:cfg.chainId,address}).role!=='BURN_ADDRESS')||
       (holderCandidates.length&&row.sharePct>holderCandidates.at(-1).sharePct)||
       holderCandidates.reduce((sum,r)=>sum+r.sharePct,0)+row.sharePct>100.000001||
@@ -75,7 +77,7 @@ function formatCard(cardId,raw,cfg,context){
     holderCandidates.length=0;break;
    }
    seen.add(address);holderCandidates.push({address,rank:row.rank,sharePct:row.sharePct,
-    role:row.role,block:row.block});
+    role:row.role,block:row.block,...(row.roleEvidence&&!['UNKNOWN','BURN_ADDRESS'].includes(row.role)?{roleEvidence:row.roleEvidence}:{})});
   }
  }
  // Keep the legacy total-supply and burn-address custody observations for the
@@ -115,6 +117,8 @@ function formatCard(cardId,raw,cfg,context){
  return {...(auxiliarySupply?{context:auxiliarySupply}:{}),
   ...(supplementary?{supplementary}:{}),
   ...(holderCandidates.length?{holderCandidates}:{}),
+  // Additive holder census / concentration summary (never changes the four schema fields or the 20-check tally)
+  ...(cardId==='holders'?{holderIntelligence:require('./holder-intelligence').intelligence(fields,{holderCandidates,network:cfg.id,block:context?.block||null,token:context?.address?.toLowerCase()||null})}:{}),
   ...(disclosed.length?{supplementalEvidence:disclosed}:{}),
   researchNotes:[...require('./research-notes').notes(cardId,fields,{supplementary}),...issuerNotes],
   fields,status:count===keys.length?'SOURCE_BACKED':
