@@ -45,7 +45,9 @@ jobs:
           name: verified-coverage-production
           path: /tmp/*.json
   preview:
-    if: github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Preview' && startsWith(github.event.deployment.ref, 'feat/data-engine-holder-mechanics-coverage')
+    # Vercel sets deployment.ref to the commit SHA; this workflow file only exists on commits that carry it, so any
+    # successful Preview of such a commit is measured (read-only).
+    if: github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Preview'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
