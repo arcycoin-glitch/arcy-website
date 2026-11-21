@@ -1011,6 +1011,7 @@
  color:#e7f8ff;font:700 12px system-ui,sans-serif;
 }
 .arcy-radar-info-close:focus-visible{outline:2px solid #72e9ff;outline-offset:2px}
+.arcy-radar-info-score-note{margin:0;padding:12px 15px;background:#103245;color:#c3e7f6;border-bottom:1px solid #2c5d72;font-size:12px;line-height:1.55}
 .arcy-radar-info-section{padding:11px 15px;border-bottom:1px solid rgba(119,178,202,.16)}
 .arcy-radar-info-section-title{
  display:block;color:#86ddec;font-size:11px;font-weight:800;
