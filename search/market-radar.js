@@ -173,51 +173,21 @@ const change24hReason=item=>{
  const bindInfoGlobals=()=>{
   if(infoGlobals)return;infoGlobals=true;
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&infoOwner){const o=infoOwner;closeInfo();o.focus();}});
-  document.addEventListener('click',e=>{const t=e.target; if(infoOwner&&!(t?.closest?.('.arcy-radar-info')||t?.closest?.('.arcy-radar-info-pop')))closeInfo();});
+  document.addEventListener('click',e=>{if(infoOwner&&!(e.target&&e.target.closest&&e.target.closest('.arcy-radar-info')))closeInfo();});
   window.addEventListener('scroll',()=>{if(infoOwner)closeInfo();},{passive:true});
  };
  const openInfo=(icon,pinned)=>{
   bindInfoGlobals();
-  if(!infoPop){infoPop=el('div','arcy-radar-info-pop');infoPop.id='arcyRadarInfoPop';infoPop.hidden=true;document.body.append(infoPop);}
+  if(!infoPop){infoPop=el('div','arcy-radar-info-pop');infoPop.id='arcyRadarInfoPop';infoPop.setAttribute('role','tooltip');infoPop.hidden=true;document.body.append(infoPop);}
   if(infoOwner&&infoOwner!==icon)closeInfo();
   infoOwner=icon;infoPinned=!!pinned;
-  const sections=Array.isArray(icon._radarSections)?icon._radarSections:null;
-  const detailed=!!sections?.length;
-  infoPop.classList.toggle('is-overview',detailed);
-  infoPop.setAttribute('role',detailed?'dialog':'tooltip');
-  if(detailed){
-   infoPop.setAttribute('aria-label',(icon.dataset.symbol||'Token')+' Radar araştırma açıklaması');
-   infoPop.replaceChildren();
-   const top=el('div','arcy-radar-info-head');
-   top.append(el('strong','arcy-radar-info-heading',(icon.dataset.symbol||'Token')+' · Neden listede?'));
-   const dismiss=el('button','arcy-radar-info-close','Kapat ×');
-   dismiss.type='button';
-   dismiss.setAttribute('aria-label','Bilgi penceresini kapat');
-   dismiss.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const owner=infoOwner;closeInfo();owner?.focus();});
-   top.append(dismiss);infoPop.append(top);
-   if(icon.dataset.cardScore&&sections.some(x=>x.title==='Öncelik puanı ve veri kapsamı')){
-    infoPop.append(el('p','arcy-radar-info-score-note','Karttaki '+icon.dataset.cardScore+'/100 Discovery Score ile aşağıdaki ARCY öncelik puanı farklı araştırma ölçümleridir. İkisi de yükseliş olasılığı veya getiri tahmini değildir.'));
-   }
-   for(const part of sections){
-    const section=el('section','arcy-radar-info-section');
-    if(/^(Risk ve dikkat noktaları|Bağımsız kontrol uyarısı)$/.test(part.title))section.classList.add('is-warning');
-    section.append(el('strong','arcy-radar-info-section-title',part.title),el('p','arcy-radar-info-section-text',part.text));
-    infoPop.append(section);
-   }
-  }else{infoPop.setAttribute('aria-label','Veri açıklaması');infoPop.textContent=icon.dataset.reason;}
-  infoPop.hidden=false;
-  infoPop.scrollTop=0;
+  infoPop.textContent=icon.dataset.reason;infoPop.hidden=false;
   icon.setAttribute('aria-expanded','true');icon.setAttribute('aria-describedby',infoPop.id);
-  const viewport=Math.max(200,document.documentElement.clientWidth);
-  const width=Math.min(detailed?440:260,viewport-24);
-  const viewportHeight=Math.max(240,window.innerHeight||800);
-  infoPop.style.maxWidth=width+'px';
-  infoPop.style.maxHeight=detailed?Math.max(180,Math.floor(viewportHeight*.78))+'px':'';
-  infoPop.style.overflowY=detailed?'auto':'';
-  const rect=icon.getBoundingClientRect(),height=infoPop.offsetHeight;
-  infoPop.style.left=Math.max(8,Math.min(rect.left+rect.width/2-width/2,viewport-width-8))+'px';
-  infoPop.style.top=detailed&&viewport<=640?Math.max(8,Math.round(viewportHeight*.09))+'px':
-   (rect.bottom+height+10>viewportHeight&&rect.top>height+10?rect.top-height-6:rect.bottom+6)+'px';
+  const r=icon.getBoundingClientRect(),w=Math.min(260,document.documentElement.clientWidth-16);
+  infoPop.style.maxWidth=w+'px';
+  const h=infoPop.offsetHeight;
+  infoPop.style.left=Math.max(8,Math.min(r.left+r.width/2-w/2,document.documentElement.clientWidth-w-8))+'px';
+  infoPop.style.top=(r.bottom+h+10>window.innerHeight&&r.top>h+10?r.top-h-6:r.bottom+6)+'px';
  };
  const withInfo=(cell,item)=>{
   const partial=partialSinceLaunch(item);
@@ -262,40 +232,10 @@ const change24hReason=item=>{
  const overviewData=new Map();
  const overviewPending=new Map(),overviewRetryAt=new Map(),overviewRetryTimers=new Map();
  let expandedNetwork=null;
- // UI-only: explain the published research facts in Turkish; no new API calls or score changes.
- // Unknown source codes stay visibly marked as unknown, never silently treated as safe.
- const RADAR_CODE_TR=Object.freeze({
-  MARKET_OPPORTUNITY_WATCH:'Piyasa fırsatı izleme listesi (yatırım önerisi değil)',
-  STRONG_RESEARCH_SIGNAL:'Güçlü araştırma sinyali (yatırım önerisi değil)',
-  LOW_CONFIDENCE_WATCH:'Düşük güven düzeyinde izleme',
-  COMPRESSION_EMERGING:'Sıkışma belirtileri oluşuyor; kesinleşmiş değil',
-  NO_COMPRESSION_EVIDENCE:'Sıkışmayı doğrulayacak yeterli veri yok',
-  INSUFFICIENT_HISTORY:'Geçmiş veri yetersiz',
-  OFFICIAL_CONTRACT_VERIFIED:'Kontrat adresi resmî kaynakla eşleştirildi; güvenlik denetimi değildir',
-  METADATA_CROSS_CORROBORATED:'Token bilgileri birden fazla kaynakla karşılaştırıldı; ihraççı doğrulaması değildir',
-  OFFICIAL_PROJECT:'Resmî proje profiliyle eşleştirildi',
-  SELF_PUBLISHED_PROJECT_SITE:'Projenin yayımladığı internet sitesi; bağımsız doğrulama değildir',
-  PROJECT_CHANNELS_LISTED:'Proje kanalları listelenmiş; resmîlikleri ayrıca doğrulanmalı',
-  SUSPICIOUS_ACTIVITY:'Şüpheli işlem etkinliği sinyali; kesin manipülasyon kanıtı değildir',
-  UNLOCK_SCHEDULE_NOT_MEASURED:'Token kilit açılış takvimi ölçülmedi',
-  ISSUER_NOT_OFFICIALLY_VERIFIED:'Tokenı çıkaran taraf resmî kaynaklarla doğrulanamadı',
-  INCOMPLETE_RESEARCH_PROFILE:'Proje araştırma profilinde eksik bilgiler var',
-  PROJECT_CHANNELS_UNVERIFIED:'Projenin iletişim kanalları doğrulanamadı',
-  LARGE_CAP_LIMITED_ASYMMETRY:'Yüksek piyasa değeri erken keşif potansiyelini sınırlayabilir',
-  SINGLE_POOL_CONCENTRATION:'İşlem hacmi tek havuzda yoğunlaşmış',
-  BELOW_RESEARCH_LIQUIDITY_FLOOR:'Araştırma için belirlenen likidite eşiğinin altında',
-  CIRCULATING_SUPPLY_NOT_MEASURED:'Dolaşımdaki arz ölçülmedi',
-  CRASH_NOT_UNDERVALUATION:'Sert düşüş, düşük değerlemenin kanıtı değildir',
-  DILUTION_RISK_LOW_CIRCULATING_SHARE:'Düşük dolaşım oranı nedeniyle token seyrelme riski',
-  EXCESSIVE_VOLUME_TO_LIQUIDITY:'Hacim/likidite oranı olağan dışı yüksek',
-  HISTORICAL_PRICE_EVENT:'Geçmişte önemli fiyat hareketi gözlemlenmiş',
-  SHARP_DAILY_FALL:'Son 24 saatte sert fiyat düşüşü'
- });
+ // UI-only: explain the source-backed V3 score without extra provider requests.
  function explainDiscovery(raw){
-  if(typeof raw!=='string'||!raw.trim())return {short:'NOT VERIFIED',full:'NOT VERIFIED',sections:[]};
-  const parts=raw.split(';').map(x=>x.trim()).filter(Boolean).slice(0,24);
-  const codes=part=>part.replace(/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g,
-   code=>RADAR_CODE_TR[code]||'Açıklanmamış analiz kodu ('+code+')');
+  if(typeof raw!=='string'||!raw.trim())return {short:'NOT VERIFIED',full:'NOT VERIFIED'};
+  const parts=raw.split(';').map(x=>x.trim()).filter(Boolean).slice(0,12);
   const tr=part=>{
    let m;
    if((m=/^new pool \((<1|\d+) d\)$/i.exec(part)))return 'Yeni havuz ('+m[1]+' gün)';
@@ -305,31 +245,13 @@ const change24hReason=item=>{
    if(/^liquidity /i.test(part))return part.replace(/^liquidity /i,'Likidite ');
    if(part==='independently cross-verified')return 'İki bağımsız kaynakla karşılaştırıldı';
    if(part==='tokenized equity')return 'Tokenize hisse';
-   if(/^watch:/i.test(part))return '⚠ İzleme sinyali: '+codes(part.replace(/^watch:\s*/i,''));
-   if(/^Değerleme:/i.test(part))return codes(part).replace(/\bFDV\b/g,'tam seyreltilmiş değer (FDV)');
-   if(/^Hacim \$/i.test(part))return codes(part).replace(/^Hacim /,'24s hacim ');
-   return codes(part);
+   if(/^watch:/i.test(part))return '⚠ İzleme sinyali: '+part.replace(/^watch:\s*/i,'');
+   return part;
   };
-  const label=part=>{
-   if(/^ARCY sıralaması/i.test(part))return 'Sıralama ve araştırma sinyali';
-   if(/^Öncelik puanı/i.test(part))return 'Öncelik puanı ve veri kapsamı';
-   if(/^En güçlü ölçütler/i.test(part))return 'Puanı etkileyen ölçütler';
-   if(/^Hacim \$/i.test(part))return 'Hacim, likidite ve fiyat değişimi';
-   if(/^Sıkışma:/i.test(part))return 'Sıkışma değerlendirmesi';
-   if(/^Değerleme:/i.test(part))return 'Piyasa değeri ve değerleme';
-   if(/^Kimlik:/i.test(part))return 'Proje kimliği ve kanıt düzeyi';
-   if(/^Uyarılar:/i.test(part)||/^watch:/i.test(part))return 'Risk ve dikkat noktaları';
-   if(/^Ölçülemeyen:/i.test(part))return 'Ölçülemeyen alanlar';
-   if(/^Güvenlik garantisi/i.test(part))return 'Bağımsız kontrol uyarısı';
-   if(/^Veri \d{4}-/.test(part))return 'Veri zamanı (UTC)';
-   return 'Araştırma notu';
-  };
-  const translated=parts.map(tr);
-  const sections=parts.map((part,i)=>({title:label(part),text:translated[i]}));
-  const warnings=translated.filter(x=>x.startsWith('⚠'));
+  const translated=parts.map(tr),warnings=translated.filter(x=>x.startsWith('⚠'));
   const featured=translated.filter(x=>!x.startsWith('⚠')).slice(0,3);
   if(warnings.length)featured.push(warnings.join(' · '));
-  return {short:featured.join(' · ')||'NOT VERIFIED',full:translated.join(' · ')||'NOT VERIFIED',sections};
+  return {short:featured.join(' · ')||'NOT VERIFIED',full:translated.join(' · ')||'NOT VERIFIED'};
  }
  function validOverview(network,data){
   return data?.ok===true&&data.version===2&&data.network===network&&data.chainId===CHAIN_ID[network]&&
@@ -465,7 +387,7 @@ const change24hReason=item=>{
     info.setAttribute('role','button');info.tabIndex=0;
     info.setAttribute('aria-label',(item.symbol||'Token')+' neden seçildi?');
     info.setAttribute('aria-expanded','false');
-    info.dataset.reason=why.full;info.dataset.symbol=item.symbol||'Token';info.dataset.cardScore=d.score.toFixed(1);info._radarSections=why.sections;
+    info.dataset.reason=why.full;
     const stop=e=>{e.preventDefault();e.stopPropagation();};
     const toggle=e=>{stop(e);if(infoOwner===info&&infoPinned)closeInfo();else openInfo(info,true);};
     info.addEventListener('click',toggle);
