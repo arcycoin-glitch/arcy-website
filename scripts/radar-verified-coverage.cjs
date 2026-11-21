@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 'use strict';
-// Read-only verified-coverage measurement on a FIXED cohort (default data/coverage/radar-cohort-20261121.json).
+// Read-only verified-coverage measurement on a FIXED cohort (default data/verified-coverage/radar-cohort-20261121.json).
 // Calls only the public report API of ARCY_BASE (default Production), paced under the per-IP limiter, one bounded retry on 429.
 // Output: JSON (COVERAGE_OUT, default /tmp/arcy-verified-coverage.json) + Markdown summary (GITHUB_STEP_SUMMARY when set).
 const fs=require('node:fs'),path=require('node:path');
 const V=require('../search/server/lib/verified-coverage');
 const HI=require('../search/server/lib/holder-intelligence');
 const BASE=(process.env.ARCY_BASE||'https://www.arcyusdc.xyz').replace(/\/$/,'');
-const COHORT=process.env.COVERAGE_COHORT||path.join(__dirname,'../data/coverage/radar-cohort-20261121.json');
+const COHORT=process.env.COVERAGE_COHORT||path.join(__dirname,'../data/verified-coverage/radar-cohort-20261121.json');
 const OUT=process.env.COVERAGE_OUT||'/tmp/arcy-verified-coverage.json';
 const PACE_MS=Math.max(0,Number(process.env.COVERAGE_PACE_MS??2700));
 const LIMIT=Math.max(1,Math.min(400,Number(process.env.COVERAGE_LIMIT)||400));

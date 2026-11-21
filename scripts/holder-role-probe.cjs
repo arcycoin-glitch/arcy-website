@@ -6,7 +6,7 @@ const fs=require('node:fs'),path=require('node:path');
 const {rpc}=require('../search/server/lib/eth');
 const LH=require('../search/server/lib/large-holders');
 const HI=require('../search/server/lib/holder-intelligence');
-const cohort=JSON.parse(fs.readFileSync(process.env.COVERAGE_COHORT||path.join(__dirname,'../data/coverage/radar-cohort-20261121.json'),'utf8'));
+const cohort=JSON.parse(fs.readFileSync(process.env.COVERAGE_COHORT||path.join(__dirname,'../data/verified-coverage/radar-cohort-20261121.json'),'utf8'));
 (async()=>{
  const block=await rpc('eth_blockNumber',[]);const out={block,tokens:[]};const dist={};
  for(const t of cohort.tokens.filter(x=>x.network==='ethereum')){

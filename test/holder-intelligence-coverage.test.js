@@ -123,7 +123,7 @@ test('COV-2 stale, historical and conflicting observations are never counted as 
 });
 
 test('COV-3 the cohort is fixed, unique per chain+contract and Pons maps to the Robinhood network (never mixed with it)',()=>{
- const c=require('../data/coverage/radar-cohort-20261121.json');
+ const c=require('../data/verified-coverage/radar-cohort-20261121.json');
  assert.equal(c.tokens.length,40);
  assert.equal(new Set(c.tokens.map(t=>t.section+':'+t.address)).size,40);
  assert.ok(c.tokens.filter(t=>t.section==='pons').every(t=>t.network==='robinhood'&&t.chainId===4663));

@@ -1,5 +1,5 @@
 name: Radar verified data coverage (read-only)
-# Measures verified core-field coverage on the FIXED cohort (data/coverage/radar-cohort-20261121.json) against Production
+# Measures verified core-field coverage on the FIXED cohort (data/verified-coverage/radar-cohort-20261121.json) against Production
 # (before) and, when Vercel reports a successful Preview deployment of this branch, against that Preview (after).
 # Read-only: public report API only, paced under the per-IP limiter. Never writes data, never deploys.
 on:
@@ -14,7 +14,7 @@ on:
       - 'search/server/lib/holder-intelligence.js'
       - 'scripts/radar-verified-coverage.cjs'
       - 'scripts/holder-role-probe.cjs'
-      - 'data/coverage/**'
+      - 'data/verified-coverage/**'
       - '.github/workflows/radar-verified-coverage.yml'
   deployment_status:
 permissions:
