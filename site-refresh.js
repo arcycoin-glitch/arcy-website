@@ -1,5 +1,15 @@
 (function(){
  'use strict';
+ // Homepage presentation ONLY: place the existing Token Unlocks section
+ // immediately before Buyback & Burn. Move the original DOM node rather than
+ // copying markup: all IDs, source-backed data handlers, player and layout
+ // contents remain identical. Other sections and their order are untouched.
+ const burnSection=document.getElementById?.('burn');
+ const unlockSection=document.getElementById?.('unlocks');
+ if(burnSection&&unlockSection&&burnSection.parentElement===unlockSection.parentElement&&
+    burnSection.nextElementSibling===unlockSection){
+  burnSection.parentElement.insertBefore(unlockSection,burnSection);
+ }
  // Refresh only while a visitor is actively viewing the page. Every fetch
  // uses the established source-backed endpoint/renderer; no cached figures,
  // artificial values or design changes are introduced here.
