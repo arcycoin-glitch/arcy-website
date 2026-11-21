@@ -12,7 +12,8 @@ function chain({swaps={},token0={[POOL]:TOKEN,[POOL2]:TOKEN},token1={[POOL]:WETH
   if(m==='eth_getBlockByNumber'){const n=Number(BigInt(p[0]));reads[n]=(reads[n]||0)+1;const h=flip&&n===HEAD-20&&reads[n]>1?'0x'+'e'.repeat(64):hashes[n]||'0x'+String(n).padStart(64,'7');return {hash:h,timestamp:'0x'+ts(n).toString(16)};}
   if(m==='eth_call'){const {to,data}=p[0];if(data==='0x0dfe1681')return A(token0[to]);if(data==='0xd21220a7')return A(token1[to]);if(data==='0x313ce567')return '0x'+W(18);throw Error('revert');}
   if(m==='eth_getLogs'){const f=p[0],from=Number(BigInt(f.fromBlock)),to=Number(BigInt(f.toBlock));
-   return (swaps[f.address+':'+f.topics[0]]||[]).filter(l=>l.n>=from&&l.n<=to).flatMap(l=>{const log={address:f.address,removed:removed&&l.n%2===0,blockNumber:'0x'+l.n.toString(16),blockHash:'0x'+String(l.n).padStart(64,'7'),logIndex:'0x'+(l.i||0).toString(16),topics:[f.topics[0],...(f.topics[1]?[f.topics[1]]:[A(OTHER)])],data:l.data};return dup?[log,{...log}]:[log];});}
+   const t0s=Array.isArray(f.topics[0])?f.topics[0]:[f.topics[0]];
+   return t0s.flatMap(t0=>(swaps[f.address+':'+t0]||[]).map(l=>({...l,t0}))).filter(l=>l.n>=from&&l.n<=to).flatMap(l=>{const log={address:f.address,removed:removed&&l.n%2===0,blockNumber:'0x'+l.n.toString(16),blockHash:'0x'+String(l.n).padStart(64,'7'),logIndex:'0x'+(l.i||0).toString(16),topics:[l.t0,...(f.topics[1]?[f.topics[1]]:[A(OTHER)])],data:l.data};return dup?[log,{...log}]:[log];});}
   throw Error('unexpected '+m);};
  return rpc;
 }

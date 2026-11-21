@@ -18,7 +18,7 @@ const TOPIC=Object.freeze({V2:'0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d
  V4:'0x40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f'});
 // Measured public-RPC log limits per chain (span in blocks, max logs per answer).
 const LIMITS=Object.freeze({ethereum:{span:50000,logs:10000,confirmations:3},robinhood:{span:9990000,logs:10000,confirmations:20},arc:{span:5000,logs:1000,confirmations:2}});
-const MAX_POOLS=12,MAX_CALLS=48,TIMEOUT_MS=5000,DAY=86400;
+const MAX_POOLS=12,MAX_CALLS=60,TIMEOUT_MS=5000,DAY=86400;
 const windows=new Map();
 const code=(c,x)=>Object.assign(Error(c),{code:c},x||{});
 const ID=/^0x[0-9a-f]{64}$/,ADDR=/^0x[0-9a-f]{40}$/;
@@ -46,7 +46,8 @@ async function logs(rpc,filter,from,to,limits,acc,seen,state){
  if(!Array.isArray(out))throw code('MALFORMED_LOG_RESPONSE');
  if(out.length>=limits.logs){if(span<=1)throw code('LOG_RESPONSE_POSSIBLY_TRUNCATED');state.splits++;const mid=from+Math.floor(span/2)-1;await logs(rpc,filter,from,mid,limits,acc,seen,state);return logs(rpc,filter,mid+1,to,limits,acc,seen,state);}
  for(const l of out){const b=Number(BigInt(l.blockNumber||'0x0'));
-  if(l.removed||String(l.address).toLowerCase()!==filter.address||String(l.topics?.[0]).toLowerCase()!==String(filter.topics[0]).toLowerCase()||b<from||b>to||!/^0x[0-9a-f]{64}$/i.test(l.blockHash||'')||!/^0x[0-9a-f]+$/i.test(l.logIndex||''))throw code('INVALID_SWAP_LOG');
+  const want=Array.isArray(filter.topics[0])?filter.topics[0]:[filter.topics[0]];
+  if(l.removed||String(l.address).toLowerCase()!==filter.address||!want.includes(String(l.topics?.[0]).toLowerCase())||b<from||b>to||!/^0x[0-9a-f]{64}$/i.test(l.blockHash||'')||!/^0x[0-9a-f]+$/i.test(l.logIndex||''))throw code('INVALID_SWAP_LOG');
   if(filter.topics[1]&&String(l.topics?.[1]).toLowerCase()!==filter.topics[1])throw code('INVALID_SWAP_LOG');
   const id=l.blockHash.toLowerCase()+':'+BigInt(l.logIndex);if(seen.has(id))continue;seen.add(id);acc.push(l);}
 }
@@ -78,7 +79,9 @@ async function inspect(network,address,primary,{rpc=M.rpcFor?.(network),ethRpc,u
     await logs(r,{address:v.poolManager,topics:[TOPIC.V4,p]},w.from.n,toBlock,limits,acc,seen,state);}
    else if(ADDR.test(p)){const t0a=addrOf(await call(p,'0x0dfe1681')),t1a=addrOf(await call(p,'0xd21220a7'));if(!t0a||!t1a)throw code('POOL_KIND_UNSUPPORTED');
     if(![t0a,t1a].includes(token))throw code('POOL_DOES_NOT_CONTAIN_TOKEN');quote=t0a===token?t1a:t0a;quoteIs0=t0a===quote;
-    const a2=[],a3=[];await logs(r,{address:p,topics:[TOPIC.V2]},w.from.n,toBlock,limits,a2,seen,state);await logs(r,{address:p,topics:[TOPIC.V3]},w.from.n,toBlock,limits,a3,seen,state);
+    // one query for both Swap signatures (topic OR); each log is classified by its own topic0
+    const both=[];await logs(r,{address:p,topics:[[TOPIC.V2,TOPIC.V3]]},w.from.n,toBlock,limits,both,seen,state);
+    const a2=both.filter(l=>String(l.topics[0]).toLowerCase()===TOPIC.V2),a3=both.filter(l=>String(l.topics[0]).toLowerCase()===TOPIC.V3);
     if(a2.length&&a3.length)throw code('POOL_KIND_AMBIGUOUS');kind=a3.length?'V3':'V2';acc.push(...a2,...a3);}
    else throw code('POOL_ID_INVALID');
    let raw=0n;for(const l of acc)raw+=quoteAmount(kind,l,quoteIs0);
