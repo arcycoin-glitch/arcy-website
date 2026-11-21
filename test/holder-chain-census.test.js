@@ -108,3 +108,13 @@ test('HC-8 growth damping: after a range-limited window the width is held for 4 
  const limited=calls.spans.filter((s,i)=>i>0&&calls.spans[i-1]&&s>calls.spans[i-1]*1.9).length;
  assert.ok(calls.getLogs<200,'bounded log queries: '+calls.getLogs);assert.ok(limited<calls.getLogs/2,'no tight double/halve oscillation');
 });
+test('HC-9 core.batch: Arc search scopes keep the JSON-RPC batch transport; only a non-Arc chain scope re-routes batches',async()=>{
+ const core=require('../lib/core'),sr=require('../lib/search-request');const orig=global.fetch;let posted=null;
+ global.fetch=async(url,o)=>{posted=JSON.parse(o.body);const body=Array.isArray(posted)?posted.map(x=>({jsonrpc:'2.0',id:x.id,result:'0x1'})):{jsonrpc:'2.0',id:posted.id,result:'0x1'};return new Response(JSON.stringify(body),{status:200,headers:{'content-type':'application/json'}});};
+ try{
+  let scopedCalls=0;await sr.withRpc(async()=>{scopedCalls++;return '0x2';},()=>core.batch([{method:'eth_call',params:[{to:A,data:'0x01'},'0x1']},{method:'eth_call',params:[{to:A,data:'0x02'},'0x1']}]));
+  assert.equal(scopedCalls,0,'Arc scope: batch not split into scoped single calls');assert.ok(Array.isArray(posted)&&posted.length===2,'one JSON-RPC batch request');
+  posted=null;let chainCalls=0;const out=await chains.run(4663,()=>core.batch([{method:'eth_call',params:[{to:A,data:'0x01'},'0x1']}]),{rpc:async()=>{chainCalls++;return '0x3';}});
+  assert.equal(chainCalls,1);assert.deepEqual(out,['0x3']);assert.equal(posted,null,'4663 scope never reaches the Arc transport');
+ }finally{global.fetch=orig;}
+});
