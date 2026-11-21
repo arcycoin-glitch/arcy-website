@@ -179,11 +179,20 @@
  }
  function enhance(section){
   const id=section.dataset.cardId;if(id!=='holders'&&id!=='mechanics')return;
-  if(section.querySelector(':scope > .arcy-rc-panel'))return;
+  if(section.querySelector(':scope > .arcy-rc-disclosure'))return;
   const card=cardJson(section);if(!card||!card.fields)return; // not scanned yet: the original card already says so
-  const panel=id==='holders'?holders(card):mechanics(card);
-  const desc=section.querySelector(':scope > .description');
-  (desc||section.querySelector(':scope > h2'))?.after(panel);
+  // Preserve the exact four original metrics and their existing evidence controls.
+  // The supplementary explanations are opt-in and appear AFTER those metrics,
+  // not above them. A native details/summary pair keeps them keyboard accessible.
+  const disclosure=el('details','arcy-rc-disclosure');
+  const summary=el('summary','arcy-rc-disclosure-toggle',id==='holders'?
+   'Cüzdan yoğunlaşması · Ayrıntılı açıklamaları göster':
+   'Kontrat mekanikleri · Ayrıntılı açıklamaları göster');
+  disclosure.append(summary,id==='holders'?holders(card):mechanics(card));
+  disclosure.open=false;
+  const status=section.querySelector(':scope > .statusLine');
+  if(status)status.before(disclosure);
+  else section.append(disclosure);
  }
  function scan(){for(const s of document.querySelectorAll('#cards section.card[data-card-id]'))enhance(s);}
  if(NODE){if(typeof module==='object'&&module.exports)module.exports={stateOf,taxes,mint,owner,proxy,pause,concentrationText,roleLabel,holders,mechanics};return;}
