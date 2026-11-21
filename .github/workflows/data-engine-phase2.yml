@@ -7,6 +7,7 @@ on:
     paths:
       - 'scripts/phase2-probe.cjs'
       - 'scripts/market-onchain-probe.cjs'
+      - 'scripts/chain4663-capacity-probe.cjs'
       - 'search/server/lib/market-onchain.js'
       - 'search/server/lib/market-cross.js'
       - '.github/workflows/data-engine-phase2.yml'
@@ -23,3 +24,6 @@ jobs:
           node-version: '22'
       - name: On-chain market verification on the fixed cohort (DEX Screener pools re-read at a pinned block)
         run: node scripts/market-onchain-probe.cjs
+      - name: Chain 4663 holder-indexing capacity probe (read-only)
+        if: always()
+        run: node scripts/chain4663-capacity-probe.cjs
