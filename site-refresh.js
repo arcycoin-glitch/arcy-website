@@ -4,8 +4,8 @@
  // immediately before Buyback & Burn. Move the original DOM node rather than
  // copying markup: all IDs, source-backed data handlers, player and layout
  // contents remain identical. Other sections and their order are untouched.
- const burnSection=document.getElementById('burn');
- const unlockSection=document.getElementById('unlocks');
+ const burnSection=document.getElementById?.('burn');
+ const unlockSection=document.getElementById?.('unlocks');
  if(burnSection&&unlockSection&&burnSection.parentElement===unlockSection.parentElement&&
     burnSection.nextElementSibling===unlockSection){
   burnSection.parentElement.insertBefore(unlockSection,burnSection);
