@@ -991,48 +991,6 @@
 .arcy-radar-info:focus-visible{outline:2px solid #70dfbf;outline-offset:2px}
 .arcy-radar-info-pop{position:fixed;z-index:2147483000;box-sizing:border-box;padding:9px 11px;border:1px solid #2a4658;border-radius:10px;background:#07131d;color:#dbe8f2;font:500 12px/1.45 system-ui,sans-serif;text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.45);pointer-events:none}
 .arcy-radar-info-pop[hidden]{display:none}
-
-/* Radar Info: a readable, scrollable evidence sheet. Rendering only; score/row layout untouched. */
-.arcy-radar-info-pop.is-overview{
- width:min(440px,calc(100vw - 24px));padding:0;pointer-events:auto;
- overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
- border:1px solid #35677c;border-radius:15px;background:#081a26;
- box-shadow:0 20px 60px rgba(0,0,0,.65);color:#e3f2fa;
-}
-.arcy-radar-info-head{
- position:sticky;top:0;z-index:1;display:flex;gap:12px;
- align-items:center;justify-content:space-between;padding:12px 14px;
- background:#102b3b;border-bottom:1px solid #285367;
-}
-.arcy-radar-info-heading{font-size:14px;line-height:1.4;color:#e8faff;font-weight:800}
-.arcy-radar-info-close{
- flex:0 0 auto;min-height:36px;padding:6px 10px;cursor:pointer;
- border-radius:9px;border:1px solid #45768b;background:#153b4d;
- color:#e7f8ff;font:700 12px system-ui,sans-serif;
-}
-.arcy-radar-info-close:focus-visible{outline:2px solid #72e9ff;outline-offset:2px}
-.arcy-radar-info-score-note{margin:0;padding:12px 15px;background:#103245;color:#c3e7f6;border-bottom:1px solid #2c5d72;font-size:12px;line-height:1.55}
-.arcy-radar-info-section{padding:11px 15px;border-bottom:1px solid rgba(119,178,202,.16)}
-.arcy-radar-info-section-title{
- display:block;color:#86ddec;font-size:11px;font-weight:800;
- line-height:1.4;letter-spacing:.025em;
-}
-.arcy-radar-info-section-text{
- margin:5px 0 0;color:#e2edf5;font-size:13px;line-height:1.6;
- font-weight:500;white-space:normal;overflow-wrap:anywhere;word-break:normal;
-}
-.arcy-radar-info-section.is-warning .arcy-radar-info-section-title{color:#ffd095}
-.arcy-radar-info-section:last-child{border-bottom:0}
-@media(max-width:640px){
- .arcy-radar-info-pop.is-overview{
-  width:calc(100vw - 24px);border-radius:16px;
-  -webkit-overflow-scrolling:touch;
- }
- .arcy-radar-info-head{padding:12px 13px}
- .arcy-radar-info-section{padding:12px 14px}
- .arcy-radar-info-section-text{font-size:14px;line-height:1.58}
-}
-
 /* #272: compact Info replaces the always-visible discovery rationale.
    Existing overview grid areas, mobile card structure and token links are unchanged. */
 #tokenDetail .arcy-radar-overview-reason-info{
