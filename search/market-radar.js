@@ -195,6 +195,9 @@ const change24hReason=item=>{
    dismiss.setAttribute('aria-label','Bilgi penceresini kapat');
    dismiss.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const owner=infoOwner;closeInfo();owner?.focus();});
    top.append(dismiss);infoPop.append(top);
+   if(icon.dataset.cardScore&&sections.some(x=>x.title==='Öncelik puanı ve veri kapsamı')){
+    infoPop.append(el('p','arcy-radar-info-score-note','Karttaki '+icon.dataset.cardScore+'/100 Discovery Score ile aşağıdaki ARCY öncelik puanı farklı araştırma ölçümleridir. İkisi de yükseliş olasılığı veya getiri tahmini değildir.'));
+   }
    for(const part of sections){
     const section=el('section','arcy-radar-info-section');
     if(/^(Risk ve dikkat noktaları|Bağımsız kontrol uyarısı)$/.test(part.title))section.classList.add('is-warning');
@@ -462,7 +465,7 @@ const change24hReason=item=>{
     info.setAttribute('role','button');info.tabIndex=0;
     info.setAttribute('aria-label',(item.symbol||'Token')+' neden seçildi?');
     info.setAttribute('aria-expanded','false');
-    info.dataset.reason=why.full;info.dataset.symbol=item.symbol||'Token';info._radarSections=why.sections;
+    info.dataset.reason=why.full;info.dataset.symbol=item.symbol||'Token';info.dataset.cardScore=d.score.toFixed(1);info._radarSections=why.sections;
     const stop=e=>{e.preventDefault();e.stopPropagation();};
     const toggle=e=>{stop(e);if(infoOwner===info&&infoPinned)closeInfo();else openInfo(info,true);};
     info.addEventListener('click',toggle);
