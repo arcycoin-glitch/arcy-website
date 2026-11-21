@@ -73,7 +73,7 @@ function dispatchSelectors(code){
  return found;
 }
 const addressOf=word=>WORD.test(word||'')&&/^0x0{24}/.test(word)?'0x'+word.slice(26).toLowerCase():null;
-const minimalProxy=code=>/^0x363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3$/i.exec(code||'')?.[1]?.toLowerCase()||null;
+const minimalProxy=code=>{const m=/^0x(?:363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3|3d3d3d3d363d3d37363d73([0-9a-f]{40})5af43d3d93803e602a57fd5bf3)$/i.exec(code||'');return m?(m[1]||m[2]).toLowerCase():null;};
 const REVERT=/revert|invalid opcode|invalid jump|out of gas|stack (?:under|over)flow|execution error|vm exception/i;
 
 function endpoints(network,env=process.env){

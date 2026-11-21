@@ -120,8 +120,8 @@ async function mechanics({address,base}){
   try{
    const code=await rpc('eth_getCode',[base.proxyImplementation,base.block]);
    if(typeof code==='string'&&/^0x(?:[0-9a-f]{2})+$/i.test(code)&&code!=='0x')
-    cloneArchitecture=evidence('EIP-1167 minimal proxy → '+base.proxyImplementation,'Robinhood RPC',{
-     address,block:base.block,method:'exact EIP-1167 runtime bytecode + eth_getCode(implementation)',
+    cloneArchitecture=evidence((base.proxyKind||'EIP-1167 minimal proxy')+' → '+base.proxyImplementation,'Robinhood RPC',{
+     address,block:base.block,method:base.proxyKind==='Minimal proxy (Solady LibClone, 44-byte)'?'exact Solady LibClone 44-byte runtime bytecode + eth_getCode(implementation)':'exact EIP-1167 runtime bytecode + eth_getCode(implementation)',
      implementation:base.proxyImplementation,scope:'Implementation bytecode exists at the same pinned Robinhood block. This does not establish whether implementation behavior or control can change.'
     },'ON_CHAIN');
   }catch{} // A missing implementation read leaves architecture unverified.

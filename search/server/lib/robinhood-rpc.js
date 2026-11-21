@@ -110,17 +110,17 @@ async function inspectAt(endpoint,address){
   names.slice(2).reduce((a,x)=>a+uint(x.value),0n):null;
  return {chainId:cfg.chainId,network:cfg.id,address,block,token:{name,symbol,decimals},
   totalSupplyRaw:totalSupplyRaw.toString(),totalSupply:units(totalSupplyRaw,decimals),
-  proxyImplementation,runtimeDelegatecallDetected,
+  proxyImplementation,proxyKind:proxyImplementation?(/^0x3d3d3d3d363d3d37363d73/i.test(bytecode)?'Minimal proxy (Solady LibClone, 44-byte)':'EIP-1167 minimal proxy'):null,runtimeDelegatecallDetected,
   burnAddressRaw:raw?.toString()??null,
   burnAddressBalance:raw===null?null:units(raw,decimals)};
 }
-// Exact EIP-1167 runtime pattern only. Similar-looking bytecode is not enough.
+// Exact immutable-forwarder runtimes only (canonical EIP-1167 45-byte, Solady LibClone 44-byte). Similar-looking bytecode is not enough.
 function minimalProxyImplementation(code){
  if(typeof code!=='string'||!/^0x(?:[0-9a-f]{2})+$/i.test(code))return null;
  const bytes=code.slice(2).toLowerCase();
- const match=bytes.match(/^363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3$/);
- if(!match||/^0{40}$/.test(match[1]))return null;
- return '0x'+match[1];
+ const m=bytes.match(/^(?:363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3|3d3d3d3d363d3d37363d73([0-9a-f]{40})5af43d3d93803e602a57fd5bf3)$/),impl=m?(m[1]||m[2]):null;
+ if(!impl||/^0{40}$/.test(impl))return null;
+ return '0x'+impl;
 }
 function containsOpcode(code,target){
  if(typeof code!=='string'||!/^0x(?:[0-9a-f]{2})+$/i.test(code))return null;

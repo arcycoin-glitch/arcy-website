@@ -19,6 +19,10 @@ on:
       - '.github/workflows/data-engine-phase2.yml'
 permissions:
   contents: read
+# One real-chain run at a time per branch (public RPC rate limits); a newer push waits instead of competing.
+concurrency:
+  group: data-engine-phase2-${{ github.head_ref || github.ref }}
+  cancel-in-progress: false
 jobs:
   probe:
     runs-on: ubuntu-latest

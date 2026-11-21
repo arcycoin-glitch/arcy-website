@@ -89,3 +89,11 @@ test('MO-7 liquidity scope: a pool set larger than the budget, or containing a V
  const r=await M.inspect('arc',TOKEN,{...primary(0.5,1e6),liquidityUsd:{...primary(0.5,1e6).liquidityUsd,evidence:[{pairs:many}]}},{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env:ENV});
  assert.equal(r.fields.liquidityUsd,undefined);assert.match(r.profile.reasons.liquidityUsd,/LIQUIDITY_SCOPE_EXCEEDS_BUDGET/);
 });
+
+test('MECH-1 immutable forwarders: the exact Solady LibClone 44-byte runtime resolves its implementation; near-misses do not',()=>{
+ const rh=require('../search/server/lib/robinhood-rpc');const impl='3be8b97fd0e713b5abe0649fa830223b6b4bc599';
+ assert.equal(rh.minimalProxyImplementation('0x3d3d3d3d363d3d37363d73'+impl+'5af43d3d93803e602a57fd5bf3'),'0x'+impl);
+ assert.equal(rh.minimalProxyImplementation('0x363d3d373d3d3d363d73'+impl+'5af43d82803e903d91602b57fd5bf3'),'0x'+impl,'canonical EIP-1167 unchanged');
+ assert.equal(rh.minimalProxyImplementation('0x3d3d3d3d363d3d37363d73'+impl+'5af43d3d93803e602a57fd5bf4'),null,'one byte off => not a forwarder');
+ assert.equal(rh.minimalProxyImplementation('0x3d3d3d3d363d3d37363d73'+'0'.repeat(40)+'5af43d3d93803e602a57fd5bf3'),null);
+});
