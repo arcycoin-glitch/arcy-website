@@ -66,12 +66,15 @@ test('UI-4 Mechanics: CONFIRMED, NOT DETECTED and NOT VERIFIED stay distinct; un
 });
 
 test('UI-5 Proxy and pause are reported only from engine evidence; otherwise NOT VERIFIED',()=>{
- assert.match(RC.proxy(f('NON-PROXY · runtime verified'),null,null)[1],/yükseltilemez/);
+ assert.match(RC.proxy(f('NON-PROXY · runtime verified'),null,null)[1],/tüm dolaylı yükseltme/);
  assert.match(RC.proxy(f('EIP-1967 proxy · delegation proven','ONCHAIN_VERIFIED'),null,null)[1],/Yükseltilebilir \(proxy\)/);
  assert.equal(RC.proxy(f(null),f('Proxy admin: 0xabc'),null)[0],'CONFIRMED');
  assert.equal(RC.proxy(f(null),f(null),f(null))[0],'NOT_VERIFIED');
  assert.equal(RC.pause(f('Owner-governed (pause, blacklist) · 0xabc'),[])[0],'CONFIRMED');
- assert.match(RC.pause(f('Owner-governed (pause, blacklist) · 0xabc'),[])[1],/transferleri geçici olarak durdurabilir/);
+ assert.match(RC.pause(f('Owner-governed (pause, blacklist) · 0xabc'),[])[1],/transferleri etkileyebilir/);
+ assert.equal(RC.pause(f('No pause function detected'),[])[0],'NOT_VERIFIED','negative pause evidence cannot be an affirmative pause permission');
+ assert.equal(RC.pause(f('pause not detected in reviewed source'),[])[0],'NOT_VERIFIED','a word match is never authority proof');
+ assert.equal(RC.pause(f('No direct pause'),[])[0],'NOT_VERIFIED');
  assert.equal(RC.pause(f('NONE DETECTED ✓'),['Reviewed source: … no pause, blacklist or fee control exists.'])[0],'NOTE');
  const [st,t]=RC.pause(f('Role-gated'),[]);assert.equal(st,'NOT_VERIFIED');assert.match(t,/Yetki olmadığı anlamına gelmez/);
 });
