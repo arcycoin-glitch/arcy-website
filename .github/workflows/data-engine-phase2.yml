@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - 'scripts/phase2-probe.cjs'
+      - 'scripts/mechanics-target-probe.cjs'
       - 'scripts/market-onchain-probe.cjs'
       - 'scripts/chain4663-capacity-probe.cjs'
       - 'scripts/holder-chain-census.cjs'
@@ -29,6 +30,9 @@ jobs:
           node-version: '22'
       - name: On-chain market verification on the fixed cohort (DEX Screener pools re-read at a pinned block)
         run: node scripts/market-onchain-probe.cjs
+      - name: Mechanics target probe (Robinhood contracts with unresolved architecture)
+        if: always()
+        run: node scripts/mechanics-target-probe.cjs 0x2d8d6f4a93acd7a916a5a654ec8b690ba3b3eadd 0x2e8c31162b855a2ffa90f6f8634643ad6f111e18
   ab:
     # Fixed-cohort A/B in ONE environment: main vs this branch, both served locally from the runner with identical env and network.
     # Real chains only: chain-4663 census from the public RPC, DEX Screener + on-chain pool re-reads. Ephemeral CI signing key; nothing
