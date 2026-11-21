@@ -11,6 +11,9 @@ async function get(base,t){const t0=Date.now();try{const r=await fetch(base+'/ap
  if(!r.ok)return {error:'HTTP_'+r.status,ms:Date.now()-t0};return {body:await r.json(),ms:Date.now()-t0};}catch(e){return {error:e.name==='TimeoutError'?'TIMEOUT':'FETCH_FAILED',ms:Date.now()-t0};}}
 (async()=>{
  const rows={A:[],B:[]},ms={A:[],B:[]},fail={A:{},B:{}};
+ // Optional warm-up (AB_WARMUP=1): one unrecorded pass over BOTH engines in the same alternating order, then a pause, so caches and
+ // background jobs (e.g. 24h volume) are treated identically on both sides before the measured pass.
+ if(process.env.AB_WARMUP==='1'){for(const [ti,t] of cohort.tokens.entries()){for(const base of (ti%2?[B,A]:[A,B])){await get(base,t);await wait(PACE);}}await wait(Number(process.env.AB_WARMUP_PAUSE_MS||240000));}
  // Order alternates per token (A,B then B,A): rate-limited third-party sources (e.g. Blockscout 403) otherwise always hit the second engine.
  for(const [ti,t] of cohort.tokens.entries()){for(const [k,base] of (ti%2?[['B',B],['A',A]]:[['A',A],['B',B]])){const r=await get(base,t);ms[k].push(r.ms);if(r.error)fail[k][r.error]=(fail[k][r.error]||0)+1;rows[k].push(...V.observe(t,r.body||null,{error:r.error||null}));await wait(PACE);}}
  for(const k of ['A','B']){const doc=V.report(rows[k],{base:k==='A'?A:B,cohort:{tokens:cohort.tokens.length,...cohort.source},timings:{failed:Object.values(fail[k]).reduce((a,b)=>a+b,0),failures:fail[k],medianMs:[...ms[k]].sort((a,b)=>a-b)[Math.floor(ms[k].length/2)],p90Ms:[...ms[k]].sort((a,b)=>a-b)[Math.floor(ms[k].length*0.9)]}});doc.rows=rows[k];

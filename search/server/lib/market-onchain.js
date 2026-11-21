@@ -157,7 +157,7 @@ async function inspect(network,address,primary,{rpc=rpcFor(network),ethRpc=rpcFo
   const block=await r('eth_blockNumber',[]);
   const call=(to,data)=>r('eth_call',[{to,data},block]);
   const ctx={network,token,rpc:r,call,block},usd={};
-  const usdOf=async asset=>usd[asset]||=await quoteUsd(asset,{ethRpc:er,now});
+  const usdOf=async asset=>usd[asset]||=await quoteUsd(asset,{ethRpc:er,now});const usdCache=usd;
   const at=new Date(now).toISOString();
   const ev=(pools,extra)=>[{provider:SOURCE[network],source:SOURCE[network],network,block,pairs:pools,method:VERSION,checkedAt:at,...extra}];
   let tokenUsd=null,best=null;
@@ -184,13 +184,42 @@ async function inspect(network,address,primary,{rpc=rpcFor(network),ethRpc=rpcFo
     evidence:ev(liqPools,{pools:parts,basis:'sum of pool token balances x on-chain token price x Chainlink quote USD'}),
     freshness:{retrievedAt:at,ageMs:0,basis:'pinned-block chain read at '+block}};
   }catch(e){profile.reasons.liquidityUsd=e.code||'ONCHAIN_READ_FAILED';}
-  try{const vol=await require('./market-volume').inspect(network,token,primary,{rpc,usdOf,block,now});profile.volume=vol.profile;
-   if(vol.field)fields.volume24h=vol.field;else profile.reasons.volume24h=vol.profile.reason;}catch(e){profile.reasons.volume24h=e.code||'VOLUME_READ_FAILED';}
+  // 24h volume needs tens of eth_getLogs per token. Run inside the report it competed with Mechanics for the same public RPC and
+  // degraded reviewed tax/mint/owner evidence (CI A/B 2026-11-22: TAO 2/2 repeats). It therefore never runs in the request path:
+  // a paced background job (one per chain, opt-in SEARCH_MARKET_ONCHAIN_VOLUME=on) fills a 5-minute cache that later reports read.
+  try{const r=volumeFromCache(network,token,primary,{now,env});if(r.field)fields.volume24h=r.field;else{profile.reasons.volume24h=r.reason;
+   if(r.reason==='VOLUME_PENDING_BACKGROUND')startVolume(network,token,primary,{rpc,usdOf:async a=>usdCache[a]?usdCache[a]:quoteUsd(a,{ethRpc,now:Date.now()})});}}
+  catch(e){profile.reasons.volume24h=e.code||'VOLUME_READ_FAILED';}
  }catch(e){profile.reasons.all=e.code||'ONCHAIN_READ_FAILED';}
  profile.calls=state.calls;profile.ms=Date.now()-t0;
  if(cache.size>500)cache.delete(cache.keys().next().value);
  cache.set(key,{at:now,fields:structuredClone(fields),profile});
  return {fields,profile};
 }
-function _reset(){cache.clear();poolKeys.clear();}
-module.exports={VERSION,V4,FEEDS,QUOTES,NATIVE,SOURCE,TOLERANCE,MAX_CALLS,inspect,v4Key,rpcFor,namehash,readPool,poolId,fromSqrt,quoteUsd,enabled,_reset};
+
+// ── background 24h volume (never awaited by a report) ──────────────────────────────────────────────────────────────────
+const volCache=new Map(),volRunning=new Map(),VOL_TTL_MS=5*60*1000,VOL_PACE_MS=300;
+const volKey=(network,token,primary)=>network+'|'+token+'|'+[...new Set((primary?.volume24h?.evidence||[]).flatMap(e=>Array.isArray(e?.pairs)?e.pairs:[]).map(x=>String(x).toLowerCase()))].sort().join(',');
+function volumeEnabled(env=process.env){return String(env?.SEARCH_MARKET_ONCHAIN_VOLUME||'').toLowerCase()==='on';}
+function volumeFromCache(network,token,primary,{now=Date.now(),env=process.env}={}){
+ if(!volumeEnabled(env))return {reason:'VOLUME_CHECK_DISABLED'};
+ const hit=volCache.get(volKey(network,token,primary));
+ if(hit&&now-hit.at<VOL_TTL_MS)return hit.field?{field:structuredClone(hit.field)}:{reason:hit.reason};
+ return {reason:'VOLUME_PENDING_BACKGROUND'};
+}
+function paced(rpc){let chain=Promise.resolve();return (m,p)=>{const run=chain.then(()=>rpc(m,p));chain=run.catch(()=>{}).then(()=>new Promise(r=>setTimeout(r,VOL_PACE_MS)));return run;};}
+// One sequential job queue per chain (<= 50 pending, duplicates collapsed): bounded, paced extra load on the shared public RPC.
+const volQueues=new Map();
+function startVolume(network,token,primary,{rpc,usdOf}){
+ if(!rpc)return null;const key=volKey(network,token,primary);
+ if(volRunning.has(key))return volRunning.get(key);
+ const q=volQueues.get(network)||Promise.resolve();
+ if([...volRunning.keys()].filter(k=>k.startsWith(network+'|')).length>=50)return null;
+ const job=q.then(()=>require('./market-volume').inspect(network,token,primary,{rpc:paced(rpc),usdOf,now:Date.now()}))
+  .then(r=>{volCache.set(key,{at:Date.now(),field:r.field||null,reason:r.field?null:r.profile.reason,profile:r.profile});if(volCache.size>300)volCache.delete(volCache.keys().next().value);return r;})
+  .catch(()=>null).finally(()=>volRunning.delete(key));
+ volRunning.set(key,job);volQueues.set(network,job.then(()=>{},()=>{}));return job;
+}
+function _volume(){return {cache:volCache,running:volRunning};}
+function _reset(){cache.clear();poolKeys.clear();volCache.clear();volRunning.clear();volQueues.clear();}
+module.exports={_volume,volumeEnabled,VERSION,V4,FEEDS,QUOTES,NATIVE,SOURCE,TOLERANCE,MAX_CALLS,inspect,v4Key,rpcFor,namehash,readPool,poolId,fromSqrt,quoteUsd,enabled,_reset};

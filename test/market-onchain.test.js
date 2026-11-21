@@ -33,7 +33,7 @@ test('MO-2 V3 pool: price and TVL derived at one pinned block with a checked Cha
  const e=r.fields.priceUsd.evidence[0];assert.equal(e.block,'0x99');assert.equal(e.kind,'V3_SLOT0');assert.equal(e.quoteUsdEvidence.description,'USDC / USD');assert.deepEqual(e.pairs,[POOL3]);
  // TVL = 1e6 token * 0.50005 + 500000 USDC * 1.0001
  assert.ok(Math.abs(r.fields.liquidityUsd.value-(1e6*0.5*1.0001+500000*1.0001))<1e-3);
- assert.equal(r.profile.reasons.volume24h,'VOLUME_WINDOW_EXCEEDS_RPC_BUDGET');assert.ok(r.profile.calls<=M.MAX_CALLS);
+ assert.equal(r.profile.reasons.volume24h,'VOLUME_CHECK_DISABLED');assert.ok(r.profile.calls<=M.MAX_CALLS);
 });
 test('MO-3 market-cross: same pools within tolerance -> CROSS_VERIFIED; outside -> DISAGREE (never promoted); value kept',async()=>{
  mc._reset();M._reset();const inspect=(n,a,p)=>M.inspect(n,a,p,{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env:ENV});
@@ -41,7 +41,7 @@ test('MO-3 market-cross: same pools within tolerance -> CROSS_VERIFIED; outside 
  assert.equal(ok.priceUsd.value,0.501);assert.equal(ok.priceUsd.crossCheck.state,'AGREE');
  assert.equal(ec.classify(ok.priceUsd,{card:'activity'}).evidenceClass,'CROSS_VERIFIED');
  assert.equal(ec.evidenceState?.(ok.priceUsd,ec.classify(ok.priceUsd,{card:'activity'}))?.[0]??'VERIFIED','VERIFIED','chain + provider are independent origins');
- assert.equal(ok.liquidityUsd.crossCheck.state,'AGREE');assert.equal(ok.volume24h.crossCheck.state,'UNAVAILABLE');assert.equal(ok.volume24h.crossCheck.reasonCode,'VOLUME_WINDOW_EXCEEDS_RPC_BUDGET');
+ assert.equal(ok.liquidityUsd.crossCheck.state,'AGREE');assert.equal(ok.volume24h.crossCheck.state,'UNAVAILABLE');assert.equal(ok.volume24h.crossCheck.reasonCode,'VOLUME_CHECK_DISABLED');
  M._reset();const bad=await mc.inspect('arc',TOKEN,{env:ENV,dexInspect:async()=>primary(0.56,1000005),onchainInspect:inspect});
  assert.equal(bad.priceUsd.value,0.56);assert.equal(bad.priceUsd.crossCheck.state,'DISAGREE');assert.equal(ec.classify(bad.priceUsd,{card:'activity'}).evidenceClass,'SINGLE_SOURCE');
 });
@@ -96,4 +96,15 @@ test('MECH-1 immutable forwarders: the exact Solady LibClone 44-byte runtime res
  assert.equal(rh.minimalProxyImplementation('0x363d3d373d3d3d363d73'+impl+'5af43d82803e903d91602b57fd5bf3'),'0x'+impl,'canonical EIP-1167 unchanged');
  assert.equal(rh.minimalProxyImplementation('0x3d3d3d3d363d3d37363d73'+impl+'5af43d3d93803e602a57fd5bf4'),null,'one byte off => not a forwarder');
  assert.equal(rh.minimalProxyImplementation('0x3d3d3d3d363d3d37363d73'+'0'.repeat(40)+'5af43d3d93803e602a57fd5bf3'),null);
+});
+
+test('MO-8 volume never runs in the report path: opt-in, background job (one per chain), later reports read the cache',async()=>{
+ M._reset();const env={...ENV,SEARCH_MARKET_ONCHAIN_VOLUME:'on'};
+ const p={...primary(0.5,1e6)};
+ const first=await M.inspect('arc',TOKEN,p,{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env});
+ assert.equal(first.profile.reasons.volume24h,'VOLUME_PENDING_BACKGROUND');assert.equal(first.fields.volume24h,undefined);
+ const {running,cache}=M._volume();assert.equal(running.size<=1,true);await Promise.all([...running.values()]);
+ assert.equal(cache.size,1);const [entry]=cache.values();assert.equal(entry.reason,'VOLUME_WINDOW_EXCEEDS_RPC_BUDGET','Arc window is refused by the engine itself');
+ process.env.SEARCH_MARKET_ONCHAIN_VOLUME='on';
+ try{M._reset();const off=await M.inspect('arc',TOKEN,p,{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env:ENV});assert.ok(off.profile.reasons.volume24h);}finally{delete process.env.SEARCH_MARKET_ONCHAIN_VOLUME;}
 });
