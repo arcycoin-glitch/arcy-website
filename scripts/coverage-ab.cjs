@@ -11,7 +11,8 @@ async function get(base,t){const t0=Date.now();try{const r=await fetch(base+'/ap
  if(!r.ok)return {error:'HTTP_'+r.status,ms:Date.now()-t0};return {body:await r.json(),ms:Date.now()-t0};}catch(e){return {error:e.name==='TimeoutError'?'TIMEOUT':'FETCH_FAILED',ms:Date.now()-t0};}}
 (async()=>{
  const rows={A:[],B:[]},ms={A:[],B:[]},fail={A:{},B:{}};
- for(const t of cohort.tokens){for(const [k,base] of [['A',A],['B',B]]){const r=await get(base,t);ms[k].push(r.ms);if(r.error)fail[k][r.error]=(fail[k][r.error]||0)+1;rows[k].push(...V.observe(t,r.body||null,{error:r.error||null}));await wait(PACE);}}
+ // Order alternates per token (A,B then B,A): rate-limited third-party sources (e.g. Blockscout 403) otherwise always hit the second engine.
+ for(const [ti,t] of cohort.tokens.entries()){for(const [k,base] of (ti%2?[['B',B],['A',A]]:[['A',A],['B',B]])){const r=await get(base,t);ms[k].push(r.ms);if(r.error)fail[k][r.error]=(fail[k][r.error]||0)+1;rows[k].push(...V.observe(t,r.body||null,{error:r.error||null}));await wait(PACE);}}
  for(const k of ['A','B']){const doc=V.report(rows[k],{base:k==='A'?A:B,cohort:{tokens:cohort.tokens.length,...cohort.source},timings:{failed:Object.values(fail[k]).reduce((a,b)=>a+b,0),failures:fail[k],medianMs:[...ms[k]].sort((a,b)=>a-b)[Math.floor(ms[k].length/2)],p90Ms:[...ms[k]].sort((a,b)=>a-b)[Math.floor(ms[k].length*0.9)]}});doc.rows=rows[k];
   fs.writeFileSync(process.env['AB_OUT_'+k],JSON.stringify(doc));
   console.log('AB_'+k+' '+JSON.stringify({base:doc.base,overall:doc.overall,byChain:Object.fromEntries(Object.entries(doc.byChain).map(([c,x])=>[c,x.verifiedCoveragePct+'/'+x.evidenceCoveragePct])),byField:Object.fromEntries(Object.entries(doc.byField).map(([c,x])=>[c,x.verifiedCoveragePct+'/'+x.evidenceCoveragePct])),timings:doc.timings}));}
@@ -24,7 +25,7 @@ async function get(base,t){const t0=Date.now();try{const r=await fetch(base+'/ap
  // Repeatability: every token with a drop is requested twice more from BOTH engines. A drop that does not reappear, or that also
  // appears on A, is provider drift; one that reappears only on B is a deterministic regression of the branch.
  for(const t of dropTokens.values()){const seen={A:[],B:[]};
-  for(let i=0;i<2;i++)for(const [k,base] of [['A',A],['B',B]]){const r=await get(base,t);const obs=V.observe(t,r.body||null,{error:r.error||null});seen[k].push(Object.fromEntries(obs.map(o=>[o.card+'.'+o.key,o.tier])));await wait(PACE);}
+  for(let i=0;i<2;i++)for(const [k,base] of (i%2?[['A',A],['B',B]]:[['B',B],['A',A]])){const r=await get(base,t);const obs=V.observe(t,r.body||null,{error:r.error||null});seen[k].push(Object.fromEntries(obs.map(o=>[o.card+'.'+o.key,o.tier])));await wait(PACE);}
   const fields=Object.keys(drops).filter(k=>k.split('|')[1]===t.symbol&&k.split('|')[0]===t.section).map(k=>k.split('|')[2]);
   console.log('AB_REPEAT '+JSON.stringify({section:t.section,symbol:t.symbol,address:t.address,fields:Object.fromEntries(fields.map(f=>[f,{A:seen.A.map(x=>x[f]),B:seen.B.map(x=>x[f])}]))}));}
  // Every provider/chain price disagreement on B, with the evidence needed to judge it.
