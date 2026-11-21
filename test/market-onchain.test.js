@@ -67,6 +67,12 @@ test('MO-5 V4: PoolKey must hash to the poolId; StateView must point at the offi
  M._reset();let r=await M.inspect('robinhood',TOKEN,p,{rpc:chainRpc(table,{logs:[log]}),ethRpc:ethRpc(),now:NOW,env:ENV});
  assert.ok(Math.abs(r.fields.priceUsd.value-3)<1e-6,'0.001 ETH * 3000 = '+r.fields.priceUsd.value);
  assert.equal(r.fields.priceUsd.evidence[0].poolKey.hooks,key.hooks);assert.equal(r.profile.reasons.liquidityUsd,'POOL_TVL_UNSUPPORTED_V4');assert.equal(r.fields.liquidityUsd,undefined);
+ // PositionManager.poolKeys(bytes25) path: one eth_call, no log query; result must still hash to the poolId
+ const pmTable={...table,[V.positionManager+':0xdc4c90d3']:A(V.poolManager),[V.positionManager+':0x86b6be7d:'+id.slice(2,52).padEnd(64,'0')]:A(key.currency0)+A(key.currency1).slice(2)+W(key.fee).slice(2)+W(key.tickSpacing).slice(2)+A(key.hooks).slice(2)};
+ M._reset();const viaPm=chainRpc(pmTable,{logs:[]});r=await M.inspect('robinhood',TOKEN,p,{rpc:viaPm,ethRpc:ethRpc(),now:NOW,env:ENV});
+ assert.ok(Math.abs(r.fields.priceUsd.value-3)<1e-6);assert.equal(r.fields.priceUsd.evidence[0].poolKey.resolvedVia,'PositionManager.poolKeys(bytes25)');assert.ok(!viaPm.calls.includes('eth_getLogs'));
+ M._reset();r=await M.inspect('robinhood',TOKEN,p,{rpc:chainRpc({...pmTable,[V.positionManager+':0x86b6be7d:'+id.slice(2,52).padEnd(64,'0')]:A(key.currency0)+A(key.currency1).slice(2)+W(3000).slice(2)+W(key.tickSpacing).slice(2)+A(key.hooks).slice(2)},{logs:[]}),ethRpc:ethRpc(),now:NOW,env:ENV});
+ assert.equal(r.fields.priceUsd,undefined,'a PositionManager key that does not hash to the poolId is rejected');
  M._reset();r=await M.inspect('robinhood',TOKEN,p,{rpc:chainRpc(table,{logs:[{...log,data:W(500)+log.data.slice(66)}]}),ethRpc:ethRpc(),now:NOW,env:ENV});
  assert.equal(r.profile.reasons.priceUsd,'V4_POOL_KEY_HASH_MISMATCH','a tampered PoolKey never binds');
  M._reset();r=await M.inspect('robinhood',TOKEN,p,{rpc:chainRpc({...table,[V.stateView+':0xdc4c90d3']:A('0x'+'5'.repeat(40))},{logs:[log]}),ethRpc:ethRpc(),now:NOW,env:ENV});

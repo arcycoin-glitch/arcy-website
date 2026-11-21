@@ -19,14 +19,14 @@
 const keccak=require('../../../lib/keccak');
 const VERSION='arcy-market-onchain-1';
 const SEL=Object.freeze({token0:'0x0dfe1681',token1:'0xd21220a7',reserves:'0x0902f1ac',slot0:'0x3850c7bd',balanceOf:'0x70a08231',decimals:'0x313ce567',
- getSlot0:'0xc815641c',poolManager:'0xdc4c90d3',latestRoundData:'0xfeaf968c',description:'0x7284e416'});
+ getSlot0:'0xc815641c',poolManager:'0xdc4c90d3',poolKeys:'0x86b6be7d',latestRoundData:'0xfeaf968c',description:'0x7284e416'});
 const INITIALIZE='0xdd466e674ea557f56295e2d0218a125ea4b4f0f6f3307b95f85e6110838d6438';
 const NATIVE='0x0000000000000000000000000000000000000000';
 // Official Uniswap v4 deployments (developers.uniswap.org/docs/protocols/v4/deployments). StateView.poolManager() is checked at runtime.
 const V4=Object.freeze({
- ethereum:{poolManager:'0x000000000004444c5dc75cb358380d2e3de08a90',stateView:'0x7ffe42c4a5deea5b0fec41c94c136cf115597227'},
- robinhood:{poolManager:'0x8366a39cc670b4001a1121b8f6a443a643e40951',stateView:'0xf3334192d15450cdd385c8b70e03f9a6bd9e673b'},
- arc:{poolManager:'0x8366a39cc670b4001a1121b8f6a443a643e40951',stateView:'0xf3334192d15450cdd385c8b70e03f9a6bd9e673b'}});
+ ethereum:{poolManager:'0x000000000004444c5dc75cb358380d2e3de08a90',stateView:'0x7ffe42c4a5deea5b0fec41c94c136cf115597227',positionManager:'0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e'},
+ robinhood:{poolManager:'0x8366a39cc670b4001a1121b8f6a443a643e40951',stateView:'0xf3334192d15450cdd385c8b70e03f9a6bd9e673b',positionManager:'0x58daec3116aae6d93017baaea7749052e8a04fa7'},
+ arc:{poolManager:'0x8366a39cc670b4001a1121b8f6a443a643e40951',stateView:'0xf3334192d15450cdd385c8b70e03f9a6bd9e673b',positionManager:'0x6049c9a0e26405c0985f9e3685c87d0ae917f82b'}});
 // Chainlink USD reference feeds on Ethereum mainnet; description() must match exactly or the feed is not used.
 const FEEDS=Object.freeze({
  ETH:{address:'0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419',description:'ETH / USD',maxAgeS:3600+600},
@@ -79,23 +79,36 @@ async function quoteUsd(asset,{ethRpc,now}){
  const age=Math.floor(now/1000)-updatedAt;if(!(age>=-60&&age<=f.maxAgeS))throw code('QUOTE_FEED_STALE',{age});
  return {usd:Number(answer)/1e8,evidence:{feed:f.address,description:f.description,ethereumBlock:block,updatedAt:new Date(updatedAt*1000).toISOString(),ageSeconds:age}};
 }
-async function v4Key(id,{network,rpc,block}){
+// PoolKey resolution, cheapest first; every candidate must hash to the poolId (so the source of the candidate is irrelevant):
+//  1) PositionManager.poolKeys(bytes25(poolId)) - one eth_call; PositionManager.poolManager() must equal the official PoolManager
+//  2) PoolManager Initialize log (topic1 = poolId) - only where the RPC accepts the full-range filtered query
+async function v4Key(id,{network,rpc,call,block}){
  if(poolKeys.has(network+id))return poolKeys.get(network+id);
- const pm=V4[network].poolManager;
- const logs=await rpc('eth_getLogs',[{address:pm,topics:[INITIALIZE,id],fromBlock:'0x0',toBlock:block}]);
- if(!Array.isArray(logs)||logs.length!==1)throw code('V4_POOL_KEY_UNAVAILABLE',{logs:Array.isArray(logs)?logs.length:null});
- const l=logs[0],d=words(l.data);
- if(String(l.address).toLowerCase()!==pm||l.removed||String(l.topics?.[1]).toLowerCase()!==id)throw code('V4_POOL_KEY_UNAVAILABLE');
- const k={currency0:addrOf(l.topics[2]),currency1:addrOf(l.topics[3]),fee:Number(d[0]&0xffffffn),tickSpacing:Number(signed(d[1],24)),hooks:'0x'+(d[2]&((1n<<160n)-1n)).toString(16).padStart(40,'0'),initializedAt:l.blockNumber};
- if(poolId(k)!==id)throw code('V4_POOL_KEY_HASH_MISMATCH');
- poolKeys.set(network+id,k);return k;
+ const v=V4[network];let k=null,via=null;
+ try{
+  if(addrOf(await call(v.positionManager,SEL.poolManager))===v.poolManager){
+   const w=words(await call(v.positionManager,SEL.poolKeys+id.slice(2,52).padEnd(64,'0')));
+   const c={currency0:'0x'+(w[0]&((1n<<160n)-1n)).toString(16).padStart(40,'0'),currency1:'0x'+(w[1]&((1n<<160n)-1n)).toString(16).padStart(40,'0'),fee:Number(w[2]&0xffffffn),tickSpacing:Number(signed(w[3],24)),hooks:'0x'+(w[4]&((1n<<160n)-1n)).toString(16).padStart(40,'0')};
+   if(poolId(c)===id){k=c;via='PositionManager.poolKeys(bytes25)';}
+  }
+ }catch(e){if(e.code==='ONCHAIN_BUDGET_EXHAUSTED'||e.code==='ONCHAIN_TIMEOUT')throw e;}
+ if(!k){
+  let logs;try{logs=await rpc('eth_getLogs',[{address:v.poolManager,topics:[INITIALIZE,id],fromBlock:'0x0',toBlock:block}]);}catch(e){if(e.code==='ONCHAIN_BUDGET_EXHAUSTED'||e.code==='ONCHAIN_TIMEOUT')throw e;throw code('V4_POOL_KEY_UNAVAILABLE');}
+  if(!Array.isArray(logs)||logs.length!==1)throw code('V4_POOL_KEY_UNAVAILABLE',{logs:Array.isArray(logs)?logs.length:null});
+  const l=logs[0],d=words(l.data);
+  if(String(l.address).toLowerCase()!==v.poolManager||l.removed||String(l.topics?.[1]).toLowerCase()!==id)throw code('V4_POOL_KEY_UNAVAILABLE');
+  k={currency0:addrOf(l.topics[2]),currency1:addrOf(l.topics[3]),fee:Number(d[0]&0xffffffn),tickSpacing:Number(signed(d[1],24)),hooks:'0x'+(d[2]&((1n<<160n)-1n)).toString(16).padStart(40,'0')};
+  if(poolId(k)!==id)throw code('V4_POOL_KEY_HASH_MISMATCH');
+  via='PoolManager Initialize log';
+ }
+ k={...k,resolvedVia:via};poolKeys.set(network+id,k);return k;
 }
 // One pool -> {kind, token side amounts, price of `token` in quote currency, quote}
 async function readPool(pool,{network,token,rpc,call,block}){
  if(ID.test(pool)){
   const v=V4[network];if(!v)throw code('V4_NOT_DEPLOYED');
   if(addrOf(await call(v.stateView,SEL.poolManager))!==v.poolManager)throw code('V4_STATEVIEW_MISMATCH');
-  const k=await v4Key(pool,{network,rpc,block});
+  const k=await v4Key(pool,{network,rpc,call,block});
   if(![k.currency0,k.currency1].includes(token))throw code('POOL_DOES_NOT_CONTAIN_TOKEN');
   const other=k.currency0===token?k.currency1:k.currency0,q=QUOTES[network]?.[other];if(!q)throw code('QUOTE_ASSET_UNSUPPORTED',{quote:other});
   const sqrtP=words(await call(v.stateView,SEL.getSlot0+pool.slice(2)))[0]&((1n<<160n)-1n);
@@ -142,7 +155,7 @@ async function inspect(network,address,primary,{rpc=rpcFor(network),ethRpc=rpcFo
     if(!best.quoteAsset)throw code('QUOTE_ASSET_UNSUPPORTED');
     const q=await usdOf(best.quoteAsset);tokenUsd=best.price*q.usd;
     fields.priceUsd={value:tokenUsd,status:'ON_CHAIN_DERIVED',dataState:'DATA_FOUND',source:SOURCE[network],network,
-     evidence:ev(pricePools,{kind:best.kind,quote:best.quote,quoteAsset:best.quoteAsset,priceInQuote:best.price,quoteUsd:q.usd,quoteUsdEvidence:q.evidence,...(best.poolKey?{poolKey:best.poolKey,poolKeyProof:'keccak256(abi.encode(PoolKey)) == poolId; PoolKey from PoolManager Initialize log'}:{})}),
+     evidence:ev(pricePools,{kind:best.kind,quote:best.quote,quoteAsset:best.quoteAsset,priceInQuote:best.price,quoteUsd:q.usd,quoteUsdEvidence:q.evidence,...(best.poolKey?{poolKey:best.poolKey,poolKeyProof:'keccak256(abi.encode(PoolKey)) == poolId; PoolKey via '+best.poolKey.resolvedVia}:{})}),
      freshness:{retrievedAt:at,ageMs:0,basis:'pinned-block chain read at '+block}};
    }catch(e){profile.reasons.priceUsd=e.code||'ONCHAIN_READ_FAILED';}
   }else profile.reasons.priceUsd=pricePools.length?'PROVIDER_PRICE_SCOPE_NOT_ONE_POOL':'PROVIDER_PRICE_POOL_UNKNOWN';
