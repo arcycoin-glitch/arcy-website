@@ -1,11 +1,19 @@
 /* Classic five-record Unlocks presentation. No source, API, schedule or evidence changes. */
 /* Phones: each unlock becomes one compact record instead of a 690 px table that needs horizontal scrolling.
    Same five cells, same order, same text; the column headers stay in the DOM for screen readers and are
-   repeated as small labels above the date / amount / supply values. Nothing is hidden, cut or recomputed. */
+   displayed only ONCE above the records, not repeated five times. Nothing is hidden, cut or recomputed. */
 @media(max-width:560px){
  #unlocks .tablebox{max-width:100%;overflow:visible}
  #unlocks table{width:100%;min-width:0;border-collapse:separate;border-spacing:0;table-layout:auto}
- #unlocks thead{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+ /* Reuse the real HTML column headers as a single mobile heading band. */
+ #unlocks thead{display:block;position:static;width:100%;height:auto;margin:0;padding:0;overflow:visible;clip-path:none;white-space:normal;border:0}
+ #unlocks thead tr{display:grid;grid-template-columns:minmax(22px,auto) repeat(3,minmax(0,1fr));grid-template-areas:"rank token token token" ". date amount pct";gap:5px 10px;align-items:end;padding:10px 6px 10px;border-bottom:1px solid #a5c4d540}
+ #unlocks thead th{display:block;min-width:0;margin:0;padding:0;border:0;background:transparent;text-align:left;white-space:normal;overflow-wrap:anywhere;color:#7da8bb;font:700 10px/1.35 Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.02em}
+ #unlocks thead th:nth-child(1){grid-area:rank}
+ #unlocks thead th:nth-child(2){grid-area:token}
+ #unlocks thead th:nth-child(3){grid-area:date}
+ #unlocks thead th:nth-child(4){grid-area:amount}
+ #unlocks thead th:nth-child(5){grid-area:pct}
  #unlocks tbody{display:block}
  #unlocks tbody tr{display:grid;grid-template-columns:minmax(22px,auto) repeat(3,minmax(0,1fr));grid-template-areas:"rank token token token" ". date amount pct";gap:7px 10px;align-items:start;padding:13px 6px 12px;border-bottom:1px solid #a5c4d51a}
  #unlocks tbody td{display:block;min-width:0;padding:0;border:0;white-space:normal;overflow-wrap:anywhere;word-break:normal;font-size:12px;line-height:1.35}
@@ -14,10 +22,6 @@
  #unlocks tbody td:nth-child(3){grid-area:date}
  #unlocks tbody td:nth-child(4){grid-area:amount}
  #unlocks tbody td:nth-child(5){grid-area:pct}
- #unlocks tbody td:nth-child(3)::before,#unlocks tbody td:nth-child(4)::before,#unlocks tbody td:nth-child(5)::before{display:block;margin-bottom:3px;font:600 8.5px/1.2 Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.07em;color:#6b91a6;text-transform:uppercase;white-space:normal}
- #unlocks tbody td:nth-child(3)::before{content:"Unlock date"}
- #unlocks tbody td:nth-child(4)::before{content:"Unlock amount"}
- #unlocks tbody td:nth-child(5)::before{content:"% Circ. supply"}
  #unlocks tbody td.loading{grid-column:1/-1;grid-area:auto;padding:14px 4px;text-align:center}
  #unlocks tbody td.loading::before{content:none}
  #unlocks tbody .token-cell{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
@@ -27,7 +31,7 @@
  #unlocks #unlockSearch{flex:1 1 180px;min-width:0}
 }
 @media(max-width:359px){
- #unlocks tbody tr{grid-template-columns:minmax(20px,auto) repeat(2,minmax(0,1fr));grid-template-areas:"rank token token" ". date amount" ". pct pct";gap:6px 9px}
+ #unlocks thead tr,#unlocks tbody tr{grid-template-columns:minmax(20px,auto) repeat(2,minmax(0,1fr));grid-template-areas:"rank token token" ". date amount" ". pct pct";gap:6px 9px}
 }
 /* tablets: the inherited 590 px table minimum overflowed a 768 px viewport by a few pixels; fit the box instead */
 @media(min-width:561px) and (max-width:860px){
