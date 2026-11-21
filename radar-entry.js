@@ -38,3 +38,12 @@
  const script=document.createElement('script');script.src='/search/radar-info-readable.js';script.async=true;
  (document.head||document.documentElement).append(style,script);
 })();
+
+// Optional, additive Market Radar in-list search (name / symbol / full contract) over the already loaded candidates.
+// No request, no re-ranking; if the asset fails, the original Radar is unchanged.
+(()=>{
+ if(typeof document==='undefined'||document.querySelector('script[src="/search/radar-search.js"]'))return;
+ const style=document.createElement('link');style.rel='stylesheet';style.href='/search/radar-search.css';
+ const script=document.createElement('script');script.src='/search/radar-search.js';script.async=true;
+ (document.head||document.documentElement).append(style,script);
+})();

@@ -1,0 +1,18 @@
+/* ARCY Market Radar — additive in-list search. Scoped to .arcy-radar-search; immutable Radar CSS untouched. */
+.arcy-radar-search{margin:0 0 14px;padding:12px 14px 10px;border:1px solid #2a5367;border-radius:16px;background:linear-gradient(180deg,#0d2433cc,#081a27cc);scroll-margin-top:84px}
+.arcy-radar-search-label{display:block;margin:0 0 7px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#7fb4c8}
+.arcy-radar-search-field{position:relative;display:flex;align-items:center}
+.arcy-radar-search-icon{position:absolute;left:13px;font-size:16px;color:#5fd6ee;pointer-events:none}
+.arcy-radar-search-input{width:100%;min-width:0;height:44px;padding:0 42px 0 38px;border:1px solid #2f6076;border-radius:12px;background:#06131d;color:#e9f7ff;font:500 14px/1.2 Inter,ui-sans-serif,system-ui,sans-serif;-webkit-appearance:none;appearance:none}
+.arcy-radar-search-input::placeholder{color:#6e93a6}
+.arcy-radar-search-input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+.arcy-radar-search-input:focus{outline:none;border-color:#5de7ff;box-shadow:0 0 0 3px #5de7ff26}
+.arcy-radar-search-clear{position:absolute;right:6px;width:32px;height:32px;border:0;border-radius:9px;background:#163447;color:#cfefff;font-size:19px;line-height:1;cursor:pointer}
+.arcy-radar-search-clear:hover{background:#1d4760}
+.arcy-radar-search-clear:focus-visible{outline:2px solid #5de7ff;outline-offset:2px}
+.arcy-radar-search-status{margin:8px 2px 0;font-size:12px;font-weight:700;color:#bfe6f4}
+.arcy-radar-search-scope{margin:6px 2px 0;font-size:10.5px;line-height:1.5;color:#7d9cad}
+.arcy-radar-search-empty{margin:10px 0;padding:12px 14px;border:1px dashed #33627a;border-radius:12px;font-size:12px;line-height:1.55;color:#a8c8d7;background:#0a1d2a}
+@media(max-width:420px){.arcy-radar-search{padding:10px 11px 9px}.arcy-radar-search-input{font-size:16px}}
+/* the Radar row styles set display:grid/flex, so the hidden attribute needs an explicit rule to take effect */
+#tokenDetail .arcy-radar-overview-list .arcy-radar-overview-token[hidden],.arcy-radar-overview-list .arcy-radar-overview-token[hidden]{display:none!important}

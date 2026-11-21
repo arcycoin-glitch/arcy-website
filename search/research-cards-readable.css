@@ -1,0 +1,31 @@
+/* ARCY Token Research — additive readable summaries for Holder & Whale and Contract & Mechanics. Scoped to .arcy-rc-*. */
+.arcy-rc-panel{margin:12px 0 14px;padding:13px 14px;border:1px solid #ffffff14;border-radius:14px;background:#061520b3}
+.arcy-rc-title{margin:0 0 10px;font-size:12px;font-weight:850;letter-spacing:.04em;color:#e6f7ff}
+.arcy-rc-subtitle{margin:12px 0 6px;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8fb7c9}
+.arcy-rc-row{padding:9px 0;border-top:1px solid #ffffff0d}
+.arcy-rc-row:first-of-type{border-top:0}
+.arcy-rc-row-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.arcy-rc-label{font-size:12px;font-weight:750;color:#d8eef8}
+.arcy-rc-value{display:block;margin:5px 0 0;font:600 11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:#bfe3f2;overflow-wrap:anywhere;white-space:normal;background:none;padding:0}
+.arcy-rc-text{margin:5px 0 0;font-size:11.5px;line-height:1.55;color:#a9c6d4}
+.arcy-rc-muted{margin:8px 0 0;font-size:10.5px;line-height:1.5;color:#7f9cab}
+.arcy-rc-chip{display:inline-flex;align-items:baseline;gap:5px;padding:3px 8px;border-radius:999px;border:1px solid;font-size:9.5px;line-height:1.2;white-space:nowrap}
+.arcy-rc-chip b{font-weight:850;letter-spacing:.04em}
+.arcy-rc-chip small{font-size:8px;opacity:.75;letter-spacing:.04em}
+.arcy-rc-ok{color:#7ff0c4;border-color:#3cc99455;background:#0e3a2c66}
+.arcy-rc-ok-soft{color:#a8e8ff;border-color:#4fb6d955;background:#0c2f4066}
+.arcy-rc-info{color:#cfd8ff;border-color:#7d8de055;background:#1a204566}
+.arcy-rc-warn{color:#ffd28a;border-color:#e0a54a66;background:#3a2a0e66}
+.arcy-rc-no{color:#ffb3a8;border-color:#e0746655;background:#3d161266}
+.arcy-rc-legend{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:0 0 8px;font-size:10.5px;line-height:1.8;color:#8fb0bf}
+.arcy-rc-bars{display:grid;gap:7px;margin:10px 0 4px}
+.arcy-rc-bar{display:grid;grid-template-columns:minmax(86px,auto) 1fr auto;align-items:center;gap:9px;font-size:11px;color:#bcd8e5}
+.arcy-rc-bar-track{position:relative;height:7px;border-radius:99px;background:#ffffff12;overflow:hidden}
+.arcy-rc-bar-track.is-empty{background:repeating-linear-gradient(90deg,#ffffff10 0 6px,transparent 6px 10px)}
+.arcy-rc-bar-fill{position:absolute;inset:0 auto 0 0;border-radius:inherit;background:linear-gradient(90deg,#3fe0c0,#5fd2f4)}
+.arcy-rc-bar-value{font:700 11px/1 ui-monospace,monospace;color:#e6f7ff;font-variant-numeric:tabular-nums}
+.arcy-rc-roles{margin:0;padding-left:18px;font-size:11px;line-height:1.6;color:#a9c6d4}
+.arcy-rc-when{margin:10px 0 0;font-size:10.5px;line-height:1.55;color:#8fb0bf;overflow-wrap:anywhere}
+.arcy-rc-when.is-warn{color:#ffd28a}
+.arcy-rc-link{color:#7fe3ff;text-decoration:underline;text-underline-offset:2px}
+@media(max-width:420px){.arcy-rc-panel{padding:11px 11px}.arcy-rc-bar{grid-template-columns:minmax(74px,auto) 1fr auto;gap:7px}.arcy-rc-chip{white-space:normal}}
