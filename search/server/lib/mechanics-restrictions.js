@@ -31,6 +31,10 @@ const SIMPLE=Object.freeze({
  UNISWAP_UERC20_FIXED_SUPPLY:'Reviewed Solady-based UERC20: transfer/transferFrom check only balance and allowance; _beforeTokenTransfer/_afterTokenTransfer are empty and no admin exists.',
  FIXED_SUPPLY_SELF_BURN:'Reviewed source: _transfer checks only nonzero addresses and balance; no owner, pause, blacklist or limit exists.',
  LEGACY_FIXED_SUPPLY_SELF_FREEZE:'Reviewed legacy source: transfers reject only the zero address, zero amounts and insufficient balance. freeze/unfreeze lock only the caller\'s own tokens; no account can restrict another holder.',
+ FIXED_SUPPLY_OZ_BURNABLE:'Reviewed OpenZeppelin 5.x ERC20 + ERC20Burnable with no transfer override: no pause, blacklist, allowlist or transfer limit exists in the token.',
+ CCIP_BURN_MINT_ROLE_TOKEN:'Reviewed source: the _transfer override only rejects the token contract itself as recipient; no pause, blacklist or limit exists. MINTER/BURNER roles affect supply, not transfers (burnFrom still needs an allowance).',
+ GOVERNANCE_MINTER_SET:'Reviewed source: _transfer checks only nonzero addresses and balance; governance and minters control issuance, not transfers.',
+ OPERATOR_SCHEDULED_CAPPED_MINT:'Reviewed OpenZeppelin 3.x ERC20 with an empty _beforeTokenTransfer hook: no pause, blacklist or transfer limit; the operator controls minting only.',
  ERC1155_WRAPPED_FIXED_SUPPLY:'Reviewed OpenZeppelin-style ERC20 with empty transfer hooks; the owner has no function besides ownership transfer/renouncement.'
 });
 function pausedState(details,proof){
@@ -71,6 +75,11 @@ async function derive({profile,fields,details,proof,word,address,block,kind=null
   'transfer/transferFrom/approve revert while paused or when sender, recipient or spender is frozen. The owner pauses; the asset-protection role freezes addresses and can wipe a frozen balance.',status,{paused});
  if(profile==='FIXED_SUPPLY_POOL_SETUP')return out('Anti-snipe max wallet (time-limited)','Reviewed _update anti-snipe check',
   'Until the immutable antiSnipeDeadline, a non-exempt recipient whose resulting balance exceeds the immutable maxWallet reverts. Whether the window is still open was not evaluated here.');
+ if(profile==='MINIME_CONTROLLED'){
+  const o=details.observations.find(x=>x.method==='transfersEnabled()'&&typeof x.value==='boolean');
+  return out(o?(o.value?'Controller-gated transfers · enabled':'Transfers DISABLED by controller'):'Controller-gated transfers','Reviewed MiniMe transfersEnabled + controller onTransfer hook'+(o?' + pinned transfersEnabled()':''),
+   'The controller can disable all transfers (enableTransfers) and, when it is a contract, veto each transfer through onTransfer; the controller can also move tokens without allowance and destroy balances (see Owner & Admin).',o?'VERIFIED_SOURCE_AND_STATE':'VERIFIED_SOURCE',o?{transfersEnabled:o.value}:{});
+ }
  if(profile==='FIXED_LAUNCH_RESTRICTIONS'){
   const end=details.observations.find(x=>x.method==='restrictionEndBlock()'&&/^\d+$/.test(x.raw||''));
   if(!end||!/^0x[0-9a-f]+$/i.test(block||''))return null;

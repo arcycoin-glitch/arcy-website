@@ -38,7 +38,8 @@ test('V5 reviewed profiles are full-digest keyed and registered; restriction get
   const d=digestOf(name);assert.match(d,/^[0-9a-f]{64}$/);assert.equal(reviewed.PROFILES[d],name);
  }
  assert.ok(restrictions.RESTRICTION_GETTERS.length<=3&&restrictions.RESTRICTION_BUDGET===2);
- assert.deepEqual(reviewed.REVIEWED_GETTERS.slice(-2),['supplyController()','assetProtectionRole()']);
+ for(const g of ['supplyController()','assetProtectionRole()'])assert.ok(reviewed.REVIEWED_GETTERS.includes(g));
+ assert.ok(reviewed.REVIEWED_GETTERS.every(g=>/^[A-Za-z_][A-Za-z0-9_]*\(\)$/.test(g)),'reviewed reads are argument-free getters only');
 });
 test('UERC20: fixed supply, no admin, full-value transfer and no restrictions; zero extra reads',async()=>{
  const x=fixture(digestOf('UNISWAP_UERC20_FIXED_SUPPLY'),{network:'robinhood'});const r=await inspect(x);

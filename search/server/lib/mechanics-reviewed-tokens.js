@@ -28,7 +28,20 @@ const PROFILES=Object.freeze({
  // Ethereum NPC (NPC.sol): fixed supply held by the contract, 1:1e18 ERC1155 wrap/unwrap, Ownable with no owner powers
  '398bcb7031ade72726ba64a6b43bb9f96705f196645759b653508a1d5f9f4a7b':'ERC1155_WRAPPED_FIXED_SUPPLY',
  // Ethereum BUSD implementation (BUSDImplementation.sol) behind the reviewed ZeppelinOS AdminUpgradeabilityProxy
- 'f529ab7e6bdcd5557c08a107acfb1cd33cddd4827909e6f052c6909227e34214':'PAXOS_SUPPLY_CONTROLLED'
+ 'f529ab7e6bdcd5557c08a107acfb1cd33cddd4827909e6f052c6909227e34214':'PAXOS_SUPPLY_CONTROLLED',
+ // Mechanics V6 (docs/MECHANICS_V6_20261122.md; complete function lists from scripts/probe-mechanics-sources.cjs PROBE_FULL):
+ // Robinhood FoboToken (FoboToken.sol, OZ 5.x ERC20 + ERC20Burnable): constructor-only TOTAL_SUPPLY mint, no owner/role
+ '1ed15a24e1aa9778505f1839550a0ab401464a5739ab1723034113003da54096':'FIXED_SUPPLY_OZ_BURNABLE',
+ // Robinhood Chainlink CCIP BurnMintERC20 (OZ 4.x AccessControl, non-enumerable): MINTER_ROLE mint capped by i_maxSupply
+ '7aa78076f05db2951a641af2664d5c88cf0296e5551dc05b6890ddf1555f73f7':'CCIP_BURN_MINT_ROLE_TOKEN',
+ // Ethereum YFI (YFI.sol, solc 0.5): governance adds/removes minters; minters mint without a cap
+ '028764dfc7733bb6d6d880e041991d6d9cc287873ec7917f04fed18cde858f37':'GOVERNANCE_MINTER_SET',
+ // Ethereum ConvexToken (ConvexToken.sol): only `operator` mints, on a cliff schedule capped at maxSupply; operator is refreshed
+ // permissionlessly from vecrvProxy.operator()
+ 'afb5ce3f0309dc0f8d52a25771abb7bae78815458d0247bffe4400e45a09b9c3':'OPERATOR_SCHEDULED_CAPPED_MINT',
+ // Ethereum Lido DAO LDO (MiniMeToken.sol, Aragon MiniMe): the controller mints, destroys any balance, moves tokens without
+ // allowance, enables/disables transfers and can veto each transfer through onTransfer
+ '623789e477379e2525a57bca254d35812779e8ff8b7b186ff4ec2da483dc12dc':'MINIME_CONTROLLED'
 });
 // Bounded reads that only these profiles issue (benchmark budget kind "augReviewed"). Everything else they use is a read
 // the generic verified-source path already made at the same pinned block (owner(), cap(), role enumeration).
@@ -36,7 +49,11 @@ const SPX_SLOTS=Object.freeze({packed:6,initialBuy:7,initialSell:8,finalBuy:9,fi
 const TORCH_GETTERS=Object.freeze(['BUY_TAX_BPS()','buyTaxBps()','FEE_ROUTER()']);
 const PAXOS_GETTERS=Object.freeze(['supplyController()','assetProtectionRole()']);
 // Every selector a reviewed profile may read beyond the generic verified-source pass (benchmark kind "augReviewed").
-const REVIEWED_GETTERS=Object.freeze([...TORCH_GETTERS,...PAXOS_GETTERS]);
+// Mechanics V6 profile reads (all argument-free pinned getters of the reviewed sources; <= 5 per contract, budget 8 unchanged).
+const V6_GETTERS=Object.freeze(['totalSupply()','decimals()','MINTER_ROLE()','BURNER_ROLE()','maxSupply()','getCCIPAdmin()','governance()','operator()','vecrvProxy()','controller()','transfersEnabled()',
+ // reviewed-v4 FIXED_LAUNCH_RESTRICTIONS getters, now also applied to a second reviewed PonsLauncherToken source digest
+ 'launchFactory()','poolFee()','restrictionEndBlock()','maxWalletBps()','maxTxBps()']);
+const REVIEWED_GETTERS=Object.freeze([...TORCH_GETTERS,...PAXOS_GETTERS,...V6_GETTERS]);
 const REVIEWED_BUDGET=8;
 const slotKey=i=>'0x'+i.toString(16).padStart(64,'0');
 const ZERO='0x'+'0'.repeat(40);
@@ -172,6 +189,56 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   const upgrade=admin?' Proxy admin '+admin+' can replace this implementation.':' The implementation sits behind an upgradeable proxy.';
   if(supplyController)fields.mintCapability=fact('Supply-controller mint · '+supplyController,'Reviewed increaseSupply + pinned supplyController()',{...p,supplyController,proxyAdmin:admin,scope:'The supply controller can create an unlimited amount (increaseSupply) and burn its own balance; the owner can replace it. No mint transaction was executed.'+upgrade},'VERIFIED_SOURCE_AND_STATE');
   if(owner)fields.ownerAdmin=fact('Owner-governed (pause, freeze role, supply controller) · '+owner,'Reviewed onlyOwner paths + pinned owner()/assetProtectionRole()',{...p,owner,assetProtectionRole:protection,proxyAdmin:admin,scope:'The owner can pause/unpause, set the asset-protection role and supply controller, and reclaim tokens held by the contract. The asset-protection role'+(protection?' '+protection:'')+' can freeze addresses and wipe a frozen balance. Ownership moves only through propose/claim.'+upgrade},'VERIFIED_SOURCE_AND_STATE');
+ }
+ if(profile==='FIXED_SUPPLY_OZ_BURNABLE'){
+  fields.tradingTaxes=transferOnly('Unmodified OpenZeppelin 5.x ERC20 _update moves the full amount; the token has no fee code or fee setter. Pool/hook fees are separate.');
+  if(!direct)return;
+  fields.mintCapability=noMint('The only _mint call is the constructor TOTAL_SUPPLY mint; no role, owner or function can create supply later. burn/burnFrom only reduce supply, burnFrom needs the holder\'s allowance.');
+  fields.ownerAdmin=fact('No token owner/admin','Reviewed complete source: no owner, role or privileged function',{...p,scope:'The token source has no owner, role, pause, blacklist, fee or upgrade function; burn and burnFrom act only on the caller\'s own balance or an approved allowance. Pool/launchpad contracts can hold separate privileges.'},'VERIFIED_SOURCE');
+ }
+ if(profile==='CCIP_BURN_MINT_ROLE_TOKEN'){
+  fields.tradingTaxes=transferOnly('Inherited OpenZeppelin ERC20 _transfer moves the full amount; the only override rejects the token contract itself as recipient. Pool/hook fees are separate.');
+  if(!direct)return;
+  const [minterRole,burnerRole,cap,total,decimals]=await Promise.all(['MINTER_ROLE()','BURNER_ROLE()','maxSupply()','totalSupply()','decimals()'].map(x=>word(address,x)));
+  const k=n=>require('../../../lib/keccak')(Buffer.from(n)).toLowerCase();
+  if(minterRole?.toLowerCase()===k('MINTER_ROLE')&&burnerRole?.toLowerCase()===k('BURNER_ROLE')&&cap&&total){
+   const c=BigInt(cap),t=BigInt(total),d=decimals?Number(BigInt(decimals)):null,fmt=v=>d===null||d>36?v.toString()+' raw':(Number(v)/10**d).toLocaleString('en-US',{maximumFractionDigits:2});
+   const value=c===0n?'Role-gated mint · uncapped':t>=c?'Role-gated mint · cap reached ('+fmt(c)+')':'Role-gated mint · cap '+fmt(c)+' · '+fmt(c-t)+' remaining';
+   fields.mintCapability=fact(value,'Reviewed onlyRole(MINTER_ROLE) mint + pinned MINTER_ROLE/maxSupply/totalSupply',{...p,minterRole,burnerRole,maxSupplyRaw:c.toString(),totalSupplyRaw:t.toString(),
+    remainingRaw:c===0n?null:(c>t?c-t:0n).toString(),scope:'MINTER_ROLE holders may mint up to maxSupply (0 = no cap); DEFAULT_ADMIN_ROLE holders can grant MINTER_ROLE and BURNER_ROLE (grantMintAndBurnRoles). AccessControl is not enumerable here, so current minter membership and an executable mint are not claimed. Burning reduces supply and can re-open capacity.'},'VERIFIED_SOURCE_AND_STATE');
+   const ccip=addressWord(await word(address,'getCCIPAdmin()'));
+   fields.ownerAdmin=fields.ownerAdmin||fact('AccessControl roles'+(ccip?' · CCIP admin '+ccip:''),'Reviewed AccessControl authority + pinned getCCIPAdmin()',{...p,ccipAdmin:ccip||null,scope:'DEFAULT_ADMIN_ROLE grants/revokes MINTER_ROLE and BURNER_ROLE and sets the CCIP admin (an informational registry address with no token permission by itself). Role holders are not enumerable; the deployer received DEFAULT_ADMIN_ROLE at construction and renouncement is not inferred. BURNER_ROLE burnFrom still needs the holder\'s allowance.'},'VERIFIED_SOURCE_AND_STATE');
+  }
+ }
+ if(profile==='GOVERNANCE_MINTER_SET'){
+  fields.tradingTaxes=transferOnly('_transfer moves the full amount after nonzero-address and balance checks; no fee code exists. Pool fees are separate.');
+  if(!direct)return;
+  const governance=addressWord(await word(address,'governance()'));
+  if(governance){
+   fields.mintCapability=fact('Governance-managed minters · uncapped','Reviewed mint(require minters[msg.sender]) + pinned governance()',{...p,governance,scope:'Any address in the minters mapping can mint without a supply cap; governance adds and removes minters. The current minter set is a mapping and is not enumerated; an executable mint is not claimed.'},'VERIFIED_SOURCE_AND_STATE');
+   fields.ownerAdmin=fields.ownerAdmin||fact('Governance: '+governance,'Reviewed setGovernance/addMinter/removeMinter + pinned governance()',{...p,governance,scope:'governance can replace itself and manage minters; it has no pause, blacklist or fee function. Whether the address is a multisig or contract is not inferred.'},'VERIFIED_SOURCE_AND_STATE');
+  }
+ }
+ if(profile==='OPERATOR_SCHEDULED_CAPPED_MINT'){
+  fields.tradingTaxes=transferOnly('Inherited OpenZeppelin 3.x ERC20 _transfer with an empty _beforeTokenTransfer moves the full amount; no fee code exists. Pool fees are separate.');
+  if(!direct)return;
+  const [operator,proxy,cap,total]=await Promise.all([word(address,'operator()'),word(address,'vecrvProxy()'),word(address,'maxSupply()'),word(address,'totalSupply()')]);
+  const op=addressWord(operator),px=addressWord(proxy);
+  if(op&&px&&cap&&total){const c=BigInt(cap),t=BigInt(total);
+   fields.mintCapability=fact(t>=c?'Operator mint · max supply reached':'Operator scheduled mint · cap '+(Number(c)/1e18).toLocaleString('en-US')+' · '+(Number(c-t)/1e18).toLocaleString('en-US',{maximumFractionDigits:0})+' remaining','Reviewed operator-only cliff mint + pinned operator/maxSupply/totalSupply',{...p,operator:op,vecrvProxy:px,maxSupplyRaw:c.toString(),totalSupplyRaw:t.toString(),
+    scope:'Only operator can mint; each mint is reduced by the supply cliff schedule and clamped at maxSupply (decimals fixed at 18 in the source). Calls from any other address return without minting. updateOperator() lets anyone copy operator from vecrvProxy.operator().'},'VERIFIED_SOURCE_AND_STATE');
+   fields.ownerAdmin=fields.ownerAdmin||fact('No token owner · operator '+op,'Reviewed complete source + pinned operator/vecrvProxy',{...p,operator:op,vecrvProxy:px,scope:'The token has no owner, pause, blacklist or fee function. Its only privileged role is the minting operator, which follows vecrvProxy.operator() (external staking contract governance, not reviewed here).'},'VERIFIED_SOURCE_AND_STATE');
+  }
+ }
+ if(profile==='MINIME_CONTROLLED'){
+  fields.tradingTaxes=transferOnly('doTransfer moves the full amount; there is no fee code. Transfers require transfersEnabled and, when the controller is a contract, its onTransfer approval, so they can revert or be vetoed. Pool fees are separate.');
+  if(!direct)return;
+  const controller=addressWord(await word(address,'controller()')),enabled=await word(address,'transfersEnabled()');
+  if(enabled!==null)details.observations.push({method:'transfersEnabled()',value:BigInt(enabled)!==0n,block,...p,scope:'Reviewed MiniMe transfer gate at the pinned block.'});
+  if(controller){
+   fields.mintCapability=fact('Controller mint (generateTokens)','Reviewed onlyController generateTokens + pinned controller()',{...p,controller,scope:'The controller can create any amount (no cap) and destroy any holder\'s tokens (destroyTokens). Whether the controller contract currently permits issuance is governance logic outside this token and is not claimed.'},'VERIFIED_SOURCE_AND_STATE');
+   fields.ownerAdmin=fields.ownerAdmin||fact('Controller: '+controller,'Reviewed onlyController surface + pinned controller()',{...p,controller,scope:'The controller can mint, destroy any balance, move tokens without allowance (transferFrom), enable/disable transfers, veto transfers via onTransfer, claim stray tokens and replace itself (changeController).'},'VERIFIED_SOURCE_AND_STATE');
+  }
  }
 }
 module.exports={priorOwner,PROFILES,SPX_SLOTS,TORCH_GETTERS,PAXOS_GETTERS,REVIEWED_GETTERS,REVIEWED_BUDGET,slotKey,apply};

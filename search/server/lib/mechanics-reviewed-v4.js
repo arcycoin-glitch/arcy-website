@@ -10,6 +10,9 @@ const PROFILES=Object.freeze({
  'f5ebad1074503ec0d9a61355ece383700862fc4c0d3904ad48aa97e35caea230':'GOVERNED_MINTER_SET',
  'fd9c8c9af9cdb9bce124a3d0d76edc18df19470c3c8d588c09172a97e708339d':'ROLE_TIMELOCK_TRANSFER',
  '97822136761cec8e740d8fab0b431651bfef3220891a71dee37056ecccf46175':'FIXED_LAUNCH_RESTRICTIONS',
+ // Mechanics V6: second PonsLauncherToken source (Pons DELTA/HMM). Complete source reviewed: constructor-only mint, full-value
+ // _update, launchFactory-only setInitialBuyRecipient, buy limits only while block.number <= restrictionEndBlock; no owner/fee.
+ '78a58d1192140e67892478e86766f47f697d05203b32bf4c042a4e05808c5825':'FIXED_LAUNCH_RESTRICTIONS',
  '1716a2d2068f5816644c6717836c817a11dda64ca3f99b6223efad2764f1824b':'COMPLIANCE_ROLE_TOKEN',
  '697ac51ddd373bb754030b8f10021c0e17ef54912b3ebf9c5d1845d8d698bc43':'COMPLIANCE_ROLE_TOKEN',
  'd39017d4a57fc82f293ddf7d7b780064636a94ba6f66d4bca5be6fb5d17762f5':'COMPLIANCE_ROLE_TOKEN',
