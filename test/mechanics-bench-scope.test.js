@@ -5,13 +5,14 @@ const scope=require('../search/server/lib/analysis-scope');
 const coverage=require('../search/server/lib/mechanics-coverage');
 const deep=require('../search/server/lib/mechanics-deep');
 const keccak=require('../lib/keccak');
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{spawnSync}=require('node:child_process');
 const TOKEN='0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b',OP='0x'+'22'.repeat(20),PROXY='0x'+'33'.repeat(20);
 const word=x=>'0x'+BigInt(x).toString(16).padStart(64,'0'),addr=x=>'0x'+x.slice(2).padStart(64,'0');
 const selector=x=>keccak(Buffer.from(x)).slice(0,10);
 const E18=10n**18n;
 function fixture(t){
  const log=[],original=global.fetch;
- let block='0x1234',supply=99000000n*E18,failSupply=false;
+ let block='0x1234',supply=99000000n*E18,failSupply=false,reviewed=true;
  global.fetch=async(url,options)=>{
   const request=JSON.parse(options.body);log.push(request);
   const {method,params,id}=request;
@@ -32,11 +33,35 @@ function fixture(t){
  const source={abi:[],digest:Object.entries(deep.PROFILES).find(([,p])=>p==='OPERATOR_SCHEDULED_CAPPED_MINT')[0],runtimeMatch:'exact_match',sourceProvider:'Fixture',sourceAssurance:'EXACT_DEPLOYED_BYTECODE_MATCH'};
  const req=path=>{
   if(path==='search/server/lib/security')return {inspect:async()=>({})};
-  if(path==='search/server/lib/mechanics-coverage')return {enrich:options=>coverage.enrich({...options,sourceLoader:async()=>source})};
+  if(path==='search/server/lib/mechanics-coverage')return {enrich:options=>coverage.enrich({...options,sourceLoader:async()=>reviewed?source:{...source,digest:'a'.repeat(64)}})};
   return require('../'+path);
  };
- return {log,req,setBlock:x=>{block=x;},setSupply:x=>{supply=x;},failSupply:x=>{failSupply=x;},supplyReads:()=>log.filter(r=>r.method==='eth_call'&&r.params[0].data===selector('totalSupply()'))};
+ return {log,req,setReviewed:x=>{reviewed=x;},setBlock:x=>{block=x;},setSupply:x=>{supply=x;},failSupply:x=>{failSupply=x;},supplyReads:()=>log.filter(r=>r.method==='eth_call'&&r.params[0].data===selector('totalSupply()'))};
 }
+
+test('paired gate rejects the old CVX duplicate and accepts scoped replay with the same unchanged budgets',async t=>{
+ const f=fixture(t),unscopedReq=p=>p==='search/server/lib/analysis-scope'?{run:operation=>operation()}:f.req(p);
+ const run=async(req,reviewed)=>{f.setReviewed(reviewed);f.log.length=0;const result=await mechanics(req,'ethereum',TOKEN);return {result,rpc:f.log.length};};
+ const oldBefore=await run(unscopedReq,false),oldAfter=await run(unscopedReq,true);
+ const before=await run(f.req,false),after=await run(f.req,true);
+ assert.equal(oldAfter.rpc-oldBefore.rpc,4,'old benchmark adds three new getters and a repeated supply getter');
+ assert.equal(after.rpc-before.rpc,3,'new benchmark adds only operator, vecrvProxy and maxSupply');
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'arcy-cvx-scope-'));
+ const beforeFile=path.join(dir,'before.json'),afterFile=path.join(dir,'after.json');
+ t.after(()=>{for(const file of [beforeFile,afterFile])if(fs.existsSync(file))fs.unlinkSync(file);fs.rmdirSync(dir);});
+ const fields=card=>Object.fromEntries(['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture','transferRestrictions'].map(k=>{
+  const x=k==='transferRestrictions'?card.supplementary?.transferRestrictions:card.fields[k];
+  return [k,{ok:x?.dataState==='DATA_FOUND',cls:'ON_CHAIN_VERIFIED',status:x?.status||'NOT_VERIFIED',value:x?.value||'',scope:''}];
+ }));
+ const artifact=(sample,mode,augReviewed)=>{
+  const rows=Array.from({length:30},(_,i)=>({chain:'ethereum',address:i===0?TOKEN:'0x'+i.toString(16).padStart(40,'0'),group:'radar',block:sample.result.block,err:null,
+   f:fields(sample.result.card),net:{rpc:i===0?sample.rpc:0,sourcify:0,replayMiss:0,augReviewed:i===0?augReviewed:0}}));
+  return {mode,rows,net:{rpc:sample.rpc,sourcify:0,replayMiss:0,augReviewed}};
+ };
+ const gate=(b,a)=>{fs.writeFileSync(beforeFile,JSON.stringify(artifact(b,'replay',0)));fs.writeFileSync(afterFile,JSON.stringify(artifact(a,'augment',3)));return spawnSync(process.execPath,[path.join(__dirname,'../scripts/assert-mechanics-bench.cjs'),beforeFile,afterFile],{encoding:'utf8'});};
+ const old=gate(oldBefore,oldAfter);assert.notEqual(old.status,0);assert.match(old.stderr,/New RPC usage for ethereum\|0x4e3fbd/);
+ const fixed=gate(before,after);assert.equal(fixed.status,0,fixed.stdout+fixed.stderr);assert.match(fixed.stdout,/PAIRED_MECHANICS_GATE PASS/);
+});
 
 test('CVX benchmark reuses the identity pass totalSupply read while preserving every reviewed field',async t=>{
  const f=fixture(t);
