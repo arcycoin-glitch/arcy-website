@@ -7,6 +7,7 @@ const fs=require('node:fs'),path=require('node:path');
 const label=process.argv[2]||'run',samplesFile=process.argv[3]||'';
 const root=process.env.BENCH_ROOT||process.cwd();
 const req=p=>require(path.join(root,p));
+const runMechanics=require('./mechanics-bench-run.cjs').mechanics;
 const {isPinnedBlockTag,customRoleEvidence}=require('./mechanics-bench-budget.cjs');
 const FIELDS=['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture','transferRestrictions'];
 // Mechanics V5: transferRestrictions is supplementary (card.supplementary), never one of the four visible card fields.
@@ -110,19 +111,7 @@ async function buildSamples(){
  for(const section of ['arc','ethereum','robinhood','pons']){try{const d=await get('/api/search?action=radar&chain='+section);for(const t of (d.tokens||[]).slice(0,10))add(section==='pons'?'robinhood':section,t.address||t.token||'',section==='pons'?'pons':'radar');}catch(e){console.error('radar',section,e.message);}}
  return out;
 }
-async function mechanics(chain,address){
- if(chain==='ethereum'){
-  const evidence=req('search/server/lib/evidence'),report=req('search/server/lib/report'),control=req('search/server/lib/control'),security=req('search/server/lib/security');
-  const eth=req('search/server/lib/eth'),t=await eth.inspect(address);
-  const [c,sec]=await Promise.all([control.inspect(t.address,t.block).catch(control.failure),security.inspect('ethereum',t.address).catch(()=>({}))]);let extra={};
-  if(c.fields?.owner?.dataState!=='DATA_FOUND'||c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'){try{extra=await req('search/server/lib/admin-getters').inspect({network:'ethereum',address:t.address,block:t.block,rpc:eth.rpc,needAdmin:c.fields?.owner?.dataState!=='DATA_FOUND',needImplementation:c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'});}catch{}}
-  // Same wrapper as Production (search/server/lib/report.js): mechanics-coverage.enrich around the protected deep enrich.
-  return {block:t.block,card:await req('search/server/lib/mechanics-coverage').enrich({network:'ethereum',address:t.address,block:t.block,rpc:eth.rpc,card:report.mechanicsCard(c,sec,extra),env:{}})};
- }
- const adapter=req('search/server/lib/'+(chain==='arc'?'arc':'robinhood')+'-adapter');
- const base=await adapter.inspectToken({address});
- return {block:base.block,card:await adapter.inspectCard({base,cardId:'mechanics',address})};
-}
+const mechanics=(chain,address)=>runMechanics(req,chain,address);
 const short=v=>String(v??'').replace(/\s+/g,' ').slice(0,70);
 (async()=>{
  const {classify}=req('search/server/lib/evidence-class');
