@@ -32,14 +32,21 @@ const FEEDS=Object.freeze({
  ETH:{address:'0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419',description:'ETH / USD',maxAgeS:3600+600},
  USDC:{address:'0x8fffffd4afb6115b954bd326cbe7b4ba576818f6',description:'USDC / USD',maxAgeS:86400+600},
  USDT:{address:'0x3e7d1eab13ad0104d2750b8863b489d65364e32d',description:'USDT / USD',maxAgeS:86400+600},
- DAI:{address:'0xaed0c38402a5d19df6e4c03f4e2dced6e29c1ee9',description:'DAI / USD',maxAgeS:3600+600}});
+ DAI:{address:'0xaed0c38402a5d19df6e4c03f4e2dced6e29c1ee9',description:'DAI / USD',maxAgeS:3600+600},
+ // No address is hard-coded here: Chainlink publishes this feed only as the ENS name usds-usd.data.eth (data.chain.link). The name is
+ // resolved on-chain through the ENS registry at the pinned Ethereum block, then description() must still equal 'USDS / USD'.
+ USDS:{ens:'usds-usd.data.eth',description:'USDS / USD',maxAgeS:86400+600}});
+const ENS_REGISTRY='0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e';
+function namehash(name){let node=Buffer.alloc(32);for(const label of name.split('.').reverse()){const h=Buffer.from(keccak(Buffer.from(label)).slice(2),'hex');node=Buffer.from(keccak(Buffer.concat([node,h])).slice(2),'hex');}return '0x'+node.toString('hex');}
+const ensCache=new Map();
 // Quote registry: exact addresses only. `decimals` for the native currency is fixed by the chain; ERC-20 decimals are read on-chain.
 const QUOTES=Object.freeze({
  ethereum:{[NATIVE]:{asset:'ETH',decimals:18,basis:'native ETH (Uniswap v4 currency 0)'},
   '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2':{asset:'ETH',basis:'canonical WETH9'},
   '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48':{asset:'USDC',basis:'Circle USDC'},
   '0xdac17f958d2ee523a2206206994597c13d831ec7':{asset:'USDT',basis:'Tether USDT'},
-  '0x6b175474e89094c44da98b954eedeac495271d0f':{asset:'DAI',basis:'MakerDAO DAI'}},
+  '0x6b175474e89094c44da98b954eedeac495271d0f':{asset:'DAI',basis:'MakerDAO DAI'},
+  '0xdc035d45d973e3ec169d2276ddab16f1e407384f':{asset:'USDS',basis:'Sky USDS (Sky Protocol stablecoin contract)'}},
  robinhood:{[NATIVE]:{asset:'ETH',decimals:18,basis:'native ETH gas token (Arbitrum Orbit, Uniswap v4 currency 0)'},
   '0x0bd7d308f8e1639fab988df18a8011f41eacad73':{asset:'ETH',basis:'Robinhood Chain WETH (pool quote asset; 1:1 ETH wrapper)'}},
  arc:{[NATIVE]:{asset:'USDC',decimals:18,basis:'Arc native USDC gas token (18-decimal native accounting, Uniswap v4 currency 0)'},
@@ -72,12 +79,16 @@ async function quoteUsd(asset,{ethRpc,now}){
  const f=FEEDS[asset];if(!f)throw code('QUOTE_USD_UNVERIFIED');
  const block=await ethRpc('eth_blockNumber',[]);
  const call=(to,data)=>ethRpc('eth_call',[{to,data},block]);
- const desc=require('./eth').abiString?.(await call(f.address,SEL.description));
+ let feed=f.address;
+ if(!feed&&f.ens){const c=ensCache.get(f.ens);if(c&&now-c.at<3600000)feed=c.address;else{const node=namehash(f.ens);
+  const resolver='0x'+String(await call(ENS_REGISTRY,'0x0178b8bf'+node.slice(2))).slice(-40);if(/^0x0{40}$/.test(resolver))throw code('QUOTE_FEED_ENS_UNRESOLVED');
+  feed='0x'+String(await call(resolver,'0x3b3b57de'+node.slice(2))).slice(-40).toLowerCase();if(/^0x0{40}$/.test(feed))throw code('QUOTE_FEED_ENS_UNRESOLVED');ensCache.set(f.ens,{address:feed,at:now});}}
+ const desc=require('./eth').abiString?.(await call(feed,SEL.description));
  if(desc!==f.description)throw code('QUOTE_FEED_IDENTITY_MISMATCH');
- const w=words(await call(f.address,SEL.latestRoundData));const answer=signed(w[1],256),updatedAt=Number(w[3]);
+ const w=words(await call(feed,SEL.latestRoundData));const answer=signed(w[1],256),updatedAt=Number(w[3]);
  if(answer<=0n)throw code('QUOTE_FEED_INVALID');
  const age=Math.floor(now/1000)-updatedAt;if(!(age>=-60&&age<=f.maxAgeS))throw code('QUOTE_FEED_STALE',{age});
- return {usd:Number(answer)/1e8,evidence:{feed:f.address,description:f.description,ethereumBlock:block,updatedAt:new Date(updatedAt*1000).toISOString(),ageSeconds:age}};
+ return {usd:Number(answer)/1e8,evidence:{feed,...(f.ens?{ens:f.ens}:{}),description:f.description,ethereumBlock:block,updatedAt:new Date(updatedAt*1000).toISOString(),ageSeconds:age}};
 }
 // PoolKey resolution, cheapest first; every candidate must hash to the poolId (so the source of the candidate is irrelevant):
 //  1) PositionManager.poolKeys(bytes25(poolId)) - one eth_call; PositionManager.poolManager() must equal the official PoolManager
@@ -146,7 +157,7 @@ async function inspect(network,address,primary,{rpc=rpcFor(network),ethRpc=rpcFo
   const block=await r('eth_blockNumber',[]);
   const call=(to,data)=>r('eth_call',[{to,data},block]);
   const ctx={network,token,rpc:r,call,block},usd={};
-  const usdOf=async asset=>usd[asset]||=await quoteUsd(asset,{ethRpc:er,now});
+  const usdOf=async asset=>usd[asset]||=await quoteUsd(asset,{ethRpc:er,now});const usdCache=usd;
   const at=new Date(now).toISOString();
   const ev=(pools,extra)=>[{provider:SOURCE[network],source:SOURCE[network],network,block,pairs:pools,method:VERSION,checkedAt:at,...extra}];
   let tokenUsd=null,best=null;
@@ -173,12 +184,42 @@ async function inspect(network,address,primary,{rpc=rpcFor(network),ethRpc=rpcFo
     evidence:ev(liqPools,{pools:parts,basis:'sum of pool token balances x on-chain token price x Chainlink quote USD'}),
     freshness:{retrievedAt:at,ageMs:0,basis:'pinned-block chain read at '+block}};
   }catch(e){profile.reasons.liquidityUsd=e.code||'ONCHAIN_READ_FAILED';}
-  profile.reasons.volume24h='VOLUME_REQUIRES_SWAP_LOG_AGGREGATION';
+  // 24h volume needs tens of eth_getLogs per token. Run inside the report it competed with Mechanics for the same public RPC and
+  // degraded reviewed tax/mint/owner evidence (CI A/B 2026-11-22: TAO 2/2 repeats). It therefore never runs in the request path:
+  // a paced background job (one per chain, opt-in SEARCH_MARKET_ONCHAIN_VOLUME=on) fills a 5-minute cache that later reports read.
+  try{const r=volumeFromCache(network,token,primary,{now,env});if(r.field)fields.volume24h=r.field;else{profile.reasons.volume24h=r.reason;
+   if(r.reason==='VOLUME_PENDING_BACKGROUND')startVolume(network,token,primary,{rpc,usdOf:async a=>usdCache[a]?usdCache[a]:quoteUsd(a,{ethRpc,now:Date.now()})});}}
+  catch(e){profile.reasons.volume24h=e.code||'VOLUME_READ_FAILED';}
  }catch(e){profile.reasons.all=e.code||'ONCHAIN_READ_FAILED';}
  profile.calls=state.calls;profile.ms=Date.now()-t0;
  if(cache.size>500)cache.delete(cache.keys().next().value);
  cache.set(key,{at:now,fields:structuredClone(fields),profile});
  return {fields,profile};
 }
-function _reset(){cache.clear();poolKeys.clear();}
-module.exports={VERSION,V4,FEEDS,QUOTES,TOLERANCE,MAX_CALLS,inspect,readPool,poolId,fromSqrt,quoteUsd,enabled,_reset};
+
+// ── background 24h volume (never awaited by a report) ──────────────────────────────────────────────────────────────────
+const volCache=new Map(),volRunning=new Map(),VOL_TTL_MS=5*60*1000,VOL_PACE_MS=300;
+const volKey=(network,token,primary)=>network+'|'+token+'|'+[...new Set((primary?.volume24h?.evidence||[]).flatMap(e=>Array.isArray(e?.pairs)?e.pairs:[]).map(x=>String(x).toLowerCase()))].sort().join(',');
+function volumeEnabled(env=process.env){return String(env?.SEARCH_MARKET_ONCHAIN_VOLUME||'').toLowerCase()==='on';}
+function volumeFromCache(network,token,primary,{now=Date.now(),env=process.env}={}){
+ if(!volumeEnabled(env))return {reason:'VOLUME_CHECK_DISABLED'};
+ const hit=volCache.get(volKey(network,token,primary));
+ if(hit&&now-hit.at<VOL_TTL_MS)return hit.field?{field:structuredClone(hit.field)}:{reason:hit.reason};
+ return {reason:'VOLUME_PENDING_BACKGROUND'};
+}
+function paced(rpc){let chain=Promise.resolve();return (m,p)=>{const run=chain.then(()=>rpc(m,p));chain=run.catch(()=>{}).then(()=>new Promise(r=>setTimeout(r,VOL_PACE_MS)));return run;};}
+// One sequential job queue per chain (<= 50 pending, duplicates collapsed): bounded, paced extra load on the shared public RPC.
+const volQueues=new Map();
+function startVolume(network,token,primary,{rpc,usdOf}){
+ if(!rpc)return null;const key=volKey(network,token,primary);
+ if(volRunning.has(key))return volRunning.get(key);
+ const q=volQueues.get(network)||Promise.resolve();
+ if([...volRunning.keys()].filter(k=>k.startsWith(network+'|')).length>=50)return null;
+ const job=q.then(()=>require('./market-volume').inspect(network,token,primary,{rpc:paced(rpc),usdOf,now:Date.now()}))
+  .then(r=>{volCache.set(key,{at:Date.now(),field:r.field||null,reason:r.field?null:r.profile.reason,profile:r.profile});if(volCache.size>300)volCache.delete(volCache.keys().next().value);return r;})
+  .catch(()=>null).finally(()=>volRunning.delete(key));
+ volRunning.set(key,job);volQueues.set(network,job.then(()=>{},()=>{}));return job;
+}
+function _volume(){return {cache:volCache,running:volRunning};}
+function _reset(){cache.clear();poolKeys.clear();volCache.clear();volRunning.clear();volQueues.clear();}
+module.exports={_volume,volumeEnabled,VERSION,V4,FEEDS,QUOTES,NATIVE,SOURCE,TOLERANCE,MAX_CALLS,inspect,v4Key,rpcFor,namehash,readPool,poolId,fromSqrt,quoteUsd,enabled,_reset};

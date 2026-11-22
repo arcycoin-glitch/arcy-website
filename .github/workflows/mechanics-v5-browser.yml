@@ -11,6 +11,9 @@ on:
       - 'search/report-navigation.js'
       - 'search/report-navigation.css'
       - 'search/server/lib/live-trades.js'
+      # market fields rendered by the Activity/Liquidity cards
+      - 'search/server/lib/market-*.js'
+      - 'search/server/lib/arc-adapter.js'
       - '.github/workflows/mechanics-v5-browser.yml'
   workflow_dispatch:
 permissions:

@@ -9,7 +9,7 @@ const dex=require('../search/server/lib/dex-market'),M=require('../search/server
 const cohort=JSON.parse(fs.readFileSync(path.join(__dirname,'../data/verified-coverage/radar-cohort-20261121.json'),'utf8'));
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 (async()=>{
- const tally={price:{},liquidity:{}},prof=[];
+ const tally={price:{},liquidity:{},volume:{}},prof=[];
  for(const t of cohort.tokens){
   const net=t.network==='pons'?'robinhood':t.network;const t0=Date.now();
   let out={section:t.section,symbol:t.symbol};
@@ -21,8 +21,9 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    out={...out,ms:Date.now()-t0,calls:r.profile.calls,
     price:{ds:primary.priceUsd?.value??null,chain:r.fields.priceUsd?.value??null,kind:r.fields.priceUsd?.evidence?.[0]?.kind||null,state:cc('priceUsd')?.state||null,diff:cc('priceUsd')?.relativeDifference??null,reason:r.profile.reasons.priceUsd||null,pool:(primary.priceUsd?.evidence?.[0]?.pairs||[])[0]||null},
     liquidity:{ds:primary.liquidityUsd?.value??null,chain:r.fields.liquidityUsd?.value??null,state:cc('liquidityUsd')?.state||null,diff:cc('liquidityUsd')?.relativeDifference??null,reason:r.profile.reasons.liquidityUsd||null,pools:(primary.liquidityUsd?.evidence?.[0]?.pairs||[]).length},
+    volume:{ds:primary.volume24h?.value??null,chain:r.fields.volume24h?.value??null,state:cc('volume24h')?.state||null,diff:cc('volume24h')?.relativeDifference??null,reason:r.profile.reasons.volume24h||null,pools:(primary.volume24h?.evidence?.[0]?.pairs||[]).length,swaps:r.fields.volume24h?.evidence?.[0]?.swaps??null,calls:r.profile.volume?.calls??null},
     all:r.profile.reasons.all||null};
-   for(const k of ['price','liquidity']){const s=out[k].state||('NONE:'+(out[k].reason||out.all));tally[k][s]=(tally[k][s]||0)+1;}
+   for(const k of ['price','liquidity','volume']){const s=out[k].state||('NONE:'+(out[k].reason||out.all));tally[k][s]=(tally[k][s]||0)+1;}
    prof.push({ms:out.ms,calls:out.calls});
   }catch(e){out.error=e.message;}
   console.log('MARKET '+JSON.stringify(out));

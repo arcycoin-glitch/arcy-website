@@ -14,6 +14,8 @@ const tokens=args.length?args.map(address=>({address})):cohort.tokens.filter(t=>
 (async()=>{
  const t0=Date.now(),state=new Map(tokens.map(t=>[t.address,{symbol:t.symbol||null,section:t.section||null,slices:0,ms:0,rpc:{}}]));
  await worker.enqueue(chainId,tokens.map(t=>t.address));
+ // Resume evidence: cursor of every existing checkpoint BEFORE any work (a restored volume/cache must never restart from block 0).
+ await chains.run(chainId,async()=>{const storage=require('../lib/holder-storage');for(const t of tokens){try{const c=await storage.load(t.address);if(c&&Number.isSafeInteger(c.cursor)&&c.cursor>=0){const st=state.get(t.address);st.resumedFromBlock=c.cursor;st.resumedLedgerEntries=Object.keys(c.balances||{}).length;}}catch{}}},{rpc:async()=>{throw Object.assign(Error('no rpc'),{code:'RPC_NOT_ALLOWED'});}});
  while(Date.now()-t0<budgetMs&&[...state.values()].some(s=>s.state!=='COMPLETE')){
   const results=await worker.slice(chainId,{limit:5,sliceMs:20000,maxRanges:400});
   for(const r of results){const s=state.get(r.contract);if(!s)continue;s.slices++;s.ms+=r.ms||0;for(const [k,v] of Object.entries(r.rpc||{}))s.rpc[k]=(s.rpc[k]||0)+v;Object.assign(s,{state:r.state,reasonCode:r.reasonCode||null,block:r.block||s.block||null,holderCount:r.holderCount??s.holderCount??null,top10Pct:r.top10Pct??s.top10Pct??null,published:r.published||s.published||false,balanceReadMethods:r.balanceReadMethods||s.balanceReadMethods||null,transferLogs:r.transferLogs??s.transferLogs??null,logWindows:r.logWindows??s.logWindows??null});}
@@ -22,6 +24,8 @@ const tokens=args.length?args.map(address=>({address})):cohort.tokens.filter(t=>
  for(const [address,s] of state)console.log('CENSUS '+JSON.stringify({address,...s}));
  const all=[...state.values()],done=all.filter(s=>s.state==='COMPLETE');
  const rpc=all.reduce((m,s)=>{for(const [k,v] of Object.entries(s.rpc))m[k]=(m[k]||0)+v;return m;},{});
- console.log('CENSUS_TOTAL '+JSON.stringify({chainId,tokens:all.length,complete:done.length,published:all.filter(s=>s.published).length,failed:all.filter(s=>s.state==='FAILED'||s.state==='NOT_VERIFIED').length,
+ const disk=await require('../lib/holder-disk').report({index:process.env.ARC_INDEX_CACHE_DIR,published:process.env.ARC_HOLDER_PUBLISHED_DIR}).catch(()=>null),mem=process.memoryUsage();
+ console.log('CENSUS_RESOURCES '+JSON.stringify({rssMB:Math.round(mem.rss/2**20),heapUsedMB:Math.round(mem.heapUsed/2**20),disk}));
+ console.log('CENSUS_TOTAL '+JSON.stringify({chainId,resumed:all.filter(s=>s.resumedFromBlock!=null).length,tokens:all.length,complete:done.length,published:all.filter(s=>s.published).length,failed:all.filter(s=>s.state==='FAILED'||s.state==='NOT_VERIFIED').length,
   elapsedMs:Date.now()-t0,rpc,byReason:all.filter(s=>s.state!=='COMPLETE').reduce((m,s)=>{const k=s.state+':'+(s.reasonCode||'');m[k]=(m[k]||0)+1;return m;},{})}));
 })().catch(e=>{console.error(e.code||e.message);process.exitCode=1;});

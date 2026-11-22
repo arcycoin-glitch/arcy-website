@@ -118,3 +118,10 @@ test('HC-9 core.batch: Arc search scopes keep the JSON-RPC batch transport; only
   assert.equal(chainCalls,1);assert.deepEqual(out,['0x3']);assert.equal(posted,null,'4663 scope never reaches the Arc transport');
  }finally{global.fetch=orig;}
 });
+test('HC-10 adaptive pacing: 429 raises the shared interval, sustained success relaxes it back to the base quickly',async()=>{
+ let n=0;const fetcher=async(url,{body})=>{const {method}=JSON.parse(body);n++;if(method==='eth_chainId')return {status:200,json:async()=>({jsonrpc:'2.0',id:1,result:'0x1237'})};
+  if(n<=3)return {status:429,headers:{get:()=>null},json:async()=>({})};return {status:200,json:async()=>({jsonrpc:'2.0',id:1,result:'0x1'})};};
+ const rpc=chains.rpcClient(4663,{fetcher,sleep:async()=>{},urls:[]});
+ await rpc('eth_blockNumber',[]);assert.equal(rpc.metrics.http429,2);assert.equal(rpc.metrics.maxIntervalMs,338);
+ for(let i=0;i<40;i++)await rpc('eth_blockNumber',[]);assert.equal(rpc.metrics.intervalMs,150,'back at the base after 40 successes');
+});
