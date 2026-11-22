@@ -35,10 +35,30 @@ const SIMPLE=Object.freeze({
  CCIP_BURN_MINT_ROLE_TOKEN:'Reviewed source: the _transfer override only rejects the token contract itself as recipient; no pause, blacklist or limit exists. MINTER/BURNER roles affect supply, not transfers (burnFrom still needs an allowance).',
  GOVERNANCE_MINTER_SET:'Reviewed source: _transfer checks only nonzero addresses and balance; governance and minters control issuance, not transfers.',
  OPERATOR_SCHEDULED_CAPPED_MINT:'Reviewed OpenZeppelin 3.x ERC20 with an empty _beforeTokenTransfer hook: no pause, blacklist or transfer limit; the operator controls minting only.',
- ERC1155_WRAPPED_FIXED_SUPPLY:'Reviewed OpenZeppelin-style ERC20 with empty transfer hooks; the owner has no function besides ownership transfer/renouncement.'
+ ERC1155_WRAPPED_FIXED_SUPPLY:'Reviewed OpenZeppelin-style ERC20 with empty transfer hooks; the owner has no function besides ownership transfer/renouncement.',
+ FIXED_SUPPLY_LEGACY_ALLOCATION:'Reviewed legacy ERC20 transfer/transferFrom check only balance and allowance; all supply is allocated in the constructor and no post-construction admin or transfer restriction exists.'
 });
-function pausedState(details,proof){
- const o=details.observations.find(x=>x.method==='paused()'&&typeof x.value==='boolean'&&(!proof?.sourceDigest||x.sourceDigest===proof.sourceDigest));
+const CAPABILITIES=Object.freeze({
+ ALLOWANCE_MINTER_TOKEN:['PAUSE','BLACKLIST'],
+ CAPPED_FEE_LEGACY_TOKEN:['PAUSE','SENDER_BLACKLIST'],
+ OWNED_ISSUANCE_PAUSABLE:['PAUSE'],
+ REGISTRY_AUTH_TOKEN:['PAUSE','BLOCKED_ACCOUNTS'],
+ COMPLIANCE_ROLE_TOKEN:['PAUSE','COMPLIANCE_LISTS'],
+ PAXOS_SUPPLY_CONTROLLED:['PAUSE','FREEZE'],
+ FIXED_SUPPLY_POOL_SETUP:['LAUNCH_LIMITS','MAX_WALLET'],
+ MINIME_CONTROLLED:['TRADING_TOGGLE','CONTROLLER_VETO'],
+ FIXED_LAUNCH_RESTRICTIONS:['LAUNCH_LIMITS','MAX_WALLET','BUY_LIMITS'],
+ ROLE_TIMELOCK_TRANSFER:['TRANSFER_ROLE_GATE','INVESTOR_VESTING'],
+ OWNER_RULES_BLACKLIST_FIXED_SUPPLY:['BLACKLIST','PAIR_SETUP_GATE','BUY_HOLDING_LIMITS']
+});
+// A state observation belongs to the reviewed execution path and the requested block. Never combine a previous
+// implementation's getter with this implementation's source or label an old pause/launch answer as current state.
+function observation(details,proof,block,method,valid){
+ return (details?.observations||[]).find(x=>x.method===method&&valid(x)&&
+  (!proof?.sourceDigest||x.sourceDigest===proof.sourceDigest)&&(!block||x.block===block));
+}
+function pausedState(details,proof,block){
+ const o=observation(details,proof,block,'paused()',x=>typeof x.value==='boolean');
  return o?o.value:null;
 }
 const withPause=(label,paused)=>paused===null?label:label+(paused?' · PAUSED':' · not paused');
@@ -48,6 +68,16 @@ async function derive({profile,fields,details,proof,word,address,block,kind=null
  // legacy slot or beacon), so an absence finding there is qualified as current-implementation only.
  const upgradeable=Boolean(kind)&&!direct&&!['EIP-1167 minimal proxy','Minimal proxy (Solady LibClone, 44-byte)'].includes(kind)||UPGRADEABLE.has(kind);
  const out=(value,method,scope,status='VERIFIED_SOURCE',extra={})=>({value,method,scope,status,extra:{...extra,
+  stateScope:'TOKEN_TRANSFER_PATH',
+  // Capability presence is a source finding. Only an explicit pinned state answer establishes a current setting;
+  // pause=false never establishes empty blacklist/freeze/allowlist membership or that every transfer will succeed.
+  ...(CAPABILITIES[profile]?{capabilities:CAPABILITIES[profile].map(capability=>({capability,presence:'VERIFIED_SOURCE',
+   currentState:capability==='PAUSE'&&typeof extra.paused==='boolean'?(extra.paused?'ACTIVE':'INACTIVE'):
+    capability==='TRADING_TOGGLE'&&typeof extra.transfersEnabled==='boolean'?(extra.transfersEnabled?'ENABLED':'DISABLED'):
+    capability==='TRANSFER_ROLE_GATE'&&typeof extra.transferAllowed==='boolean'?(extra.transferAllowed?'OPEN':'RESTRICTED'):
+    ['LAUNCH_LIMITS','MAX_WALLET','BUY_LIMITS'].includes(capability)&&typeof extra.active==='boolean'?(extra.active?'ACTIVE':'EXPIRED'):
+    capability==='PAIR_SETUP_GATE'&&typeof extra.pairSet==='boolean'?(extra.pairSet?'OPEN':'OWNER_ONLY'):
+    capability==='BUY_HOLDING_LIMITS'&&extra.pairSet===true&&typeof extra.limited==='boolean'?(extra.limited?'ENABLED':'DISABLED'):'NOT_VERIFIED'}))}:{}),
   ...(upgradeable?{upgradeCaveat:'Upgradeable proxy ('+kind+'): this finding covers the current implementation only; the upgrade authority can replace it.'}:{})}});
  if(Object.hasOwn(SIMPLE,profile)){
   // Absence claims need a direct runtime or a bound, resolved proxy (mechanics-deep only applies profiles to resolved
@@ -56,7 +86,7 @@ async function derive({profile,fields,details,proof,word,address,block,kind=null
   if(profile==='NATIVE_DEPOSIT_WRAPPER'&&!direct)return null;
   return out(upgradeable?'None in current code · upgradeable':NONE,'Reviewed complete transfer path',SIMPLE[profile]);
  }
- const paused=pausedState(details,proof),status=paused===null?'VERIFIED_SOURCE':'VERIFIED_SOURCE_AND_STATE';
+ const paused=pausedState(details,proof,block),status=paused===null?'VERIFIED_SOURCE':'VERIFIED_SOURCE_AND_STATE';
  if(profile==='ALLOWANCE_MINTER_TOKEN')return out(withPause('Pause + blacklist',paused),'Reviewed whenNotPaused/notBlacklisted transfer modifiers'+(paused===null?'':' + pinned paused()'),
   'transfer/transferFrom revert while paused and when the sender, spender or recipient is blacklisted. The pauser and blacklister (set by the owner) control these lists.',status,{paused});
  if(profile==='CAPPED_FEE_LEGACY_TOKEN'){
@@ -76,12 +106,12 @@ async function derive({profile,fields,details,proof,word,address,block,kind=null
  if(profile==='FIXED_SUPPLY_POOL_SETUP')return out('Anti-snipe max wallet (time-limited)','Reviewed _update anti-snipe check',
   'Until the immutable antiSnipeDeadline, a non-exempt recipient whose resulting balance exceeds the immutable maxWallet reverts. Whether the window is still open was not evaluated here.');
  if(profile==='MINIME_CONTROLLED'){
-  const o=details.observations.find(x=>x.method==='transfersEnabled()'&&typeof x.value==='boolean');
+  const o=observation(details,proof,block,'transfersEnabled()',x=>typeof x.value==='boolean');
   return out(o?(o.value?'Controller-gated transfers · enabled':'Transfers DISABLED by controller'):'Controller-gated transfers','Reviewed MiniMe transfersEnabled + controller onTransfer hook'+(o?' + pinned transfersEnabled()':''),
    'The controller can disable all transfers (enableTransfers) and, when it is a contract, veto each transfer through onTransfer; the controller can also move tokens without allowance and destroy balances (see Owner & Admin).',o?'VERIFIED_SOURCE_AND_STATE':'VERIFIED_SOURCE',o?{transfersEnabled:o.value}:{});
  }
  if(profile==='FIXED_LAUNCH_RESTRICTIONS'){
-  const end=details.observations.find(x=>x.method==='restrictionEndBlock()'&&/^\d+$/.test(x.raw||''));
+  const end=observation(details,proof,block,'restrictionEndBlock()',x=>/^\d+$/.test(x.raw||''));
   if(!end||!/^0x[0-9a-f]+$/i.test(block||''))return null;
   const active=BigInt(block)<=BigInt(end.raw);
   return out(active?'Launch buy limits until block '+end.raw:'None active · launch limits expired','Reviewed _update launch restriction + pinned restrictionEndBlock()',

@@ -93,7 +93,7 @@ test('upgradeable proxies qualify absence findings; presence findings report pau
  assert.equal(usdt,null,'deprecated/forwarding state unproven: no restriction claim');
 });
 test('launch limits are evaluated against the pinned block; Ondo and PEPE read bounded state',async()=>{
- const obs=raw=>({observations:[{method:'restrictionEndBlock()',raw}]});
+ const obs=raw=>({observations:[{method:'restrictionEndBlock()',raw,block}]});
  assert.equal((await restrictions.derive({profile:'FIXED_LAUNCH_RESTRICTIONS',fields:{},details:obs('4661'),block:'0x1234',direct:true})).value,'Launch buy limits until block 4661');
  assert.equal((await restrictions.derive({profile:'FIXED_LAUNCH_RESTRICTIONS',fields:{},details:obs('4659'),block:'0x1234',direct:true})).value,'None active · launch limits expired');
  const reads=[];const w=v=>async(a,s)=>{reads.push(s);return v[s]??null;};
