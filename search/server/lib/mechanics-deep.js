@@ -273,7 +273,8 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
     // or that independent Arc pool/hook charges are zero.
     const directFixed=target===address&&nonDelegating(code)&&
       /^[0-9a-f]{64}$/i.test(String(proof.sourceDigest||''))&&
-      ['match','exact_match'].includes(proof.runtimeMatch);
+      ['match','exact_match'].includes(proof.runtimeMatch)&&
+      !originalTradeScopeIsBroader(card?.fields?.tradingTaxes,{network,address,block});
     fields.tradingTaxes=directFixed?
       fact('Buy 0% · Sell 0% · Transfer 0% · token fees only (DEX/hook fees excluded)',
        'Reviewed full-value ERC20 _update + pinned exact non-delegating runtime',{
@@ -419,9 +420,7 @@ async function enrich(options){
  for(const[key,value]of Object.entries(result.fields)){
   // Strong source/state proof wins over a secondary provider; generic getters
   // only fill gaps. Never discard established reviewed Arc mechanics evidence.
-  const preserveTrade=key==='tradingTaxes'&&
-    (onlyTokenTransfer(value)||value.evidence?.some(e=>e?.taxProofClass==='REVIEWED_FULL_EXECUTION_NO_TOKEN_DEDUCTION'&&
-      e.tokenTax?.externalFees?.hook==='NOT_VERIFIED'))&&
+  const preserveTrade=key==='tradingTaxes'&&onlyTokenTransfer(value)&&
     originalTradeScopeIsBroader(old[key],options);
   if(!preserveTrade&&(key==='contractArchitecture'||old[key]?.dataState!=='DATA_FOUND'||
    (value.status.startsWith('VERIFIED_SOURCE')&&!['VERIFIED_SOURCE','VERIFIED_SOURCE_AND_STATE','ONCHAIN_VERIFIED'].includes(old[key]?.status))))fields[key]={...value,evidence:[...value.evidence,...(old[key]?.dataState==='DATA_FOUND'&&Array.isArray(old[key].evidence)?old[key].evidence.map(e=>({...e,retainedFrom:'Existing Mechanics evidence; original block preserved'})):[])]};
