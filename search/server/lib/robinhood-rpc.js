@@ -5,7 +5,7 @@
 // HTTP 403 / 429 / 5xx, timeout, or transport failure. Never mix pinned reads.
 const {chain,rpcUrl,verifyChainId}=require('./chains');
 const {readJson}=require('./http');
-const {transientRpcError}=require('./rpc-errors');
+const {transientRpcError,executionRevert}=require('./rpc-errors');
 const {uint,units,abiString,BURN,ADDRESS}=require('./eth');
 const cfg=chain('robinhood');
 const DEFAULT_FALLBACK='https://robinhood.drpc.org';
@@ -56,7 +56,7 @@ async function rawRequestAt(endpoint,method,params,{timeoutMs=11000}={}){
   throw Object.assign(new Error('Robinhood RPC invalid response'),{retryable:true});
  // Provider-side rate-limit/capacity errors are transient and may fail over to
  // the independent, chain-checked backup; reverts and bad requests may not.
- if(body.error)throw Object.assign(new Error('Robinhood RPC invalid response'),{retryable:transientRpcError(body.error),rpcCode:Number.isInteger(body.error?.code)?body.error.code:undefined});
+ if(body.error)throw Object.assign(new Error('Robinhood RPC invalid response'),{retryable:transientRpcError(body.error),rpcCode:Number.isInteger(body.error?.code)?body.error.code:undefined,...(executionRevert(body.error)?{code:'GETTER_REVERTED'}:{})});
  if(!Object.hasOwn(body,'result'))throw Object.assign(new Error('Robinhood RPC invalid response'),{retryable:true});
  return body.result;
 }

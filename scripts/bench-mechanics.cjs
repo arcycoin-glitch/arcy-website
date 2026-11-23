@@ -7,6 +7,8 @@ const fs=require('node:fs'),path=require('node:path');
 const label=process.argv[2]||'run',samplesFile=process.argv[3]||'';
 const root=process.env.BENCH_ROOT||process.cwd();
 const req=p=>require(path.join(root,p));
+const runMechanics=require('./mechanics-bench-run.cjs').mechanics;
+const {proofs}=require('./mechanics-bench-proof.cjs');
 const {isPinnedBlockTag,customRoleEvidence}=require('./mechanics-bench-budget.cjs');
 const FIELDS=['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture','transferRestrictions'];
 // Mechanics V5: transferRestrictions is supplementary (card.supplementary), never one of the four visible card fields.
@@ -110,19 +112,7 @@ async function buildSamples(){
  for(const section of ['arc','ethereum','robinhood','pons']){try{const d=await get('/api/search?action=radar&chain='+section);for(const t of (d.tokens||[]).slice(0,10))add(section==='pons'?'robinhood':section,t.address||t.token||'',section==='pons'?'pons':'radar');}catch(e){console.error('radar',section,e.message);}}
  return out;
 }
-async function mechanics(chain,address){
- if(chain==='ethereum'){
-  const evidence=req('search/server/lib/evidence'),report=req('search/server/lib/report'),control=req('search/server/lib/control'),security=req('search/server/lib/security');
-  const eth=req('search/server/lib/eth'),t=await eth.inspect(address);
-  const [c,sec]=await Promise.all([control.inspect(t.address,t.block).catch(control.failure),security.inspect('ethereum',t.address).catch(()=>({}))]);let extra={};
-  if(c.fields?.owner?.dataState!=='DATA_FOUND'||c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'){try{extra=await req('search/server/lib/admin-getters').inspect({network:'ethereum',address:t.address,block:t.block,rpc:eth.rpc,needAdmin:c.fields?.owner?.dataState!=='DATA_FOUND',needImplementation:c.fields?.proxyImplementation?.dataState!=='DATA_FOUND'});}catch{}}
-  // Same wrapper as Production (search/server/lib/report.js): mechanics-coverage.enrich around the protected deep enrich.
-  return {block:t.block,card:await req('search/server/lib/mechanics-coverage').enrich({network:'ethereum',address:t.address,block:t.block,rpc:eth.rpc,card:report.mechanicsCard(c,sec,extra),env:{}})};
- }
- const adapter=req('search/server/lib/'+(chain==='arc'?'arc':'robinhood')+'-adapter');
- const base=await adapter.inspectToken({address});
- return {block:base.block,card:await adapter.inspectCard({base,cardId:'mechanics',address})};
-}
+const mechanics=(chain,address)=>runMechanics(req,chain,address);
 const short=v=>String(v??'').replace(/\s+/g,' ').slice(0,70);
 (async()=>{
  const {classify}=req('search/server/lib/evidence-class');
@@ -131,15 +121,16 @@ const short=v=>String(v??'').replace(/\s+/g,' ').slice(0,70);
  const rows=[];
  for(const s of samples){
   const before={...net},t0=Date.now();let res=null,err=null;CURRENT=s.address.toLowerCase();
-  try{res=await Promise.race([mechanics(s.chain,s.address),new Promise((_,r)=>setTimeout(()=>r(Error('BENCH_TIMEOUT_60S')),60000))]);}catch(e){err=String(e.message||e).slice(0,80);}
+  let timer;
+  try{res=await Promise.race([mechanics(s.chain,s.address),new Promise((_,r)=>{timer=setTimeout(()=>r(Error('BENCH_TIMEOUT_60S')),60000);})]);}catch(e){err=String(e.message||e).slice(0,80);}finally{clearTimeout(timer);}
   const ms=Date.now()-t0,d=Object.fromEntries(Object.keys(net).map(k=>[k,net[k]-before[k]]));
-  const f={},fails=new Set();for(const k of FIELDS){const x=fieldOf(res?.card,k);for(const q of (x?.analysisDiagnostics?.failures||[]))if(q?.reason)fails.add(q.reason);const c=classify(x||null,{card:'mechanics'});f[k]={ok:x?.dataState==='DATA_FOUND',state:res?dataClass(x,k):(err&&/RPC|429|timeout/i.test(err)?'RPC_ERROR':'NOT_VERIFIED'),cls:c.evidenceClass,status:x?.status||null,reason:x?.reasonCode||null,value:short(x?.value).slice(0,70)+(k==='ownerAdmin'&&x?.value?String(x.value).replace(/\s+/g,' ').slice(70,256):''),scope:short(x?.scope)};}
+  const f={},fails=new Set();for(const k of FIELDS){const x=fieldOf(res?.card,k);for(const q of (x?.analysisDiagnostics?.failures||[]))if(q?.reason)fails.add(q.reason);const c=classify(x||null,{card:'mechanics'});f[k]={ok:x?.dataState==='DATA_FOUND',state:res?dataClass(x,k):(err&&/RPC|429|timeout/i.test(err)?'RPC_ERROR':'NOT_VERIFIED'),cls:c.evidenceClass,status:x?.status||null,reason:x?.reasonCode||null,value:short(x?.value).slice(0,70)+(k==='ownerAdmin'&&x?.value?String(x.value).replace(/\s+/g,' ').slice(70,256):''),scope:short(x?.scope),evidence:proofs(x)};}
   rows.push({...s,block:res?.block||null,err,ms,net:d,f,fails:[...fails].sort(),customRoleEvidence:customRoleEvidence(res?.card)});
   await new Promise(r=>setTimeout(r,600));
  }
  const cov={};for(const r of rows){const c=cov[r.chain+(r.group==='pons'?'/pons':'')]||={n:0,err:0,ms:0,rpc:0,src:0,f:Object.fromEntries(FIELDS.map(k=>[k,0])),states:Object.fromEntries(FIELDS.map(k=>[k,{}]))};c.n++;if(r.err)c.err++;c.ms+=r.ms;c.rpc+=r.net.rpc;c.src+=r.net.sourcify;for(const k of FIELDS){if(r.f[k].ok)c.f[k]++;c.states[k][r.f[k].state]=(c.states[k][r.f[k].state]||0)+1;}}
  const reasons={};for(const r of rows)for(const k of FIELDS)if(!r.f[k].ok){const key=k+':'+(r.f[k].reason||r.err||'none');reasons[key]=(reasons[key]||0)+1;}
- if(MODE==='record')fs.writeFileSync(RFILE,JSON.stringify(store));
+ if(MODE==='record'||MODE==='augment')fs.writeFileSync(RFILE,JSON.stringify(store));
  const out={label,mode:MODE,at:new Date().toISOString(),commit:process.env.GITHUB_SHA||null,net,cov,reasons,rows};
  fs.writeFileSync('mechanics-bench-'+label+'.json',JSON.stringify(out,null,1));
  fs.writeFileSync('mechanics-samples.json',JSON.stringify(samples));

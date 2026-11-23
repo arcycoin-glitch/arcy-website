@@ -38,7 +38,8 @@ test('V5 reviewed profiles are full-digest keyed and registered; restriction get
   const d=digestOf(name);assert.match(d,/^[0-9a-f]{64}$/);assert.equal(reviewed.PROFILES[d],name);
  }
  assert.ok(restrictions.RESTRICTION_GETTERS.length<=3&&restrictions.RESTRICTION_BUDGET===2);
- assert.deepEqual(reviewed.REVIEWED_GETTERS.slice(-2),['supplyController()','assetProtectionRole()']);
+ for(const g of ['supplyController()','assetProtectionRole()'])assert.ok(reviewed.REVIEWED_GETTERS.includes(g));
+ assert.ok(reviewed.REVIEWED_GETTERS.every(g=>/^[A-Za-z_][A-Za-z0-9_]*\(\)$/.test(g)),'reviewed reads are argument-free getters only');
 });
 test('UERC20: fixed supply, no admin, full-value transfer and no restrictions; zero extra reads',async()=>{
  const x=fixture(digestOf('UNISWAP_UERC20_FIXED_SUPPLY'),{network:'robinhood'});const r=await inspect(x);
@@ -92,7 +93,7 @@ test('upgradeable proxies qualify absence findings; presence findings report pau
  assert.equal(usdt,null,'deprecated/forwarding state unproven: no restriction claim');
 });
 test('launch limits are evaluated against the pinned block; Ondo and PEPE read bounded state',async()=>{
- const obs=raw=>({observations:[{method:'restrictionEndBlock()',raw}]});
+ const obs=raw=>({observations:[{method:'restrictionEndBlock()',raw,block}]});
  assert.equal((await restrictions.derive({profile:'FIXED_LAUNCH_RESTRICTIONS',fields:{},details:obs('4661'),block:'0x1234',direct:true})).value,'Launch buy limits until block 4661');
  assert.equal((await restrictions.derive({profile:'FIXED_LAUNCH_RESTRICTIONS',fields:{},details:obs('4659'),block:'0x1234',direct:true})).value,'None active · launch limits expired');
  const reads=[];const w=v=>async(a,s)=>{reads.push(s);return v[s]??null;};

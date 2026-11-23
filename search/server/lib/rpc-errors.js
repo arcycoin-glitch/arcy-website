@@ -13,4 +13,12 @@ function transientRpcError(error){
  // Generic server errors (-32000/-32603) only count when the text says why.
  return [-32000,-32603].includes(error.code)&&TRANSIENT_TEXT.test(message);
 }
-module.exports={transientRpcError};
+// Preserve an explicit execution outcome separately from provider failure. Consumers of differential eth_call
+// proofs must not treat an opaque -32000, rate-limit response or timeout as a reverted baseline.
+function executionRevert(error){
+ if(!error||typeof error!=='object')return false;
+ if(error.code===3)return true;
+ if(![-32000,-32015,-32603].includes(error.code))return false;
+ return /execution reverted|\brevert(?:ed)?\b/i.test(String(error.message||'').slice(0,300));
+}
+module.exports={transientRpcError,executionRevert};

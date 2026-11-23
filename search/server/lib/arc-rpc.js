@@ -5,7 +5,7 @@
 // HTTP 403 / 429 / 5xx, timeout, or transport failure. Never mix pinned reads.
 const {chain,rpcUrl,verifyChainId}=require('./chains');
 const {readJson}=require('./http');
-const {transientRpcError}=require('./rpc-errors');
+const {transientRpcError,executionRevert}=require('./rpc-errors');
 const {uint,units,abiString,BURN,ADDRESS}=require('./eth');
 const cfg=chain('arc');
 const DEFAULT_FALLBACK='https://rpc.quicknode.mainnet.arc.io';
@@ -56,7 +56,7 @@ async function rawRequestAt(endpoint,method,params,{timeoutMs=11000}={}){
   throw Object.assign(Error('Arc RPC invalid response'),{retryable:true});
  // Only provider-side temporary errors fail over. A contract revert (e.g. an optional owner() getter
  // that does not exist) is deterministic: re-sending it to the backup only burns quota.
- if(body.error)throw Object.assign(Error('Arc RPC invalid response'),{retryable:transientRpcError(body.error),rpcCode:Number.isInteger(body.error?.code)?body.error.code:undefined});
+ if(body.error)throw Object.assign(Error('Arc RPC invalid response'),{retryable:transientRpcError(body.error),rpcCode:Number.isInteger(body.error?.code)?body.error.code:undefined,...(executionRevert(body.error)?{code:'GETTER_REVERTED'}:{})});
  if(!Object.hasOwn(body,'result'))throw Object.assign(Error('Arc RPC invalid response'),{retryable:true});
  return body.result;
 }

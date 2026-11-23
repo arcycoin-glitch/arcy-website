@@ -35,15 +35,23 @@ const uintWord=n=>BigInt(n).toString(16).padStart(64,'0');
 // Exact signatures only. `args` present => simulated; absent => detection only (arguments would be semantic guesses).
 const FUNCTIONS=Object.freeze([
  {category:'MINT',signature:'mint(address,uint256)',args:()=>pad(RECIPIENT)+uintWord(1)},
+ // Burning often consumes a balance or allowance. A zero-amount call can be a no-op and cannot establish the
+ // right to destroy another holder's tokens, so exact burn signatures are detected without guessed simulations.
+ {category:'BURN',signature:'burn(uint256)'},
+ {category:'BURN',signature:'burn(address,uint256)'},
+ {category:'BURN',signature:'burnFrom(address,uint256)'},
  {category:'PAUSE',signature:'pause()',args:()=>'',pair:'unpause()'},
  {category:'PAUSE',signature:'unpause()',args:()=>'',pair:'pause()'},
  {category:'BLACKLIST',signature:'blacklist(address)',args:()=>pad(RECIPIENT)},
  {category:'BLACKLIST',signature:'addBlackList(address)',args:()=>pad(RECIPIENT)},
  {category:'OWNERSHIP',signature:'renounceOwnership()',args:()=>''},
  {category:'OWNERSHIP',signature:'transferOwnership(address)'},
+ {category:'OWNERSHIP',signature:'acceptOwnership()'},
  {category:'UPGRADE',signature:'upgradeTo(address)'},
  {category:'UPGRADE',signature:'upgradeToAndCall(address,bytes)'},
  {category:'ROLE_ADMIN',signature:'grantRole(bytes32,address)'},
+ {category:'ROLE_ADMIN',signature:'revokeRole(bytes32,address)'},
+ {category:'ROLE_ADMIN',signature:'renounceRole(bytes32,address)'},
  {category:'TAX',signature:'setFee(uint256)'},
  {category:'TAX',signature:'setFees(uint256,uint256)'},
  {category:'TAX',signature:'setTaxes(uint256,uint256)'},
@@ -51,6 +59,7 @@ const FUNCTIONS=Object.freeze([
  {category:'TRANSFER_RESTRICTION',signature:'setTradingEnabled(bool)'}
 ].map(f=>Object.freeze({...f,selector:selector(f.signature)})));
 const OWNER_SELECTOR=selector('owner()');
+const PENDING_OWNER_SELECTOR=selector('pendingOwner()');
 const MAX_SIMULATED=5,MAX_ANALYSIS_MS=20000;
 
 // Linear disassembly (PUSH data skipped). A selector counts only when PUSH4 <sel> is compared with EQ directly or after
@@ -73,7 +82,7 @@ function dispatchSelectors(code){
  return found;
 }
 const addressOf=word=>WORD.test(word||'')&&/^0x0{24}/.test(word)?'0x'+word.slice(26).toLowerCase():null;
-const minimalProxy=code=>{const m=/^0x(?:363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3|3d3d3d3d363d3d37363d73([0-9a-f]{40})5af43d3d93803e602a57fd5bf3)$/i.exec(code||'');return m?(m[1]||m[2]).toLowerCase():null;};
+const minimalProxy=code=>{const m=/^0x(?:363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3|3d3d3d3d363d3d37363d73([0-9a-f]{40})5af43d3d93803e602a57fd5bf3)$/i.exec(code||'');return m?{address:'0x'+(m[1]||m[2]).toLowerCase(),kind:m[1]?'EIP-1167 minimal proxy':'Minimal proxy (Solady LibClone, 44-byte)'}:null;};
 const REVERT=/revert|invalid opcode|invalid jump|out of gas|stack (?:under|over)flow|execution error|vm exception/i;
 
 function endpoints(network,env=process.env){
@@ -83,8 +92,8 @@ function endpoints(network,env=process.env){
 }
 // Minimal pinned reader. eth_call results are tri-state so a provider failure can never be read as a revert.
 function createReader({url,chainId,fetcher=fetch,maxCalls=28,paceMs=0,timeoutMs=5000,deadlineAt=Date.now()+MAX_ANALYSIS_MS,sleep=ms=>new Promise(r=>setTimeout(r,ms))}){
- const cost={rpcCalls:0};let id=0,last=0;
- async function send(method,params){
+ const cost={rpcCalls:0},reads=new Map();let id=0,last=0;
+ async function request(method,params){
   if(!['eth_chainId','eth_blockNumber','eth_getCode','eth_getStorageAt','eth_call'].includes(method))throw Error('PRIVILEGE_METHOD_NOT_ALLOWED');
   if(cost.rpcCalls>=maxCalls)return {state:'BUDGET'};
   let remaining=deadlineAt-Date.now();if(remaining<=0)return {state:'DEADLINE'};
@@ -92,11 +101,12 @@ function createReader({url,chainId,fetcher=fetch,maxCalls=28,paceMs=0,timeoutMs=
   last=Date.now();cost.rpcCalls++;
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),Math.min(timeoutMs,remaining));
   try{
-   const response=await fetcher(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:++id,method,params}),signal:controller.signal});
+   const requestId=++id;
+   const response=await fetcher(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:requestId,method,params}),signal:controller.signal});
    if(Date.now()>=deadlineAt)return {state:'DEADLINE'};
    if(!response.ok)return {state:'PROVIDER_ERROR',httpStatus:response.status};
    const body=await response.json();
-   if(!body||body.jsonrpc!=='2.0'||body.id!==id)return {state:'PROVIDER_ERROR'};
+   if(!body||body.jsonrpc!=='2.0'||body.id!==requestId)return {state:'PROVIDER_ERROR'};
    if(body.error){
     const message=String(body.error.message||'');
     return method==='eth_call'&&(body.error.code===3||REVERT.test(message))?{state:'REVERT'}:{state:'PROVIDER_ERROR',rpcCode:Number.isInteger(body.error.code)?body.error.code:null};
@@ -104,6 +114,14 @@ function createReader({url,chainId,fetcher=fetch,maxCalls=28,paceMs=0,timeoutMs=
    return typeof body.result==='string'?{state:'OK',result:body.result}:{state:'PROVIDER_ERROR'};
   }catch{return {state:Date.now()>=deadlineAt?'DEADLINE':'PROVIDER_ERROR'};}
   finally{clearTimeout(timer);}
+ }
+ function send(method,params){
+  const pin=params?.[method==='eth_getStorageAt'?2:1];
+  if(!['eth_getCode','eth_getStorageAt','eth_call'].includes(method)||!/^0x[0-9a-f]+$/i.test(pin||''))return request(method,params);
+  const key=method+JSON.stringify(params);
+  if(reads.has(key))return reads.get(key);
+  const pending=request(method,params).then(answer=>{if(!['OK','REVERT'].includes(answer.state))reads.delete(key);return answer;});
+  reads.set(key,pending);return pending;
  }
  return {send,cost,chainId};
 }
@@ -128,7 +146,7 @@ async function classify({network,address,fetcher=fetch,env=process.env,url=null,
  let logic=code.result,proxy=null;
  const clone=minimalProxy(code.result);
  const slotAddress=async slot=>{const a=addressOf((await reader.send('eth_getStorageAt',[address,slot,block])).result);return a&&a!==ZERO&&a!==address?a:null;};
- const candidates=clone?[['EIP-1167 minimal proxy','0x'+clone,null]]:[];
+ const candidates=clone?[[clone.kind,clone.address,null]]:[];
  if(!clone){
   const modern=await slotAddress(IMPLEMENTATION_SLOT);
   if(modern)candidates.push(['EIP-1967 proxy',modern,ADMIN_SLOT]);
@@ -151,12 +169,13 @@ async function classify({network,address,fetcher=fetch,env=process.env,url=null,
   if(target.state==='OK'&&CODE.test(target.result)&&target.result!=='0x'){logic=target.result;proxy={kind,implementation,adminSlot,beacon:beacon||null};}
  }
  const authorities=[];
- const holder=async(kind,account,method)=>{
+ const holder=async(kind,account,method,state='ACTIVE')=>{
   if(!account)return;
   if(account===ZERO){authorities.push({kind,holder:ZERO,holderType:'ZERO_ADDRESS',state:'REVOKED',method,block});return;}
   const c=await reader.send('eth_getCode',[account,block]);
-  authorities.push({kind,holder:account,holderType:c.state!=='OK'?'UNKNOWN':c.result==='0x'?'EOA':'CONTRACT',state:'ACTIVE',method,block,
-   ...(c.state==='OK'&&c.result!=='0x'?{scope:'Holder is a contract; who controls it is a separate question (multisig, timelock or other).'}:{})});
+  const validCode=c.state==='OK'&&CODE.test(c.result||'');
+  authorities.push({kind,holder:account,holderType:!validCode?'UNKNOWN':c.result==='0x'?'EOA':'CONTRACT',state,method,block,
+   ...(validCode&&c.result!=='0x'?{scope:'Holder is a contract; who controls it is a separate question (multisig, timelock or other).'}:{})});
  };
  if(proxy?.adminSlot){
   const admin=addressOf((await reader.send('eth_getStorageAt',[address,proxy.adminSlot,block])).result);
@@ -174,6 +193,14 @@ async function classify({network,address,fetcher=fetch,env=process.env,url=null,
   const answer=await reader.send('eth_call',[{to:address,data:OWNER_SELECTOR},block]);
   ownerRead=answer.state;
   if(answer.state==='OK'){owner=addressOf(answer.result);if(owner!==null)await holder('OWNER',owner,'owner()');else ownerRead='MALFORMED';}
+ }
+ let ownershipTransfer=null;
+ if(selectors.has(PENDING_OWNER_SELECTOR)){
+  const answer=await reader.send('eth_call',[{to:address,data:PENDING_OWNER_SELECTOR},block]);
+  const pending=answer.state==='OK'?addressOf(answer.result):null;
+  ownershipTransfer={method:'pendingOwner()',block,status:pending===null?'NOT_VERIFIED':'GETTER_REPORTED',
+   pendingOwner:pending,scope:'Pending getter value only; this address is not the current owner. Acceptance permissions and two-step ownership execution semantics require reviewed source.'};
+  if(pending&&pending!==ZERO)await holder('PENDING_OWNER',pending,'pendingOwner()','PENDING');
  }
  const simulate=(from,fn)=>reader.send('eth_call',[{from,to:address,data:fn.selector+fn.args()},block]);
  const detected=FUNCTIONS.filter(f=>selectors.has(f.selector)),functions=[];let simulated=0;
@@ -205,8 +232,17 @@ async function classify({network,address,fetcher=fetch,env=process.env,url=null,
   const other=functions.find(x=>x.signature===fn.pair);
   if(other?.state==='PRIVILEGE_CURRENTLY_EXECUTABLE')entry.note='The paired '+fn.pair+' is executable by the current owner, but this call reverted for both tested senders. A shared access gate or the reason for this revert is not established.';
  }
+ for(const entry of functions){
+  const executable=entry.state==='PRIVILEGE_CURRENTLY_EXECUTABLE',revoked=entry.state==='PRIVILEGE_REVOKED';
+  entry.authorityAssessment={functionPresence:'DISPATCHER_SELECTOR_DETECTED',
+   authoritySource:executable||revoked?'OWNER_GETTER_AND_DIFFERENTIAL_SIMULATION':'NOT_VERIFIED',
+   authorityHolder:executable?'CONFIRMED_AT_BLOCK':revoked?'ZERO_OWNER_AT_BLOCK':'NOT_VERIFIED',
+   currentBlockUsability:executable?'SIMULATED_WITH_FIXED_ARGUMENTS':revoked?'ZERO_OWNER_ROUTE_UNREACHABLE':'NOT_VERIFIED',
+   revocation:revoked?'OWNER_ROUTE_ONLY':'NOT_VERIFIED',
+   scope:'Selector detection, authority identification and current usability are separate. Role/admin routes are not excluded by a zero owner; simulation does not prove a token balance or supply changed.'};
+ }
  const count=state=>functions.filter(f=>f.state===state).length;
- return {...base,status:'ANALYZED',block,proxy,authorities,functions,
+ return {...base,status:'ANALYZED',block,proxy,authorities,functions,...(ownershipTransfer?{ownershipTransfer}:{}),
   summary:{detected:functions.length,functionDetectedOnly:count('FUNCTION_DETECTED'),privilegeConfirmed:count('PRIVILEGE_CONFIRMED'),currentlyExecutable:count('PRIVILEGE_CURRENTLY_EXECUTABLE'),revoked:count('PRIVILEGE_REVOKED'),unknown:count('UNKNOWN'),unrestrictedInSimulation:functions.filter(f=>f.unrestrictedInSimulation).length},
   assumptions:['Selectors are matched against a fixed list of exact signatures; a privileged function with another signature is not listed.','Simulation uses fixed arguments at one pinned block; outcomes can differ for other arguments or later blocks.','Absence of a listed function is not evidence that the capability does not exist.'],
   cost:reader.cost};

@@ -40,7 +40,15 @@ async function rawRpc(method,params,{timeoutMs=12000}={}){
    }
   }finally{clearTimeout(timer)}
   if(!result||typeof result!=='object'||Array.isArray(result)||result.jsonrpc!=='2.0'||result.id!==id)throw Error('Ethereum RPC response identity mismatch');
-  if(result.error)throw Error('Ethereum RPC method failed: '+method+(Number.isInteger(result.error.code)?' ('+result.error.code+')':''));
+  if(result.error){
+    // Keep explicit EVM reverts distinct from provider/RPC failures. Differential proxy-delegation
+    // proofs may accept only a known revert as their baseline, never an opaque transport error.
+    const {executionRevert}=require('./rpc-errors');
+    const err=Error('Ethereum RPC method failed: '+method+(Number.isInteger(result.error.code)?' ('+result.error.code+')':''));
+    err.code=executionRevert(result.error)?'GETTER_REVERTED':'RPC_METHOD_FAILED';
+    if(Number.isInteger(result.error.code))err.rpcCode=result.error.code;
+    throw err;
+  }
   if(!Object.hasOwn(result,'result'))throw Error('Ethereum RPC response missing result: '+method);
   return result.result;
 }

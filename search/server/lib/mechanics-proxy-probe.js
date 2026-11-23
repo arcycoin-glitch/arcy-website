@@ -7,10 +7,18 @@ const PROBE_CODE='0x3060005260206000f3',PROBE_TARGET='0x000000000000000000000000
 const PROBE_SELECTOR=require('../../../lib/keccak')(Buffer.from('arcyDelegationProbe()')).slice(0,10);
 async function delegationProbe({read,address,slot,block}){
  const tx={from:PROBE_FROM,to:address,data:PROBE_SELECTOR},expected='0x'+address.slice(2).toLowerCase().padStart(64,'0');
- let plain;try{plain=await read('eth_call',[tx,block]);}catch{plain=null;} // a revert is the expected baseline
+ let plain,baseline='DIFFERENT_RESULT';
+ try{plain=await read('eth_call',[tx,block]);}
+ catch(error){
+  // A failed provider request is not a reverted execution. The differential proof needs an answered baseline,
+  // including an explicit EVM revert; otherwise a runtime that always returns ADDRESS() could be misclassified.
+  if(error?.code!==3&&error?.code!=='GETTER_REVERTED'&&error?.rpcCode!==3&&!/execution reverted|\brevert(?:ed)?\b/i.test(String(error?.message||'')))return null;
+  plain=null;baseline='REVERTED';
+ }
+ if(baseline!=='REVERTED'&&(typeof plain!=='string'||!/^0x(?:[0-9a-f]{2})*$/i.test(plain)))return null;
  if(typeof plain==='string'&&plain.toLowerCase()===expected)return null; // ambiguous: runtime already answers with its own address
  let redirected;try{redirected=await read('eth_call',[tx,block,{[address]:{stateDiff:{[slot]:'0x'+PROBE_TARGET.slice(2).padStart(64,'0')}},[PROBE_TARGET]:{code:PROBE_CODE}}]);}catch{return null;}
  if(typeof redirected!=='string'||redirected.toLowerCase()!==expected)return null;
- return {method:'eth_call state override',selector:PROBE_SELECTOR,caller:PROBE_FROM,slot,baseline:plain===null?'REVERTED':'DIFFERENT_RESULT',redirected:'PROXY_ADDRESS_CONTEXT'};
+ return {method:'eth_call state override',selector:PROBE_SELECTOR,caller:PROBE_FROM,slot,baseline,redirected:'PROXY_ADDRESS_CONTEXT'};
 }
 module.exports={delegationProbe,PROBE_CODE,PROBE_TARGET,PROBE_FROM,PROBE_SELECTOR};

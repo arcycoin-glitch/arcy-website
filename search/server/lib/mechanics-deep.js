@@ -22,6 +22,9 @@ const PROFILES=Object.freeze({
  '9799263b22d762e31d781b80bcf9efa38e24917e39a5d75c683ad04f80ce5965':'CAPPED_FEE_LEGACY_TOKEN',
  '292fad46b97e1b50bd191dfd857de081abfb199ad96ff02a055124da4a708cf2':'TIMED_CAPPED_MINTER',
  '3424b81acc01fc833b18f1e2341511fe1bffdd065376112ef979243834e13ba4':'WARD_AUTH_TOKEN',
+ // Mechanics V6: Ethereum Sky.sol (SKY). Complete source reviewed: wards auth mint/rely/deny, full-value transfer/transferFrom
+ // (reject only zero/self recipient), holder/allowance burn, permit; no pause, blacklist or fee. Same claims as the DAI-style profile.
+ '039eb7a050281c1170fa41bf8525e2b159cb53f92ebaa44f975294c15b64be5d':'WARD_AUTH_TOKEN',
  '5f75f27c6b98783b82c28164831948668e502ee20bd302aaaeff35c74dbda664':'ALLOWANCE_MINTER_TOKEN',
  '82f4da21cdb0464ca580be2847548393fa678d7e06310fc169d74663ede571fd':'REGISTRY_AUTH_TOKEN',
  'f4abba6aa7071125168a9b9ea39cdfd08f01835d3c59aa74c55173c71e50daa1':'INITIALIZED_REWARD_LAUNCH_TOKEN',
