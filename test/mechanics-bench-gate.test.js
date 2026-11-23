@@ -152,3 +152,38 @@ test('V7 full-direction token tax upgrade requires identical exact reviewed dige
  const oldDifferent=structuredClone(before);oldDifferent[5].f.tradingTaxes.value='Transfer 2% · DEX/hook fees NOT VERIFIED';
  assert.match(gate(oldDifferent,good).out,/changed without same-owner stronger proof/);
 });
+
+
+test('V8 immutable no-mint/no-admin proof upgrade requires identical exact direct reviewed runtime',()=>{
+ const digest='e'.repeat(64),match='exact_match';
+ const before=rows(32,(r,i)=>{
+  if(i!==7)return;
+  r.f.mintCapability={ok:true,cls:'SINGLE_SOURCE',status:'VERIFIED_SOURCE',value:'NONE DETECTED ✓',scope:'',
+    evidence:[{sourceDigest:digest,runtimeMatch:match,method:'Reviewed complete source'}]};
+  r.f.ownerAdmin={ok:true,cls:'SINGLE_SOURCE',status:'VERIFIED_SOURCE',value:'No token owner/admin',scope:'',
+    evidence:[{sourceDigest:digest,runtimeMatch:match,method:'Reviewed complete source'}]};
+ });
+ const after=structuredClone(before);
+ const set=(field,proof)=>{
+  after[7].f[field]={...before[7].f[field],cls:'ON_CHAIN_VERIFIED',status:'VERIFIED_SOURCE_AND_STATE',
+   evidence:[{sourceDigest:digest,runtimeMatch:match,directRuntime:true,absenceProofClass:proof}]};
+ };
+ set('mintCapability','REVIEWED_RUNTIME_NO_MINT_EXECUTION_PATH');
+ set('ownerAdmin','REVIEWED_RUNTIME_NO_TOKEN_ADMIN_PATH');
+ assert.equal(gate(before,after).ok,true,'fully reviewed immutable absences may strengthen evidence');
+ for(const field of ['mintCapability','ownerAdmin']){
+  const changed=structuredClone(after);
+  changed[7].f[field].evidence[0].sourceDigest='f'.repeat(64);
+  assert.match(gate(before,changed).out,/changed without same-owner stronger proof/,field+' changed digest');
+  const proxied=structuredClone(after);
+  proxied[7].f[field].evidence[0].directRuntime=false;
+  assert.match(gate(before,proxied).out,/changed without same-owner stronger proof/,field+' proxy');
+  const fake=structuredClone(after);
+  fake[7].f[field].evidence[0].absenceProofClass='ABI_MISSING_FUNCTION';
+  assert.match(gate(before,fake).out,/changed without same-owner stronger proof/,field+' ABI-only inference');
+ }
+ const renamed=structuredClone(after);renamed[7].f.mintCapability.value='No mint ever, guaranteed';
+ assert.match(gate(before,renamed).out,/changed without same-owner stronger proof/);
+ const oldOnlyGetter=structuredClone(before);oldOnlyGetter[7].f.ownerAdmin={ok:true,cls:'SINGLE_SOURCE',status:'GETTER_REPORTED',value:'owner() getter: 0x'+'0'.repeat(40),scope:''};
+ assert.match(gate(oldOnlyGetter,after).out,/changed without same-owner stronger proof/);
+});

@@ -51,7 +51,22 @@ for(let i=0;i<before.rows.length;i++){
        e.coverage==='TOKEN_TAX_ALL_TRANSFERS'&&
        e.taxProofClass==='REVIEWED_FULL_EXECUTION_NO_TOKEN_DEDUCTION'&&e.directRuntime===true&&
        e.runtimeMatch===oldSource.runtimeMatch);
-    assert.ok(upgrade||bound||fullZeroTax,'Previously verified field changed without same-owner stronger proof: '+id+'/'+f+' old='+x.value+' new='+y.value);
+    // V8: The *absence* of a runtime mint or token-admin code path becomes
+    // on-chain verified only where an identical full source digest and pinned
+    // direct (non-delegating) executed runtime are proven. A zero owner getter,
+    // selector absence, proxy or unknown execution path never qualifies.
+    const absenceProofClass=f==='mintCapability'&&x.value==='NONE DETECTED ✓'?
+      'REVIEWED_RUNTIME_NO_MINT_EXECUTION_PATH':
+      f==='ownerAdmin'&&x.value==='No token owner/admin'?
+      'REVIEWED_RUNTIME_NO_TOKEN_ADMIN_PATH':null;
+    const provenImmutableAbsence=absenceProofClass&&x.value===y.value&&
+      x.status==='VERIFIED_SOURCE'&&x.cls==='SINGLE_SOURCE'&&
+      y.status==='VERIFIED_SOURCE_AND_STATE'&&y.cls==='ON_CHAIN_VERIFIED'&&
+      Boolean(oldSource)&&(y.evidence||[]).some(e=>
+        e.sourceDigest===oldSource.sourceDigest&&e.runtimeMatch===oldSource.runtimeMatch&&
+        e.directRuntime===true&&e.absenceProofClass===absenceProofClass);
+    assert.ok(upgrade||bound||fullZeroTax||provenImmutableAbsence,
+      'Previously verified field changed without same-owner stronger proof: '+id+'/'+f+' old='+x.value+' new='+y.value);
    }}
   stats[f].before+=Number(x.ok);stats[f].after+=Number(y.ok);
   if(!x.ok&&y.ok)stats[f].gain++;

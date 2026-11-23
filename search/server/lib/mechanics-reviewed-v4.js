@@ -38,13 +38,16 @@ function immutableBeacon(code){
 }
 async function apply({profile,fields,details,proof,fact,word,call,address,block,keccak,direct=false,admin=null}){
  if(!Object.values(PROFILES).includes(profile))return;
+ // Exact Pons launch runtime match also proves constructor-only mint cannot be
+ // reached post-deployment. This property is immutable in a direct token runtime.
+ const fullLaunch=profile==='FIXED_LAUNCH_RESTRICTIONS'&&direct&&
+   /^[0-9a-f]{64}$/i.test(String(proof?.sourceDigest||''))&&
+   ['match','exact_match'].includes(proof?.runtimeMatch);
  const transfer=scope=>{
   // The two completely reviewed Pons launcher sources execute no token-fee deduction
   // for any successful pool-in, pool-out or wallet transfer. Buy restrictions can
   // revert, and poolFee is a separate V3 pool configuration, NEVER a token tax.
-  const full=profile==='FIXED_LAUNCH_RESTRICTIONS'&&direct&&
-    /^[0-9a-f]{64}$/i.test(String(proof?.sourceDigest||''))&&
-    ['match','exact_match'].includes(proof?.runtimeMatch);
+  const full=fullLaunch;
   if(full)return fact('Buy 0% · Sell 0% · Transfer 0% · token fees only (DEX/hook fees excluded)',
     'Reviewed launch-token _update execution + exact pinned direct runtime',{
     ...proof,coverage:'TOKEN_TAX_ALL_TRANSFERS',taxProofClass:'REVIEWED_FULL_EXECUTION_NO_TOKEN_DEDUCTION',
@@ -102,7 +105,9 @@ async function apply({profile,fields,details,proof,fact,word,call,address,block,
  if(profile==='FIXED_LAUNCH_RESTRICTIONS'){
   fields.tradingTaxes=transfer('All permitted transfers move full value. Launch buy limits/exemptions can revert; poolFee is a configured V3 fee, not an ERC20 tax or proof of current trading fees.');
   if(direct)fields.mintCapability=fact('NONE DETECTED ✓','Reviewed constructor-only mint and full inheritance',{
-   ...proof,scope:'No external post-construction issuance path in this exact non-delegating implementation.'},'VERIFIED_SOURCE');
+   ...proof,...(fullLaunch?{directRuntime:true,absenceProofClass:'REVIEWED_RUNTIME_NO_MINT_EXECUTION_PATH'}:{}),
+   scope:'No external post-construction issuance path in this exact non-delegating implementation.'},
+   fullLaunch?'VERIFIED_SOURCE_AND_STATE':'VERIFIED_SOURCE');
   const factory=addressWord(await call(address,'launchFactory()'));
   if(factory)fields.ownerAdmin=fields.ownerAdmin||fact('Launch factory controls','Reviewed restricted exemption setter + pinned launchFactory',{
    ...proof,launchFactory:factory,scope:'Factory controls initial-buy recipient exemption. Deployer metadata is not ownership; transfer limits and expiry remain distinct from taxes.'},'VERIFIED_SOURCE_AND_STATE');
