@@ -126,3 +126,29 @@ test('PR #316: binding reads allowed only when an UNRESOLVED target is newly bou
  const b=rows(),a=rows(32,(r,i)=>{if(i===24){r.f.contractArchitecture={...field(true),value:'Minimal proxy (Solady LibClone, 44-byte)'};r.net.rpc+=2;r.net.augBinding=2;}});
  const r=gate(b,a);assert.equal(r.ok,false);assert.match(r.out,/not newly bound|Previously verified field changed/);
 });
+
+
+test('V7 full-direction token tax upgrade requires identical exact reviewed digest, direct runtime and evidence method',()=>{
+ const digest='a'.repeat(64);
+ const before=rows(32,(r,i)=>{if(i===5)r.f.tradingTaxes={
+  ok:true,cls:'SINGLE_SOURCE',status:'VERIFIED_SOURCE',value:'Transfer 0% · DEX/hook fees NOT VERIFIED',scope:'',
+  evidence:[{sourceDigest:digest,runtimeMatch:'exact_match',coverage:'TOKEN_TRANSFER_ONLY'}]};});
+ const good=structuredClone(before);
+ good[5].f.tradingTaxes={
+  ok:true,cls:'ON_CHAIN_VERIFIED',status:'VERIFIED_SOURCE_AND_STATE',
+  value:'Buy 0% · Sell 0% · Transfer 0% · token fees only (DEX/hook fees excluded)',scope:'',
+  evidence:[{sourceDigest:digest,runtimeMatch:'exact_match',coverage:'TOKEN_TAX_ALL_TRANSFERS',
+   directRuntime:true,taxProofClass:'REVIEWED_FULL_EXECUTION_NO_TOKEN_DEDUCTION'}]
+ };
+ assert.equal(gate(before,good).ok,true,'only independently reviewed full token execution qualifies');
+ const noProof=structuredClone(good);noProof[5].f.tradingTaxes.evidence=[];
+ assert.match(gate(before,noProof).out,/changed without same-owner stronger proof/);
+ const altered=structuredClone(good);altered[5].f.tradingTaxes.evidence[0].sourceDigest='b'.repeat(64);
+ assert.match(gate(before,altered).out,/changed without same-owner stronger proof/);
+ const delegated=structuredClone(good);delegated[5].f.tradingTaxes.evidence[0].directRuntime=false;
+ assert.match(gate(before,delegated).out,/changed without same-owner stronger proof/);
+ const opaquefee=structuredClone(good);opaquefee[5].f.tradingTaxes.value='Buy 0% · Sell 0% · Transfer 0%';
+ assert.match(gate(before,opaquefee).out,/changed without same-owner stronger proof/);
+ const oldDifferent=structuredClone(before);oldDifferent[5].f.tradingTaxes.value='Transfer 2% · DEX/hook fees NOT VERIFIED';
+ assert.match(gate(oldDifferent,good).out,/changed without same-owner stronger proof/);
+});

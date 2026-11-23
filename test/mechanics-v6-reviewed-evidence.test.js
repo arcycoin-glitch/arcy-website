@@ -26,7 +26,9 @@ test('Gnosis full source fixture reproduces the reviewed digest; constructor rec
  assert.equal(r.fields.mintCapability.evidence[0].mintAuthority.functionPresent,false);
  assert.equal(r.fields.ownerAdmin.value,'No token owner/admin');
  assert.match(r.fields.ownerAdmin.evidence[0].scope,/allocation recipients, not administrators/);
- assert.equal(r.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TRANSFER_ONLY');
+ assert.equal(r.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TAX_ALL_TRANSFERS');
+ assert.match(r.fields.tradingTaxes.value,/^Buy 0% · Sell 0% · Transfer 0% · token fees only/);
+ assert.equal(r.fields.tradingTaxes.evidence[0].tokenTax.externalFees.hook,'NOT_VERIFIED');
  assert.equal(x.log.filter(x=>x.method==='eth_call').length,0);
  const clone=fixture('FIXED_SUPPLY_LEGACY_ALLOCATION',{runtime:'0x363d3d373d3d3d363d73'+B.slice(2)+'5af43d82803e903d91602b57fd5bf3'});
  const unresolved=await inspect(clone);assert.equal(unresolved.fields.mintCapability,undefined);assert.equal(unresolved.fields.ownerAdmin,undefined);

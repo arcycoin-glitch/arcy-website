@@ -268,7 +268,26 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
      block,...sourceProof,scope:'Source digest and pinned bytecode matched. Constructor-only mint; token transfers full value; voluntary burn available; no owner/admin. External DEX/hook fees, liquidity controls and launchpad governance require separate verification.'});
    }
    if(profile==='FIXED_SUPPLY_POOL_SETUP'){
-    fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed constructor-only mint and full-value ERC20 _update',{...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'Full token transfer value is retained. The immutable anti-snipe max-wallet rule can revert transfers; it is not a tax. External pool fees remain separate.'},'VERIFIED_SOURCE');
+    // Full-path deduction absence is specific to the exact reviewed direct token
+    // runtime. It does not prove a swap can execute during anti-snipe restrictions
+    // or that independent Arc pool/hook charges are zero.
+    const directFixed=target===address&&nonDelegating(code)&&
+      /^[0-9a-f]{64}$/i.test(String(proof.sourceDigest||''))&&
+      ['match','exact_match'].includes(proof.runtimeMatch)&&
+      !originalTradeScopeIsBroader(card?.fields?.tradingTaxes,{network,address,block});
+    fields.tradingTaxes=directFixed?
+      fact('Buy 0% · Sell 0% · Transfer 0% · token fees only (DEX/hook fees excluded)',
+       'Reviewed full-value ERC20 _update + pinned exact non-delegating runtime',{
+        ...proof,coverage:'TOKEN_TAX_ALL_TRANSFERS',taxProofClass:'REVIEWED_FULL_EXECUTION_NO_TOKEN_DEDUCTION',
+        directRuntime:true,mutable:false,
+        tokenTax:{denominator:'100',buy:'0',sell:'0',transfer:'0',
+         rateBasis:'ALL_SUCCESSFUL_TOKEN_TRANSFERS_IN_REVIEWED_RUNTIME',
+         externalFees:{dex:'NOT_VERIFIED',hook:'NOT_VERIFIED',router:'NOT_VERIFIED'},
+         maxWalletRestriction:'MAY_REVERT'},
+        scope:'The verified, non-delegating token _update execution transfers full ERC20 units in all directions; there is no token-level fee branch. The immutable anti-snipe max-wallet restriction can revert transfers. External Arc hook, pool/router charges, slippage, and successful trading are NOT VERIFIED.'
+       },'VERIFIED_SOURCE_AND_STATE'):
+      fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed constructor-only mint and full-value ERC20 _update',
+       {...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'Full token transfer value is retained. The immutable anti-snipe max-wallet rule can revert transfers; it is not a tax. External pool fees remain separate.'},'VERIFIED_SOURCE');
     fields.mintCapability=fact('NONE DETECTED ✓','Reviewed complete constructor-only mint execution',{...proof,scope:'The only _mint call is in the constructor; no runtime issuance entry point exists. This does not claim external pool or launchpad control is absent.'},'VERIFIED_SOURCE');
     const pad=addressWord(await call(address,'pad()')),poolRaw=await call(address,'pool()');
     if(pad&&WORD.test(poolRaw||'')&&/^0x0{24}[0-9a-f]{40}$/i.test(poolRaw)){
@@ -317,7 +336,28 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
     // Source-structure proof over PINNED unmodified OpenZeppelin ERC20 libraries (see oz-template.js). Token-level only.
     const t=source.template,tmpl={libraries:t.libraries,contract:t.contract,ownerOnlyFunctions:t.ownerOnlyFunctions.slice(0,12),roleOnlyFunctions:(t.roleOnlyFunctions||[]).slice(0,12),otherExternalFunctions:t.ungatedFunctions.slice(0,12),unprovenGates:t.unprovenGates.slice(0,12)};
     const tproof={...proof,template:tmpl};
-    fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Pinned OpenZeppelin ERC20 transfer path (no override) + exact source/bytecode match',{...tproof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'The verified source inherits unmodified OpenZeppelin ERC20 (library files matched by SHA-256; listed OpenZeppelin extensions keep full-value transfers) and its own code overrides no transfer, balance or supply path; no token fee setter exists. Pool, router and hook fees are separate and NOT VERIFIED.'},'VERIFIED_SOURCE');
+    // V7: only direct, non-delegating exact-runtime OZ templates with pinned library
+    // hashes and ZERO custom transfer/allowance/supply overrides qualify for a
+    // full TOKEN-only all-directions 0% statement. Never extrapolate from ABI,
+    // source identity alone, an upgradeable proxy, or a third-party DEX/hook.
+    // Arc's independently reviewed portal/hook fee facts keep their precedence.
+    const fullOzZero=(network==='ethereum'||network==='robinhood')&&target===address&&nonDelegating(code)&&
+      t.transferUnmodified===true&&
+      ['match','exact_match','SIBLING_REFERENCE_EXACT_MATCH_IMMUTABLES_ONLY'].includes(source.runtimeMatch)&&
+      ['EXACT_DEPLOYED_BYTECODE_MATCH','SIBLING_RUNTIME_MATCH_IMMUTABLES_ONLY'].includes(source.sourceAssurance)&&
+      /^[0-9a-f]{64}$/i.test(String(source.digest||''))&&t.libraries.includes('ERC20');
+    fields.tradingTaxes=fullOzZero?
+      fact('Buy 0% · Sell 0% · Transfer 0% · token fees only (DEX/hook fees excluded)',
+       'Pinned unmodified OpenZeppelin ERC20 all-context transfer execution + exact deployed runtime',{
+       ...tproof,coverage:'TOKEN_TAX_ALL_TRANSFERS',taxProofClass:'REVIEWED_FULL_EXECUTION_NO_TOKEN_DEDUCTION',
+       directRuntime:true,mutable:false,
+       tokenTax:{denominator:'100',buy:'0',sell:'0',transfer:'0',
+        rateBasis:'ALL_SUCCESSFUL_TOKEN_TRANSFERS_IN_REVIEWED_RUNTIME',
+        externalFees:{dex:'NOT_VERIFIED',hook:'NOT_VERIFIED',router:'NOT_VERIFIED'}},
+       scope:'SHA-256-pinned OpenZeppelin ERC20 transfer logic, verified full source identity, and exact on-chain token runtime (or reviewed sibling immutable-only runtime) establish that every successful transfer/transferFrom moves full ERC20 value, irrespective of pool-in/pool-out direction. No transfer/allowance/balance path override, custom fee, delegatecall or token-level external callback is accepted. Pool fees, router/V4 hooks, slippage, tradability and downstream contracts are NOT VERIFIED. Restrictions may still revert.'
+      },'VERIFIED_SOURCE_AND_STATE'):
+      fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Pinned OpenZeppelin ERC20 transfer path (no override) + exact source/bytecode match',
+       {...tproof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'The verified source inherits unmodified OpenZeppelin ERC20 (library files matched by SHA-256; listed OpenZeppelin extensions keep full-value transfers) and its own code overrides no transfer, balance or supply path; no token fee setter exists. Pool, router and hook fees are separate and NOT VERIFIED.'},'VERIFIED_SOURCE');
     const ownerRaw=t.ownable?await word(address,'owner()'):null,ownerZero=ownerRaw!==null&&BigInt(ownerRaw)===0n,ownerAddr=ownerRaw&&!ownerZero?addressWord(ownerRaw):null;
     if(t.mint==='CONSTRUCTOR_ONLY'||t.mint==='NO_MINT_CALL')fields.mintCapability=fact('NONE DETECTED ✓','Pinned OpenZeppelin ERC20 + constructor-only _mint in verified source',{...tproof,scope:'Every _mint call is inside the constructor and no override or assembly can change supply; no runtime issuance entry point exists in this exact source. Burn capability, if any, is not a burn or buyback.'},'VERIFIED_SOURCE');
     else if(t.escalation){/* an ungated function can change ownership/roles: no gate-based conclusion */}
