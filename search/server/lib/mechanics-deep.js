@@ -268,7 +268,25 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
      block,...sourceProof,scope:'Source digest and pinned bytecode matched. Constructor-only mint; token transfers full value; voluntary burn available; no owner/admin. External DEX/hook fees, liquidity controls and launchpad governance require separate verification.'});
    }
    if(profile==='FIXED_SUPPLY_POOL_SETUP'){
-    fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed constructor-only mint and full-value ERC20 _update',{...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'Full token transfer value is retained. The immutable anti-snipe max-wallet rule can revert transfers; it is not a tax. External pool fees remain separate.'},'VERIFIED_SOURCE');
+    // Full-path deduction absence is specific to the exact reviewed direct token
+    // runtime. It does not prove a swap can execute during anti-snipe restrictions
+    // or that independent Arc pool/hook charges are zero.
+    const directFixed=target===address&&nonDelegating(code)&&
+      /^[0-9a-f]{64}$/i.test(String(proof.sourceDigest||''))&&
+      ['match','exact_match'].includes(proof.runtimeMatch);
+    fields.tradingTaxes=directFixed?
+      fact('Buy 0% · Sell 0% · Transfer 0% · token fees only (DEX/hook fees excluded)',
+       'Reviewed full-value ERC20 _update + pinned exact non-delegating runtime',{
+        ...proof,coverage:'TOKEN_TAX_ALL_TRANSFERS',taxProofClass:'REVIEWED_FULL_EXECUTION_NO_TOKEN_DEDUCTION',
+        directRuntime:true,mutable:false,
+        tokenTax:{denominator:'100',buy:'0',sell:'0',transfer:'0',
+         rateBasis:'ALL_SUCCESSFUL_TOKEN_TRANSFERS_IN_REVIEWED_RUNTIME',
+         externalFees:{dex:'NOT_VERIFIED',hook:'NOT_VERIFIED',router:'NOT_VERIFIED'},
+         maxWalletRestriction:'MAY_REVERT'},
+        scope:'The verified, non-delegating token _update execution transfers full ERC20 units in all directions; there is no token-level fee branch. The immutable anti-snipe max-wallet restriction can revert transfers. External Arc hook, pool/router charges, slippage, and successful trading are NOT VERIFIED.'
+       },'VERIFIED_SOURCE_AND_STATE'):
+      fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed constructor-only mint and full-value ERC20 _update',
+       {...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'Full token transfer value is retained. The immutable anti-snipe max-wallet rule can revert transfers; it is not a tax. External pool fees remain separate.'},'VERIFIED_SOURCE');
     fields.mintCapability=fact('NONE DETECTED ✓','Reviewed complete constructor-only mint execution',{...proof,scope:'The only _mint call is in the constructor; no runtime issuance entry point exists. This does not claim external pool or launchpad control is absent.'},'VERIFIED_SOURCE');
     const pad=addressWord(await call(address,'pad()')),poolRaw=await call(address,'pool()');
     if(pad&&WORD.test(poolRaw||'')&&/^0x0{24}[0-9a-f]{40}$/i.test(poolRaw)){
@@ -401,7 +419,9 @@ async function enrich(options){
  for(const[key,value]of Object.entries(result.fields)){
   // Strong source/state proof wins over a secondary provider; generic getters
   // only fill gaps. Never discard established reviewed Arc mechanics evidence.
-  const preserveTrade=key==='tradingTaxes'&&onlyTokenTransfer(value)&&
+  const preserveTrade=key==='tradingTaxes'&&
+    (onlyTokenTransfer(value)||value.evidence?.some(e=>e?.taxProofClass==='REVIEWED_FULL_EXECUTION_NO_TOKEN_DEDUCTION'&&
+      e.tokenTax?.externalFees?.hook==='NOT_VERIFIED'))&&
     originalTradeScopeIsBroader(old[key],options);
   if(!preserveTrade&&(key==='contractArchitecture'||old[key]?.dataState!=='DATA_FOUND'||
    (value.status.startsWith('VERIFIED_SOURCE')&&!['VERIFIED_SOURCE','VERIFIED_SOURCE_AND_STATE','ONCHAIN_VERIFIED'].includes(old[key]?.status))))fields[key]={...value,evidence:[...value.evidence,...(old[key]?.dataState==='DATA_FOUND'&&Array.isArray(old[key].evidence)?old[key].evidence.map(e=>({...e,retainedFrom:'Existing Mechanics evidence; original block preserved'})):[])]};
