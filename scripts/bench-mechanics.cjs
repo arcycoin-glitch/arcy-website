@@ -124,7 +124,7 @@ const short=v=>String(v??'').replace(/\s+/g,' ').slice(0,70);
   let timer;
   try{res=await Promise.race([mechanics(s.chain,s.address),new Promise((_,r)=>{timer=setTimeout(()=>r(Error('BENCH_TIMEOUT_60S')),60000);})]);}catch(e){err=String(e.message||e).slice(0,80);}finally{clearTimeout(timer);}
   const ms=Date.now()-t0,d=Object.fromEntries(Object.keys(net).map(k=>[k,net[k]-before[k]]));
-  const f={},fails=new Set();for(const k of FIELDS){const x=fieldOf(res?.card,k);for(const q of (x?.analysisDiagnostics?.failures||[]))if(q?.reason)fails.add(q.reason);const c=classify(x||null,{card:'mechanics'});f[k]={ok:x?.dataState==='DATA_FOUND',state:res?dataClass(x,k):(err&&/RPC|429|timeout/i.test(err)?'RPC_ERROR':'NOT_VERIFIED'),cls:c.evidenceClass,status:x?.status||null,reason:x?.reasonCode||null,value:short(x?.value).slice(0,70)+(k==='ownerAdmin'&&x?.value?String(x.value).replace(/\s+/g,' ').slice(70,256):''),scope:short(x?.scope),evidence:proofs(x)};}
+  const f={},fails=new Set();for(const k of FIELDS){const x=fieldOf(res?.card,k);for(const q of (x?.analysisDiagnostics?.failures||[]))if(q?.reason)fails.add(q.reason);const c=classify(x||null,{card:'mechanics'});f[k]={ok:x?.dataState==='DATA_FOUND',state:res?dataClass(x,k):(err&&/RPC|429|timeout/i.test(err)?'RPC_ERROR':'NOT_VERIFIED'),cls:c.evidenceClass,status:x?.status||null,reason:x?.reasonCode||null,value:short(x?.value).slice(0,70)+((k==='ownerAdmin'||k==='tradingTaxes')&&x?.value?String(x.value).replace(/\s+/g,' ').slice(70,256):''),scope:short(x?.scope),evidence:proofs(x)};}
   rows.push({...s,block:res?.block||null,err,ms,net:d,f,fails:[...fails].sort(),customRoleEvidence:customRoleEvidence(res?.card)});
   await new Promise(r=>setTimeout(r,600));
  }
