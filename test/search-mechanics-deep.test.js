@@ -157,3 +157,17 @@ test('locally reviewed role runtime requires pinned membership/cap; selectors al
  for(const confirmed of[true,false]){const x=fixture({source,calls:{[m.selector('owner()')]:addr(C),[m.selector('maxSupply()')]:word(1000),[m.selector('getMinters()')]:role,[m.selector('isMinter(address)')+B.slice(2).padStart(64,'0')]:word(confirmed?1:0)}});const r=await m.inspect(x.options);assert.equal(Boolean(r.fields.mintCapability),confirmed);assert.match(r.fields.tradingTaxes.value,/Transfer 0%/);assert.equal(r.fields.ownerAdmin.evidence[0].owner,C);assert.match(r.fields.ownerAdmin.value,/Owner-governed/);}
  const x=fixture({source:{...source,runtimeReview:null}});const r=await m.inspect(x.options);assert.equal(r.fields.mintCapability,undefined);assert.equal(r.fields.tradingTaxes,undefined);
 });
+
+test('nested clone binds terminal ABI but reads ownership in outer storage context',async()=>{
+ const clone=a=>'0x363d3d373d3d3d363d73'+a.slice(2)+'5af43d82803e903d91602b57fd5bf3';
+ const owner=m.selector('owner()');
+ const x=fixture({code:clone(B),targets:{[B]:clone(C),[C]:basic},calls:{[A+':'+owner]:addr(B)}});
+ x.options.sourceLoader=async(_,address)=>address===C?{digest:'terminal',abi:[fn('owner')]}:null;
+ const r=await m.inspect(x.options);
+ assert.equal(r.fields.contractArchitecture.evidence[0].immediateTarget,B);
+ assert.equal(r.fields.contractArchitecture.evidence[0].implementation,C);
+ assert.equal(r.details.delegationPath.storageContext,A);
+ assert.match(r.fields.ownerAdmin.value,new RegExp(B));
+ assert.equal(r.fields.tradingTaxes,undefined);
+ assert.ok(!x.seen.some(([method,p])=>method==='eth_getStorageAt'&&p[0]!==A));
+});
