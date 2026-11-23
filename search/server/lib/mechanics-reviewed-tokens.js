@@ -80,6 +80,14 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
  const p={...proof,reviewedTokenProfile:profile};
  const transferOnly=scope=>fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed complete token transfer execution',{...p,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,
   tokenTax:{transfer:'0',buy:'NOT_VERIFIED',sell:'NOT_VERIFIED',externalFees:{dex:'NOT_VERIFIED',hook:'NOT_VERIFIED'}},scope},'VERIFIED_SOURCE');
+ // A complete, source-reviewed, non-delegating runtime with unconditional full-amount transfer paths
+ // establishes ZERO token-contract deductions for buys, sells and wallet transfers alike. It does NOT
+ // establish a zero DEX swap fee, V4 hook fee, or unrestricted trade execution.
+ const noTokenTax=scope=>direct?fact('Buy 0% · Sell 0% · Transfer 0%','Reviewed unconditional full-amount transfer paths + pinned non-delegating runtime',
+  {...p,coverage:'TOKEN_TAX_ALL_TRANSFERS',tokenTaxScope:'TOKEN_CONTRACT_ONLY',sourceBoundNonDelegatingRuntime:true,mutable:false,
+   tokenTax:{denominator:'100',buy:'0',sell:'0',transfer:'0',rounding:'NO_DEDUCTION',scope:'TOKEN_CONTRACT_ONLY',
+    externalFees:{dex:'NOT_VERIFIED',hook:'NOT_VERIFIED'}},
+   scope:'Verified token-side deductions only: every permitted transfer/transferFrom debits and credits the identical token amount regardless of whether either endpoint is a liquidity pool. '+scope+' External DEX/pool and hook fees, prices, slippage and the ability to execute a trade are separate and NOT VERIFIED.'},'VERIFIED_SOURCE_AND_STATE'):transferOnly(scope);
  const noMint=scope=>fact('NONE DETECTED ✓','Reviewed complete source: no runtime supply-increase path',{...p,
   mintAuthority:{functionPresent:false,authoritySourceIdentified:false,authorityIdentifierVerified:false,authorizedAccountsVerified:false,currentUsability:'UNAVAILABLE_BY_SOURCE',permissionRevoked:'NOT_APPLICABLE'},scope},'VERIFIED_SOURCE');
  // owner() is already read by the generic verified-source getter pass; this re-read is served from the same cache.
@@ -161,7 +169,7 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
    burnAuthority:{functionPresent:true,entryPoint:'burn(address,uint256)',mechanism:'BURNER_ROLE',holderAllowanceRequired:false,arbitraryHolderBalance:true,authorizedAccounts:members('BURNER_ROLE'),currentUsability:'NOT_VERIFIED'},taxMutable:false});
  }
  if(profile==='FIXED_SUPPLY_NO_ADMIN'){
-  fields.tradingTaxes=transferOnly('The self-contained ERC20 moves the full amount in every transfer; no fee code, exemption list or setter exists. Pool fees are separate.');
+  fields.tradingTaxes=noTokenTax('The self-contained ERC20 moves the full amount in every transfer; no fee code, exemption list or setter exists. Pool fees are separate.');
   if(!direct)return;
   fields.mintCapability=noMint('The only _mint call is in the constructor; no function can create supply and no burn function is exposed.');
   fields.ownerAdmin=fact('No token owner/admin','Reviewed complete source: no privileged function',{...p,scope:'The only extra state is a wallet address recorded at deployment and returned by a view function; it has no special permission. No pause, blacklist, fee or upgrade path exists. Pools and launchpads are separate contracts.'},'VERIFIED_SOURCE');
@@ -185,13 +193,13 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   details.observations.push({method:'Reviewed Torch fee path',block,...p,status:'VERIFIED_SOURCE',burn:'No exposed burn path.',buyback:'Buy tax is sent to the fee router; what the router does with it (including any buyback) is not verified.',taxMutable:false});
  }
  if(profile==='UNISWAP_UERC20_FIXED_SUPPLY'){
-  fields.tradingTaxes=transferOnly('Solady ERC20 transfer/transferFrom move the full amount; _beforeTokenTransfer and _afterTokenTransfer are empty and no fee code exists. Pool and hook fees are separate.');
+  fields.tradingTaxes=noTokenTax('Solady ERC20 transfer/transferFrom move the full amount; _beforeTokenTransfer and _afterTokenTransfer are empty and no fee code exists. Pool and hook fees are separate.');
   if(!direct)return;
   fields.mintCapability=noMint('The only _mint call is in the constructor (factory-supplied recipient and total supply); no external function creates supply and no burn function is exposed.');
   fields.ownerAdmin=fact('No token owner/admin','Reviewed complete source: no privileged function',{...p,scope:'creator, graffiti and metadata are informational constructor values with no permission; no pause, blacklist, fee or upgrade path exists. Solady gives Uniswap\'s canonical Permit2 contract a built-in infinite allowance; Permit2 still needs the holder\'s own signed approval to move tokens.'},'VERIFIED_SOURCE');
  }
  if(profile==='FIXED_SUPPLY_SELF_BURN'){
-  fields.tradingTaxes=transferOnly('_transfer moves the full amount after nonzero-address and balance checks; no fee code exists. Pool fees are separate.');
+  fields.tradingTaxes=noTokenTax('_transfer moves the full amount after nonzero-address and balance checks; no fee code exists. Pool fees are separate.');
   if(!direct)return;
   fields.mintCapability=noMint('The only _mint call is in the constructor. burn(uint256) lets a holder destroy their own tokens (reduces total supply); no address can create new supply.');
   fields.ownerAdmin=fact('No token owner/admin','Reviewed complete source: no owner or privileged function',{...p,scope:'The source has no owner, role, pause, blacklist, fee or upgrade function; the deployment fee receiver has no permission.'},'VERIFIED_SOURCE');
@@ -222,20 +230,20 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   if(owner)fields.ownerAdmin=fact('Owner-governed (pause, freeze role, supply controller) · '+owner,'Reviewed onlyOwner paths + pinned owner()/assetProtectionRole()',{...p,owner,assetProtectionRole:protection,proxyAdmin:admin,scope:'The owner can pause/unpause, set the asset-protection role and supply controller, and reclaim tokens held by the contract. The asset-protection role'+(protection?' '+protection:'')+' can freeze addresses and wipe a frozen balance. Ownership moves only through propose/claim.'+upgrade},'VERIFIED_SOURCE_AND_STATE');
  }
  if(profile==='FIXED_SUPPLY_OZ_BURNABLE'){
-  fields.tradingTaxes=transferOnly('Unmodified OpenZeppelin 5.x ERC20 _update moves the full amount; the token has no fee code or fee setter. Pool/hook fees are separate.');
+  fields.tradingTaxes=noTokenTax('Unmodified OpenZeppelin 5.x ERC20 _update moves the full amount; the token has no fee code or fee setter. Pool/hook fees are separate.');
   if(!direct)return;
   fields.mintCapability=noMint('The only _mint call is the constructor TOTAL_SUPPLY mint; no role, owner or function can create supply later. burn/burnFrom only reduce supply, burnFrom needs the holder\'s allowance.');
   fields.ownerAdmin=fact('No token owner/admin','Reviewed complete source: no owner, role or privileged function',{...p,scope:'The token source has no owner, role, pause, blacklist, fee or upgrade function; burn and burnFrom act only on the caller\'s own balance or an approved allowance. Pool/launchpad contracts can hold separate privileges.'},'VERIFIED_SOURCE');
   details.observations.push({method:'Reviewed allowance burn paths',block,...p,status:'VERIFIED_SOURCE',burnAuthority:{functionPresent:true,entryPoints:['burn(uint256)','burnFrom(address,uint256)'],holderSelfBurn:true,holderAllowanceRequired:true,arbitraryHolderBalance:false,currentUsability:'NOT_VERIFIED'}});
  }
  if(profile==='FIXED_SUPPLY_LEGACY_ALLOCATION'){
-  fields.tradingTaxes=transferOnly('Complete StandardToken transfer/transferFrom debit and credit the same amount; only balance and allowance checks apply. No fee setter, reflection or callback exists. External pool/hook fees are separate.');
+  fields.tradingTaxes=noTokenTax('Complete StandardToken transfer/transferFrom debit and credit the same amount; only balance and allowance checks apply. No fee setter, reflection or callback exists. External pool/hook fees are separate.');
   if(!direct)return;
   fields.mintCapability=noMint('The constructor sets totalSupply and distributes all initial balances. No runtime function changes totalSupply or creates balances without debiting another balance; no burn entry point exists.');
   fields.ownerAdmin=fact('No token owner/admin','Reviewed complete non-delegating StandardToken/GnosisToken source',{...p,scope:'Constructor owners[] are allocation recipients, not administrators. Runtime exposes only ERC20 transfer, approve and getters; no mint, burn, pause, blacklist, fee setter, ownership or upgrade authority exists.'},'VERIFIED_SOURCE');
  }
  if(profile==='CCIP_BURN_MINT_ROLE_TOKEN'){
-  fields.tradingTaxes=transferOnly('Inherited OpenZeppelin ERC20 _transfer moves the full amount; the only override rejects the token contract itself as recipient. Pool/hook fees are separate.');
+  fields.tradingTaxes=noTokenTax('Inherited OpenZeppelin ERC20 _transfer moves the full amount; the only override rejects the token contract itself as recipient. Pool/hook fees are separate.');
   if(!direct)return;
   const [minterRole,burnerRole,cap,total,decimals]=await Promise.all(['MINTER_ROLE()','BURNER_ROLE()','maxSupply()','totalSupply()','decimals()'].map(x=>word(address,x)));
   const k=n=>require('../../../lib/keccak')(Buffer.from(n)).toLowerCase();
@@ -251,7 +259,7 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   }
  }
  if(profile==='GOVERNANCE_MINTER_SET'){
-  fields.tradingTaxes=transferOnly('_transfer moves the full amount after nonzero-address and balance checks; no fee code exists. Pool fees are separate.');
+  fields.tradingTaxes=noTokenTax('_transfer moves the full amount after nonzero-address and balance checks; no fee code exists. Pool fees are separate.');
   if(!direct)return;
   const governance=addressWord(await word(address,'governance()'));
   if(governance){
@@ -261,7 +269,7 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   }
  }
  if(profile==='OPERATOR_SCHEDULED_CAPPED_MINT'){
-  fields.tradingTaxes=transferOnly('Inherited OpenZeppelin 3.x ERC20 _transfer with an empty _beforeTokenTransfer moves the full amount; no fee code exists. Pool fees are separate.');
+  fields.tradingTaxes=noTokenTax('Inherited OpenZeppelin 3.x ERC20 _transfer with an empty _beforeTokenTransfer moves the full amount; no fee code exists. Pool fees are separate.');
   if(!direct)return;
   const [operator,proxy,cap,total]=await Promise.all([word(address,'operator()'),word(address,'vecrvProxy()'),word(address,'maxSupply()'),word(address,'totalSupply()')]);
   const op=addressWord(operator),px=addressWord(proxy);
