@@ -61,10 +61,15 @@ function ledger(field,context){
   sourceReference:e?.sourceUrl||e?.sourceReference||null},type,method,status);
  const fees=Object.fromEntries(FEE_KINDS.map(k=>[k,evidence(null,k,'UNKNOWN','Scope check',null,{reason:UNAVAILABLE[k]})]));
  const bound=raw.filter(e=>same(e,context)&&DIGEST.test(e.sourceDigest||'')&&!e.observationStatus);
- const p=bound.find(e=>e.coverage===ALL&&e.tokenTax&&STRICT.has(field.status)&&
+ const complete=bound.filter(e=>e.coverage===ALL&&e.tokenTax&&STRICT.has(field.status)&&
   integer(e.tokenTax.denominator,1000000)&&e.tokenTax.denominator!=='0'&&
   ['buy','sell','transfer'].every(k=>integer(e.tokenTax[k],e.tokenTax.denominator)));
- if(p){
+ const p=complete[0];
+ const rateConflict=p&&complete.some(e=>['buy','sell','transfer'].some(k=>
+  BigInt(e.tokenTax[k])*BigInt(p.tokenTax.denominator)!==BigInt(p.tokenTax[k])*BigInt(e.tokenTax.denominator)));
+ if(rateConflict)fees.TOKEN_CONTRACT_TAX=evidence(null,'TOKEN_CONTRACT_TAX','CONFLICTED','Different pinned token deductions',null,
+  {reason:'CONFLICTING_TOKEN_DEDUCTION_EVIDENCE',observations:complete.slice(0,6).map(e=>({sourceDigest:e.sourceDigest,rates:e.tokenTax}))});
+ else if(p){
   const v=p.tokenTax, classification=v.classification||(v.launch||v.rateBasis?'VERIFIED_CONDITIONAL_TAX':'CURRENT_VERIFIED_TAX');
   fees.TOKEN_CONTRACT_TAX=evidence(p,'TOKEN_CONTRACT_TAX','VERIFIED',p.method,v,{classification,scope:p.scope});
  }else{
@@ -80,7 +85,7 @@ function ledger(field,context){
   e.sourceDigest==='c96f888a58e671d77378eddde2e6fb195bea44201ab50006478377d312156ba6'&&address(e.pool)&&address(e.implementation)&&
   typeof e.graduated==='boolean'&&[e.buyBps,e.sellBps,e.configuredBuyBps,e.configuredSellBps].every(x=>integer(x,1000))&&
   e.buyBps===(e.graduated?e.configuredBuyBps:'0')&&e.sellBps===(e.graduated?e.configuredSellBps:'0'));
- if(argus&&fees.TOKEN_CONTRACT_TAX.verificationStatus!=='VERIFIED'){
+ if(argus&&['UNKNOWN','PARTIALLY_VERIFIED'].includes(fees.TOKEN_CONTRACT_TAX.verificationStatus)){
   fees.TOKEN_CONTRACT_TAX=evidence(argus,'TOKEN_CONTRACT_TAX','PARTIALLY_VERIFIED','Reviewed token route + pinned currentTaxes(), graduated() and mainPool()',{
    pool:argus.pool,implementation:argus.implementation,graduated:argus.graduated,denominator:'10000',
    poolBuyBps:argus.buyBps,poolSellSurchargeBps:argus.sellBps,ordinaryTransferBps:'0',

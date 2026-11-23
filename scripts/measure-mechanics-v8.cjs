@@ -7,6 +7,7 @@ const id=r=>(r.network||r.chain)+'|'+address(r.address);
 const directions=['buy','sell','transfer'];
 function classify(row){
  const f=row.f.tradingTaxes,ledger=row.fees?.TOKEN_CONTRACT_TAX;
+ if(ledger?.verificationStatus==='CONFLICTED')return {state:'UNSUPPORTED',cause:ledger.reason,diagnosis:'CONFLICTED_EVIDENCE'};
  if(!row.block)return {state:'UNKNOWN',cause:row.err||'NO_PINNED_BLOCK',diagnosis:'UNAVAILABLE_EVIDENCE'};
  const proof=(f.evidence||[]).find(e=>e.block===row.block&&address(e.address)===address(row.address)&&
   e.coverage==='TOKEN_TAX_ALL_TRANSFERS'&&/^[0-9a-f]{64}$/.test(e.sourceDigest||'')&&
@@ -19,6 +20,7 @@ function classify(row){
  if(f.ok){
   const hook=f.evidence?.some(e=>e.hookSourceDigest&&e.portalSourceDigest);
   const conditional=f.evidence?.some(e=>e.profile==='MINIME_CONTROLLED');
+  if(ledger?.classification==='VERIFIED_CONDITIONAL_TAX')return {state:'PARTIALLY_VERIFIED',cause:'CONDITIONAL_TOKEN_ROUTE',diagnosis:'SCOPED_OR_CONDITIONAL'};
   return {state:'PARTIALLY_VERIFIED',cause:hook?'HOOK_AND_POOL_SCOPED':conditional?'EXTERNAL_TRANSFER_AUTHORIZATION':
    f.evidence?.find(e=>e.coverage==='TOKEN_TRANSFER_ONLY')?.profile||'TOKEN_WIDE_EXECUTION_OR_UNITS_UNCONFIRMED',
    diagnosis:hook||conditional?'SCOPED_OR_CONDITIONAL':'PARTIAL_TOKEN_PATH'};
@@ -47,7 +49,11 @@ function measure(before,after,tokens=fixed.tokens){
   return {symbol:t.symbol,network:t.network,chainId:t.chainId,address:t.address,section:t.section,block:next.block,
    previousPreview:previous,before:old,after:{...current,
     ...(previous!=='VERIFIED'&&old.state!=='VERIFIED'&&current.state==='VERIFIED'?{diagnosis:'V8_PROOF_GAP_FIXED'}:{})},
-   contractArchitecture:next.f.contractArchitecture?.value||null,implementation:audit.proxy?.implementation||next.f.contractArchitecture?.evidence?.find(x=>x.implementation)?.implementation||null,
+   contractArchitecture:next.f.contractArchitecture?.value||null,
+   implementation:audit.proxy?(Object.hasOwn(audit.proxy,'effectiveImplementation')?audit.proxy.effectiveImplementation:
+    audit.source?.implementationExecutionResolved?audit.proxy.implementation:null):null,
+   implementationCandidate:audit.proxy?.immediateTarget||next.f.contractArchitecture?.evidence?.find(x=>x.implementation)?.implementation||null,
+   selectorRoutes:audit.diamondRoutes||null,
    source:audit.source||null,sources:audit.sources||[],
    upgradeAuthority:{confirmed:edges.filter(x=>x.verificationStatus==='CONFIRMED_AUTHORITY'),observed:edges.filter(x=>x.verificationStatus==='OBSERVED_CONTROLLER'),
     unresolved:edges.filter(x=>['CANDIDATE_CONTROLLER','UNKNOWN_AUTHORITY'].includes(x.verificationStatus))},

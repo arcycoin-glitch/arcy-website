@@ -108,3 +108,19 @@ test('reviewed current proxy tax proof additionally requires the same implementa
   assert(f.log.some(([m,args])=>m==='eth_call'&&args[0].to===A&&args[0].data===slot('getImplementation()')));
  }
 });
+
+test('reviewed diamond resolves selector routes from packed slots and confirms only a bound cut facet',async()=>{
+ const diamond=require('../search/server/lib/mechanics-v8-diamond');
+ const cutSlot=diamond.slot(mech.selector(diamond.CUT)),transferSlot=diamond.slot(mech.selector('transfer(address,uint256)'));
+ for(const cutKind of ['DIAMOND_CUT','OTHER']){
+  const f=fixture({code:{[A]:delegates,[B]:simple,[C]:simple},
+   slots:{[A+cutSlot]:word((2n<<160n)|BigInt(B)),[A+transferSlot]:word((500n<<160n)|BigInt(C)),[A+diamond.OWNER]:word(D)},
+   sources:{[A]:canon('DIAMOND',A),[B]:canon(cutKind,B)}});
+  const r=await f.inspect();
+  assert.match(r.fields.contractArchitecture.value,/EIP-2535/);
+  assert.equal(r.details.diamondRoutes.find(x=>x.signature==='transfer(address,uint256)').facet,C);
+  assert.equal(r.fields.tradingTaxes,undefined);
+  assert.equal(r.details.authorityGraph.edges.find(x=>x.mechanism==='DIAMOND_CUT').verificationStatus,
+   cutKind==='DIAMOND_CUT'?'CONFIRMED_AUTHORITY':'UNKNOWN_AUTHORITY');
+ }
+});

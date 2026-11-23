@@ -110,10 +110,24 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
  };
  return await Promise.race([rpc(method,params,{timeoutMs,onProvider}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Mechanics RPC timeout')),timeoutMs);})]);}finally{clearTimeout(timer);active--;waiters.shift()?.();}})();reads.set(key,p);return p;};
  const safe=async(method,params)=>{try{return await read(method,params)}catch(e){const contractAddress=method==='eth_call'?params[0]?.to:params[0];
-  diagnostics.push(stamp({source:provider,contractAddress,reason:e?.code==='GETTER_REVERTED'?'GETTER_REVERTED':e?.code==='RPC_RATE_LIMIT'||e?.httpStatus===429||/429/.test(String(e?.message))?'RPC_RATE_LIMIT':/timeout|budget/i.test(String(e?.message))?'RPC_TIMEOUT':'RPC_READ_FAILED'},'RPC_FAILURE',method,'UNKNOWN'));return null;}};
- const sourceAt=(a,c)=>{if(sources.has(a))return sources.get(a);const p=Promise.resolve().then(()=>sourceLoader(cfg,a,c,diagnostics)).catch(()=>{
-  diagnostics.push(stamp({contractAddress:a,reason:'SOURCE_LOADER_FAILED'},'SOURCE_FAILURE','Verified source lookup','UNKNOWN'));return null;
- });sources.set(a,p);return p;};
+  diagnostics.push(stamp({source:provider,contractAddress,
+   ...(method==='eth_call'?{selector:params[0]?.data?.slice(0,10)}:method==='eth_getStorageAt'?{slot:params[1]}:{}),
+   reason:e?.code==='GETTER_REVERTED'?'GETTER_REVERTED':e?.code==='RPC_RATE_LIMIT'||e?.httpStatus===429||/429/.test(String(e?.message))?'RPC_RATE_LIMIT':/timeout|budget/i.test(String(e?.message))?'RPC_TIMEOUT':'RPC_READ_FAILED'},'RPC_FAILURE',method,'UNKNOWN'));return null;}};
+ const sourceAt=(a,c)=>{
+  if(sources.has(a))return sources.get(a);
+  const p=(async()=>{
+   const remaining=deadline-Date.now();
+   if(remaining<=0){diagnostics.push(stamp({contractAddress:a,reason:'SOURCE_INSPECTION_DEADLINE'},'SOURCE_FAILURE','Verified source lookup','UNKNOWN'));return null;}
+   let timer,expired=false;
+   try{return await Promise.race([Promise.resolve().then(()=>sourceLoader(cfg,a,c,diagnostics)),new Promise((_,reject)=>{
+    timer=setTimeout(()=>{expired=true;reject(Error('Inspection deadline'));},remaining);
+   })]);}catch{
+    diagnostics.push(stamp({contractAddress:a,reason:expired?'SOURCE_INSPECTION_DEADLINE':'SOURCE_LOADER_FAILED'},'SOURCE_FAILURE','Verified source lookup','UNKNOWN'));
+    return null;
+   }finally{clearTimeout(timer);}
+  })();
+  sources.set(a,p);return p;
+ };
  const call=(to,signature,args='')=>safe('eth_call',[{to,data:selector(signature)+args},block]);
  const word=async(to,signature,args='')=>{const raw=await call(to,signature,args);return WORD.test(raw||'')?raw:null;};
  const fact=(value,method,extra={},status='ON_CHAIN')=>{const observedAt=new Date().toISOString();return {value,dataState:'DATA_FOUND',status,chainId:cfg.chainId,network,source:provider+' / contract evidence',freshness:{block,retrievedAt:observedAt},evidence:[stamp(extra,'PINNED_CONTRACT_OBSERVATION',method,status)]};};
@@ -150,6 +164,16 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
  if(outer?.siblingReview){const checks=await Promise.all(Object.entries(outer.siblingReview.getters).map(async([name,id])=>abiFn(outer,name+'()','address')&&addressWord(await call(address,name+'()'))===outer.siblingReview.immutables[id]));if(!checks.length||!checks.every(Boolean)){diagnostics.push({reason:'SIBLING_TOKEN_STATE_MISMATCH',family:outer.siblingReview.family});outer=null;}}
  recordSource(address,outer);
  const family=outer?.runtimeFamily?.kind;
+ const diamond=family==='DIAMOND'&&await require('./mechanics-v8-diamond').resolve({subject:address,source:outer,stamp,
+  storageAt:slot=>safe('eth_getStorageAt',[address,slot,block]),codeAt:deployed,sourceAt});
+ if(diamond){
+  details.diamondRoutes=diamond.routes;
+  roots.push(diamond.authority);
+  fields.contractArchitecture=fact('EIP-2535 diamond · reviewed selector dispatch','Reviewed diamond runtime + pinned selector routing',
+   {sourceDigest:outer.digest,sourceReference:outer.runtimeFamily.sourceReference,storageContext:address,selectorRoutes:diamond.routes,
+    scope:'Only the selected routing entries are read; arbitrary facets, token ABI, all permissions and all upgrade paths are not inferred.'});
+  kind=null;target=address;targetCode=code;admin=null;
+ }
  const legacyBound=reviewedLegacy(outer?.digest)&&kind==='Legacy implementation slot';
  const proxyFamily=require('./mechanics-reviewed-v4').PROXY_SOURCES[outer?.digest];
  let adminBinding=null;
@@ -239,6 +263,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
  const uupsGate=kind==='EIP-1967 implementation'&&reviewedSlotProxy&&immediateTarget===target&&uups&&pathComplete&&
   ['UUPS_ONLY_OWNER','UUPS_ONLY_ROLE','UUPS_MORPHO_OWNER'].includes(uupsFamily);
  const resolved=Boolean(boundTarget&&pathComplete&&(target===address?nonDelegating(code):targetCode&&(nonDelegating(targetCode)||reviewedImplementation||uupsGate)));
+ if(details.proxyBinding)details.proxyBinding.effectiveImplementation=resolved?target:null;
  if(uups&&kind==='EIP-1967 implementation'&&!uupsGate)roots.push(authority.root(null,'UUPS_UUID','Delegated upgrade authorization','UNKNOWN_AUTHORITY',implementationSource,{method:'proxiableUUID() on implementation',implementation:target}));
  const source=resolved?implementationSource:null;
  if(!resolved)diagnostics.push({reason:'IMPLEMENTATION_EXECUTION_UNRESOLVED'});

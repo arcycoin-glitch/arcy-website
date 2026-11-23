@@ -94,5 +94,29 @@
       "e827afd417f3ecb89f708a62dda56418e6db35fa2457348afff0429b8c095f2e"
     ],
     "sourceReference": "https://github.com/aave/aave-token/blob/5d0da80ef130f8a6ee3a3a464db47843548f4cb1/contracts/open-zeppelin/InitializableAdminUpgradeabilityProxy.sol"
+  },
+  {
+    "kind": "DIAMOND",
+    "release": "diamond-3",
+    "contract": "Diamond",
+    "main": "698ba98837d83cd3be93840fa8cc8716360b478c52cb2645d6ea60f6f5277fb8",
+    "files": [
+      "1a2d2992aa4604b0f30282cc837f032208b809bdeda2f959ef267b7b7c9a5591",
+      "698ba98837d83cd3be93840fa8cc8716360b478c52cb2645d6ea60f6f5277fb8",
+      "bfd5c2057634cc20324625589fc7a53dbccf828f09f204f9ac949b7dbab16da0"
+    ],
+    "sourceReference": "https://github.com/mudgen/diamond-3-hardhat/blob/08d415c7e1a27c811c34875d9263a90bc719cee3/contracts/Diamond.sol"
+  },
+  {
+    "kind": "DIAMOND_CUT",
+    "release": "diamond-3",
+    "contract": "DiamondCutFacet",
+    "main": "4cbfefc11d20bfa05d4a17723f74a6e8d6fbcb5e1fded7417985b45aa94d6bb0",
+    "files": [
+      "1a2d2992aa4604b0f30282cc837f032208b809bdeda2f959ef267b7b7c9a5591",
+      "4cbfefc11d20bfa05d4a17723f74a6e8d6fbcb5e1fded7417985b45aa94d6bb0",
+      "bfd5c2057634cc20324625589fc7a53dbccf828f09f204f9ac949b7dbab16da0"
+    ],
+    "sourceReference": "https://github.com/mudgen/diamond-3-hardhat/blob/08d415c7e1a27c811c34875d9263a90bc719cee3/contracts/facets/DiamondCutFacet.sol"
   }
 ]

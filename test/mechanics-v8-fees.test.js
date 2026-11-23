@@ -38,3 +38,14 @@ test('transfer-only strengthening requires matching source, block and direct run
   const card=wrap(p);assert.equal(strengthen(card,ctx),card);
  }
 });
+test('different proven token-side rates at the same block remain conflicted',()=>{
+ const base={...subject,sourceDigest:'a'.repeat(64),coverage:'TOKEN_TAX_ALL_TRANSFERS',method:'Reviewed execution'};
+ const a={...base,tokenTax:{denominator:'100',buy:'1',sell:'0',transfer:'0'}};
+ const b={...base,sourceDigest:'b'.repeat(64),tokenTax:{denominator:'10000',buy:'100',sell:'0',transfer:'0'}};
+ const f={status:'VERIFIED_SOURCE_AND_STATE',evidence:[a,b]};
+ assert.equal(ledger(f,ctx).TOKEN_CONTRACT_TAX.verificationStatus,'VERIFIED');
+ b.tokenTax.buy='101';
+ const conflict=ledger(f,ctx).TOKEN_CONTRACT_TAX;
+ assert.equal(conflict.verificationStatus,'CONFLICTED');
+ assert.equal(conflict.observations.length,2);
+});
