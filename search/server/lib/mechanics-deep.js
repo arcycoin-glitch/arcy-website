@@ -99,7 +99,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
  const safe=async(method,params)=>{try{return await read(method,params)}catch(e){diagnostics.push({source:cfg.label+' RPC',method,address,block,reason:/429/.test(String(e?.message))?'RPC_RATE_LIMIT':/timeout|budget/i.test(String(e?.message))?'RPC_TIMEOUT':'RPC_READ_FAILED'});return null;}};
  const call=(to,signature,args='')=>safe('eth_call',[{to,data:selector(signature)+args},block]);
  const word=async(to,signature,args='')=>{const raw=await call(to,signature,args);return WORD.test(raw||'')?raw:null;};
- const fact=(value,method,extra={},status='ON_CHAIN')=>{const observedAt=new Date().toISOString();return {value,dataState:'DATA_FOUND',status,chainId:cfg.chainId,network,source:cfg.label+' RPC / contract evidence',freshness:{block,retrievedAt:observedAt},evidence:[{chainId:cfg.chainId,network,address,block,method,observedAt,verificationStatus:status,...extra}]};};
+ const fact=(value,method,extra={},status='ON_CHAIN')=>{const observedAt=new Date().toISOString();return {value,dataState:'DATA_FOUND',status,chainId:cfg.chainId,network,source:cfg.label+' RPC / contract evidence',freshness:{block,retrievedAt:observedAt},evidence:[{chainId:cfg.chainId,network,address,block,provider:cfg.label+' RPC',evidenceType:'PINNED_CONTRACT_OBSERVATION',method,observedAt,verificationStatus:status,...extra}]};};
  const code=await safe('eth_getCode',[address,block]);if(!CODE.test(code||'')||/^0xef/i.test(code)){diagnostics.push({reason:'RUNTIME_UNSUPPORTED_OR_UNAVAILABLE'});return {fields,details};}
  const runtimeCodeHash=keccak(Buffer.from(code.slice(2),'hex'));details.runtimeCodeHash=runtimeCodeHash;
  const sourcePromise=sourceLoader(cfg,address,code,diagnostics);
@@ -113,7 +113,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
  else{
   const entries=await Promise.all(Object.entries(SLOTS).map(async([key,slot])=>[key,addressWord(await safe('eth_getStorageAt',[address,slot,block]))]));const slots=Object.fromEntries(entries);admin=slots.admin;
   for(const [key,label]of [['implementation','EIP-1967 implementation'],['legacy','Legacy implementation slot']]){const c=await deployed(slots[key]);if(c){target=slots[key];targetCode=c;kind=label;break;}}
-  if(!kind&&slots.beacon){const bcode=await deployed(slots.beacon);if(bcode){beacon=slots.beacon;const impl=addressWord(await call(beacon,'implementation()'));const c=await deployed(impl);if(c){target=impl;targetCode=c;kind='EIP-1967 beacon';}}}
+  if(!kind&&slots.beacon){const bcode=await deployed(slots.beacon);if(bcode){beacon=slots.beacon;const impl=addressWord(await safe('eth_call',[{from:address,to:beacon,data:selector('implementation()')},block]));const c=await deployed(impl);if(c){target=impl;targetCode=c;kind='EIP-1967 beacon';}}}
   if(!kind){
    // Loupe reports are explicitly observations, not proof of selector routing.
    const facets=decodeArray(await call(address,'facetAddresses()'));
@@ -151,12 +151,15 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
   }
  }
  const publishProxy=async()=>{
+  const delegationPath=await require('./mechanics-v8-path').resolveClonePath({address,target,targetCode,deployed});
+  details.delegationPath=delegationPath;
   // UUPS UUID is read on the implementation, never through the proxy.
   const uuid=await word(target,'proxiableUUID()');
-  fields.contractArchitecture=fact(kind+(uuid?.toLowerCase()===SLOTS.implementation?' · UUPS UUID observed':''),'Pinned proxy runtime/storage + deployed target bytecode',{implementation:target,beacon,runtimeCodeHash,implementationCodeHash:keccak(Buffer.from(targetCode.slice(2),'hex')),scope:'Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed.'});
+  fields.contractArchitecture=fact(kind+(uuid?.toLowerCase()===SLOTS.implementation?' · UUPS UUID observed':''),'Pinned proxy runtime/storage + deployed target bytecode',{implementation:target,beacon,delegationPath,runtimeCodeHash,implementationCodeHash:keccak(Buffer.from(targetCode.slice(2),'hex')),scope:'Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed.'});
   if(admin){fields.ownerAdmin=fact('Proxy admin: '+admin,kind==='Legacy implementation slot'?'Reviewed legacy proxy admin slot':'EIP-1967 admin slot on delegating runtime',{admin,scope:'Observed admin storage, not proof that all privileges are enumerated.'});const aCode=await deployed(admin);if(aCode){const o=addressWord(await call(admin,'owner()'));if(o)details.observations.push({method:'ProxyAdmin owner()',contract:admin,value:o,block,scope:'Getter-reported; not complete admin semantics.'});}}
   if(beacon){const owner=addressWord(await call(beacon,'owner()'));if(owner&&!fields.ownerAdmin)fields.ownerAdmin=fact('Beacon owner() getter: '+owner,'Pinned beacon owner() getter',{beacon,implementation:target,scope:'Getter-reported, not a proof of complete authority.'},'GETTER_REPORTED');}
  }
+ // Beacon getters execute with the proxy as caller. A default caller can observe a different target.
  const implementationSource=target!==address&&targetCode?await sourceLoader(cfg,target,targetCode,diagnostics):outer;
  if(implementationSource&&target!==address)details.sources.push({address:target,digest:implementationSource.digest,url:implementationSource.url,retrievedAt:implementationSource.retrievedAt});
  // Unknown delegated target cannot inherit an outer ABI as token implementation evidence.
