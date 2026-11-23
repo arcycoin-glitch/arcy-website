@@ -40,6 +40,15 @@ async function apply({profile,fields,details,proof,fact,word,call,address,block,
  if(!Object.values(PROFILES).includes(profile))return;
  const transfer=scope=>fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed complete token transfer execution',
   {...proof,coverage:'TOKEN_TRANSFER_ONLY',scope},'VERIFIED_SOURCE');
+ // Only fully reviewed direct implementations with complete full-amount transfer paths can
+ // prove zero token-contract deductions on both pool directions. Pool/hook fees and trading
+ // feasibility remain outside this proof. Delegated or unbound runtimes retain partial evidence.
+ const noTokenFee=scope=>direct?fact('Buy 0% · Sell 0% · Transfer 0%',
+  'Reviewed unconditional full-amount token transfers + pinned non-delegating runtime',
+  {...proof,coverage:'TOKEN_TAX_ALL_TRANSFERS',tokenTaxScope:'TOKEN_CONTRACT_ONLY',sourceBoundNonDelegatingRuntime:true,mutable:false,
+   tokenTax:{denominator:'100',buy:'0',sell:'0',transfer:'0',rounding:'NO_DEDUCTION',scope:'TOKEN_CONTRACT_ONLY',
+    externalFees:{dex:'NOT_VERIFIED',hook:'NOT_VERIFIED'}},
+   scope:'Token-contract deductions only: every permitted token transfer moves its full amount, whether pool-origin, pool-destination, or wallet-to-wallet. '+scope+' Independent DEX/pool and hook fees, slippage, and execution/transfer restrictions are not included or verified.'},'VERIFIED_SOURCE_AND_STATE'):transfer(scope);
  const source=value=>fact(value,'Reviewed complete source capability',{...proof,
   scope:'Source-defined capability only; active privileged accounts, successful execution and external DEX/hook fees are not inferred.'},'VERIFIED_SOURCE');
  if(profile==='NATIVE_DEPOSIT_WRAPPER'){
@@ -62,7 +71,7 @@ async function apply({profile,fields,details,proof,fact,word,call,address,block,
    ...proof,owner,mintingFinished:false,scope:'Owner issuance capability; reviewed finishMinting override returns false and renounceOwnership reverts. No mint transaction was simulated.'},'VERIFIED_SOURCE_AND_STATE');
  }
  if(profile==='GOVERNED_MINTER_SET'){
-  fields.tradingTaxes=transfer('Inherited full-value ERC20 transfer and allowance paths; burn is explicit and separate.');
+  fields.tradingTaxes=noTokenFee('Inherited full-value ERC20 transfer and allowance paths; burn is explicit and separate.');
   const governor=addressWord(await call(address,'governor()'));
   if(governor){
    fields.ownerAdmin=fields.ownerAdmin||fact('Governor: '+governor,'Reviewed onlyGovernor and pinned governor()',{
@@ -82,7 +91,7 @@ async function apply({profile,fields,details,proof,fact,word,call,address,block,
   }
  }
  if(profile==='FIXED_LAUNCH_RESTRICTIONS'){
-  fields.tradingTaxes=transfer('All permitted transfers move full value. Launch buy limits/exemptions can revert; poolFee is a configured V3 fee, not an ERC20 tax or proof of current trading fees.');
+  fields.tradingTaxes=noTokenFee('All permitted transfers move full value. Launch buy limits/exemptions can revert; poolFee is a configured V3 fee, not an ERC20 tax or proof of current trading fees.');
   if(direct)fields.mintCapability=fact('NONE DETECTED ✓','Reviewed constructor-only mint and full inheritance',{
    ...proof,scope:'No external post-construction issuance path in this exact non-delegating implementation.'},'VERIFIED_SOURCE');
   const factory=addressWord(await call(address,'launchFactory()'));
