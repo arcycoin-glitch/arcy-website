@@ -40,6 +40,10 @@ async function enrich(options){
   block:options.block,chainId:chain(options.network).chainId});
  const card=supplement(extra?{...qualified,supplementary:{...(qualified?.supplementary||{}),...extra}}:qualified,options.network);
  // Inert unless the Risk Engine public flag is explicitly enabled; reads only a signed worker snapshot, never RPC.
- return require('./mechanics-risk-evidence').attach(card,{network:options.network,address:options.address,env:options.env||process.env,reader:options.riskReader||null});
+ return require('./mechanics-risk-evidence').attach(attributeFees(card,options),{network:options.network,address:options.address,env:options.env||process.env,reader:options.riskReader||null});
 }
-module.exports={enrich,annotateCard,supplement,restrictionGap};
+function attributeFees(card,{network,address,block}){
+ const cfg=chain(network);
+ return require('./mechanics-v8-fees').attach(card,{chainId:cfg.chainId,network,address,block,provider:cfg.label+' RPC / reviewed evidence'});
+}
+module.exports={enrich,annotateCard,supplement,restrictionGap,attributeFees};

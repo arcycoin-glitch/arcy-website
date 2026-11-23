@@ -5,7 +5,7 @@ const {qualifyUpgradeable}=require('../search/server/lib/mechanics-upgrade-cavea
 const fact=value=>({value,status:'VERIFIED_SOURCE',dataState:'DATA_FOUND',source:'x',evidence:[{scope:'s'}]});
 const ADMIN='0x'+'ad'.repeat(20);
 test('upgradeable EIP-1967 / legacy / beacon proxies qualify mint-absence and renounced-owner findings',()=>{
- for(const kind of ['EIP-1967 implementation','Legacy implementation slot','EIP-1967 beacon']){
+ for(const kind of ['EIP-1967 implementation','Legacy implementation slot','EIP-1967 beacon','Reviewed immutable beacon proxy']){
   const f=qualifyUpgradeable({mintCapability:fact('NONE DETECTED ✓'),ownerAdmin:fact('Ownership renounced · owner 0x0'),tradingTaxes:fact('Transfer 0% · DEX/hook fees NOT VERIFIED')},kind,{admin:ADMIN});
   assert.equal(f.mintCapability.value,'No direct mint · upgradeable',kind);
   assert.equal(f.ownerAdmin.value,'Ownership renounced · upgradeable proxy');
@@ -16,8 +16,8 @@ test('upgradeable EIP-1967 / legacy / beacon proxies qualify mint-absence and re
  assert.equal(qualifyUpgradeable({mintCapability:fact('NONE ACTIVE ✓ · owner renounced')},'EIP-1967 implementation').mintCapability.value,'No direct mint · upgradeable');
  assert.equal(qualifyUpgradeable({ownerAdmin:fact('No token owner/admin')},'EIP-1967 beacon').ownerAdmin.value,'No token owner/admin · upgradeable proxy');
 });
-test('non-proxy, EIP-1167 clones and reviewed immutable beacons are unchanged (known-good values preserved)',()=>{
- for(const kind of [null,'EIP-1167 minimal proxy','Reviewed immutable beacon proxy']){
+test('non-proxy and EIP-1167 clones are unchanged (known-good values preserved)',()=>{
+ for(const kind of [null,'EIP-1167 minimal proxy']){
   const f=qualifyUpgradeable({mintCapability:fact('NONE DETECTED ✓'),ownerAdmin:fact('No token owner/admin')},kind);
   assert.equal(f.mintCapability.value,'NONE DETECTED ✓');assert.equal(f.ownerAdmin.value,'No token owner/admin');
  }

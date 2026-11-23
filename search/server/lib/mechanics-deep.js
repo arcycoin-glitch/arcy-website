@@ -6,6 +6,9 @@ const {nonDelegating}=require('../../../lib/mechanics-runtime');
 const {addressWord}=require('./admin-getters');
 const {createReader}=require('./source-request');
 const crypto=require('node:crypto');
+const authority=require('./mechanics-v8-authority');
+const runtimeReview=require('./mechanics-v8-source');
+const {recorder}=require('./mechanics-v8-evidence');
 const reader=createReader({ttlMs:300000,maxEntries:32});
 const WORD=/^0x[0-9a-f]{64}$/i,CODE=/^0x(?:[0-9a-f]{2})+$/i,ADDRESS=/^0x[0-9a-f]{40}$/i;
 const SLOTS=Object.freeze({
@@ -54,10 +57,11 @@ async function sourceFor(cfg,address,code,diagnostics){
  try{
   const body=await reader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{validateSource(d,{chainId:cfg.chainId,address,code});return true;}});
   const checked=validateSource(body,{chainId:cfg.chainId,address,code});
+  const family=runtimeReview.classify(body.sources,body.compilation);
   const opts={lib:require('./oz-library-hashes'),main:typeof body.compilation?.name==='string'?body.compilation.name:undefined};
   let template=null,templateDiagnostic=null;
   try{const oz=require('./oz-template');template=oz.analyze(body.sources,opts);if(!template)templateDiagnostic=oz.diagnose(body.sources,opts)?.reason||'NOT_CLASSIFIED';}catch{}
-  return {...checked,...(template?{template}:{}),templateDiagnostic,
+  return {...checked,subjectAddress:address,runtimeFamily:family,...(template?{template}:{}),templateDiagnostic,
    sourceProvider:'Sourcify',sourceAssurance:'EXACT_DEPLOYED_BYTECODE_MATCH',
    url,retrievedAt:new Date(reader.observedAt(url)).toISOString()};
  }catch(e){
@@ -93,25 +97,38 @@ function decodeArray(raw,max=32){
 async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSupplementary=null,card=null}={}){
  const cfg=chain(network);if(!ADDRESS.test(address||'')||!/^0x[0-9a-f]+$/i.test(block||'')||typeof rpc!=='function')throw Error('Invalid Mechanics identity');
  address=address.toLowerCase();const diagnostics=[],fields={},details={block,chainId:cfg.chainId,address,observations:[],sources:[],failures:diagnostics};
- // Bounded shared per-inspection reads. No cached state crosses a pinned block.
- const reads=new Map();let active=0;const waiters=[],deadline=Date.now()+14000;
- const read=(method,params)=>{const key=method+JSON.stringify(params);if(reads.has(key))return reads.get(key);const p=(async()=>{if(active>=4)await new Promise(r=>waiters.push(r));active++;let timer;try{const timeoutMs=Math.min(4000,deadline-Date.now());if(timeoutMs<=0)throw Error('Mechanics read budget exceeded');return await Promise.race([rpc(method,params,{timeoutMs}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Mechanics RPC timeout')),timeoutMs);})]);}finally{clearTimeout(timer);active--;waiters.shift()?.();}})();reads.set(key,p);return p;};
- const safe=async(method,params)=>{try{return await read(method,params)}catch(e){diagnostics.push({source:cfg.label+' RPC',method,address,block,reason:/429/.test(String(e?.message))?'RPC_RATE_LIMIT':/timeout|budget/i.test(String(e?.message))?'RPC_TIMEOUT':'RPC_READ_FAILED'});return null;}};
+ const now=Date.now(),provider=cfg.label+' RPC';
+ const stamp=recorder({chainId:cfg.chainId,network,address,block,provider,observedAt:new Date(now).toISOString()});
+ const reads=new Map(),sources=new Map();let active=0,cacheHits=0;
+ const waiters=[],deadline=now+14000;
+ const read=(method,params)=>{const key=method+JSON.stringify(params);if(reads.has(key)){cacheHits++;return reads.get(key);}const p=(async()=>{if(active>=4)await new Promise(r=>waiters.push(r));active++;let timer;try{const timeoutMs=Math.min(4000,deadline-Date.now());if(timeoutMs<=0)throw Error('Mechanics read budget exceeded');return await Promise.race([rpc(method,params,{timeoutMs}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Mechanics RPC timeout')),timeoutMs);})]);}finally{clearTimeout(timer);active--;waiters.shift()?.();}})();reads.set(key,p);return p;};
+ const safe=async(method,params)=>{try{return await read(method,params)}catch(e){const contractAddress=method==='eth_call'?params[0]?.to:params[0];
+  diagnostics.push(stamp({source:provider,contractAddress,reason:/429/.test(String(e?.message))?'RPC_RATE_LIMIT':/timeout|budget/i.test(String(e?.message))?'RPC_TIMEOUT':'RPC_READ_FAILED'},'RPC_FAILURE',method,'UNKNOWN'));return null;}};
+ const sourceAt=(a,c)=>{if(sources.has(a))return sources.get(a);const p=Promise.resolve().then(()=>sourceLoader(cfg,a,c,diagnostics)).catch(()=>{
+  diagnostics.push(stamp({contractAddress:a,reason:'SOURCE_LOADER_FAILED'},'SOURCE_FAILURE','Verified source lookup','UNKNOWN'));return null;
+ });sources.set(a,p);return p;};
  const call=(to,signature,args='')=>safe('eth_call',[{to,data:selector(signature)+args},block]);
  const word=async(to,signature,args='')=>{const raw=await call(to,signature,args);return WORD.test(raw||'')?raw:null;};
- const fact=(value,method,extra={},status='ON_CHAIN')=>{const observedAt=new Date().toISOString();return {value,dataState:'DATA_FOUND',status,chainId:cfg.chainId,network,source:cfg.label+' RPC / contract evidence',freshness:{block,retrievedAt:observedAt},evidence:[{chainId:cfg.chainId,network,address,block,provider:cfg.label+' RPC',evidenceType:'PINNED_CONTRACT_OBSERVATION',method,observedAt,verificationStatus:status,...extra}]};};
- const code=await safe('eth_getCode',[address,block]);if(!CODE.test(code||'')||/^0xef/i.test(code)){diagnostics.push({reason:'RUNTIME_UNSUPPORTED_OR_UNAVAILABLE'});return {fields,details};}
+ const fact=(value,method,extra={},status='ON_CHAIN')=>{const observedAt=new Date().toISOString();return {value,dataState:'DATA_FOUND',status,chainId:cfg.chainId,network,source:provider+' / contract evidence',freshness:{block,retrievedAt:observedAt},evidence:[stamp(extra,'PINNED_CONTRACT_OBSERVATION',method,status)]};};
+  const code=await safe('eth_getCode',[address,block]);if(!CODE.test(code||'')||/^0xef/i.test(code)){diagnostics.push({reason:'RUNTIME_UNSUPPORTED_OR_UNAVAILABLE'});return {fields,details};}
  const runtimeCodeHash=keccak(Buffer.from(code.slice(2),'hex'));details.runtimeCodeHash=runtimeCodeHash;
- const sourcePromise=sourceLoader(cfg,address,code,diagnostics);
- let target=address,targetCode=code,beacon=null,kind=null,admin=null;
+ const sourcePromise=sourceAt(address,code);
+ const roots=[];
+ let target=address,targetCode=code,beacon=null,kind=null,admin=null,slots={},beaconSource=null;
+ const recordSource=(a,s)=>{if(s&&!details.sources.some(x=>x.address===a))details.sources.push(stamp({
+  address:a,contractAddress:a,digest:s.digest,url:s.url,retrievedAt:s.retrievedAt,runtimeMatch:s.runtimeMatch,sourceProvider:s.sourceProvider||null
+ },'SOURCE_BINDING','Pinned runtime and verified source correspondence','VERIFIED'));};
  // Exact immutable forwarders only: canonical EIP-1167 (45 bytes) and the Solady LibClone 44-byte variant (PUSH0-free, RETURNDATASIZE
  // zeros). Both are pure CALLDATACOPY -> DELEGATECALL(impl) -> RETURNDATACOPY/RETURN|REVERT with no storage, admin or upgrade path.
- const cloneMatch=/^0x(?:363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3|3d3d3d3d363d3d37363d73([0-9a-f]{40})5af43d3d93803e602a57fd5bf3)$/i.exec(code),clone=cloneMatch?[cloneMatch[0],cloneMatch[1]||cloneMatch[2]]:null,cloneKind=cloneMatch?(cloneMatch[1]?'EIP-1167 minimal proxy':'Minimal proxy (Solady LibClone, 44-byte)'):null;
+ const clone=require('./mechanics-v8-path').cloneTarget(code);
  const deployed=async a=>{if(!a||a===address)return null;const c=await safe('eth_getCode',[a,block]);return CODE.test(c||'')&&!/^0xef/i.test(c)?c:null;};
  if(nonDelegating(code))fields.contractArchitecture=fact('NON-PROXY · runtime verified','Conservative complete runtime control-flow inspection',{runtimeCodeHash,scope:'No reachable DELEGATECALL, CALLCODE or SELFDESTRUCT; all JUMPDESTs are roots, metadata retained. External forwarding, permissions and future governance remain separate.'});
- else if(clone){target='0x'+clone[1].toLowerCase();targetCode=await deployed(target);if(targetCode)kind=cloneKind;}
+ else if(clone){target=clone.address;targetCode=await deployed(target);
+  if(targetCode)kind=clone.kind;
+  else details.delegationPath={addresses:[address],storageContext:address,status:target===address?'CYCLE':'TARGET_CODE_UNAVAILABLE',candidate:target};
+ }
  else{
-  const entries=await Promise.all(Object.entries(SLOTS).map(async([key,slot])=>[key,addressWord(await safe('eth_getStorageAt',[address,slot,block]))]));const slots=Object.fromEntries(entries);admin=slots.admin;
+  const entries=await Promise.all(Object.entries(SLOTS).map(async([key,slot])=>[key,addressWord(await safe('eth_getStorageAt',[address,slot,block]))]));slots=Object.fromEntries(entries);admin=slots.admin;
   for(const [key,label]of [['implementation','EIP-1967 implementation'],['legacy','Legacy implementation slot']]){const c=await deployed(slots[key]);if(c){target=slots[key];targetCode=c;kind=label;break;}}
   if(!kind&&slots.beacon){const bcode=await deployed(slots.beacon);if(bcode){beacon=slots.beacon;const impl=addressWord(await safe('eth_call',[{from:address,to:beacon,data:selector('implementation()')},block]));const c=await deployed(impl);if(c){target=impl;targetCode=c;kind='EIP-1967 beacon';}}}
   if(!kind){
@@ -124,35 +141,55 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
  // Token-specific state check for a sibling-reference source: this token's OWN getters must return exactly its own
  // immutable words at the pinned block, and the reference ABI must declare them. Any miss fails closed (no source).
  if(outer?.siblingReview){const checks=await Promise.all(Object.entries(outer.siblingReview.getters).map(async([name,id])=>abiFn(outer,name+'()','address')&&addressWord(await call(address,name+'()'))===outer.siblingReview.immutables[id]));if(!checks.length||!checks.every(Boolean)){diagnostics.push({reason:'SIBLING_TOKEN_STATE_MISMATCH',family:outer.siblingReview.family});outer=null;}}
- if(outer)details.sources.push({address,digest:outer.digest,url:outer.url,retrievedAt:outer.retrievedAt});
- if(reviewedLegacy(outer?.digest)&&kind==='Legacy implementation slot'){
+ recordSource(address,outer);
+ const family=outer?.runtimeFamily?.kind;
+ const legacyBound=reviewedLegacy(outer?.digest)&&kind==='Legacy implementation slot';
+ const proxyFamily=require('./mechanics-reviewed-v4').PROXY_SOURCES[outer?.digest];
+ let adminBinding=null;
+ if(legacyBound){
   admin=addressWord(await safe('eth_getStorageAt',[address,SLOTS.legacyAdmin,block]));
-  if(admin)details.observations.push({method:'Reviewed legacy proxy upgrade authority',admin,block,sourceUrl:outer.url,sourceDigest:outer.digest,status:'VERIFIED_SOURCE_AND_STATE',scope:'Reviewed admin slot gates changeAdmin, upgradeTo and upgradeToAndCall. Token owner and implementation roles are separate; key ownership and complete multisig membership are not inferred.'});
+  adminBinding='LEGACY_PROXY_ADMIN';
+ }else if(kind==='EIP-1967 implementation'&&family==='TRANSPARENT'){
+  if(outer.runtimeFamily.release.startsWith('v5.')){
+   const immutable=runtimeReview.immutableAddress(code,outer.immutableReferences);
+   if(immutable&&admin!==immutable)diagnostics.push(stamp({slot:SLOTS.admin,slotValue:admin,immutableValue:immutable,reason:'ADMIN_SLOT_IMMUTABLE_MISMATCH'},'CONFLICT','Immutable transparent admin vs EIP-1967 slot','CONFLICTED'));
+   admin=immutable;
+  }
+  adminBinding='TRANSPARENT_PROXY_ADMIN';
+ }else if(kind==='EIP-1967 implementation'&&proxyFamily==='REVIEWED_TRANSPARENT_EIP1967'){
+  adminBinding='TRANSPARENT_PROXY_ADMIN';
  }
+ if(adminBinding)roots.push(authority.root(admin,adminBinding,'Proxy upgrade entry point',admin?'CONFIRMED_AUTHORITY':'UNKNOWN_AUTHORITY',outer,
+  {method:adminBinding==='LEGACY_PROXY_ADMIN'?'Reviewed legacy upgrade gate and admin slot':'Reviewed transparent upgrade gate and pinned admin',implementation:target}));
+ else if(admin)roots.push(authority.root(admin,'UNBOUND_ADMIN_SLOT','Upgrade permission not established','CANDIDATE_CONTROLLER',outer,{method:'eth_getStorageAt',slot:SLOTS.admin}));
  let beaconBinding=false;
  const template=require('./mechanics-reviewed-v4').immutableBeacon(code);
- if(outer?.digest===REVIEWED_BEACON_PROXY||template){
+ if(outer?.digest===REVIEWED_BEACON_PROXY||template||family==='BEACON_PROXY'){
   if(template)details.runtimeTemplate=template;
-  const refs=outer?.digest===REVIEWED_BEACON_PROXY?Object.values(outer.immutableReferences||{}).flat():[template];
-  if(refs.length===1&&refs[0].length===32&&Number.isInteger(refs[0].start)&&refs[0].start>=0&&refs[0].start*2+64<=code.length-2){
-   const actual=addressWord('0x'+code.slice(2+refs[0].start*2,2+refs[0].start*2+64));
-   const beaconCode=await deployed(actual);
-   if(actual&&beaconCode){
-    const beaconSource=await sourceLoader(cfg,actual,beaconCode,diagnostics);
-    if(beaconSource&&Object.hasOwn(require('./mechanics-reviewed-v4').BEACON_SOURCES,beaconSource.digest)){
-     details.sources.push({address:actual,digest:beaconSource.digest,url:beaconSource.url,retrievedAt:beaconSource.retrievedAt});
-     if(beacon!==actual)diagnostics.push({reason:'BEACON_SLOT_IMMUTABLE_MISMATCH'});
-     beacon=actual;
-     const raw=await safe('eth_call',[{from:address,to:beacon,data:selector('implementation()')},block]);
-     const impl=addressWord(raw),c=await deployed(impl);
-     if(c){target=impl;targetCode=c;kind='Reviewed immutable beacon proxy';beaconBinding=true;}
-    }else diagnostics.push({reason:'BEACON_EXECUTION_SOURCE_UNREVIEWED',beacon:actual});
-   }
+  const immutable=template||outer?.digest===REVIEWED_BEACON_PROXY||outer?.runtimeFamily?.release.startsWith('v5.');
+  const actual=template?.beacon||(immutable?runtimeReview.immutableAddress(code,outer?.immutableReferences):slots.beacon);
+  const bcode=await deployed(actual);
+  if(actual&&bcode){
+   beaconSource=await sourceAt(actual,bcode);
+   if(beaconSource&&(Object.hasOwn(require('./mechanics-reviewed-v4').BEACON_SOURCES,beaconSource.digest)||beaconSource.runtimeFamily?.kind==='BEACON')){
+    recordSource(actual,beaconSource);
+    if(immutable&&slots.beacon!==actual)diagnostics.push(stamp({slot:SLOTS.beacon,slotValue:slots.beacon,immutableValue:actual,reason:'BEACON_SLOT_IMMUTABLE_MISMATCH'},'CONFLICT','Immutable beacon vs EIP-1967 slot','CONFLICTED'));
+    beacon=actual;
+    const raw=await safe('eth_call',[{from:address,to:beacon,data:selector('implementation()')},block]);
+    const impl=addressWord(raw),c=await deployed(impl);
+    if(c){target=impl;targetCode=c;kind=immutable?'Reviewed immutable beacon proxy':'EIP-1967 beacon';beaconBinding=true;
+     roots.push(authority.root(beacon,'PROXY_BEACON','Beacon supplies implementation','OBSERVED_CONTROLLER',beaconSource,{method:'implementation()',caller:address,implementation:impl}));}
+   }else diagnostics.push({reason:'BEACON_EXECUTION_SOURCE_UNREVIEWED',contractAddress:actual});
+  }
+  if(!beaconBinding){
+   diagnostics.push({reason:'BEACON_EXECUTION_UNRESOLVED',contractAddress:actual||address});
+   // A reviewed beacon outer runtime does not route through the implementation slot.
+   kind=null;target=address;targetCode=code;
   }
  }
- // Unknown delegated target cannot inherit an outer ABI as token implementation evidence.
- const reviewedSlotProxy=outer&&Object.hasOwn(require('./mechanics-reviewed-v4').PROXY_SOURCES,outer.digest)&&kind==='EIP-1967 implementation';
- const boundTarget=target===address||Boolean(clone)||reviewedLegacy(outer?.digest)&&kind==='Legacy implementation slot'||beaconBinding||reviewedSlotProxy;
+ if(!beaconBinding&&beacon)roots.push(authority.root(beacon,'UNBOUND_BEACON_SLOT','Reported beacon; execution path unresolved','CANDIDATE_CONTROLLER',beaconSource,{method:'implementation()',caller:address}));
+ const reviewedSlotProxy=outer&&Boolean(proxyFamily||family==='TRANSPARENT'||family==='ERC1967')&&kind==='EIP-1967 implementation';
+ const boundTarget=target===address||Boolean(clone)||legacyBound||beaconBinding||reviewedSlotProxy;
  const immediateTarget=target;
  const delegationPath=boundTarget&&kind&&targetCode?await require('./mechanics-v8-path').resolveClonePath({address,target,targetCode,deployed}):null;
  if(delegationPath){
@@ -163,14 +200,21 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
    if(nonDelegating(terminalCode)){target=terminal;targetCode=terminalCode;}
   }
  }
- const implementationSource=target!==address&&targetCode?await sourceLoader(cfg,target,targetCode,diagnostics):outer;
- if(implementationSource&&target!==address)details.sources.push({address:target,digest:implementationSource.digest,url:implementationSource.url,retrievedAt:implementationSource.retrievedAt});
+ const pathComplete=!details.delegationPath||details.delegationPath.status==='NO_FURTHER_STANDARD_CLONE';
+ const implementationSource=target!==address&&targetCode&&pathComplete?await sourceAt(target,targetCode):target===address?outer:null;
+ if(target!==address)recordSource(target,implementationSource);
+ let uups=false;
  const publishProxy=async()=>{
   // UUPS UUID is read on the implementation, never through the proxy.
-  const uuid=await word(target,'proxiableUUID()');
-  fields.contractArchitecture=fact(kind+(uuid?.toLowerCase()===SLOTS.implementation?' · UUPS UUID observed':''),'Pinned proxy runtime/storage + deployed target bytecode',{implementation:target,immediateTarget,beacon,delegationPath,runtimeCodeHash,implementationCodeHash:keccak(Buffer.from(targetCode.slice(2),'hex')),scope:'Observed proxy target only; Transparent/UUPS upgrade authorization and nested delegation are not assumed.'});
-  if(admin){fields.ownerAdmin=fact('Proxy admin: '+admin,kind==='Legacy implementation slot'?'Reviewed legacy proxy admin slot':'EIP-1967 admin slot on delegating runtime',{admin,scope:'Observed admin storage, not proof that all privileges are enumerated.'});const aCode=await deployed(admin);if(aCode){const o=addressWord(await call(admin,'owner()'));if(o)details.observations.push({method:'ProxyAdmin owner()',contract:admin,value:o,block,scope:'Getter-reported; not complete admin semantics.'});}}
-  if(beacon){const owner=addressWord(await call(beacon,'owner()'));if(owner&&!fields.ownerAdmin)fields.ownerAdmin=fact('Beacon owner() getter: '+owner,'Pinned beacon owner() getter',{beacon,implementation:target,scope:'Getter-reported, not a proof of complete authority.'},'GETTER_REPORTED');}
+  const uuid=pathComplete&&targetCode&&(!delegationPath||delegationPath.addresses.length===2||nonDelegating(targetCode))?await word(target,'proxiableUUID()'):null;
+  uups=uuid?.toLowerCase()===SLOTS.implementation;
+  const proxyType=legacyBound?'LEGACY_TRANSPARENT':family==='TRANSPARENT'||proxyFamily?'TRANSPARENT':beaconBinding?'BEACON':clone?'MINIMAL_CLONE':uups?'UUPS_COMPATIBLE':'EIP1967';
+  details.proxyBinding=stamp({proxyType,pathComplete,implementation:pathComplete?target:null,immediateTarget,storageContext:address,
+   sourceDigest:outer?.digest||null,sourceReference:outer?.runtimeFamily?.sourceReference||outer?.url||null,
+   mechanism:clone?'IMMUTABLE_FORWARDER':beaconBinding?'BEACON_CALL':legacyBound?'LEGACY_SLOT':'IMPLEMENTATION_SLOT'},'EXECUTION_BINDING','Pinned outer execution and implementation target',pathComplete?'VERIFIED':'PARTIALLY_VERIFIED');
+  fields.contractArchitecture=fact(kind+(uups?' · UUPS UUID observed':''),'Pinned proxy runtime/storage + deployed target bytecode',{...details.proxyBinding,implementation:target,immediateTarget,beacon,delegationPath,runtimeCodeHash,implementationCodeHash:keccak(Buffer.from(targetCode.slice(2),'hex')),scope:'Pinned execution path only. UUID compatibility is not upgrade authorization; an incomplete nested path is not a terminal implementation.'});
+  if(admin&&(adminBinding||proxyFamily))fields.ownerAdmin=fact('Proxy admin: '+admin,kind==='Legacy implementation slot'?'Reviewed legacy proxy admin slot':'Reviewed transparent proxy admin',{admin,scope:adminBinding?'Proxy upgrade gate; token owner and delegated privileges are separate.':'Observed admin storage; upgrade authority is not established.'});
+  if(beacon&&abiFn(beaconSource,'owner()','address')&&!fields.ownerAdmin){const owner=addressWord(await call(beacon,'owner()'));if(owner)fields.ownerAdmin=fact('Beacon owner() getter: '+owner,'Pinned beacon owner() getter',{beacon,implementation:target,scope:'Getter-reported, not a proof of complete authority.'},'GETTER_REPORTED');}
  }
  if(kind&&targetCode){
   if(boundTarget)await publishProxy();
@@ -184,7 +228,11 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
   }
  }
  const reviewedImplementation=implementationSource&&(Object.hasOwn(PROFILES,implementationSource.digest)||Boolean(implementationSource.template));
- const resolved=boundTarget&&(target===address?nonDelegating(code):targetCode&&(nonDelegating(targetCode)||reviewedImplementation));
+ const uupsFamily=implementationSource?.runtimeFamily?.kind;
+ const uupsGate=kind==='EIP-1967 implementation'&&reviewedSlotProxy&&immediateTarget===target&&uups&&pathComplete&&
+  ['UUPS_ONLY_OWNER','UUPS_ONLY_ROLE'].includes(uupsFamily);
+ const resolved=Boolean(boundTarget&&pathComplete&&(target===address?nonDelegating(code):targetCode&&(nonDelegating(targetCode)||reviewedImplementation||uupsGate)));
+ if(uups&&kind==='EIP-1967 implementation'&&!uupsGate)roots.push(authority.root(null,'UUPS_UUID','Delegated upgrade authorization','UNKNOWN_AUTHORITY',implementationSource,{method:'proxiableUUID() on implementation',implementation:target}));
  const source=resolved?implementationSource:null;
  if(!resolved)diagnostics.push({reason:'IMPLEMENTATION_EXECUTION_UNRESOLVED'});
  details.sourceVerification={matched:Boolean(source),provider:source?.sourceProvider||null,
@@ -278,7 +326,10 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
      block,...sourceProof,scope:'Source digest and pinned bytecode matched. Constructor-only mint; token transfers full value; voluntary burn available; no owner/admin. External DEX/hook fees, liquidity controls and launchpad governance require separate verification.'});
    }
    if(profile==='FIXED_SUPPLY_POOL_SETUP'){
-    fields.tradingTaxes=fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed constructor-only mint and full-value ERC20 _update',{...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'Full token transfer value is retained. The immutable anti-snipe max-wallet rule can revert transfers; it is not a tax. External pool fees remain separate.'},'VERIFIED_SOURCE');
+    const scope='The exact reviewed launch token moves the full amount for every permitted transfer and transferFrom. The anti-snipe max-wallet rule can revert; it does not deduct tokens. Pool, router and hook fees are separate.';
+    fields.tradingTaxes=target===address&&nonDelegating(code)?
+     require('./mechanics-v8-fees').directZero(fact,proof,scope):
+     fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed constructor-only mint and full-value ERC20 _update',{...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope},'VERIFIED_SOURCE');
     fields.mintCapability=fact('NONE DETECTED ✓','Reviewed complete constructor-only mint execution',{...proof,scope:'The only _mint call is in the constructor; no runtime issuance entry point exists. This does not claim external pool or launchpad control is absent.'},'VERIFIED_SOURCE');
     const pad=addressWord(await call(address,'pad()')),poolRaw=await call(address,'pool()');
     if(pad&&WORD.test(poolRaw||'')&&/^0x0{24}[0-9a-f]{40}$/i.test(poolRaw)){
@@ -319,7 +370,10 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
    }
    if(profile==='CAPPED_FEE_LEGACY_TOKEN'){
     const [deprecated,bps,maximumFee,owner]=await Promise.all([word(address,'deprecated()'),word(address,'basisPointsRate()'),word(address,'maximumFee()'),call(address,'owner()')]);const authority=addressWord(owner);
-    if(deprecated&&BigInt(deprecated)===0n&&bps&&maximumFee&&BigInt(bps)<20n){const rate=BigInt(bps),max=BigInt(maximumFee);fields.tradingTaxes=fact('Transfer '+(max===0n?0:Number(rate)/100)+'% · DEX/hook fees NOT VERIFIED','Reviewed capped fee formula + pinned active parameters',{...proof,basisPointsRate:rate.toString(),denominator:'10000',maximumFeeRaw:max.toString(),deprecated:false,feeController:authority,mutable:true,coverage:'TOKEN_TRANSFER_ONLY',scope:'fee=min(amount*bps/10000, maximumFee). Owner can set bps<20 and maxFee<50 tokens. Rounding/cap changes effective rate. No sender exemption in reviewed transfer path; blacklist/pause can revert. DEX/hook fees separate.'},'VERIFIED_SOURCE_AND_STATE');}
+    if(deprecated&&BigInt(deprecated)===0n&&bps&&maximumFee&&BigInt(bps)<20n){const rate=BigInt(bps),max=BigInt(maximumFee);fields.tradingTaxes=fact('Transfer '+(max===0n?0:Number(rate)/100)+'% · DEX/hook fees NOT VERIFIED','Reviewed capped fee formula + pinned active parameters',{...proof,basisPointsRate:rate.toString(),denominator:'10000',maximumFeeRaw:max.toString(),deprecated:false,feeController:authority,mutable:true,coverage:'TOKEN_TRANSFER_ONLY',
+     tokenTax:{classification:'VERIFIED_CONFIGURABLE_TAX',calculation:'min(floor(amount*basisPointsRate/10000),maximumFeeRaw)',basisPointsRate:rate.toString(),
+      denominator:'10000',maximumFeeRaw:max.toString(),ownerMaximumRateBps:'19',ownerMaximumFee:'49 whole tokens',feeController:authority,
+      activation:'CURRENT_NON_DEPRECATED_TRANSFER_PATH',scope:'TOKEN_CONTRACT_ONLY'},scope:'fee=min(amount*bps/10000, maximumFee). Owner can set bps<20 and maxFee<50 tokens. Rounding/cap changes effective rate. No sender exemption in reviewed transfer path; blacklist/pause can revert. DEX/hook fees separate.'},'VERIFIED_SOURCE_AND_STATE');}
     else diagnostics.push({reason:deprecated&&BigInt(deprecated)===1n?'LEGACY_FORWARDING_ACTIVE':'FEE_STATE_UNAVAILABLE'});
     if(authority)fields.mintCapability=fact('Owner-authorized issuance','Reviewed issue(uint256) + pinned owner',{...proof,owner:authority,scope:'Source issue() increases balances/supply under onlyOwner; no claim of successful execution now.'},'VERIFIED_SOURCE_AND_STATE');
    }
@@ -355,21 +409,33 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
   const raw=await word(address,name+'()');
   if(raw&&BigInt(raw)===0n){details.observations.push({method:name+'()',value:'zero address',zero:true,block,...sourceProof,scope:'ABI/source-matched getter returns the zero address at the pinned block. Not an absence-of-control proof: roles, other admin getters, proxy/upgrade authority and external controllers are not excluded.'});break;}
  }
- // Optional read-only authority evidence. No Safe/timelock identity from a
- // selector alone: source must match the authority's pinned runtime first.
- const authorities=[...new Set([admin,beacon,...details.observations.filter(x=>x.method!=='pendingOwner()').map(x=>x.value)].filter(x=>ADDRESS.test(x||'')))].slice(0,2);
- for(const authority of authorities){
-  const c=await deployed(authority);if(!c)continue;
-  const s=await sourceLoader(cfg,authority,c,diagnostics);if(!s)continue;
-  for(const signature of ['getMinDelay()','getThreshold()'])if(abiFn(s,signature,'uint256')){const v=await word(authority,signature);if(v)details.observations.push({method:signature,authority,value:BigInt(v).toString(),block,sourceDigest:s.digest,sourceUrl:s.url,scope:'Source/ABI getter-reported delay or threshold, not a complete execution/authority audit.'});}
-  if(nonDelegating(c)&&abiFn(s,'owner()','address')){
-   const controller=addressWord(await call(authority,'owner()'));
-   if(controller)details.observations.push({method:'Controller owner()',authority,value:controller,chainId:cfg.chainId,address,block,provider:cfg.label+' RPC',evidenceType:'CONTROLLER_GETTER',verificationStatus:'GETTER_REPORTED',sourceDigest:s.digest,sourceUrl:s.url,scope:'Observed ownership link only; upgrade authorization is not implied.'});
-  }
-  if(abiFn(s,'getOwners()','address[]')){const owners=decodeArray(await call(authority,'getOwners()'));if(owners)details.observations.push({method:'getOwners()',authority,owners,block,sourceDigest:s.digest,sourceUrl:s.url,scope:'Bounded source/ABI-reported owner set; multisig execution semantics remain separate.'});}
+ if(uupsGate&&uupsFamily==='UUPS_ONLY_OWNER'){
+  const owner=abiFn(source,'owner()','address')?addressWord(await call(address,'owner()')):null;
+  roots.push(authority.root(owner,'UUPS_ONLY_OWNER','upgradeToAndCall(address,bytes)',owner?'CONFIRMED_AUTHORITY':'UNKNOWN_AUTHORITY',source,{implementation:target,method:'Reviewed UUPS onlyOwner gate + proxy-context owner()'}));
  }
- require('./mechanics-upgrade-caveat').qualifyUpgradeable(fields,kind,{admin:reviewedSlotProxy||reviewedLegacy(outer?.digest)?admin:null,beacon});
- for(const f of Object.values(fields))f.evidence.push({chainId:cfg.chainId,network,address,block,method:'Mechanics analysis detail',...details});
+ if(uupsGate&&uupsFamily==='UUPS_ONLY_ROLE'){
+  const role=keccak(Buffer.from('UPGRADER_ROLE'));
+  const members=details.observations.filter(x=>x.method==='hasRole'&&x.roleId===role&&x.value===true&&x.sourceDigest===source.digest);
+  for(const {member} of members)roots.push(authority.root(member,'UUPS_ONLY_ROLE','upgradeToAndCall(address,bytes)','CONFIRMED_AUTHORITY',source,{implementation:target,role,method:'Reviewed UUPS onlyRole gate + proxy-context hasRole()'}));
+  if(!members.length)roots.push(authority.root(null,'UUPS_ONLY_ROLE','Current UPGRADER_ROLE holders','UNKNOWN_AUTHORITY',source,{implementation:target,role,method:'Reviewed UUPS onlyRole gate; current holders not established'}));
+ }
+ for(const x of details.observations){
+  if(ADDRESS.test(x.value||'')&&['owner()','getOwner()','authority()','pendingOwner()'].includes(x.method))
+   roots.push(authority.root(x.value,x.method==='pendingOwner()'?'PROPOSED_OWNER':'ABI_CONTROLLER_GETTER','No upgrade permission inferred','OBSERVED_CONTROLLER',source,{method:x.method,implementation:target===address?null:target}));
+  if(x.method==='hasRole'&&x.value===true&&x.member)roots.push(authority.root(x.member,'ACCESS_CONTROL_MEMBERSHIP','Membership in '+x.role+'; execution gate separate','OBSERVED_CONTROLLER',source,{role:x.roleId||null,method:x.method}));
+ }
+ const registry=fields.ownerAdmin?.evidence?.[0]?.registry;
+ if(registry&&PROFILES[source?.digest]==='REGISTRY_AUTH_TOKEN')roots.push(authority.root(registry,'EXTERNAL_ROLE_REGISTRY','Token permission registry','OBSERVED_CONTROLLER',source,{method:'Reviewed external registry calls + ACCESS_CONTROLLED_REGISTRY()'}));
+ if(kind&&!(roots.some(x=>x.verificationStatus==='CONFIRMED_AUTHORITY'))&&!clone&&!roots.some(x=>x.verificationStatus==='UNKNOWN_AUTHORITY'))
+  roots.push(authority.root(null,'UPGRADE_PATH','Complete upgrade authority not established','UNKNOWN_AUTHORITY',outer));
+ details.authorityGraph=await authority.trace({subject:address,roots,codeAt:a=>a===address?code:safe('eth_getCode',[a,block]),sourceAt,call,abiFn,decodeArray,stamp,deadline});
+ const confirmed=details.authorityGraph.edges.find(e=>e.contractAddress===address&&e.verificationStatus==='CONFIRMED_AUTHORITY')?.controller||null;
+ require('./mechanics-upgrade-caveat').qualifyUpgradeable(fields,kind,{admin:confirmed,beacon,stamp});
+ details.readBudget={uniqueRpcRequests:reads.size,cacheHits,sourceLookups:sources.size,inspectionMs:Date.now()-now};
+ details.failures=details.failures.map(x=>x.evidenceType?x:stamp({...x,contractAddress:x.contractAddress||x.address||address},'ANALYSIS_DIAGNOSTIC',x.method||'Mechanics analysis',x.reason?.includes('MISMATCH')?'CONFLICTED':'UNKNOWN'));
+ details.observations=details.observations.map(x=>stamp({contractAddress:address,...x},'ANALYSIS_OBSERVATION',x.method,x.status||'OBSERVED'));
+ const detail=stamp(details,'ANALYSIS_DETAIL','Mechanics analysis detail','OBSERVED');
+ for(const f of Object.values(fields))f.evidence.push(detail);
  return {fields,details};
 }
 function originalTradeScopeIsBroader(field,{network,address,block}){
@@ -384,7 +450,7 @@ function originalTradeScopeIsBroader(field,{network,address,block}){
   ADDRESS.test(e.hook||'')&&['REVIEWED_COMPILER_TEMPLATE_IMMUTABLES_ONLY','match','exact_match'].includes(e.runtimeMatch));
 }
 function onlyTokenTransfer(field){
- return field?.evidence?.some(e=>e?.coverage==='TOKEN_TRANSFER_ONLY')||
+ return field?.evidence?.some(e=>e?.coverage==='TOKEN_TRANSFER_ONLY'||e?.tokenTaxScope==='TOKEN_CONTRACT_ONLY')||
    /^Transfer\s+\d+(?:\.\d+)?%\s*·\s*DEX\/hook fees NOT VERIFIED/.test(String(field?.value||''));
 }
 async function enrich(options){
