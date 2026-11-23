@@ -43,6 +43,11 @@ const PROFILES=Object.freeze({
  // Ethereum Lido DAO LDO (MiniMeToken.sol, Aragon MiniMe): the controller mints, destroys any balance, moves tokens without
  // allowance, enables/disables transfers and can veto each transfer through onTransfer
  '623789e477379e2525a57bca254d35812779e8ff8b7b186ff4ec2da483dc12dc':'MINIME_CONTROLLED',
+ // Existing reviewed deep profiles with full unconditional token transfers, no fee branches; exact source/runtimes only.
+ // Ethereum SKY (Sky.sol): wards mint/rely/deny are not transfer taxes.
+ '039eb7a050281c1170fa41bf8525e2b159cb53f92ebaa44f975294c15b64be5d':'WARD_AUTH_TOKEN',
+ // Ethereum UNI: time-gated capped mint authority, full-value transfer/transferFrom without fee logic.
+ '292fad46b97e1b50bd191dfd857de081abfb199ad96ff02a055124da4a708cf2':'TIMED_CAPPED_MINTER',
  // GnosisToken.sol, solc 0.4.10: complete StandardToken inheritance; constructor-only allocation, no authority surface.
  '1d7a05b0de7c2f71ce081d8a80a381973dbd7749e6eef357b033aac690166ee8':'FIXED_SUPPLY_LEGACY_ALLOCATION'
 });
@@ -235,6 +240,12 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   fields.mintCapability=noMint('The only _mint call is the constructor TOTAL_SUPPLY mint; no role, owner or function can create supply later. burn/burnFrom only reduce supply, burnFrom needs the holder\'s allowance.');
   fields.ownerAdmin=fact('No token owner/admin','Reviewed complete source: no owner, role or privileged function',{...p,scope:'The token source has no owner, role, pause, blacklist, fee or upgrade function; burn and burnFrom act only on the caller\'s own balance or an approved allowance. Pool/launchpad contracts can hold separate privileges.'},'VERIFIED_SOURCE');
   details.observations.push({method:'Reviewed allowance burn paths',block,...p,status:'VERIFIED_SOURCE',burnAuthority:{functionPresent:true,entryPoints:['burn(uint256)','burnFrom(address,uint256)'],holderSelfBurn:true,holderAllowanceRequired:true,arbitraryHolderBalance:false,currentUsability:'NOT_VERIFIED'}});
+ }
+ if(profile==='WARD_AUTH_TOKEN'){
+  fields.tradingTaxes=noTokenTax('Reviewed Sky.sol ward-auth source: transfer and transferFrom move the full amount; wards control mint and authorization only, not a token transfer deduction. All external pool fees remain separate.');
+ }
+ if(profile==='TIMED_CAPPED_MINTER'){
+  fields.tradingTaxes=noTokenTax('Reviewed UNI source: transfer and transferFrom move the full amount; time-gated capped minting changes supply, not transfer value. External swap/hook fees and trade execution are separate.');
  }
  if(profile==='FIXED_SUPPLY_LEGACY_ALLOCATION'){
   fields.tradingTaxes=noTokenTax('Complete StandardToken transfer/transferFrom debit and credit the same amount; only balance and allowance checks apply. No fee setter, reflection or callback exists. External pool/hook fees are separate.');
