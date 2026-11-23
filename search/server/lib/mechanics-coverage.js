@@ -34,7 +34,11 @@ async function enrich(options){
  // deep.enrich (protected, byte-identical) forwards its options to deep.inspect, which reports supplementary evidence here.
  let extra=null;
  const enriched=annotateCard(await deep.enrich({...options,onSupplementary:s=>{extra=s;}}));
- const card=supplement(extra?{...enriched,supplementary:{...(enriched?.supplementary||{}),...extra}}:enriched,options.network);
+ // Pure evidence-bound refinement for reviewed, non-delegating OZ templates.
+ // Never touches non-Mechanics cards, changes the number of visible rows, or performs RPC.
+ const qualified=require('./mechanics-template-tax').upgrade(enriched,{network:options.network,address:options.address,
+  block:options.block,chainId:chain(options.network).chainId});
+ const card=supplement(extra?{...qualified,supplementary:{...(qualified?.supplementary||{}),...extra}}:qualified,options.network);
  // Inert unless the Risk Engine public flag is explicitly enabled; reads only a signed worker snapshot, never RPC.
  return require('./mechanics-risk-evidence').attach(card,{network:options.network,address:options.address,env:options.env||process.env,reader:options.riskReader||null});
 }

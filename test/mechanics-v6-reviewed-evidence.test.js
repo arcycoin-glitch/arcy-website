@@ -26,10 +26,17 @@ test('Gnosis full source fixture reproduces the reviewed digest; constructor rec
  assert.equal(r.fields.mintCapability.evidence[0].mintAuthority.functionPresent,false);
  assert.equal(r.fields.ownerAdmin.value,'No token owner/admin');
  assert.match(r.fields.ownerAdmin.evidence[0].scope,/allocation recipients, not administrators/);
- assert.equal(r.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TRANSFER_ONLY');
+ assert.equal(r.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TAX_ALL_TRANSFERS');
+ assert.equal(r.fields.tradingTaxes.value,'Buy 0% · Sell 0% · Transfer 0%');
+ assert.equal(r.fields.tradingTaxes.status,'VERIFIED_SOURCE_AND_STATE');
+ assert.equal(r.fields.tradingTaxes.evidence[0].tokenTax.externalFees.dex,'NOT_VERIFIED');
+ assert.equal(r.fields.tradingTaxes.evidence[0].sourceBoundNonDelegatingRuntime,true);
  assert.equal(x.log.filter(x=>x.method==='eth_call').length,0);
  const clone=fixture('FIXED_SUPPLY_LEGACY_ALLOCATION',{runtime:'0x363d3d373d3d3d363d73'+B.slice(2)+'5af43d82803e903d91602b57fd5bf3'});
  const unresolved=await inspect(clone);assert.equal(unresolved.fields.mintCapability,undefined);assert.equal(unresolved.fields.ownerAdmin,undefined);
+ assert.equal(unresolved.fields.tradingTaxes.value,'Transfer 0% · DEX/hook fees NOT VERIFIED');
+ assert.equal(unresolved.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TRANSFER_ONLY');
+ assert.equal(unresolved.fields.tradingTaxes.status,'VERIFIED_SOURCE');
 });
 
 test('SPX next buy increments the counter before tax, but wallet transfers and sells keep the current counter',async()=>{
@@ -96,4 +103,17 @@ test('role evidence from another block or source cannot establish current mint o
  assert.equal(fields.mintCapability.evidence[0].mintAuthority.authorizedAccountsVerified,false);
  assert.equal(fields.ownerAdmin,undefined);
  assert.deepEqual(details.observations.find(x=>x.method==='Reviewed BEAM privileged burn path').burnAuthority.authorizedAccounts,[]);
+});
+
+test('reviewed SKY and UNI zero token fees require a non-delegating exact runtime; roles and mint rules remain separate',async()=>{
+ for(const profile of ['WARD_AUTH_TOKEN','TIMED_CAPPED_MINTER']){
+  const r=await inspect(fixture(profile));
+  assert.equal(r.fields.tradingTaxes.value,'Buy 0% · Sell 0% · Transfer 0%',profile);
+  assert.equal(r.fields.tradingTaxes.status,'VERIFIED_SOURCE_AND_STATE',profile);
+  assert.equal(r.fields.tradingTaxes.evidence[0].tokenTaxScope,'TOKEN_CONTRACT_ONLY',profile);
+  assert.equal(r.fields.tradingTaxes.evidence[0].tokenTax.externalFees.hook,'NOT_VERIFIED',profile);
+  const proxy=fixture(profile,{runtime:'0x363d3d373d3d3d363d73'+B.slice(2)+'5af43d82803e903d91602b57fd5bf3'});
+  const delegated=await inspect(proxy);
+  assert.notEqual(delegated.fields.tradingTaxes?.value,'Buy 0% · Sell 0% · Transfer 0%',profile+' cannot prove fees without a direct runtime');
+ }
 });

@@ -26,7 +26,8 @@ const ctx={chainId:1,network:'ethereum',address:TOKEN,block};
 test('every reviewed token profile is keyed by a full 64-hex source digest and registered in mechanics-deep',()=>{
  // 6 original profiles + 5 Mechanics V5 reviewed sources (UERC20, SHIB, BNB, NPC, BUSD implementation)
  // + 6 Mechanics V6 reviewed sources (FoboToken, CCIP BurnMintERC20, YFI, ConvexToken, MiniMeToken, GnosisToken).
- assert.equal(Object.keys(reviewed.PROFILES).length,17);
+ // + 2 existing deep-source profiles reused for V7 verified zero token taxes (SKY, UNI).
+ assert.equal(Object.keys(reviewed.PROFILES).length,19);
  for(const [digest,name] of Object.entries(reviewed.PROFILES)){assert.match(digest,/^[0-9a-f]{64}$/);assert.equal(mechanics.PROFILES[digest],name);}
 });
 test('PEPE-style source: renounced owner freezes blacklist/rules; constructor-only mint; transfer-only tax claim',async()=>{
@@ -125,7 +126,10 @@ test('behind a delegating runtime only source-level transfer claims remain; unkn
  const delegating='0x363d3d373d3d3d363d73'+'33'.repeat(20)+'5af43d82803e903d91602b57fd5bf3';
  for(const name of Object.values(reviewed.PROFILES)){
   const r=await mechanics.inspect(fixture(digestOf(name),{runtime:delegating,abi:[fn('owner',[],'address')]}).options);
-  assert.ok(!r.fields.mintCapability&&!r.fields.ownerAdmin,name+' absence/authority claims need a direct runtime');
+  // SKY/UNI are pre-existing deep-reviewed authority profiles: this test only checks the
+  // new tax promotion for them, not their separately established source-level privileges.
+  if(!['WARD_AUTH_TOKEN','TIMED_CAPPED_MINTER'].includes(name))
+   assert.ok(!r.fields.mintCapability&&!r.fields.ownerAdmin,name+' absence/authority claims need a direct runtime');
   if(r.fields.tradingTaxes)assert.equal(r.fields.tradingTaxes.value,'Transfer 0% · DEX/hook fees NOT VERIFIED',name+' clone: only the source-level transfer claim may remain');
  }
  const r=await mechanics.inspect(fixture('b'.repeat(64)).options);

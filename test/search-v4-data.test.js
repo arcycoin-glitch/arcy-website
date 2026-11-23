@@ -29,8 +29,15 @@ test('unreviewed source/selector never inherits reviewed V4 behaviors',async()=>
 
 test('reviewed fixed supply/wrapper absence is limited to direct runtimes, preserving residual proxy authority',async()=>{
  for(const name of ['FIXED_ERC677','NATIVE_DEPOSIT_WRAPPER','FIXED_LAUNCH_RESTRICTIONS']){
-  const direct=await reviewed(name);assert.match(direct.fields.tradingTaxes.value,/Transfer 0%.*DEX\/hook fees NOT VERIFIED/);
-  assert.equal(direct.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TRANSFER_ONLY');
+  const direct=await reviewed(name);
+  if(name==='FIXED_LAUNCH_RESTRICTIONS'){
+   assert.equal(direct.fields.tradingTaxes.value,'Buy 0% · Sell 0% · Transfer 0%');
+   assert.equal(direct.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TAX_ALL_TRANSFERS');
+   assert.equal(direct.fields.tradingTaxes.evidence[0].tokenTax.externalFees.dex,'NOT_VERIFIED');
+  }else{
+   assert.match(direct.fields.tradingTaxes.value,/Transfer 0%.*DEX\/hook fees NOT VERIFIED/);
+   assert.equal(direct.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TRANSFER_ONLY');
+  }
   const existing={value:'Proxy admin remains'},proxy=await reviewed(name,{direct:false,fields:{ownerAdmin:existing}});
   assert.equal(proxy.fields.ownerAdmin,existing);
   if(name!=='NATIVE_DEPOSIT_WRAPPER')assert.equal(proxy.fields.mintCapability,undefined);
@@ -56,7 +63,10 @@ test('governed minter and role authority require reviewed execution and matching
 
 test('launch pool fee/restrictions are evidence, never token buy/sell fees or deployer ownership',async()=>{
  const r=await reviewed('FIXED_LAUNCH_RESTRICTIONS',{calls:{'launchFactory()':addr(B),'poolFee()':word(3000),'restrictionEndBlock()':word(200)}});
- assert.match(r.fields.ownerAdmin.value,/Launch factory/);assert.match(r.fields.tradingTaxes.value,/DEX\/hook fees NOT VERIFIED/);
+ assert.match(r.fields.ownerAdmin.value,/Launch factory/);
+ assert.equal(r.fields.tradingTaxes.value,'Buy 0% · Sell 0% · Transfer 0%');
+ assert.equal(r.fields.tradingTaxes.evidence[0].tokenTaxScope,'TOKEN_CONTRACT_ONLY');
+ assert.equal(r.fields.tradingTaxes.evidence[0].tokenTax.externalFees.dex,'NOT_VERIFIED');
  assert.ok(r.details.observations.some(x=>x.method==='poolFee()'&&x.raw==='3000'));
 });
 

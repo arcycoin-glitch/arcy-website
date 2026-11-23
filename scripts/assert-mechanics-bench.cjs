@@ -37,7 +37,18 @@ for(let i=0;i<before.rows.length;i++){
     const bound=f==='contractArchitecture'&&x.status===y.status&&
       (/^Legacy OpenZeppelin proxy slot · delegation proven$/.test(x.value||'')&&/^Legacy implementation slot$/.test(y.value||'')||
        /^EIP-1967 proxy · delegation proven$/.test(x.value||'')&&/^EIP-1967 implementation(?: · UUPS UUID observed)?$/.test(y.value||''));
-    assert.ok(upgrade||bound,'Previously verified field changed without same-owner stronger proof: '+id+'/'+f+' old='+x.value+' new='+y.value);
+    // A strict token-side zero-fee proof may strengthen a partial transfer-only claim ONLY when
+    // both observations share the same exact-runtime, fully source-reviewed digest at the same
+    // pinned block (already checked above), and the new proof explicitly says direct runtime.
+    // The stronger finding excludes DEX/pool/hook swap fees and cannot apply to delegated code.
+    const zeroTax=f==='tradingTaxes'&&x.status==='VERIFIED_SOURCE'&&y.status==='VERIFIED_SOURCE_AND_STATE'&&
+      x.cls==='SINGLE_SOURCE'&&y.cls==='ON_CHAIN_VERIFIED'&&
+      x.value==='Transfer 0% · DEX/hook fees NOT VERIFIED'&&y.value==='Buy 0% · Sell 0% · Transfer 0%'&&
+      (y.evidence||[]).some(yp=>yp.coverage==='TOKEN_TAX_ALL_TRANSFERS'&&yp.tokenTaxScope==='TOKEN_CONTRACT_ONLY'&&
+       yp.sourceBoundNonDelegatingRuntime===true&&/^[0-9a-f]{64}$/.test(yp.sourceDigest||'')&&
+       (x.evidence||[]).some(xp=>xp.sourceDigest===yp.sourceDigest&&
+        xp.runtimeMatch===yp.runtimeMatch&&xp.address?.toLowerCase()===yp.address?.toLowerCase()&&xp.block===yp.block));
+    assert.ok(upgrade||bound||zeroTax,'Previously verified field changed without same-owner stronger proof: '+id+'/'+f+' old='+x.value+' new='+y.value);
    }}
   stats[f].before+=Number(x.ok);stats[f].after+=Number(y.ok);
   if(!x.ok&&y.ok)stats[f].gain++;

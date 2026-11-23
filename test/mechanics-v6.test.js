@@ -37,10 +37,13 @@ test('V6 profiles are full-digest keyed, registered, and only read argument-free
  for(const g of ['MINTER_ROLE()','maxSupply()','governance()','operator()','controller()','transfersEnabled()','restrictionEndBlock()'])assert.ok(reviewed.REVIEWED_GETTERS.includes(g));
  assert.equal(reviewed.REVIEWED_BUDGET,8);
 });
-test('FOBO (OZ burnable fixed supply): transfer-only tax, no mint, no admin, no restrictions; zero reviewed reads',async()=>{
+test('FOBO (OZ burnable fixed supply): full token-side zero tax proof, no mint/admin/restrictions; zero reviewed reads',async()=>{
  const x=fixture(digestOf('FIXED_SUPPLY_OZ_BURNABLE'),{network:'robinhood'});const r=await inspect(x);
- assert.match(r.fields.tradingTaxes.value,/^Transfer 0% · DEX\/hook fees NOT VERIFIED/);
- assert.equal(r.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TRANSFER_ONLY','transfer 0% is not a buy/sell claim');
+ assert.equal(r.fields.tradingTaxes.value,'Buy 0% · Sell 0% · Transfer 0%');
+ assert.equal(r.fields.tradingTaxes.status,'VERIFIED_SOURCE_AND_STATE');
+ assert.equal(r.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TAX_ALL_TRANSFERS');
+ assert.equal(r.fields.tradingTaxes.evidence[0].tokenTaxScope,'TOKEN_CONTRACT_ONLY');
+ assert.equal(r.fields.tradingTaxes.evidence[0].tokenTax.externalFees.dex,'NOT_VERIFIED');
  assert.equal(r.fields.mintCapability?.value,'NONE DETECTED ✓');
  assert.equal(r.fields.ownerAdmin.value,'No token owner/admin');
  assert.equal(r.restriction.value,'None in token code');
@@ -68,7 +71,7 @@ test('YFI: governance-managed uncapped minters; missing governance() fails close
  assert.equal(r.fields.ownerAdmin.value,'Governance: '+A);
  const m=await inspect(fixture(digestOf('GOVERNANCE_MINTER_SET')));
  assert.notEqual(m.fields.mintCapability?.dataState,'DATA_FOUND');
- assert.match(m.fields.tradingTaxes.value,/^Transfer 0%/);
+ assert.equal(m.fields.tradingTaxes.value,'Buy 0% · Sell 0% · Transfer 0%');
 });
 test('CVX: operator scheduled mint within cap; max reached; missing state fails closed',async()=>{
  const c={[sel('operator()')]:addr(A),[sel('vecrvProxy()')]:addr(B),[sel('maxSupply()')]:word(100000000n*E18),[sel('totalSupply()')]:word(99000000n*E18)};
