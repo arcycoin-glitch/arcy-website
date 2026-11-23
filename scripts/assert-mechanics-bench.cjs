@@ -10,7 +10,7 @@ assert.equal(before.rows.length,after.rows.length,'Benchmark sample count change
 assert.ok(before.rows.length>=30,'Insufficient sample size');
 const FIELDS=['tradingTaxes','mintCapability','ownerAdmin','contractArchitecture','transferRestrictions'];
 const key=r=>r.chain+'|'+r.address.toLowerCase()+'|'+(r.group||'');
-const seen=new Set();const PROBE_BUDGET=2,SIBLING_BUDGET=3,REVIEWED_BUDGET=8,CUSTOM_ROLE_BUDGET=20,RESTRICTION_BUDGET=2,BINDING_BUDGET=8,budgets={binding:0,bindingContracts:0,probe:0,sibling:0,reference:0,reviewed:0,customRole:0,restriction:0,probeContracts:0,siblingContracts:0,reviewedContracts:0,customRoleContracts:0,restrictionContracts:0};const stats=Object.fromEntries(FIELDS.map(f=>[f,{before:0,after:0,gain:0}]));let customRoleEvidenceBefore=0,customRoleEvidenceAfter=0;
+const seen=new Set();const PROBE_BUDGET=2,SIBLING_BUDGET=3,REVIEWED_BUDGET=8,CUSTOM_ROLE_BUDGET=20,RESTRICTION_BUDGET=2,BINDING_BUDGET=8,budgets={binding:0,bindingContracts:0,authority:0,authoritySource:0,probe:0,sibling:0,reference:0,reviewed:0,customRole:0,restriction:0,probeContracts:0,siblingContracts:0,reviewedContracts:0,customRoleContracts:0,restrictionContracts:0};const stats=Object.fromEntries(FIELDS.map(f=>[f,{before:0,after:0,gain:0}]));let customRoleEvidenceBefore=0,customRoleEvidenceAfter=0;
 for(let i=0;i<before.rows.length;i++){
  const b=before.rows[i],a=after.rows[i],id=key(b);
  assert.equal(key(a),id,'Sample order/identity changed');
@@ -66,8 +66,16 @@ for(let i=0;i<before.rows.length;i++){
  }
  customRoleEvidenceBefore+=beforeRoles.length;customRoleEvidenceAfter+=afterRoles.length;
  // Evidence-based request budgets (augment replay). Everything outside a budgeted kind must not grow.
+ const auth=a.net.augAuthority||0,authSource=a.net.augAuthoritySource||0;
+ assert.ok(auth+authSource<=20&&authSource<=4,'Authority graph read budget exceeded for '+id);
+ if(auth||authSource){
+  const graph=a.audit?.authority;
+  assert.ok(graph?.edges?.length&&graph.requests>=auth+authSource&&graph.requests<=20&&graph.sources<=4&&graph.nodes?.length<=6,'Missing bounded authority evidence for '+id);
+  for(const edge of graph.edges)assert.ok(edge.block===a.block&&edge.subjectAddress?.toLowerCase()===a.address.toLowerCase()&&edge.evidenceType==='AUTHORITY_EDGE','Unpinned authority edge for '+id);
+ }
+ budgets.authority+=auth;budgets.authoritySource+=authSource;
  const probe=a.net.augProbe||0,siblingCalls=a.net.augSibling||0,reference=a.net.augReference||0,reviewed=a.net.augReviewed||0,customRole=a.net.augCustomRole||0,restriction=a.net.augRestriction||0,binding=(a.net.augBinding||0)+(a.net.augBindingSource||0);
- assert.ok(a.net.rpc-probe-siblingCalls-reviewed-customRole-restriction-(a.net.augBinding||0)<=b.net.rpc,'New RPC usage for '+id);
+ assert.ok(a.net.rpc-probe-siblingCalls-reviewed-customRole-restriction-(a.net.augBinding||0)-auth<=b.net.rpc,'New RPC usage for '+id);
  assert.ok(binding<=BINDING_BUDGET,'Proxy-binding read budget exceeded for '+id+' ('+binding+'>'+BINDING_BUDGET+')');
  // Eligible only where main proved delegation for an UNBOUND outer runtime and this branch binds it to reviewed source.
  // A contract that was not newly bound may only use these kinds to replace requests main ALSO made but could not replay
@@ -84,7 +92,7 @@ for(let i=0;i<before.rows.length;i++){
  assert.ok(reviewed<=REVIEWED_BUDGET,'Reviewed-profile read budget exceeded for '+id+' ('+reviewed+'>'+REVIEWED_BUDGET+')');
  assert.ok(customRole<=CUSTOM_ROLE_BUDGET,'Custom AccessControl role read budget exceeded for '+id+' ('+customRole+'>'+CUSTOM_ROLE_BUDGET+')');
  if(reviewed)assert.ok(!b.f.tradingTaxes.ok,'Reviewed-profile reads spent on an already verified tax row: '+id);
- assert.ok(a.net.sourcify-reference-(a.net.augBindingSource||0)<=b.net.sourcify,'New Sourcify usage for '+id);
+ assert.ok(a.net.sourcify-reference-(a.net.augBindingSource||0)-authSource<=b.net.sourcify,'New Sourcify usage for '+id);
  assert.ok(probe<=PROBE_BUDGET,'Proxy delegation probe budget exceeded for '+id+' ('+probe+'>'+PROBE_BUDGET+')');
  assert.ok(siblingCalls<=SIBLING_BUDGET,'Sibling getter budget exceeded for '+id+' ('+siblingCalls+'>'+SIBLING_BUDGET+')');
  assert.ok(reference<=1,'Sibling reference fetched more than once for '+id);
@@ -97,9 +105,10 @@ for(let i=0;i<before.rows.length;i++){
 for(const category of ['goplus','explorer','other','replayMiss']){
  assert.ok((after.net[category]||0)<=(before.net[category]||0),'Request/replay regression: '+category);
 }
-assert.ok(after.net.rpc-(after.net.augProbe||0)-(after.net.augSibling||0)-(after.net.augReviewed||0)-(after.net.augCustomRole||0)-(after.net.augRestriction||0)-(after.net.augBinding||0)<=before.net.rpc,'Request/replay regression: rpc');
-assert.ok(after.net.sourcify-(after.net.augReference||0)-(after.net.augBindingSource||0)<=before.net.sourcify,'Request/replay regression: sourcify');
+assert.ok(after.net.rpc-(after.net.augProbe||0)-(after.net.augSibling||0)-(after.net.augReviewed||0)-(after.net.augCustomRole||0)-(after.net.augRestriction||0)-(after.net.augBinding||0)-(after.net.augAuthority||0)<=before.net.rpc,'Request/replay regression: rpc');
+assert.ok(after.net.sourcify-(after.net.augReference||0)-(after.net.augBindingSource||0)-(after.net.augAuthoritySource||0)<=before.net.sourcify,'Request/replay regression: sourcify');
 assert.equal(before.net.augProbe||0,0,'BEFORE must not use budgeted requests');assert.equal(before.net.augSibling||0,0);assert.equal(before.net.augReference||0,0);assert.equal(before.net.augReviewed||0,0);assert.equal(before.net.augCustomRole||0,0);assert.equal(before.net.augRestriction||0,0);assert.equal(before.net.augBinding||0,0);assert.equal(before.net.augBindingSource||0,0);
+assert.equal(before.net.augAuthority||0,0);assert.equal(before.net.augAuthoritySource||0,0);
 const summary={samples:before.rows.length,coverage:stats,customRoleEvidence:{before:customRoleEvidenceBefore,after:customRoleEvidenceAfter,gain:customRoleEvidenceAfter-customRoleEvidenceBefore},budgets,requests:{before:before.net,after:after.net},replayComplete:before.net.replayMiss===0&&after.net.replayMiss===0};
 console.log('PAIRED_MECHANICS_GATE PASS '+JSON.stringify(summary));
 if(!summary.replayComplete)console.warn('WARNING: missing recorded responses were fail-closed; the replay is not complete. No live fallback was used.');
