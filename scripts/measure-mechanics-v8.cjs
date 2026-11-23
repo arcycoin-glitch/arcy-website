@@ -27,7 +27,7 @@ function classify(row){
  const failures=row.fails||[];
  if(f.reason==='MECHANICS_IMPLEMENTATION_UNRESOLVED'||failures.includes('IMPLEMENTATION_EXECUTION_UNRESOLVED'))
   return {state:'UNSUPPORTED',cause:row.audit?.path?.status&&row.audit.path.status!=='NO_FURTHER_STANDARD_CLONE'?row.audit.path.status:'IMPLEMENTATION_EXECUTION_UNRESOLVED',diagnosis:'UNSUPPORTED_EXECUTION_PATH'};
- if(f.state==='RPC_ERROR'||f.state==='SOURCE_UNAVAILABLE'||failures.some(x=>/^RPC_|^SOURCE_(?:CODE_UNAVAILABLE|TIMEOUT|RATE_LIMIT|API_FAILED)/.test(x)))
+ if(f.state==='RPC_ERROR'||f.state==='SOURCE_UNAVAILABLE'||failures.some(x=>/^RPC_|^SOURCE_(?:CODE_UNAVAILABLE|TIMEOUT|RATE_LIMIT|API_FAILED|RESPONSE_LIMIT|CAPACITY_LIMIT)/.test(x)))
   return {state:'UNKNOWN',cause:failures.find(x=>/^SOURCE_|^RPC_/.test(x))||f.reason||row.err||f.state,diagnosis:'UNAVAILABLE_EVIDENCE'};
  if(f.state==='UNSUPPORTED_CONTRACT')return {state:'UNSUPPORTED',cause:f.reason||failures[0]||f.state,diagnosis:'UNSUPPORTED_OR_CONFLICTED_EVIDENCE'};
  if(runtime?.matched||f.reason==='MECHANICS_EXECUTION_PATH_UNREVIEWED')
@@ -61,7 +61,9 @@ function measure(before,after,tokens=fixed.tokens){
   confirmedUpgradeAuthority:sub.filter(r=>r.upgradeAuthority.confirmed.length).length,
   sourceStateOwnerOrRole:sub.filter(r=>r.ownerAdmin?.cls==='ON_CHAIN_VERIFIED'||r.ownerAdmin?.cls==='CROSS_VERIFIED').length,
   observedRoleMembership:sub.filter(r=>r.privileges.some(x=>x.method==='hasRole'&&x.value===true)).length,
-  verifiedBurnCapability:sub.filter(r=>r.forensics?.burnCapability?.verificationStatus==='VERIFIED').length,
+  burnCapabilityVerified:sub.filter(r=>r.forensics?.burnCapability?.verificationStatus==='VERIFIED').length,
+  burnCapabilityPresent:sub.filter(r=>r.forensics?.burnCapability?.verificationStatus==='VERIFIED'&&r.forensics.burnCapability.value===true).length,
+  burnExecutionVerified:sub.filter(r=>r.forensics?.burnExecution?.verificationStatus==='VERIFIED').length,
   verifiedBuybackExecution:sub.filter(r=>r.forensics?.buybackExecution?.verificationStatus==='VERIFIED').length,
   evidenceConflict:sub.filter(r=>r.evidenceConflicts.length).length});
  function costs(m){

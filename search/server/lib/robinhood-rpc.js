@@ -74,6 +74,7 @@ async function rpc(method,params,opts={}){
     verifyChainId('robinhood',await requestAt(endpoints[i],'eth_chainId',[],opts));
    const value=await requestAt(endpoints[i],method,params,opts);
    if(i!==0&&method==='eth_chainId')verifyChainId('robinhood',value);
+   try{opts.onProvider?.(new URL(endpoints[i]).hostname);}catch{}
    return value;
   }catch(error){
    last=error;

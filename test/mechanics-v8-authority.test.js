@@ -92,3 +92,19 @@ test('a familiar controller name alone cannot match canonical provenance or an a
  assert.equal(review.classify({[key]:{content}},{...comp,fullyQualifiedName:'another.sol:SafeProxy'}),null);
  assert.equal(review.immutableAddress('0x7f'+word(C).slice(2)+'7f'+word(D).slice(2),{x:[{start:1,length:32},{start:34,length:32}]}),null);
 });
+
+test('reviewed current proxy tax proof additionally requires the same implementation from the outer getter',async()=>{
+ for(const reported of [B,C]){
+  const f=fixture({code:{[A]:delegates,[B]:delegates},slots:{[A+mech.SLOTS.implementation]:word(B)},
+   sources:{[A]:canon('ERC1967',A),[B]:canon('UUPS_MORPHO_OWNER',B,fn('owner'),fn('getImplementation'))},
+   reads:{[A+slot('owner()')]:word(D),[A+slot('getImplementation()')]:word(reported),[B+slot('proxiableUUID()')]:mech.SLOTS.implementation}});
+  const r=await f.inspect();
+  if(reported!==B){assert.equal(r.fields.tradingTaxes,undefined);assert(r.details.failures.some(x=>x.reason==='IMPLEMENTATION_GETTER_SLOT_MISMATCH'));continue;}
+  const p=r.fields.tradingTaxes.evidence[0];
+  assert.equal(p.sourceBoundNonDelegatingRuntime,false);
+  assert.equal(p.sourceBoundProxyRuntime,true);
+  assert.equal(p.tokenTax.snapshotOnly,true);
+  assert.equal(p.binding.implementation,B);
+  assert(f.log.some(([m,args])=>m==='eth_call'&&args[0].to===A&&args[0].data===slot('getImplementation()')));
+ }
+});

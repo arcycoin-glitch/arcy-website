@@ -53,7 +53,11 @@ async function rawRpc(method,params,{timeoutMs=12000}={}){
   return result.result;
 }
 function rpc(method,params,options={}){
- return require('./analysis-scope').read('ethereum',RPC_URL,method,params,options,()=>rawRpc(method,params,options));
+ const result=require('./analysis-scope').read('ethereum',RPC_URL,method,params,options,()=>rawRpc(method,params,options));
+ return typeof options.onProvider==='function'?result.then(value=>{
+  try{options.onProvider(new URL(RPC_URL).hostname);}catch{}
+  return value;
+ }):result;
 }
 function uint(hex){
   if(typeof hex!=='string'||!/^0x[0-9a-fA-F]{64}$/.test(hex))throw Error('Invalid 32-byte ABI result');

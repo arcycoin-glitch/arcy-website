@@ -336,5 +336,153 @@
       "99348354365cbdeb90157e2903334b861a00d69faab7720ae542d911d5c70d87"
     ],
     "path": "contracts/access/AccessControl.sol"
+  },
+  {
+    "release": "v5.1.0",
+    "commit": "69c8def5f222ff96f2b5beff05dfba996368aa79",
+    "kind": "TRANSPARENT",
+    "contract": "TransparentUpgradeableProxy",
+    "main": "1a81841003cfbf26875cbcd82f045f727661853bfc6042e17b909f39ea5d1658",
+    "files": [
+      "03cdbd59c384fe18e74a2a0697ba167e7f545d6a1bbb3d52df502ab4fb108e0a",
+      "0704b9d6c032cca8512a3bc3f30f49f86f1f03102d2896a3d23e794b82efea66",
+      "1a81841003cfbf26875cbcd82f045f727661853bfc6042e17b909f39ea5d1658",
+      "2ba1cb9e2c1a0518ac940fa1f10e62fa56f1ba2b13973f36a8b505de627e4119",
+      "38578bd71c0a909840e67202db527cc6b4e6b437e0f39f0c909da32c1e30cb81",
+      "422eabc0e645e24c3a52898f6255b349323b013544a3ebdc4b2d3f7fc5bb7e9e",
+      "5f5081378d4bc82b814b0d64990b7f7b9c69697593b73a3341f4a269940ba540",
+      "5fac2946d312b6c192751da6b22de349e6ee0acf9d95afeb24d3780c2efc7f93",
+      "75704538dcb223239280c6726d9a31cf769a7816718517c997fc7d63bdb70778",
+      "8228692ef1ccb4cfe5b7cc58324cadd06045e10e386185f9e4d45173d6d6c633",
+      "847fda5460fee70f56f4200f59b82ae622bb03c79c77e67af010e31b7e2cc5b6",
+      "886b093d8f7c41f73af42b8e183314b3654531a9d5e11f07c41a5a7f11d3e006"
+    ],
+    "path": "contracts/proxy/transparent/TransparentUpgradeableProxy.sol"
+  },
+  {
+    "release": "v5.1.0",
+    "commit": "69c8def5f222ff96f2b5beff05dfba996368aa79",
+    "kind": "ADMIN",
+    "contract": "ProxyAdmin",
+    "main": "5fac2946d312b6c192751da6b22de349e6ee0acf9d95afeb24d3780c2efc7f93",
+    "files": [
+      "03cdbd59c384fe18e74a2a0697ba167e7f545d6a1bbb3d52df502ab4fb108e0a",
+      "0704b9d6c032cca8512a3bc3f30f49f86f1f03102d2896a3d23e794b82efea66",
+      "1a81841003cfbf26875cbcd82f045f727661853bfc6042e17b909f39ea5d1658",
+      "2ba1cb9e2c1a0518ac940fa1f10e62fa56f1ba2b13973f36a8b505de627e4119",
+      "38578bd71c0a909840e67202db527cc6b4e6b437e0f39f0c909da32c1e30cb81",
+      "422eabc0e645e24c3a52898f6255b349323b013544a3ebdc4b2d3f7fc5bb7e9e",
+      "5f5081378d4bc82b814b0d64990b7f7b9c69697593b73a3341f4a269940ba540",
+      "5fac2946d312b6c192751da6b22de349e6ee0acf9d95afeb24d3780c2efc7f93",
+      "75704538dcb223239280c6726d9a31cf769a7816718517c997fc7d63bdb70778",
+      "8228692ef1ccb4cfe5b7cc58324cadd06045e10e386185f9e4d45173d6d6c633",
+      "847fda5460fee70f56f4200f59b82ae622bb03c79c77e67af010e31b7e2cc5b6",
+      "886b093d8f7c41f73af42b8e183314b3654531a9d5e11f07c41a5a7f11d3e006"
+    ],
+    "path": "contracts/proxy/transparent/ProxyAdmin.sol"
+  },
+  {
+    "release": "v5.1.0",
+    "commit": "69c8def5f222ff96f2b5beff05dfba996368aa79",
+    "kind": "ERC1967",
+    "contract": "ERC1967Proxy",
+    "main": "03cdbd59c384fe18e74a2a0697ba167e7f545d6a1bbb3d52df502ab4fb108e0a",
+    "files": [
+      "03cdbd59c384fe18e74a2a0697ba167e7f545d6a1bbb3d52df502ab4fb108e0a",
+      "0704b9d6c032cca8512a3bc3f30f49f86f1f03102d2896a3d23e794b82efea66",
+      "2ba1cb9e2c1a0518ac940fa1f10e62fa56f1ba2b13973f36a8b505de627e4119",
+      "422eabc0e645e24c3a52898f6255b349323b013544a3ebdc4b2d3f7fc5bb7e9e",
+      "5f5081378d4bc82b814b0d64990b7f7b9c69697593b73a3341f4a269940ba540",
+      "75704538dcb223239280c6726d9a31cf769a7816718517c997fc7d63bdb70778",
+      "8228692ef1ccb4cfe5b7cc58324cadd06045e10e386185f9e4d45173d6d6c633",
+      "886b093d8f7c41f73af42b8e183314b3654531a9d5e11f07c41a5a7f11d3e006"
+    ],
+    "path": "contracts/proxy/ERC1967/ERC1967Proxy.sol"
+  },
+  {
+    "release": "v5.1.0",
+    "commit": "69c8def5f222ff96f2b5beff05dfba996368aa79",
+    "kind": "BEACON_PROXY",
+    "contract": "BeaconProxy",
+    "main": "f006ac05ec8509758348f9966c5aba64d695e99fb2d805eae9658114cefefb93",
+    "files": [
+      "0704b9d6c032cca8512a3bc3f30f49f86f1f03102d2896a3d23e794b82efea66",
+      "2ba1cb9e2c1a0518ac940fa1f10e62fa56f1ba2b13973f36a8b505de627e4119",
+      "422eabc0e645e24c3a52898f6255b349323b013544a3ebdc4b2d3f7fc5bb7e9e",
+      "5f5081378d4bc82b814b0d64990b7f7b9c69697593b73a3341f4a269940ba540",
+      "75704538dcb223239280c6726d9a31cf769a7816718517c997fc7d63bdb70778",
+      "8228692ef1ccb4cfe5b7cc58324cadd06045e10e386185f9e4d45173d6d6c633",
+      "886b093d8f7c41f73af42b8e183314b3654531a9d5e11f07c41a5a7f11d3e006",
+      "f006ac05ec8509758348f9966c5aba64d695e99fb2d805eae9658114cefefb93"
+    ],
+    "path": "contracts/proxy/beacon/BeaconProxy.sol"
+  },
+  {
+    "release": "v5.1.0",
+    "commit": "69c8def5f222ff96f2b5beff05dfba996368aa79",
+    "kind": "TIMELOCK",
+    "contract": "TimelockController",
+    "main": "89a4cf0e404a42f13d01efefb5c1b3b1d46641c670b626b1b885330f3faccd2a",
+    "files": [
+      "0704b9d6c032cca8512a3bc3f30f49f86f1f03102d2896a3d23e794b82efea66",
+      "1086a1ad3788972b885ff3f209da510615dde6214d46b29e1cd2a4924f66c06d",
+      "2eae310f371d9107d81d4b1285f897e56074465f7caeeff90b5e3e1770dda7d6",
+      "7c5c3f98ab876991e7dd34b84d41137e836306eb9f36f6386a631f5be3f5d6d4",
+      "7fdc4dc9e3872f6a4c1ec9cfa9583a1fc18ccd7a416397a6e698bd5bbf92f32b",
+      "8228692ef1ccb4cfe5b7cc58324cadd06045e10e386185f9e4d45173d6d6c633",
+      "847fda5460fee70f56f4200f59b82ae622bb03c79c77e67af010e31b7e2cc5b6",
+      "89a4cf0e404a42f13d01efefb5c1b3b1d46641c670b626b1b885330f3faccd2a",
+      "8e2baa224856aa31b2b8706b2a9eb9c43694a04cfd02cb7886aba2f88014b1dd",
+      "b3da220debe08c174f8848fa4c41cccf3d49e4e23c81d76528df99fb759f4937",
+      "c112f5c86fdc4e862f88d4f5694530342320923ebd5b5e7d9d8493550d337c2d",
+      "fa1e231eedfd128232d8f34e9599165fb302c9dee5e58ef009f3b99f7e5d930d"
+    ],
+    "path": "contracts/governance/TimelockController.sol"
+  },
+  {
+    "release": "v5.1.0",
+    "commit": "69c8def5f222ff96f2b5beff05dfba996368aa79",
+    "kind": "OWNABLE_2STEP",
+    "contract": "Ownable2Step",
+    "main": "c75345d7b9feef17ae29f2a800ca2f65f8021cf80436a41d6ec00f57f5180f36",
+    "files": [
+      "38578bd71c0a909840e67202db527cc6b4e6b437e0f39f0c909da32c1e30cb81",
+      "847fda5460fee70f56f4200f59b82ae622bb03c79c77e67af010e31b7e2cc5b6",
+      "c75345d7b9feef17ae29f2a800ca2f65f8021cf80436a41d6ec00f57f5180f36"
+    ],
+    "path": "contracts/access/Ownable2Step.sol"
+  },
+  {
+    "release": "v5.1.0",
+    "commit": "69c8def5f222ff96f2b5beff05dfba996368aa79",
+    "kind": "UUPS_BASE",
+    "contract": "UUPSUpgradeable",
+    "main": "09c7406cf8c50d31b77089a6860ad026cd65d48ed5b696e6cad905c4aff008d6",
+    "files": [
+      "0704b9d6c032cca8512a3bc3f30f49f86f1f03102d2896a3d23e794b82efea66",
+      "09c7406cf8c50d31b77089a6860ad026cd65d48ed5b696e6cad905c4aff008d6",
+      "2ba1cb9e2c1a0518ac940fa1f10e62fa56f1ba2b13973f36a8b505de627e4119",
+      "422eabc0e645e24c3a52898f6255b349323b013544a3ebdc4b2d3f7fc5bb7e9e",
+      "71190a8ee26dab908d3dad703ccfff09ebfc5850f2f405463e21df21a8643bbc",
+      "75704538dcb223239280c6726d9a31cf769a7816718517c997fc7d63bdb70778",
+      "8228692ef1ccb4cfe5b7cc58324cadd06045e10e386185f9e4d45173d6d6c633",
+      "886b093d8f7c41f73af42b8e183314b3654531a9d5e11f07c41a5a7f11d3e006"
+    ],
+    "path": "contracts/proxy/utils/UUPSUpgradeable.sol"
+  },
+  {
+    "release": "v5.1.0",
+    "commit": "69c8def5f222ff96f2b5beff05dfba996368aa79",
+    "kind": "ACCESS_CONTROL",
+    "contract": "AccessControl",
+    "main": "1086a1ad3788972b885ff3f209da510615dde6214d46b29e1cd2a4924f66c06d",
+    "files": [
+      "1086a1ad3788972b885ff3f209da510615dde6214d46b29e1cd2a4924f66c06d",
+      "7c5c3f98ab876991e7dd34b84d41137e836306eb9f36f6386a631f5be3f5d6d4",
+      "7fdc4dc9e3872f6a4c1ec9cfa9583a1fc18ccd7a416397a6e698bd5bbf92f32b",
+      "847fda5460fee70f56f4200f59b82ae622bb03c79c77e67af010e31b7e2cc5b6",
+      "c112f5c86fdc4e862f88d4f5694530342320923ebd5b5e7d9d8493550d337c2d"
+    ],
+    "path": "contracts/access/AccessControl.sol"
   }
 ]

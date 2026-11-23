@@ -2,6 +2,7 @@
 const {createHash}=require('node:crypto');
 const {addressWord}=require('./admin-getters');
 const releases=require('./mechanics-v8-oz.json');
+const custom=require('./mechanics-v8-reviewed.json');
 const hash=s=>createHash('sha256').update(s).digest('hex');
 const same=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
 const ref=r=>'https://github.com/OpenZeppelin/openzeppelin-contracts/blob/'+r.commit+'/'+r.path;
@@ -17,6 +18,8 @@ function classify(sources,compilation){
  const files=[...dependencyHashes,main].sort();
  const family=releases.find(r=>r.contract===name&&r.main===main&&same(r.files,files));
  if(family)return {kind:family.kind,release:family.release,sourceReference:ref(family)};
+ const reviewed=custom.find(r=>r.contract===name&&r.main===main&&same(r.files,files));
+ if(reviewed)return {kind:reviewed.kind,release:reviewed.release,sourceReference:reviewed.sourceReference};
  if(name==='SafeProxy'&&files.length===1&&main==='a32e2bb41a928cc17ac82a7240571e7ad8b8230555f711c13343584d8a4802bb')
   return {kind:'SAFE_PROXY',release:'v1.4.1',sourceReference:'https://github.com/safe-global/safe-smart-account/blob/bf943f80fec5ac647159d26161446ac5d716a294/contracts/proxies/SafeProxy.sol'};
  // Narrow, closed support for concrete OZ UUPS implementations whose entire
@@ -33,7 +36,7 @@ function classify(sources,compilation){
  if(!role&&!owner)return null;
  for(const r of releases.filter(x=>x.kind==='UUPS_BASE'&&(role||x.release.startsWith('v5.')))){
   const gate=releases.find(x=>x.kind===(owner?'OWNABLE':'ACCESS_CONTROL')&&x.release===r.release);
-  if(same([...new Set([...r.files,...gate.files])].sort(),dependencyHashes.sort()))
+  if(gate&&same([...new Set([...r.files,...gate.files])].sort(),dependencyHashes.sort()))
    return {kind:owner?'UUPS_ONLY_OWNER':'UUPS_ONLY_ROLE',release:r.release,sourceReference:ref(r),gateSource:ref(gate)};
  }
  return null;

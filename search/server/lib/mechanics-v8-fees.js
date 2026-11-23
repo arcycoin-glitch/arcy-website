@@ -27,6 +27,14 @@ function directZero(fact,proof,scope){
   scope
  },'VERIFIED_SOURCE_AND_STATE');
 }
+function pinnedUupsZero(fact,proof,binding){
+ return fact(TRIPLET,'Exact reviewed UUPS ERC20 transfer paths + slot and implementation getter at the same block',{
+  ...proof,coverage:ALL,tokenTaxScope:ONLY,sourceBoundNonDelegatingRuntime:false,sourceBoundProxyRuntime:true,mutable:true,
+  tokenTax:{classification:'CURRENT_VERIFIED_TAX',denominator:'100',buy:'0',sell:'0',transfer:'0',
+   rounding:'NO_DEDUCTION',scope:ONLY,upgradeable:true,snapshotOnly:true},
+  binding,scope:'The verified implementation at this block uses full-amount ERC20 balance updates and separate delegate vote bookkeeping. A later implementation may change transfer behavior. No pool, router or hook fee is implied.'
+ },'VERIFIED_SOURCE_AND_STATE');
+}
 // Existing deep enrichment preserves verified fields. Refine the displayed
 // transfer-only result only when it already contains the matching direct
 // proof, with its original source, value and status recorded as an observation.
@@ -68,6 +76,19 @@ function ledger(field,context){
     configurable?v:{buy:null,sell:null,transfer:v?.transfer??null},{classification:configurable?v.classification:'PARTIALLY_VERIFIED',scope:transfer.scope});
   }
  }
+ const argus=raw.find(e=>same(e,context)&&context.chainId===5042&&e.feeMechanism==='ARGUS_V3_TOKEN_TAX'&&e.method==='currentTaxes() / graduated()'&&
+  e.sourceDigest==='c96f888a58e671d77378eddde2e6fb195bea44201ab50006478377d312156ba6'&&address(e.pool)&&address(e.implementation)&&
+  typeof e.graduated==='boolean'&&[e.buyBps,e.sellBps,e.configuredBuyBps,e.configuredSellBps].every(x=>integer(x,1000))&&
+  e.buyBps===(e.graduated?e.configuredBuyBps:'0')&&e.sellBps===(e.graduated?e.configuredSellBps:'0'));
+ if(argus&&fees.TOKEN_CONTRACT_TAX.verificationStatus!=='VERIFIED'){
+  fees.TOKEN_CONTRACT_TAX=evidence(argus,'TOKEN_CONTRACT_TAX','PARTIALLY_VERIFIED','Reviewed token route + pinned currentTaxes(), graduated() and mainPool()',{
+   pool:argus.pool,implementation:argus.implementation,graduated:argus.graduated,denominator:'10000',
+   poolBuyBps:argus.buyBps,poolSellSurchargeBps:argus.sellBps,ordinaryTransferBps:'0',
+   configuredCurrentRates:{buy:argus.configuredBuyBps,sell:argus.configuredSellBps},maximumConfiguredBps:'1000',
+   sellSurchargeCap:'REMAINING_SELLER_BALANCE',exemptions:'SOURCE_DEFINED_ENDPOINTS',
+   activation:'POST_GRADUATION_AND_BEFORE_EXPIRY',feeChange:'OWNER_REDUCTION_ONLY'
+  },{classification:'VERIFIED_CONDITIONAL_TAX',scope:'This is the specified V3 route and ordinary nonexempt transfers. Sell is a capped surcharge from the remaining balance; pool input itself is unchanged.'});
+ }
  // The reviewed Arc hook read independently binds the launch tuple, portal,
  // token, hook, PoolKey hash and contemporaneous values. Never parse rates
  // from a mixed-basis displayed triplet or copy them onto another block.
@@ -101,4 +122,4 @@ function attach(card,context){
  const proof=recorder(context)({fees},'FEE_ATTRIBUTION','Independent fee attribution by charged mechanism','OBSERVED');
  return {...card,fields:{...card.fields,tradingTaxes:{...field,evidence:[...evidence,proof]}}};
 }
-module.exports={directZero,strengthen,ledger,attach,TRIPLET};
+module.exports={directZero,pinnedUupsZero,strengthen,ledger,attach,TRIPLET};

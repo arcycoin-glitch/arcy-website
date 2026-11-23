@@ -67,6 +67,7 @@ async function sourceFor(cfg,address,code,diagnostics){
  }catch(e){
   const reason=e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':
    e.code==='SOURCE_TIMEOUT'?'SOURCE_TIMEOUT':
+   /exceeds .*size limit/.test(e.message)?'SOURCE_RESPONSE_LIMIT':e.code==='SOURCE_CAPACITY_LIMIT'?'SOURCE_CAPACITY_LIMIT':
    ['SOURCE_BYTECODE_MISMATCH','SOURCE_IDENTITY_MISMATCH','SOURCE_SCHEMA_INVALID'].includes(e.message)?e.message:
    e.code==='SOURCE_SCHEMA_INVALID'?'SOURCE_SCHEMA_INVALID':'SOURCE_API_FAILED';
   diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason});
@@ -99,11 +100,17 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
  address=address.toLowerCase();const diagnostics=[],fields={},details={block,chainId:cfg.chainId,address,observations:[],sources:[],failures:diagnostics};
  const now=Date.now(),provider=cfg.label+' RPC';
  const stamp=recorder({chainId:cfg.chainId,network,address,block,provider,observedAt:new Date(now).toISOString()});
- const reads=new Map(),sources=new Map();let active=0,cacheHits=0;
+ const reads=new Map(),sources=new Map(),provenance=[];let active=0,cacheHits=0;
  const waiters=[],deadline=now+14000;
- const read=(method,params)=>{const key=method+JSON.stringify(params);if(reads.has(key)){cacheHits++;return reads.get(key);}const p=(async()=>{if(active>=4)await new Promise(r=>waiters.push(r));active++;let timer;try{const timeoutMs=Math.min(4000,deadline-Date.now());if(timeoutMs<=0)throw Error('Mechanics read budget exceeded');return await Promise.race([rpc(method,params,{timeoutMs}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Mechanics RPC timeout')),timeoutMs);})]);}finally{clearTimeout(timer);active--;waiters.shift()?.();}})();reads.set(key,p);return p;};
+ const read=(method,params)=>{const key=method+JSON.stringify(params);if(reads.has(key)){cacheHits++;return reads.get(key);}const p=(async()=>{if(active>=4)await new Promise(r=>waiters.push(r));active++;let timer;try{const timeoutMs=Math.min(4000,deadline-Date.now());if(timeoutMs<=0)throw Error('Mechanics read budget exceeded');const onProvider=host=>{
+  if(provenance.length>=64||!/^[a-z0-9.:-]{1,160}$/i.test(host||''))return;
+  const contractAddress=method==='eth_call'?params[0]?.to:params[0];
+  provenance.push({provider:host,method,contractAddress,block,
+   ...(method==='eth_call'?{selector:params[0]?.data?.slice(0,10),caller:params[0]?.from||null}:method==='eth_getStorageAt'?{slot:params[1]}:{})});
+ };
+ return await Promise.race([rpc(method,params,{timeoutMs,onProvider}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Mechanics RPC timeout')),timeoutMs);})]);}finally{clearTimeout(timer);active--;waiters.shift()?.();}})();reads.set(key,p);return p;};
  const safe=async(method,params)=>{try{return await read(method,params)}catch(e){const contractAddress=method==='eth_call'?params[0]?.to:params[0];
-  diagnostics.push(stamp({source:provider,contractAddress,reason:/429/.test(String(e?.message))?'RPC_RATE_LIMIT':/timeout|budget/i.test(String(e?.message))?'RPC_TIMEOUT':'RPC_READ_FAILED'},'RPC_FAILURE',method,'UNKNOWN'));return null;}};
+  diagnostics.push(stamp({source:provider,contractAddress,reason:e?.code==='GETTER_REVERTED'?'GETTER_REVERTED':e?.code==='RPC_RATE_LIMIT'||e?.httpStatus===429||/429/.test(String(e?.message))?'RPC_RATE_LIMIT':/timeout|budget/i.test(String(e?.message))?'RPC_TIMEOUT':'RPC_READ_FAILED'},'RPC_FAILURE',method,'UNKNOWN'));return null;}};
  const sourceAt=(a,c)=>{if(sources.has(a))return sources.get(a);const p=Promise.resolve().then(()=>sourceLoader(cfg,a,c,diagnostics)).catch(()=>{
   diagnostics.push(stamp({contractAddress:a,reason:'SOURCE_LOADER_FAILED'},'SOURCE_FAILURE','Verified source lookup','UNKNOWN'));return null;
  });sources.set(a,p);return p;};
@@ -230,7 +237,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
  const reviewedImplementation=implementationSource&&(Object.hasOwn(PROFILES,implementationSource.digest)||Boolean(implementationSource.template));
  const uupsFamily=implementationSource?.runtimeFamily?.kind;
  const uupsGate=kind==='EIP-1967 implementation'&&reviewedSlotProxy&&immediateTarget===target&&uups&&pathComplete&&
-  ['UUPS_ONLY_OWNER','UUPS_ONLY_ROLE'].includes(uupsFamily);
+  ['UUPS_ONLY_OWNER','UUPS_ONLY_ROLE','UUPS_MORPHO_OWNER'].includes(uupsFamily);
  const resolved=Boolean(boundTarget&&pathComplete&&(target===address?nonDelegating(code):targetCode&&(nonDelegating(targetCode)||reviewedImplementation||uupsGate)));
  if(uups&&kind==='EIP-1967 implementation'&&!uupsGate)roots.push(authority.root(null,'UUPS_UUID','Delegated upgrade authorization','UNKNOWN_AUTHORITY',implementationSource,{method:'proxiableUUID() on implementation',implementation:target}));
  const source=resolved?implementationSource:null;
@@ -409,9 +416,24 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
   const raw=await word(address,name+'()');
   if(raw&&BigInt(raw)===0n){details.observations.push({method:name+'()',value:'zero address',zero:true,block,...sourceProof,scope:'ABI/source-matched getter returns the zero address at the pinned block. Not an absence-of-control proof: roles, other admin getters, proxy/upgrade authority and external controllers are not excluded.'});break;}
  }
- if(uupsGate&&uupsFamily==='UUPS_ONLY_OWNER'){
+ if(uupsGate&&['UUPS_ONLY_OWNER','UUPS_MORPHO_OWNER'].includes(uupsFamily)){
   const owner=abiFn(source,'owner()','address')?addressWord(await call(address,'owner()')):null;
-  roots.push(authority.root(owner,'UUPS_ONLY_OWNER','upgradeToAndCall(address,bytes)',owner?'CONFIRMED_AUTHORITY':'UNKNOWN_AUTHORITY',source,{implementation:target,method:'Reviewed UUPS onlyOwner gate + proxy-context owner()'}));
+  let authorizationBound=true;
+  if(uupsFamily==='UUPS_MORPHO_OWNER'&&family==='ERC1967'&&abiFn(source,'getImplementation()','address')){
+   // Independent current-implementation review of the ERC20 vote-bookkeeping
+   // override, not the V7 direct-runtime zero rule.
+   const reported=addressWord(await call(address,'getImplementation()'));
+   if(reported===target){
+    details.reviewedProfile='MORPHO_UUPS';
+    fields.tradingTaxes=require('./mechanics-v8-fees').pinnedUupsZero(fact,{...sourceProof,profile:'MORPHO_UUPS'},details.proxyBinding);
+    if(owner)fields.mintCapability=fact('Owner-authorized mint','Exact UUPS implementation mint + pinned proxy owner()',
+     {...sourceProof,owner,scope:'The current implementation allows only the owner to mint. An upgrade can change this; no ownership or governance permanence is inferred.'},'VERIFIED_SOURCE_AND_STATE');
+   }else{
+    authorizationBound=false;
+    diagnostics.push({reason:reported?'IMPLEMENTATION_GETTER_SLOT_MISMATCH':'IMPLEMENTATION_GETTER_UNAVAILABLE',implementation:target,reported});
+   }
+  }
+  roots.push(authority.root(authorizationBound?owner:null,'UUPS_ONLY_OWNER','upgradeToAndCall(address,bytes)',owner&&authorizationBound?'CONFIRMED_AUTHORITY':'UNKNOWN_AUTHORITY',source,{implementation:target,method:'Reviewed UUPS onlyOwner gate + proxy-context owner()'}));
  }
  if(uupsGate&&uupsFamily==='UUPS_ONLY_ROLE'){
   const role=keccak(Buffer.from('UPGRADER_ROLE'));
@@ -431,6 +453,8 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
  details.authorityGraph=await authority.trace({subject:address,roots,codeAt:a=>a===address?code:safe('eth_getCode',[a,block]),sourceAt,call,abiFn,decodeArray,stamp,deadline});
  const confirmed=details.authorityGraph.edges.find(e=>e.contractAddress===address&&e.verificationStatus==='CONFIRMED_AUTHORITY')?.controller||null;
  require('./mechanics-upgrade-caveat').qualifyUpgradeable(fields,kind,{admin:confirmed,beacon,stamp});
+ details.rpcProvenance=provenance.slice();
+ details.forensics=require('./mechanics-v8-forensics').describe({profile:details.reviewedProfile||null,proof:sourceProof,stamp,details});
  details.readBudget={uniqueRpcRequests:reads.size,cacheHits,sourceLookups:sources.size,inspectionMs:Date.now()-now};
  details.failures=details.failures.map(x=>x.evidenceType?x:stamp({...x,contractAddress:x.contractAddress||x.address||address},'ANALYSIS_DIAGNOSTIC',x.method||'Mechanics analysis',x.reason?.includes('MISMATCH')?'CONFLICTED':'UNKNOWN'));
  details.observations=details.observations.map(x=>stamp({contractAddress:address,...x},'ANALYSIS_OBSERVATION',x.method,x.status||'OBSERVED'));

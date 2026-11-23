@@ -64,7 +64,7 @@ const referenceUrls=new Set((siblingModule?.FAMILIES||[]).map(f=>'https://sourci
 //                publishProxy + authority pass): admin-slot read, proxiableUUID, getCode/owner() of a non-sample address,
 //                and (augBindingSource) the Sourcify record of a non-sample authority address.
 let CURRENT=null;
-const LEGACY_ADMIN_SLOT='0x10d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b',PROXIABLE='0x52d1902d',OWNER_SEL='0x8da5cb5b';
+const LEGACY_ADMIN_SLOT='0x10d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b',PROXIABLE='0x52d1902d',OWNER_SEL='0x8da5cb5b',IMPLEMENTATION_GETTER=keccakSel('getImplementation()');
 function budgetedKind(url,opts){
  if(MODE!=='augment')return null;
  const u=String(url?.url||url);
@@ -94,7 +94,7 @@ function budgetedKind(url,opts){
  if(b.params.length===2&&reviewedSelectors.has(data))return 'augReviewed';
  if(b.params.length===2&&isPinnedBlockTag(b.params[1])&&restrictionSelectors.has(data))return 'augRestriction';
  const to=String(b.params[0]?.to||'').toLowerCase();
- if(b.params.length===2&&isPinnedBlockTag(b.params[1])&&(data===PROXIABLE||data===OWNER_SEL&&CURRENT&&to!==CURRENT))return 'augBinding';
+ if(b.params.length===2&&isPinnedBlockTag(b.params[1])&&(data===PROXIABLE||data===IMPLEMENTATION_GETTER&&to===CURRENT||data===OWNER_SEL&&CURRENT&&to!==CURRENT))return 'augBinding';
  return null;
 }
 const cursor={};
@@ -141,7 +141,7 @@ const short=v=>String(v??'').replace(/\s+/g,' ').slice(0,70);
   const proof=allEvidence.find(x=>x?.method==='Mechanics analysis detail'&&x.block===res?.block)||allEvidence.find(x=>x?.sourceVerification&&x.block===res?.block);
   for(const item of proof?.failures||[])if(item.reason)fails.add(item.reason);
   const fees=allEvidence.find(x=>x.evidenceType==='FEE_ATTRIBUTION'&&x.block===res?.block)?.fees||null;
-  const audit=proof?{source:proof.sourceVerification||null,sources:proof.sources?.slice(0,8),proxy:proof.proxyBinding||null,
+  const audit=proof?{source:proof.sourceVerification||null,sources:proof.sources?.slice(0,8),rpcProvenance:proof.rpcProvenance||null,proxy:proof.proxyBinding||null,
    path:proof.delegationPath||null,authority:proof.authorityGraph||null,forensics:proof.forensics||null,reads:proof.readBudget||null,
    privileges:(proof.observations||[]).filter(x=>x.method==='hasRole'&&x.value===true||x.method==='getRoleAdmin'||/^\w+(?:owner|pauser|blacklister)\(\)/i.test(x.method))
     .slice(0,36),failures:proof.failures?.slice(0,20)||[]}:null;
@@ -155,6 +155,12 @@ const short=v=>String(v??'').replace(/\s+/g,' ').slice(0,70);
  const out={label,mode:MODE,at:new Date().toISOString(),commit,net,cov,reasons,rows};
  fs.writeFileSync('mechanics-bench-'+label+'.json',JSON.stringify(out,null,1));
  fs.writeFileSync('mechanics-samples.json',JSON.stringify(samples));
+ if(label==='after'&&REPLAYING&&fs.existsSync('mechanics-bench-before.json')&&fixed.every(t=>samples.some(s=>s.chain===t.network&&s.address.toLowerCase()===t.address.toLowerCase()))){
+  const baseline=JSON.parse(fs.readFileSync('mechanics-bench-before.json','utf8'));
+  const audit=require('./measure-mechanics-v8.cjs').measure(baseline,out);
+  fs.writeFileSync('mechanics-bench-fixed40-paired.json',JSON.stringify(audit,null,2));
+  console.log('FIXED_40 '+JSON.stringify(audit.total));
+ }
  const esc=x=>x.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A');
  console.log('::notice title=mech-'+label+'-cov::'+esc(JSON.stringify({cov,net,reasons})));
  let cur=[],i=0;const flush=()=>{if(cur.length)console.log('::notice title=mech-'+label+'-rows-'+(i++)+'::'+esc(JSON.stringify(cur)));cur=[];};
