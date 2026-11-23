@@ -37,7 +37,21 @@ for(let i=0;i<before.rows.length;i++){
     const bound=f==='contractArchitecture'&&x.status===y.status&&
       (/^Legacy OpenZeppelin proxy slot · delegation proven$/.test(x.value||'')&&/^Legacy implementation slot$/.test(y.value||'')||
        /^EIP-1967 proxy · delegation proven$/.test(x.value||'')&&/^EIP-1967 implementation(?: · UUPS UUID observed)?$/.test(y.value||''));
-    assert.ok(upgrade||bound,'Previously verified field changed without same-owner stronger proof: '+id+'/'+f+' old='+x.value+' new='+y.value);
+    // V7: A *strictly stronger* all-directions zero TOKEN tax claim is possible only
+    // for full-digest reviewed, pinned, non-delegating fee-free execution paths. Token
+    // transfer 0% alone NEVER qualifies. The exact old source digest must be retained,
+    // and proof must explicitly exclude all external DEX/pool/hook fees.
+    const oldSource=(x.evidence||[]).find(e=>/^[0-9a-f]{64}$/i.test(e?.sourceDigest||'')&&
+      ['match','exact_match','LOCALLY_RECOMPILED_EXACT_RUNTIME_IMMUTABLES_ONLY'].includes(e?.runtimeMatch));
+    const fullZeroTax=f==='tradingTaxes'&&x.status==='VERIFIED_SOURCE'&&x.cls==='SINGLE_SOURCE'&&
+      y.status==='VERIFIED_SOURCE_AND_STATE'&&y.cls==='ON_CHAIN_VERIFIED'&&
+      x.value==='Transfer 0% · DEX/hook fees NOT VERIFIED'&&
+      y.value==='Buy 0% · Sell 0% · Transfer 0% · token fees only (DEX/hook fees excluded)'&&
+      Boolean(oldSource)&&(y.evidence||[]).some(e=>e.sourceDigest===oldSource.sourceDigest&&
+       e.coverage==='TOKEN_TAX_ALL_TRANSFERS'&&
+       e.taxProofClass==='REVIEWED_FULL_EXECUTION_NO_TOKEN_DEDUCTION'&&e.directRuntime===true&&
+       e.runtimeMatch===oldSource.runtimeMatch);
+    assert.ok(upgrade||bound||fullZeroTax,'Previously verified field changed without same-owner stronger proof: '+id+'/'+f+' old='+x.value+' new='+y.value);
    }}
   stats[f].before+=Number(x.ok);stats[f].after+=Number(y.ok);
   if(!x.ok&&y.ok)stats[f].gain++;
