@@ -126,3 +126,20 @@ test('PR #316: binding reads allowed only when an UNRESOLVED target is newly bou
  const b=rows(),a=rows(32,(r,i)=>{if(i===24){r.f.contractArchitecture={...field(true),value:'Minimal proxy (Solady LibClone, 44-byte)'};r.net.rpc+=2;r.net.augBinding=2;}});
  const r=gate(b,a);assert.equal(r.ok,false);assert.match(r.out,/not newly bound|Previously verified field changed/);
 });
+
+test('V7: token-side zero tax promotion requires same digest, pinned direct-runtime proof and exactly zero amounts',()=>{
+ const digest='a'.repeat(64),other='b'.repeat(64),before=rows(),after=rows();
+ const proof={sourceDigest:digest,runtimeMatch:'exact_match',address:before[4].address,block:before[4].block};
+ before[4].f.tradingTaxes={ok:true,cls:'SINGLE_SOURCE',status:'VERIFIED_SOURCE',value:'Transfer 0% · DEX/hook fees NOT VERIFIED',evidence:[proof]};
+ const exact={...proof,coverage:'TOKEN_TAX_ALL_TRANSFERS',tokenTaxScope:'TOKEN_CONTRACT_ONLY',sourceBoundNonDelegatingRuntime:true,reviewedTokenProfile:'FIXED_SUPPLY_OZ_BURNABLE'};
+ after[4].f.tradingTaxes={ok:true,cls:'ON_CHAIN_VERIFIED',status:'VERIFIED_SOURCE_AND_STATE',value:'Buy 0% · Sell 0% · Transfer 0%',evidence:[exact]};
+ assert.equal(gate(before,after).ok,true,gate(before,after).out);
+ const different=structuredClone(after);different[4].f.tradingTaxes.evidence[0].sourceDigest=other;
+ assert.match(gate(before,different).out,/stronger proof/);
+ const delegated=structuredClone(after);delegated[4].f.tradingTaxes.evidence[0].sourceBoundNonDelegatingRuntime=false;
+ assert.match(gate(before,delegated).out,/stronger proof/);
+ const unsupported=structuredClone(after);unsupported[4].f.tradingTaxes.value='Buy 1% · Sell 0% · Transfer 0%';
+ assert.match(gate(before,unsupported).out,/stronger proof/);
+ const unrelated=structuredClone(after);unrelated[4].f.tradingTaxes.evidence[0].tokenTaxScope='DEX_AND_TOKEN';
+ assert.match(gate(before,unrelated).out,/stronger proof/);
+});
