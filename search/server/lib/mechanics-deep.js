@@ -288,7 +288,13 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
        },'VERIFIED_SOURCE_AND_STATE'):
       fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed constructor-only mint and full-value ERC20 _update',
        {...proof,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,scope:'Full token transfer value is retained. The immutable anti-snipe max-wallet rule can revert transfers; it is not a tax. External pool fees remain separate.'},'VERIFIED_SOURCE');
-    fields.mintCapability=fact('NONE DETECTED ✓','Reviewed complete constructor-only mint execution',{...proof,scope:'The only _mint call is in the constructor; no runtime issuance entry point exists. This does not claim external pool or launchpad control is absent.'},'VERIFIED_SOURCE');
+    const directImmutableMint=target===address&&nonDelegating(code)&&
+      /^[0-9a-f]{64}$/i.test(String(proof.sourceDigest||''))&&
+      ['match','exact_match'].includes(proof.runtimeMatch);
+    fields.mintCapability=fact('NONE DETECTED ✓','Reviewed complete constructor-only mint execution',
+     {...proof,...(directImmutableMint?{directRuntime:true,absenceProofClass:'REVIEWED_RUNTIME_NO_MINT_EXECUTION_PATH'}:{}),
+      scope:'The only _mint call is in the constructor; no runtime issuance entry point exists. This does not claim external pool or launchpad control is absent.'},
+     directImmutableMint?'VERIFIED_SOURCE_AND_STATE':'VERIFIED_SOURCE');
     const pad=addressWord(await call(address,'pad()')),poolRaw=await call(address,'pool()');
     if(pad&&WORD.test(poolRaw||'')&&/^0x0{24}[0-9a-f]{40}$/i.test(poolRaw)){
      const pool=addressWord(poolRaw);
