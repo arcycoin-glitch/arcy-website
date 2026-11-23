@@ -119,8 +119,15 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
      tokenTax:{transfer:'0',buy:'NOT_VERIFIED',sell:'NOT_VERIFIED',
       externalFees:{dex:'NOT_VERIFIED',hook:'NOT_VERIFIED'}},scope},'VERIFIED_SOURCE');
  };
+ // An immutable negative capability is verified ON CHAIN when the complete reviewed
+ // runtime code is matched at the pinned block and executes directly: no mutable
+ // getter can ever reveal a mint function that does not exist in that runtime.
+ const directAbsence=direct&&/^[0-9a-f]{64}$/i.test(String(proof?.sourceDigest||''))&&
+   ['match','exact_match'].includes(proof?.runtimeMatch);
  const noMint=scope=>fact('NONE DETECTED ✓','Reviewed complete source: no runtime supply-increase path',{...p,
-  mintAuthority:{functionPresent:false,authoritySourceIdentified:false,authorityIdentifierVerified:false,authorizedAccountsVerified:false,currentUsability:'UNAVAILABLE_BY_SOURCE',permissionRevoked:'NOT_APPLICABLE'},scope},'VERIFIED_SOURCE');
+  ...(directAbsence?{directRuntime:true,absenceProofClass:'REVIEWED_RUNTIME_NO_MINT_EXECUTION_PATH'}:{}),
+  mintAuthority:{functionPresent:false,authoritySourceIdentified:false,authorityIdentifierVerified:false,authorizedAccountsVerified:false,currentUsability:'UNAVAILABLE_BY_SOURCE',permissionRevoked:'NOT_APPLICABLE'},scope},
+  directAbsence?'VERIFIED_SOURCE_AND_STATE':'VERIFIED_SOURCE');
  // owner() is already read by the generic verified-source getter pass; this re-read is served from the same cache.
  const ownerWord=async()=>{const raw=await word(address,'owner()');if(!raw)return null;return BigInt(raw)===0n?ZERO:addressWord(raw);};
  if(profile==='OWNER_RULES_BLACKLIST_FIXED_SUPPLY'){
@@ -322,6 +329,16 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
    details.observations.push({method:'Reviewed controller arbitrary-holder burn path',block,...p,status:'VERIFIED_SOURCE_AND_STATE',burnAuthority:{functionPresent:true,entryPoint:'destroyTokens(address,uint256)',mechanism:'CONTROLLER',authority:controller,holderAllowanceRequired:false,arbitraryHolderBalance:true,currentUsability:'NOT_VERIFIED'}});
    fields.ownerAdmin=fields.ownerAdmin||fact('Controller: '+controller,'Reviewed onlyController surface + pinned controller()',{...p,controller,scope:'The controller can mint, destroy any balance, move tokens without allowance (transferFrom), enable/disable transfers, veto transfers via onTransfer, claim stray tokens and replace itself (changeController).'},'VERIFIED_SOURCE_AND_STATE');
   }
+ }
+ // An audited direct runtime with no privileged code path has no token owner
+ // or admin: this is an immutable absence proof, not an owner() == zero guess.
+ if(directAbsence&&fields.ownerAdmin?.value==='No token owner/admin'&&
+    fields.ownerAdmin?.status==='VERIFIED_SOURCE'){
+  fields.ownerAdmin={...fields.ownerAdmin,status:'VERIFIED_SOURCE_AND_STATE',
+   evidence:(fields.ownerAdmin.evidence||[]).map(e=>({
+    ...e,verificationStatus:'VERIFIED_SOURCE_AND_STATE',
+    directRuntime:true,absenceProofClass:'REVIEWED_RUNTIME_NO_TOKEN_ADMIN_PATH'
+   }))};
  }
 }
 module.exports={priorOwner,PROFILES,SPX_SLOTS,TORCH_GETTERS,PAXOS_GETTERS,REVIEWED_GETTERS,REVIEWED_BUDGET,COMPLETE_ZERO_TAX_PROFILES,slotKey,apply};
