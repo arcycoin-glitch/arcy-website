@@ -38,8 +38,26 @@ function immutableBeacon(code){
 }
 async function apply({profile,fields,details,proof,fact,word,call,address,block,keccak,direct=false,admin=null}){
  if(!Object.values(PROFILES).includes(profile))return;
- const transfer=scope=>fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed complete token transfer execution',
-  {...proof,coverage:'TOKEN_TRANSFER_ONLY',scope},'VERIFIED_SOURCE');
+ const transfer=scope=>{
+  // The two completely reviewed Pons launcher sources execute no token-fee deduction
+  // for any successful pool-in, pool-out or wallet transfer. Buy restrictions can
+  // revert, and poolFee is a separate V3 pool configuration, NEVER a token tax.
+  const full=profile==='FIXED_LAUNCH_RESTRICTIONS'&&direct&&
+    /^[0-9a-f]{64}$/i.test(String(proof?.sourceDigest||''))&&
+    ['match','exact_match'].includes(proof?.runtimeMatch);
+  if(full)return fact('Buy 0% · Sell 0% · Transfer 0% · token fees only (DEX/hook fees excluded)',
+    'Reviewed launch-token _update execution + exact pinned direct runtime',{
+    ...proof,coverage:'TOKEN_TAX_ALL_TRANSFERS',taxProofClass:'REVIEWED_FULL_EXECUTION_NO_TOKEN_DEDUCTION',
+    directRuntime:true,mutable:false,
+    tokenTax:{denominator:'100',buy:'0',sell:'0',transfer:'0',
+      rateBasis:'ALL_SUCCESSFUL_TOKEN_TRANSFERS_IN_REVIEWED_RUNTIME',
+      externalFees:{dex:'NOT_VERIFIED',hook:'NOT_VERIFIED',router:'NOT_VERIFIED'},
+      launchRestrictions:'MAY_REVERT',poolFee:'NOT_VERIFIED'},
+    scope:'Every successful token _update path in the exact non-delegating reviewed launcher runtime transfers full ERC20 units without a token fee deduction. Launch buy restrictions may revert and factory exemptions may vary. The poolFee() getter is a V3 pool configuration, not an ERC20 buy/sell fee or a live trading-fee measurement. DEX/pool/router/V4-hook fees, slippage and tradability remain NOT VERIFIED. '+scope
+  },'VERIFIED_SOURCE_AND_STATE');
+  return fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed complete token transfer execution',
+   {...proof,coverage:'TOKEN_TRANSFER_ONLY',scope},'VERIFIED_SOURCE');
+ };
  const source=value=>fact(value,'Reviewed complete source capability',{...proof,
   scope:'Source-defined capability only; active privileged accounts, successful execution and external DEX/hook fees are not inferred.'},'VERIFIED_SOURCE');
  if(profile==='NATIVE_DEPOSIT_WRAPPER'){
