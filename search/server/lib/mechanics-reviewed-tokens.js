@@ -5,6 +5,7 @@
 // claims (no mint path, no owner) additionally require a direct, non-delegating runtime.
 // Review notes and the exact source excerpts: docs/MECHANICS_FINAL_20261106.md.
 const {addressWord}=require('./admin-getters');
+const {formatTokenUnits}=require('./mechanics-amount-format');
 const PROFILES=Object.freeze({
  // Ethereum PEPE (PepeToken.sol, solc 0.8.0, flattened OZ 4.x ERC20 + Ownable)
  'fc4c77a3813f94c125321da195005e43dd65aabdf97b7cfefc0056b4e1d9ca09':'OWNER_RULES_BLACKLIST_FIXED_SUPPLY',
@@ -239,7 +240,7 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   const [minterRole,burnerRole,cap,total,decimals]=await Promise.all(['MINTER_ROLE()','BURNER_ROLE()','maxSupply()','totalSupply()','decimals()'].map(x=>word(address,x)));
   const k=n=>require('../../../lib/keccak')(Buffer.from(n)).toLowerCase();
   if(minterRole?.toLowerCase()===k('MINTER_ROLE')&&burnerRole?.toLowerCase()===k('BURNER_ROLE')&&cap&&total){
-   const c=BigInt(cap),t=BigInt(total),d=decimals?Number(BigInt(decimals)):null,fmt=v=>d===null||d>36?v.toString()+' raw':(Number(v)/10**d).toLocaleString('en-US',{maximumFractionDigits:2});
+   const c=BigInt(cap),t=BigInt(total),d=decimals?Number(BigInt(decimals)):null,fmt=v=>d===null||!Number.isInteger(d)||d<0||d>36?v.toString()+' raw':formatTokenUnits(v,d,2);
    const value=c===0n?'Role-gated mint · uncapped':t>=c?'Role-gated mint · cap reached ('+fmt(c)+')':'Role-gated mint · cap '+fmt(c)+' · '+fmt(c-t)+' remaining';
    fields.mintCapability=fact(value,'Reviewed onlyRole(MINTER_ROLE) mint + pinned MINTER_ROLE/maxSupply/totalSupply',{...p,minterRole,burnerRole,maxSupplyRaw:c.toString(),totalSupplyRaw:t.toString(),
     mintAuthority:mintAuthority({mechanism:'MINTER_ROLE',entryPoint:'mint(address,uint256)',authority:minterRole,usable:c!==0n&&t>=c?'NO_POSITIVE_CAPACITY':'NOT_VERIFIED',constraints:{maxSupplyRaw:c.toString(),remainingRaw:c===0n?null:(c>t?c-t:0n).toString(),burnCanRestoreCapacity:true}}),
@@ -265,7 +266,7 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   const [operator,proxy,cap,total]=await Promise.all([word(address,'operator()'),word(address,'vecrvProxy()'),word(address,'maxSupply()'),word(address,'totalSupply()')]);
   const op=addressWord(operator),px=addressWord(proxy);
   if(op&&px&&cap&&total&&BigInt(cap)>0n&&BigInt(total)<=BigInt(cap)){const c=BigInt(cap),t=BigInt(total);
-   fields.mintCapability=fact(t>=c?'Operator mint · max supply reached':'Operator scheduled mint · cap '+(Number(c)/1e18).toLocaleString('en-US')+' · '+(Number(c-t)/1e18).toLocaleString('en-US',{maximumFractionDigits:0})+' remaining','Reviewed operator-only cliff mint + pinned operator/maxSupply/totalSupply',{...p,operator:op,vecrvProxy:px,maxSupplyRaw:c.toString(),totalSupplyRaw:t.toString(),
+   fields.mintCapability=fact(t>=c?'Operator mint · max supply reached':'Operator scheduled mint · cap '+formatTokenUnits(c,18,3)+' · '+formatTokenUnits(c-t,18,0)+' remaining','Reviewed operator-only cliff mint + pinned operator/maxSupply/totalSupply',{...p,operator:op,vecrvProxy:px,maxSupplyRaw:c.toString(),totalSupplyRaw:t.toString(),
     mintAuthority:mintAuthority({mechanism:'OPERATOR_CLIFF_SCHEDULE',entryPoint:'mint(address,uint256)',authority:op,members:[op],usable:t>=c?'NO_POSITIVE_CAPACITY':'NOT_VERIFIED',constraints:{maxSupplyRaw:c.toString(),remainingRaw:(c-t).toString(),operatorRefreshAuthority:px,externalOperatorControl:'NOT_VERIFIED',requestedMintAmount:'NOT_VERIFIED'}}),
     scope:'Only operator can mint; each mint is reduced by the supply cliff schedule and clamped at maxSupply (decimals fixed at 18 in the source). Calls from any other address return without minting. updateOperator() lets anyone copy operator from vecrvProxy.operator().'},'VERIFIED_SOURCE_AND_STATE');
    fields.ownerAdmin=fields.ownerAdmin||fact('No token owner · operator '+op,'Reviewed complete source + pinned operator/vecrvProxy',{...p,operator:op,vecrvProxy:px,scope:'The token has no owner, pause, blacklist or fee function. Its only privileged role is the minting operator, which follows vecrvProxy.operator() (external staking contract governance, not reviewed here).'},'VERIFIED_SOURCE_AND_STATE');
