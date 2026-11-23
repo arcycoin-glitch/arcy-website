@@ -45,7 +45,9 @@ test('UERC20: fixed supply, no admin, full-value transfer and no restrictions; z
  const x=fixture(digestOf('UNISWAP_UERC20_FIXED_SUPPLY'),{network:'robinhood'});const r=await inspect(x);
  assert.equal(r.fields.mintCapability.value,'NONE DETECTED ✓');
  assert.equal(r.fields.ownerAdmin.value,'No token owner/admin');assert.match(r.fields.ownerAdmin.evidence[0].scope,/Permit2/);
- assert.match(r.fields.tradingTaxes.value,/^Transfer 0% · DEX\/hook fees NOT VERIFIED/);
+ assert.match(r.fields.tradingTaxes.value,/^Buy 0% · Sell 0% · Transfer 0% · token fees only/);
+ assert.equal(r.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TAX_ALL_TRANSFERS');
+ assert.equal(r.fields.tradingTaxes.evidence[0].tokenTax.externalFees.dex,'NOT_VERIFIED');
  assert.equal(r.restriction.value,'None in token code');assert.equal(r.restriction.status,'VERIFIED_SOURCE');
  assert.equal(r.restriction.evidence[0].block,block);
  assert.equal(x.log.filter(c=>c.method==='eth_call').length,0,'no new calls');
