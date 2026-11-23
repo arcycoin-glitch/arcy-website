@@ -48,7 +48,7 @@ for(let i=0;i<before.rows.length;i++){
        yp.sourceBoundNonDelegatingRuntime===true&&/^[0-9a-f]{64}$/.test(yp.sourceDigest||'')&&
        (x.evidence||[]).some(xp=>xp.sourceDigest===yp.sourceDigest&&
         xp.runtimeMatch===yp.runtimeMatch&&xp.address?.toLowerCase()===yp.address?.toLowerCase()&&xp.block===yp.block));
-    assert.ok(upgrade||bound||zeroTax,'Previously verified field changed without same-source stronger proof: '+id+'/'+f+' old='+x.value+' new='+y.value);
+    assert.ok(upgrade||bound||zeroTax,'Previously verified field changed without same-owner stronger proof: '+id+'/'+f+' old='+x.value+' new='+y.value);
    }}
   stats[f].before+=Number(x.ok);stats[f].after+=Number(y.ok);
   if(!x.ok&&y.ok)stats[f].gain++;
