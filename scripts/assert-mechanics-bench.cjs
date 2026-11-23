@@ -42,7 +42,7 @@ for(let i=0;i<before.rows.length;i++){
     // transfer 0% alone NEVER qualifies. The exact old source digest must be retained,
     // and proof must explicitly exclude all external DEX/pool/hook fees.
     const oldSource=(x.evidence||[]).find(e=>/^[0-9a-f]{64}$/i.test(e?.sourceDigest||'')&&
-      ['match','exact_match','LOCALLY_RECOMPILED_EXACT_RUNTIME_IMMUTABLES_ONLY'].includes(e?.runtimeMatch));
+      ['match','exact_match','LOCALLY_RECOMPILED_EXACT_RUNTIME_IMMUTABLES_ONLY','SIBLING_REFERENCE_EXACT_MATCH_IMMUTABLES_ONLY'].includes(e?.runtimeMatch));
     const fullZeroTax=f==='tradingTaxes'&&x.status==='VERIFIED_SOURCE'&&x.cls==='SINGLE_SOURCE'&&
       y.status==='VERIFIED_SOURCE_AND_STATE'&&y.cls==='ON_CHAIN_VERIFIED'&&
       x.value==='Transfer 0% · DEX/hook fees NOT VERIFIED'&&
