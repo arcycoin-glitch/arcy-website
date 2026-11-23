@@ -57,6 +57,22 @@ const V6_GETTERS=Object.freeze(['totalSupply()','decimals()','MINTER_ROLE()','BU
  // reviewed-v4 FIXED_LAUNCH_RESTRICTIONS getters, now also applied to a second reviewed PonsLauncherToken source digest
  'launchFactory()','poolFee()','restrictionEndBlock()','maxWalletBps()','maxTxBps()']);
 const REVIEWED_GETTERS=Object.freeze([...TORCH_GETTERS,...PAXOS_GETTERS,...V6_GETTERS]);
+// Strictly reviewed, non-delegating full-value ERC20 paths without token-level fee deductions,
+// dynamic per-direction taxes or external token-transfer callbacks. A verified source digest alone
+// is insufficient: apply() must also prove that THIS deployed token runtime does not delegate.
+const COMPLETE_ZERO_TAX_PROFILES=new Set([
+ 'FIXED_SUPPLY_NO_ADMIN',
+ 'FIXED_SUPPLY_OZ_BURNABLE',
+ 'FIXED_SUPPLY_LEGACY_ALLOCATION',
+ 'FIXED_SUPPLY_SELF_BURN',
+ 'LEGACY_FIXED_SUPPLY_SELF_FREEZE',
+ 'UNISWAP_UERC20_FIXED_SUPPLY',
+ 'GOVERNANCE_MINTER_SET',
+ 'OPERATOR_SCHEDULED_CAPPED_MINT',
+ 'ROLE_MINTER_BURNER_VOTES',
+ 'OWNER_CAPPED_MINT_VOTES',
+ 'CCIP_BURN_MINT_ROLE_TOKEN'
+]);
 const REVIEWED_BUDGET=8;
 const slotKey=i=>'0x'+i.toString(16).padStart(64,'0');
 const ZERO='0x'+'0'.repeat(40);
@@ -78,8 +94,31 @@ function priorOwner(prior,address,block){
 async function apply({profile,fields,details,proof,fact,word,storage,address,block,direct=false,admin=null,kind=null,prior=null}){
  if(!Object.values(PROFILES).includes(profile))return;
  const p={...proof,reviewedTokenProfile:profile};
- const transferOnly=scope=>fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed complete token transfer execution',{...p,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,
-  tokenTax:{transfer:'0',buy:'NOT_VERIFIED',sell:'NOT_VERIFIED',externalFees:{dex:'NOT_VERIFIED',hook:'NOT_VERIFIED'}},scope},'VERIFIED_SOURCE');
+ const transferOnly=scope=>{
+  // Stronger conclusion is valid ONLY when a full, reviewed *executed* ERC20 transfer path
+  // has no fee branch in any sender/recipient context. Even then this proves TOKEN fees
+  // alone, never V2/V3/V4 pool fees, hooks, router costs, or that a transfer will succeed.
+  // Restricted transfers can revert; successful transfers in these audited paths move
+  // full units. No proxy, upgrade, unreviewed callback or ABI-only inference qualifies.
+  if(direct&&COMPLETE_ZERO_TAX_PROFILES.has(profile)&&
+     /^[0-9a-f]{64}$/i.test(String(proof?.sourceDigest||''))&&
+     ['match','exact_match','LOCALLY_RECOMPILED_EXACT_RUNTIME_IMMUTABLES_ONLY'].includes(proof?.runtimeMatch)){
+    return fact('Buy 0% · Sell 0% · Transfer 0% · token fees only (DEX/hook fees excluded)',
+      'Reviewed all-context ERC20 transfer execution + exact pinned deployed runtime',{
+      ...p,coverage:'TOKEN_TAX_ALL_TRANSFERS',taxProofClass:'REVIEWED_FULL_EXECUTION_NO_TOKEN_DEDUCTION',
+      directRuntime:true,mutable:false,
+      tokenTax:{denominator:'100',buy:'0',sell:'0',transfer:'0',
+       rateBasis:'ALL_SUCCESSFUL_TOKEN_TRANSFERS_IN_REVIEWED_RUNTIME',
+       externalFees:{dex:'NOT_VERIFIED',hook:'NOT_VERIFIED',router:'NOT_VERIFIED'},
+       buyback:'NOT_VERIFIED'},
+      scope:'All token-level successful transfer, transferFrom, pool-in and pool-out executions in this exact pinned, non-delegating reviewed runtime move the full ERC20 amount: no token-level tax branch exists. Transfers can still revert due to balance/allowance or reviewed restrictions. This does NOT establish DEX/pool/router/V4-hook fees, tradability, slippage, or future pool behavior. '+scope
+     },'VERIFIED_SOURCE_AND_STATE');
+  }
+  return fact('Transfer 0% · DEX/hook fees NOT VERIFIED','Reviewed complete token transfer execution',
+    {...p,coverage:'TOKEN_TRANSFER_ONLY',mutable:false,
+     tokenTax:{transfer:'0',buy:'NOT_VERIFIED',sell:'NOT_VERIFIED',
+      externalFees:{dex:'NOT_VERIFIED',hook:'NOT_VERIFIED'}},scope},'VERIFIED_SOURCE');
+ };
  const noMint=scope=>fact('NONE DETECTED ✓','Reviewed complete source: no runtime supply-increase path',{...p,
   mintAuthority:{functionPresent:false,authoritySourceIdentified:false,authorityIdentifierVerified:false,authorizedAccountsVerified:false,currentUsability:'UNAVAILABLE_BY_SOURCE',permissionRevoked:'NOT_APPLICABLE'},scope},'VERIFIED_SOURCE');
  // owner() is already read by the generic verified-source getter pass; this re-read is served from the same cache.
@@ -285,4 +324,4 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   }
  }
 }
-module.exports={priorOwner,PROFILES,SPX_SLOTS,TORCH_GETTERS,PAXOS_GETTERS,REVIEWED_GETTERS,REVIEWED_BUDGET,slotKey,apply};
+module.exports={priorOwner,PROFILES,SPX_SLOTS,TORCH_GETTERS,PAXOS_GETTERS,REVIEWED_GETTERS,REVIEWED_BUDGET,COMPLETE_ZERO_TAX_PROFILES,slotKey,apply};
