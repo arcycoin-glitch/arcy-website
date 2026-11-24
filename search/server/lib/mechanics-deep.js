@@ -479,7 +479,7 @@ async function inspect({network,address,block,rpc,sourceLoader=sourceFor,onSuppl
  const confirmed=details.authorityGraph.edges.find(e=>e.contractAddress===address&&e.verificationStatus==='CONFIRMED_AUTHORITY')?.controller||null;
  require('./mechanics-upgrade-caveat').qualifyUpgradeable(fields,kind,{admin:confirmed,beacon,stamp});
  details.rpcProvenance=provenance.slice();
- details.forensics=require('./mechanics-v8-forensics').describe({profile:details.reviewedProfile||null,proof:sourceProof,stamp,details});
+ details.forensics=require('./mechanics-v8-forensics').describe({profile:details.reviewedProfile||null,proof:sourceProof,stamp,details:{...details,subjectAddress:address,block}});
  details.readBudget={uniqueRpcRequests:reads.size,cacheHits,sourceLookups:sources.size,inspectionMs:Date.now()-now};
  details.failures=details.failures.map(x=>x.evidenceType?x:stamp({...x,contractAddress:x.contractAddress||x.address||address},'ANALYSIS_DIAGNOSTIC',x.method||'Mechanics analysis',x.reason?.includes('MISMATCH')?'CONFLICTED':'UNKNOWN'));
  details.observations=details.observations.map(x=>stamp({contractAddress:address,...x},'ANALYSIS_OBSERVATION',x.method,x.status||'OBSERVED'));
