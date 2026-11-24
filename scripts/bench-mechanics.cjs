@@ -33,7 +33,7 @@ const REGRESSION=[['arc','0x73e5F588d27d6B5EC89C89c82692D1E7fECBd38b'],['arc','0
 const ETH_KNOWN=['0xdAC17F958D2ee523a2206206994597C13D831ec7','0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48','0x6B175474E89094C44Da98b954EedeAC495271d0F','0x514910771AF9Ca656af840dff83E8264EcF986CA','0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984','0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2','0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE','0x6982508145454Ce325dDbE47a25d4ec3d2311933','0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9','0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2','0xB8c77482e45F1F44dE1745F52C74426C631bDD52','0x4Fabb145d64652a948d72533023f6E7A623C7C53'];
 // Outbound request accounting (host-level), no payloads recorded. BENCH_REPLAY=record|replay lets two code versions see IDENTICAL provider
 // evidence (same pinned block, same RPC/Sourcify answers, same failures); replay misses return a controlled error, NEVER a live request; the paired quality gate reports misses explicitly.
-const net={rpc:0,sourcify:0,goplus:0,explorer:0,other:0,failed:0,replayHit:0,replayMiss:0,augProbe:0,augSibling:0,augReference:0,augReviewed:0,augCustomRole:0,augRestriction:0,augBinding:0,augBindingSource:0};
+const net={rpc:0,sourcify:0,goplus:0,explorer:0,other:0,failed:0,replayHit:0,replayMiss:0,augProbe:0,augSibling:0,augReference:0,augReviewed:0,augCustomRole:0,augRestriction:0,augBinding:0,augBindingSource:0,augAuthority:0,augAuthoritySource:0};
 const MODE=process.env.BENCH_REPLAY||'off',RFILE=process.env.BENCH_REPLAY_FILE||'mechanics-replay.json';
 const REPLAYING=MODE==='replay'||MODE==='augment';
 const store=REPLAYING&&fs.existsSync(RFILE)?JSON.parse(fs.readFileSync(RFILE,'utf8')):{};
@@ -57,19 +57,28 @@ const restrictionModule=optional('search/server/lib/mechanics-restrictions');
 const restrictionSelectors=new Set((restrictionModule?.RESTRICTION_GETTERS||[]).map(keccakSel));
 const customRoleSelectors=new Set(['PAUSER_ROLE()','BLACKLISTER_ROLE()','UPGRADER_ROLE()','BURNER_ROLE()'].map(keccakSel));
 const accessRoleSelectors=new Set(['getRoleAdmin(bytes32)','getRoleMemberCount(bytes32)','getRoleMember(bytes32,uint256)','hasRole(bytes32,address)'].map(keccakSel));
+const authority=optional('search/server/lib/mechanics-v8-authority');
+const authoritySelectors=new Set((authority?.GETTERS||[]).map(keccakSel));
 const referenceUrls=new Set((siblingModule?.FAMILIES||[]).map(f=>'https://sourcify.dev/server/v2/contract/'+f.chainId+'/'+f.reference+'?fields=abi,sources,compilation,runtimeBytecode'));
 //  augBinding    reads made only once a legacy/EIP-1967 proxy outer source is newly reviewed-bound (mechanics-deep
 //                publishProxy + authority pass): admin-slot read, proxiableUUID, getCode/owner() of a non-sample address,
 //                and (augBindingSource) the Sourcify record of a non-sample authority address.
 let CURRENT=null;
-const LEGACY_ADMIN_SLOT='0x10d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b',PROXIABLE='0x52d1902d',OWNER_SEL='0x8da5cb5b';
+const LEGACY_ADMIN_SLOT='0x10d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b',PROXIABLE='0x52d1902d',OWNER_SEL='0x8da5cb5b',IMPLEMENTATION_GETTER=keccakSel('getImplementation()'),PENDING_OWNER=keccakSel('pendingOwner()');
 function budgetedKind(url,opts){
  if(MODE!=='augment')return null;
  const u=String(url?.url||url);
+ const authScope=authority?.inScope()&&CURRENT;
+ if(authScope&&(!opts?.method||opts.method==='GET')&&/^https:\/\/sourcify\.dev\/server\/v2\/contract\/\d+\/0x[0-9a-f]{40}\?/i.test(u)&&!u.toLowerCase().includes(CURRENT))return 'augAuthoritySource';
  if((!opts?.method||opts.method==='GET')&&referenceUrls.has(u))return 'augReference';
  if((!opts?.method||opts.method==='GET')&&CURRENT&&/^https:\/\/sourcify\.dev\/server\/v2\/contract\/\d+\/0x[0-9a-f]{40}\?/i.test(u)&&!u.toLowerCase().includes(CURRENT))return 'augBindingSource';
  if(opts?.method!=='POST'||typeof opts.body!=='string')return null;
  let b;try{b=JSON.parse(opts.body);}catch{return null;}
+ if(authScope&&!Array.isArray(b)&&Array.isArray(b?.params)&&b.params.length===2&&isPinnedBlockTag(b.params[1])){
+  const target=String(b.method==='eth_getCode'?b.params[0]:b.params[0]?.to||'').toLowerCase();
+  if(/^0x[0-9a-f]{40}$/.test(target)&&target!==CURRENT&&
+   (b.method==='eth_getCode'||b.method==='eth_call'&&authoritySelectors.has(String(b.params[0]?.data||'').toLowerCase())))return 'augAuthority';
+ }
  if(!Array.isArray(b)&&b?.method==='eth_getStorageAt'&&Array.isArray(b.params)&&b.params.length===3&&reviewedSlots.has(String(b.params[1]).toLowerCase()))return 'augReviewed';
  if(!Array.isArray(b)&&b?.method==='eth_getStorageAt'&&Array.isArray(b.params)&&b.params.length===3&&String(b.params[1]).toLowerCase()===LEGACY_ADMIN_SLOT&&isPinnedBlockTag(b.params[2]))return 'augBinding';
  if(!Array.isArray(b)&&b?.method==='eth_getCode'&&Array.isArray(b.params)&&b.params.length===2&&CURRENT&&String(b.params[0]).toLowerCase()!==CURRENT&&isPinnedBlockTag(b.params[1]))return 'augBinding';
@@ -85,7 +94,7 @@ function budgetedKind(url,opts){
  if(b.params.length===2&&reviewedSelectors.has(data))return 'augReviewed';
  if(b.params.length===2&&isPinnedBlockTag(b.params[1])&&restrictionSelectors.has(data))return 'augRestriction';
  const to=String(b.params[0]?.to||'').toLowerCase();
- if(b.params.length===2&&isPinnedBlockTag(b.params[1])&&(data===PROXIABLE||data===OWNER_SEL&&CURRENT&&to!==CURRENT))return 'augBinding';
+ if(b.params.length===2&&isPinnedBlockTag(b.params[1])&&(data===PROXIABLE||(data===IMPLEMENTATION_GETTER||data===PENDING_OWNER)&&to===CURRENT||data===OWNER_SEL&&CURRENT&&to!==CURRENT))return 'augBinding';
  return null;
 }
 const cursor={};
@@ -105,11 +114,14 @@ globalThis.fetch=async(url,opts)=>{const u=String(url?.url||url);let k='other';
   if(MODE==='record'||REPLAYING){const text=await r.text();(store[key]||=[]).push({status:r.status,type:r.headers.get('content-type'),text});return new Response(r.status===204?null:text,{status:r.status,headers:{'content-type':r.headers.get('content-type')||'application/json'}});}
   return r;}catch(e){net.failed++;throw e;}};
 async function get(p){const base=process.env.ARCY_BASE||'https://www.arcyusdc.xyz';const r=await realFetch(base+p,{headers:{accept:'application/json',referer:base+'/','sec-fetch-site':'same-origin'},signal:AbortSignal.timeout(30000)});if(!r.ok)throw Error('HTTP '+r.status);return r.json();}
+const fixed=require('../data/verified-coverage/radar-cohort-20261121.json').tokens;
 async function buildSamples(){
  const out=[],seen=new Set();const add=(chain,address,group)=>{const k=chain+address.toLowerCase();if(!seen.has(k)&&/^0x[0-9a-f]{40}$/i.test(address)){seen.add(k);out.push({chain,address,group});}};
+ if(process.env.BENCH_FIXED_COHORT==='1')return fixed.map(t=>({chain:t.network,address:t.address,group:t.section,symbol:t.symbol}));
  for(const [c,a] of REGRESSION)add(c,a,'regression');
  for(const a of ETH_KNOWN)add('ethereum',a,'known');
  for(const section of ['arc','ethereum','robinhood','pons']){try{const d=await get('/api/search?action=radar&chain='+section);for(const t of (d.tokens||[]).slice(0,10))add(section==='pons'?'robinhood':section,t.address||t.token||'',section==='pons'?'pons':'radar');}catch(e){console.error('radar',section,e.message);}}
+ for(const t of fixed)add(t.network,t.address,t.section==='pons'?'pons':'fixed');
  return out;
 }
 const mechanics=(chain,address)=>runMechanics(req,chain,address);
@@ -125,15 +137,30 @@ const short=v=>String(v??'').replace(/\s+/g,' ').slice(0,70);
   try{res=await Promise.race([mechanics(s.chain,s.address),new Promise((_,r)=>{timer=setTimeout(()=>r(Error('BENCH_TIMEOUT_60S')),60000);})]);}catch(e){err=String(e.message||e).slice(0,80);}finally{clearTimeout(timer);}
   const ms=Date.now()-t0,d=Object.fromEntries(Object.keys(net).map(k=>[k,net[k]-before[k]]));
   const f={},fails=new Set();for(const k of FIELDS){const x=fieldOf(res?.card,k);for(const q of (x?.analysisDiagnostics?.failures||[]))if(q?.reason)fails.add(q.reason);const c=classify(x||null,{card:'mechanics'});f[k]={ok:x?.dataState==='DATA_FOUND',state:res?dataClass(x,k):(err&&/RPC|429|timeout/i.test(err)?'RPC_ERROR':'NOT_VERIFIED'),cls:c.evidenceClass,status:x?.status||null,reason:x?.reasonCode||null,value:short(x?.value).slice(0,70)+(k==='ownerAdmin'&&x?.value?String(x.value).replace(/\s+/g,' ').slice(70,256):''),scope:short(x?.scope),evidence:proofs(x)};}
-  rows.push({...s,block:res?.block||null,err,ms,net:d,f,fails:[...fails].sort(),customRoleEvidence:customRoleEvidence(res?.card)});
+  const allEvidence=Object.values(res?.card?.fields||{}).flatMap(x=>x?.evidence||[]);
+  const proof=allEvidence.find(x=>x?.method==='Mechanics analysis detail'&&x.block===res?.block)||allEvidence.find(x=>x?.sourceVerification&&x.block===res?.block);
+  for(const item of proof?.failures||[])if(item.reason)fails.add(item.reason);
+  const fees=allEvidence.find(x=>x.evidenceType==='FEE_ATTRIBUTION'&&x.block===res?.block)?.fees||null;
+  const audit=proof?{source:proof.sourceVerification||null,sources:proof.sources?.slice(0,8),rpcProvenance:proof.rpcProvenance||null,proxy:proof.proxyBinding||null,
+   path:proof.delegationPath||null,diamondRoutes:proof.diamondRoutes||null,authority:proof.authorityGraph||null,forensics:proof.forensics||null,reads:proof.readBudget||null,
+   privileges:(proof.observations||[]).filter(x=>x.method==='hasRole'&&x.value===true||x.method==='getRoleAdmin'||/^\w+(?:owner|pauser|blacklister)\(\)/i.test(x.method))
+    .slice(0,36),failures:proof.failures?.slice(0,20)||[]}:null;
+  rows.push({...s,block:res?.block||null,err,ms,net:d,f,fails:[...fails].sort(),audit,fees,customRoleEvidence:customRoleEvidence(res?.card)});
   await new Promise(r=>setTimeout(r,600));
  }
  const cov={};for(const r of rows){const c=cov[r.chain+(r.group==='pons'?'/pons':'')]||={n:0,err:0,ms:0,rpc:0,src:0,f:Object.fromEntries(FIELDS.map(k=>[k,0])),states:Object.fromEntries(FIELDS.map(k=>[k,{}]))};c.n++;if(r.err)c.err++;c.ms+=r.ms;c.rpc+=r.net.rpc;c.src+=r.net.sourcify;for(const k of FIELDS){if(r.f[k].ok)c.f[k]++;c.states[k][r.f[k].state]=(c.states[k][r.f[k].state]||0)+1;}}
  const reasons={};for(const r of rows)for(const k of FIELDS)if(!r.f[k].ok){const key=k+':'+(r.f[k].reason||r.err||'none');reasons[key]=(reasons[key]||0)+1;}
  if(MODE==='record'||MODE==='augment')fs.writeFileSync(RFILE,JSON.stringify(store));
- const out={label,mode:MODE,at:new Date().toISOString(),commit:process.env.GITHUB_SHA||null,net,cov,reasons,rows};
+ let commit=null;try{commit=require('node:child_process').execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim();}catch{}
+ const out={label,mode:MODE,at:new Date().toISOString(),commit,net,cov,reasons,rows};
  fs.writeFileSync('mechanics-bench-'+label+'.json',JSON.stringify(out,null,1));
  fs.writeFileSync('mechanics-samples.json',JSON.stringify(samples));
+ if(label==='after'&&REPLAYING&&fs.existsSync('mechanics-bench-before.json')&&fixed.every(t=>samples.some(s=>s.chain===t.network&&s.address.toLowerCase()===t.address.toLowerCase()))){
+  const baseline=JSON.parse(fs.readFileSync('mechanics-bench-before.json','utf8'));
+  const audit=require('./measure-mechanics-v8.cjs').measure(baseline,out);
+  fs.writeFileSync('mechanics-bench-fixed40-paired.json',JSON.stringify(audit,null,2));
+  console.log('FIXED_40 '+JSON.stringify(audit.total));
+ }
  const esc=x=>x.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A');
  console.log('::notice title=mech-'+label+'-cov::'+esc(JSON.stringify({cov,net,reasons})));
  let cur=[],i=0;const flush=()=>{if(cur.length)console.log('::notice title=mech-'+label+'-rows-'+(i++)+'::'+esc(JSON.stringify(cur)));cur=[];};

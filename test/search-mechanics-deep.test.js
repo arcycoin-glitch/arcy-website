@@ -141,7 +141,7 @@ test('diamond loupe-shaped response alone is not verified routing/architecture',
 
 test('reviewed pool-setup authority requires exact full source and valid pinned state',async()=>{
  const source={digest:profile('FIXED_SUPPLY_POOL_SETUP'),abi:[fn('pad'),fn('pool')]};
- for(const pool of [zero,addr(C)]){const x=fixture({source,calls:{[m.selector('pad()')]:addr(B),[m.selector('pool()')]:pool}}),r=await m.inspect(x.options);assert.equal(r.fields.mintCapability.value,'NONE DETECTED ✓');assert.match(r.fields.tradingTaxes.value,/DEX\/hook fees NOT VERIFIED/);assert.equal(r.fields.ownerAdmin.evidence[0].pad,B);assert.match(r.fields.ownerAdmin.value,pool===zero?/Pad pool-setup/:/completed/);assert.equal(r.fields.ownerAdmin.evidence[0].block,block);}
+ for(const pool of [zero,addr(C)]){const x=fixture({source,calls:{[m.selector('pad()')]:addr(B),[m.selector('pool()')]:pool}}),r=await m.inspect(x.options);assert.equal(r.fields.mintCapability.value,'NONE DETECTED ✓');assert.equal(r.fields.tradingTaxes.value,'Buy 0% · Sell 0% · Transfer 0%');assert.equal(r.fields.ownerAdmin.evidence[0].pad,B);assert.match(r.fields.ownerAdmin.value,pool===zero?/Pad pool-setup/:/completed/);assert.equal(r.fields.ownerAdmin.evidence[0].block,block);}
  for(const pool of ['0x1234',new Error('timeout')]){const x=fixture({source,calls:{[m.selector('pad()')]:addr(B),[m.selector('pool()')]:pool}}),r=await m.inspect(x.options);assert.equal(r.fields.ownerAdmin,undefined);assert.equal(r.fields.mintCapability.dataState,'DATA_FOUND');}
  const x=fixture({source:{...source,digest:'unreviewed'},calls:{[m.selector('pad()')]:addr(B)}});assert.equal((await m.inspect(x.options)).fields.ownerAdmin,undefined);
 });
@@ -149,11 +149,25 @@ test('reviewed pool-setup authority requires exact full source and valid pinned 
 
 test('generic token source digest never protects unproved buy/sell rates against narrower exact-source proof',async()=>{
  const x=fixture({source:{digest:profile('FIXED_SUPPLY_POOL_SETUP'),abi:[]}});x.options.network='arc';
- for(const proof of [{source:'Sourcify',sourceDigest:'token-only'},{source:'Arc RPC',hookSourceDigest:'unreviewed',hook:B}]){const old={value:'Buy 0% · Sell 0% · Transfer 0%',dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'Sourcify',evidence:[{address:A,chainId:5042,block,...proof}]};const r=await m.enrich({...x.options,card:{fields:{tradingTaxes:old}}});assert.equal(r.fields.tradingTaxes.value,'Transfer 0% · DEX/hook fees NOT VERIFIED');assert(r.fields.tradingTaxes.evidence.some(e=>e.retainedFrom),'prior observation remains inspectable, not silently discarded');}
+ for(const proof of [{source:'Sourcify',sourceDigest:'token-only'},{source:'Arc RPC',hookSourceDigest:'unreviewed',hook:B}]){const old={value:'Buy 3% · Sell 3% · Transfer 0%',dataState:'DATA_FOUND',status:'SOURCE_REPORTED',source:'Sourcify',evidence:[{address:A,chainId:5042,block,...proof}]};const r=await m.enrich({...x.options,card:{fields:{tradingTaxes:old}}});assert.equal(r.fields.tradingTaxes.value,'Buy 0% · Sell 0% · Transfer 0%');assert(r.fields.tradingTaxes.evidence.some(e=>e.retainedFrom),'prior observation remains inspectable, not silently discarded');}
 });
 
 test('locally reviewed role runtime requires pinned membership/cap; selectors alone cannot establish mint',async()=>{
  const role='0x'+word(32).slice(2)+word(1).slice(2)+addr(B).slice(2),source={digest:profile('RECOMPILED_ROLE_BURN_MINT'),abi:[fn('owner')],runtimeReview:{maxSupplyRaw:'1000'}};
  for(const confirmed of[true,false]){const x=fixture({source,calls:{[m.selector('owner()')]:addr(C),[m.selector('maxSupply()')]:word(1000),[m.selector('getMinters()')]:role,[m.selector('isMinter(address)')+B.slice(2).padStart(64,'0')]:word(confirmed?1:0)}});const r=await m.inspect(x.options);assert.equal(Boolean(r.fields.mintCapability),confirmed);assert.match(r.fields.tradingTaxes.value,/Transfer 0%/);assert.equal(r.fields.ownerAdmin.evidence[0].owner,C);assert.match(r.fields.ownerAdmin.value,/Owner-governed/);}
  const x=fixture({source:{...source,runtimeReview:null}});const r=await m.inspect(x.options);assert.equal(r.fields.mintCapability,undefined);assert.equal(r.fields.tradingTaxes,undefined);
+});
+
+test('nested clone binds terminal ABI but reads ownership in outer storage context',async()=>{
+ const clone=a=>'0x363d3d373d3d3d363d73'+a.slice(2)+'5af43d82803e903d91602b57fd5bf3';
+ const owner=m.selector('owner()');
+ const x=fixture({code:clone(B),targets:{[B]:clone(C),[C]:basic},calls:{[A+':'+owner]:addr(B)}});
+ x.options.sourceLoader=async(_,address)=>address===C?{digest:'terminal',abi:[fn('owner')]}:null;
+ const r=await m.inspect(x.options);
+ assert.equal(r.fields.contractArchitecture.evidence[0].immediateTarget,B);
+ assert.equal(r.fields.contractArchitecture.evidence[0].implementation,C);
+ assert.equal(r.details.delegationPath.storageContext,A);
+ assert.match(r.fields.ownerAdmin.value,new RegExp(B));
+ assert.equal(r.fields.tradingTaxes,undefined);
+ assert.ok(!x.seen.some(([method,p])=>method==='eth_getStorageAt'&&p[0]!==A));
 });

@@ -9,7 +9,7 @@ const {transientRpcError,executionRevert}=require('./rpc-errors');
 const {uint,units,abiString,BURN,ADDRESS}=require('./eth');
 const cfg=chain('robinhood');
 const DEFAULT_FALLBACK='https://robinhood.drpc.org';
-const READ_ONLY=new Set(['eth_chainId','eth_blockNumber','eth_getCode','eth_call','eth_getStorageAt','eth_getBlockByNumber','eth_getLogs','eth_getTransactionByHash']);
+const READ_ONLY=new Set(['eth_chainId','eth_blockNumber','eth_getCode','eth_call','eth_getStorageAt','eth_getBlockByNumber','eth_getLogs','eth_getTransactionByHash','eth_getTransactionReceipt']);
 let nextId=0;
 function providers(env=process.env){
  const primary=rpcUrl('robinhood',env);
@@ -74,6 +74,7 @@ async function rpc(method,params,opts={}){
     verifyChainId('robinhood',await requestAt(endpoints[i],'eth_chainId',[],opts));
    const value=await requestAt(endpoints[i],method,params,opts);
    if(i!==0&&method==='eth_chainId')verifyChainId('robinhood',value);
+   try{opts.onProvider?.(new URL(endpoints[i]).hostname);}catch{}
    return value;
   }catch(error){
    last=error;

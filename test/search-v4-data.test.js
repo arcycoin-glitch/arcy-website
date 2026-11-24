@@ -30,7 +30,7 @@ test('unreviewed source/selector never inherits reviewed V4 behaviors',async()=>
 test('reviewed fixed supply/wrapper absence is limited to direct runtimes, preserving residual proxy authority',async()=>{
  for(const name of ['FIXED_ERC677','NATIVE_DEPOSIT_WRAPPER','FIXED_LAUNCH_RESTRICTIONS']){
   const direct=await reviewed(name);
-  if(name==='FIXED_LAUNCH_RESTRICTIONS'){
+  if(['FIXED_LAUNCH_RESTRICTIONS','FIXED_ERC677'].includes(name)){
    assert.equal(direct.fields.tradingTaxes.value,'Buy 0% · Sell 0% · Transfer 0%');
    assert.equal(direct.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TAX_ALL_TRANSFERS');
    assert.equal(direct.fields.tradingTaxes.evidence[0].tokenTax.externalFees.dex,'NOT_VERIFIED');
@@ -40,6 +40,7 @@ test('reviewed fixed supply/wrapper absence is limited to direct runtimes, prese
   }
   const existing={value:'Proxy admin remains'},proxy=await reviewed(name,{direct:false,fields:{ownerAdmin:existing}});
   assert.equal(proxy.fields.ownerAdmin,existing);
+  assert.equal(proxy.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TRANSFER_ONLY');
   if(name!=='NATIVE_DEPOSIT_WRAPPER')assert.equal(proxy.fields.mintCapability,undefined);
  }
 });

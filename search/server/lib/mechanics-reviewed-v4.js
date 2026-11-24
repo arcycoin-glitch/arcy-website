@@ -58,7 +58,8 @@ async function apply({profile,fields,details,proof,fact,word,call,address,block,
    ...proof,scope:'No privileged owner/admin or role path in this exact runtime/source. Permissionless native deposits create balances; forced native transfers can affect totalSupply without crediting ERC20 balances.'},'VERIFIED_SOURCE');
  }
  if(profile==='FIXED_ERC677'){
-  fields.tradingTaxes=transfer('transfer/transferFrom move full units; ERC677 recipient callbacks are separate external behavior and DEX/hook fees remain unknown.');
+  fields.tradingTaxes=direct?require('./mechanics-v8-fees').directZero(fact,proof,'Both ERC20 transfer paths always credit the full requested amount. The distinct ERC677 transferAndCall() callback can revert; external callback execution and market fees are separate.'):
+   transfer('transfer/transferFrom move full units; ERC677 recipient callbacks are separate external behavior and DEX/hook fees remain unknown.');
   if(direct)fields.mintCapability=fact('NONE DETECTED ✓','Reviewed constant totalSupply and constructor-only initial allocation',{
    ...proof,scope:'Complete non-delegating implementation has no post-construction issuance path; not inferred from a missing getter.'},'VERIFIED_SOURCE');
   if(direct)fields.ownerAdmin=fields.ownerAdmin||fact('NONE DETECTED ✓','Reviewed complete non-delegating authority paths',{

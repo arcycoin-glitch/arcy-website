@@ -33,6 +33,8 @@ test('Gnosis full source fixture reproduces the reviewed digest; constructor rec
  assert.equal(r.fields.tradingTaxes.evidence[0].sourceBoundNonDelegatingRuntime,true);
  assert.equal(x.log.filter(x=>x.method==='eth_call').length,0);
  const clone=fixture('FIXED_SUPPLY_LEGACY_ALLOCATION',{runtime:'0x363d3d373d3d3d363d73'+B.slice(2)+'5af43d82803e903d91602b57fd5bf3'});
+ const rpc=clone.options.rpc;
+ clone.options.rpc=(method,params,...rest)=>method==='eth_getCode'&&params[0]===B?Promise.resolve('0x600160005500'):rpc(method,params,...rest);
  const unresolved=await inspect(clone);assert.equal(unresolved.fields.mintCapability,undefined);assert.equal(unresolved.fields.ownerAdmin,undefined);
  assert.equal(unresolved.fields.tradingTaxes.value,'Transfer 0% · DEX/hook fees NOT VERIFIED');
  assert.equal(unresolved.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TRANSFER_ONLY');

@@ -329,9 +329,12 @@ async function mechanics({address,base}){
    const legacy=await require('./timeout').withTimeout(
      original.callOriginal('mechanics',address),15000,'Reviewed Arc hook fallback deadline');
    const recovered=require('./arc-mechanics-recovery').recover(legacy,{address,block:base.block});
-   if(recovered)expanded.fields.tradingTaxes={...recovered,evidence:[...recovered.evidence,
-    ...(expanded.fields?.tradingTaxes?.evidence||[]).map(e=>({...e,
-     retainedFrom:'Current ordinary token transfer review; separate from verified launch-pool fee rates'}))]};
+   if(recovered){
+    expanded.fields.tradingTaxes={...recovered,evidence:[...recovered.evidence,
+     ...(expanded.fields?.tradingTaxes?.evidence||[]).map(e=>({...e,
+      retainedFrom:'Current ordinary token transfer review; separate from verified launch-pool fee rates'}))]};
+    return require('./mechanics-coverage').attributeFees(expanded,{network:'arc',address,block:base.block});
+   }
   }catch{} // Keep the original evidence state; do not invent fees.
  }
  return expanded;
