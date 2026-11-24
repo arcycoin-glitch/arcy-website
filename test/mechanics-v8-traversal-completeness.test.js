@@ -33,3 +33,9 @@ test('real traversal reports truncation when controller-node budget is exhausted
  assert(graph.skipped.some(x=>x.reason==='GRAPH_NODE_OR_DEPTH_LIMIT'));
  assert(graph.edges.every(x=>x.verificationStatus!=='CONFIRMED_AUTHORITY'));
 });
+
+test('unresolved root edges cannot produce TRAVERSED completeness',()=>{
+ assert.equal(traversalStatus([],[],[{verificationStatus:'UNKNOWN_AUTHORITY'}]),'INCOMPLETE');
+ assert.equal(traversalStatus([],[],[{verificationStatus:'CANDIDATE_CONTROLLER'}]),'INCOMPLETE');
+ assert.equal(traversalStatus([],[],[{verificationStatus:'CONFIRMED_AUTHORITY'}]),'TRAVERSED');
+});
