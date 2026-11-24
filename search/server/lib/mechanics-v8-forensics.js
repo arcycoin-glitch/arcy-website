@@ -29,7 +29,22 @@ function describe({profile,proof,stamp,details}){
   'BURN_CAPABILITY','Reviewed supply-reducing execution paths','VERIFIED'):
   status('BURN_CAPABILITY','No reviewed supply-reducing path was established.');
  const observed=details.observations||[];
- const who=observed.filter(x=>x.method==='hasRole'&&x.role==='BURNER_ROLE'&&x.value===true).map(x=>x.member);
+ // A role getter is usable only for the reviewed implementation and pinned token state.
+ // Conflicting answers for the same member must fail closed, not confirm authority.
+ const subject=address(details.subjectAddress),implementation=address(proof?.implementation);
+ const block=details.block;
+ const roleChecks=new Map();
+ if(subject&&implementation&&block&&proof?.sourceDigest){
+  for(const x of observed){
+   if(x.method!=='hasRole'||x.role!=='BURNER_ROLE'||typeof x.value!=='boolean'||
+      !address(x.member)||x.block!==block||x.sourceDigest!==proof.sourceDigest||
+      address(x.implementation)!==implementation||
+      (x.address&&address(x.address)!==subject))continue;
+   const member=address(x.member);
+   const values=roleChecks.get(member)||new Set();values.add(x.value);roleChecks.set(member,values);
+  }
+ }
+ const who=[...roleChecks].filter(([,values])=>values.size===1&&values.has(true)).map(([member])=>member);
  const burnAuthorization=confirmed&&profile==='ROLE_MINTER_BURNER_VOTES'&&who.length?
   stamp({...proof,value:[...new Set(who)],rule:'BURNER_ROLE',scope:'Observed authorized members. Other role members were not fully enumerated.'},
    'BURN_AUTHORIZATION','Pinned hasRole() under a reviewed burn gate','VERIFIED'):
