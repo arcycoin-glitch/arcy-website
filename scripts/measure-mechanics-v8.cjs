@@ -56,7 +56,7 @@ function measure(before,after,tokens=fixed.tokens){
    implementationCandidate:audit.proxy?.immediateTarget||next.f.contractArchitecture?.evidence?.find(x=>x.implementation)?.implementation||null,
    selectorRoutes:audit.diamondRoutes||null,
    source:audit.source||null,sources:audit.sources||[],
-   upgradeAuthority:{confirmed:edges.filter(x=>x.verificationStatus==='CONFIRMED_AUTHORITY'),observed:edges.filter(x=>x.verificationStatus==='OBSERVED_CONTROLLER'),
+   upgradeAuthority:{traversalStatus:audit.authority?.traversalStatus||'UNKNOWN',confirmed:edges.filter(x=>x.verificationStatus==='CONFIRMED_AUTHORITY'),observed:edges.filter(x=>x.verificationStatus==='OBSERVED_CONTROLLER'),
     unresolved:edges.filter(x=>['CANDIDATE_CONTROLLER','UNKNOWN_AUTHORITY'].includes(x.verificationStatus))},
    ownerAdmin:next.f.ownerAdmin||null,privileges:audit.privileges||[],forensics:audit.forensics||null,
    feeAttribution:next.fees||null,tokenTaxProof:next.f.tradingTaxes,
@@ -66,6 +66,8 @@ function measure(before,after,tokens=fixed.tokens){
  const stats=(s)=>Object.fromEntries(['VERIFIED','PARTIALLY_VERIFIED','UNKNOWN','UNSUPPORTED'].map(k=>[k,s.filter(x=>x===k).length]));
  const aggregate=sub=>({tokens:sub.length,before:stats(sub.map(x=>x.before.state)),after:stats(sub.map(x=>x.after.state)),
   confirmedUpgradeAuthority:sub.filter(r=>r.upgradeAuthority.confirmed.length).length,
+  truncatedAuthorityGraph:sub.filter(r=>r.upgradeAuthority.traversalStatus==='TRUNCATED').length,
+  incompleteAuthorityGraph:sub.filter(r=>r.upgradeAuthority.traversalStatus==='INCOMPLETE').length,
   sourceStateOwnerOrRole:sub.filter(r=>r.ownerAdmin?.cls==='ON_CHAIN_VERIFIED'||r.ownerAdmin?.cls==='CROSS_VERIFIED').length,
   observedRoleMembership:sub.filter(r=>r.privileges.some(x=>x.method==='hasRole'&&x.value===true)).length,
   burnCapabilityVerified:sub.filter(r=>r.forensics?.burnCapability?.verificationStatus==='VERIFIED').length,
