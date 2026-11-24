@@ -82,7 +82,7 @@ function measure(before,after,tokens=fixed.tokens){
   previousPreview:{verified:rows.filter(x=>x.previousPreview==='VERIFIED').length,total:rows.length,source:'PR #321; different observation time'},
   beforeCommit:before.commit,afterCommit:after.commit,beforeMode:before.mode,afterMode:after.mode,
   total:aggregate(rows),byNetwork:Object.fromEntries([...new Set(tokens.map(t=>t.network))].map(n=>[n,aggregate(rows.filter(r=>r.network===n))])),
-  measurement:{before:costs(b),after:costs(a),latencyContext:compareLatency(before,after)},previousPreviewMisses:rows.filter(r=>r.previousPreview!=='VERIFIED').map(r=>r.symbol),
+  measurement:{before:costs(b),after:costs(a),latencyContext:{fixed40:compareLatency({rows:before.rows.filter(r=>seen.has(id(r)))},{rows:after.rows.filter(r=>seen.has(id(r)))}),allBenchmarkSubjects:compareLatency(before,after)}},previousPreviewMisses:rows.filter(r=>r.previousPreview!=='VERIFIED').map(r=>r.symbol),
   fixedByV8:rows.filter(r=>r.after.diagnosis==='V8_PROOF_GAP_FIXED').map(r=>({symbol:r.symbol,address:r.address,block:r.block,cause:r.after.cause})),rows};
 }
 if(require.main===module){
