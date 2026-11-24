@@ -1,5 +1,6 @@
 'use strict';
 const fs=require('node:fs'),assert=require('node:assert/strict');
+const {compareLatency}=require('./mechanics-v8-latency.cjs');
 const fixed=require('../data/verified-coverage/radar-cohort-20261121.json');
 const priorPreview=new Set('FOBO TORCH FRONG TAO HOOKR CVX YFI SKY UNI DELTA HMM PONS'.split(' '));
 const address=x=>String(x||'').toLowerCase();
@@ -81,7 +82,7 @@ function measure(before,after,tokens=fixed.tokens){
   previousPreview:{verified:rows.filter(x=>x.previousPreview==='VERIFIED').length,total:rows.length,source:'PR #321; different observation time'},
   beforeCommit:before.commit,afterCommit:after.commit,beforeMode:before.mode,afterMode:after.mode,
   total:aggregate(rows),byNetwork:Object.fromEntries([...new Set(tokens.map(t=>t.network))].map(n=>[n,aggregate(rows.filter(r=>r.network===n))])),
-  measurement:{before:costs(b),after:costs(a)},previousPreviewMisses:rows.filter(r=>r.previousPreview!=='VERIFIED').map(r=>r.symbol),
+  measurement:{before:costs(b),after:costs(a),latencyContext:compareLatency(before,after)},previousPreviewMisses:rows.filter(r=>r.previousPreview!=='VERIFIED').map(r=>r.symbol),
   fixedByV8:rows.filter(r=>r.after.diagnosis==='V8_PROOF_GAP_FIXED').map(r=>({symbol:r.symbol,address:r.address,block:r.block,cause:r.after.cause})),rows};
 }
 if(require.main===module){
