@@ -12,6 +12,13 @@ const link=(controller,mechanism,permission,verificationStatus,source,extra={})=
  sourceReference:source?.runtimeFamily?.sourceReference||source?.url||null,...extra
 });
 const matched=(source,a)=>source?.subjectAddress===a;
+const LIMIT_REASONS=new Set(['GRAPH_NODE_OR_DEPTH_LIMIT','GRAPH_BUDGET','GRAPH_DEADLINE']);
+// Traversal completeness does not imply proof of exclusive or executable authority.
+function traversalStatus(nodes,skipped){
+ const reasons=[...nodes,...skipped].map(x=>x.reason).filter(Boolean);
+ if(reasons.some(reason=>LIMIT_REASONS.has(reason)))return 'TRUNCATED';
+ return reasons.length?'INCOMPLETE':'TRAVERSED';
+}
 
 async function trace({subject,roots,codeAt,sourceAt,call,abiFn,decodeArray,stamp,deadline}){
  const nodes=[],edges=[],skipped=[],complete=new Set(),pending=new Map(),starts=new Set();
@@ -95,11 +102,11 @@ async function trace({subject,roots,codeAt,sourceAt,call,abiFn,decodeArray,stamp
  for(const e of edges)if(e.controller){if(!adjacency.has(e.contractAddress))adjacency.set(e.contractAddress,[]);adjacency.get(e.contractAddress).push(e.controller);}
  const reaches=(a,b,seen)=>{if(a===b)return true;if(seen.has(a))return false;seen.add(a);return (adjacency.get(a)||[]).some(x=>reaches(x,b,seen));};
  for(const e of edges)if(e.controller&&!e.cycle)e.cycle=reaches(e.controller,e.contractAddress,new Set());
- return {edges,nodes,skipped,limits:LIMITS,requests,sources,
+ return {edges,nodes,skipped,traversalStatus:traversalStatus(nodes,skipped),limits:LIMITS,requests,sources,
   scope:'Confirmed edges apply only to the named function, source and block. Signer composition, alternate roles, modules, delays, executability and multi-hop exclusivity are not inferred.'};
 }
 function root(addressValue,mechanism,permission,status,source,extra){
  const a=address(addressValue);
  return link(a!==ZERO?a:null,mechanism,permission,status,source,extra);
 }
-module.exports={trace,root,LIMITS,GETTERS,inScope:()=>scope.getStore()===true};
+module.exports={trace,root,LIMITS,GETTERS,traversalStatus,inScope:()=>scope.getStore()===true};
