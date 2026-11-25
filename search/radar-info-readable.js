@@ -86,6 +86,7 @@
   if(!overview||typeof Observer!=='function')return false;
   const sawCooldown=new Set(),retried=new Set();
   const offsets={arc:0,ethereum:2000,robinhood:4000,pons:6000};
+  const schedule=doc.defaultView.setTimeout?.bind(doc.defaultView)||setTimeout;
   const cardFor=network=>Array.from(overview.querySelectorAll('[data-overview]'))
    .find(card=>card.dataset.overview===network);
   const eligible=network=>{
@@ -115,7 +116,7 @@
     if(button.disabled&&button.textContent==='Kaynak bekleme süresinde')sawCooldown.add(network);
     if(!sawCooldown.has(network)||retried.has(network)||!eligible(network))continue;
     retried.add(network);
-    setTimeout(()=>run(network),offsets[network]);
+    schedule(()=>run(network),offsets[network]);
    }
   };
   const observer=new Observer(scan);
