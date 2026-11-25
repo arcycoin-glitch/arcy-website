@@ -20,6 +20,8 @@
   SELF_PUBLISHED_PROJECT_SITE:'Projenin yayımladığı internet sitesi; bağımsız doğrulama değildir',
   PROJECT_CHANNELS_LISTED:'Proje kanalları listelenmiş; resmîlikleri ayrıca doğrulanmalı',
   SUSPICIOUS_ACTIVITY:'Şüpheli işlem etkinliği sinyali; kesin manipülasyon kanıtı değildir',
+  UNIQUE_PARTICIPANTS_NOT_OBSERVED:'Benzersiz işlem yapan cüzdan sayısı doğrulanamadı; hacmin organikliği bilinmiyor',
+  CONCENTRATED_TRADING_ACTIVITY:'İşlemler az sayıda cüzdanda yoğunlaşıyor; bu tek başına manipülasyon kanıtı değildir',
   UNLOCK_SCHEDULE_NOT_MEASURED:'Token kilit açılış takvimi ölçülmedi',
   ISSUER_NOT_OFFICIALLY_VERIFIED:'Tokenı çıkaran taraf resmî kaynaklarla doğrulanamadı',
   INCOMPLETE_RESEARCH_PROFILE:'Proje araştırma profilinde eksik bilgiler var',
