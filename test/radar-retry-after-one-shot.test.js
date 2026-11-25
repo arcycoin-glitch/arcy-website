@@ -1,74 +1,96 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const fs=require('node:fs');
-const vm=require('node:vm');
-const path=require('node:path');
+const addon=require('../search/radar-info-readable.js');
 
-// Evaluate the actual frontend function with controlled browser timers and visibility.
-// No network calls are made by these tests.
-const src=fs.readFileSync(path.join(__dirname,'../search/market-radar.js'),'utf8');
-const start=src.indexOf(' function scheduleOverviewRetry(');
-const end=src.indexOf('\n async function refreshOverview(',start);
-assert(start>0&&end>start,'Radar frontend must retain the tested scheduling function');
-const implementation=src.slice(start,end);
-
-function fixture(){
- const scheduled=[],listeners=new Map(),requests=[],renders=[],cleared=[];
- const overviewRetryAt=new Map(),overviewRetryTimers=new Map(),overviewAutoRetryUsed=new Set();
+// Exercise the production optional addon against a controlled DOM.
+// The byte-locked market-radar.js renderer is intentionally unchanged.
+function mounted(){
+ const timers=[],observers=[],clicks=[],listeners=new Map();
+ const cards=new Map();
+ for(const id of ['arc','ethereum','robinhood','pons']){
+  const button={disabled:false,textContent:'Yeniden Dene ↻',click(){clicks.push(id);}};
+  const card={dataset:{overview:id},hidden:id!=='robinhood',
+   querySelector(selector){return selector==='.arcy-radar-overview-action'?button:null;}};
+  cards.set(id,{card,button});
+ }
+ const root={querySelectorAll(selector){
+  assert.equal(selector,'[data-overview]');
+  return Array.from(cards.values(),x=>x.card);
+ }};
  const doc={
-  visibilityState:'visible',
-  addEventListener(type,handler){listeners.set(type,handler);},
-  removeEventListener(type,handler){if(listeners.get(type)===handler)listeners.delete(type);}
+  visibilityState:'visible',defaultView:{
+   MutationObserver:class{
+    constructor(cb){observers.push(cb);}
+    observe(target,options){
+     assert.equal(target,root);
+     assert.equal(options.subtree,true);
+     assert(options.attributeFilter.includes('disabled'));
+     assert(options.attributeFilter.includes('hidden'));
+    }
+   },
+   setTimeout(fn,ms){const timer={fn,ms};timers.push(timer);return timer;}
+  },
+  querySelector(selector){return selector==='.arcy-radar-overview'?root:null;},
+  addEventListener(type,handler){const set=listeners.get(type)||new Set();set.add(handler);listeners.set(type,set);},
+  removeEventListener(type,handler){listeners.get(type)?.delete(handler);},
+  createElement(){throw Error('Information popover is not exercised by this suite');}
  };
- const ctx={
-  Date:{now:()=>5000},
-  Math,overviewRetryAt,overviewRetryTimers,overviewAutoRetryUsed,document:doc,
-  clearTimeout(handle){cleared.push(handle);},
-  setTimeout(fn,ms){const handle={fn,ms,unref(){}};scheduled.push(handle);return handle;},
-  renderOverview(network,data){renders.push({network,data});},
-  refreshOverview(network){requests.push(network);return Promise.resolve(true);}
- };
- vm.runInNewContext(implementation+'\nthis.scheduleOverviewRetry=scheduleOverviewRetry;',ctx);
- return {schedule:ctx.scheduleOverviewRetry,scheduled,listeners,requests,renders,cleared,
-  overviewRetryAt,overviewRetryTimers,overviewAutoRetryUsed,doc};
+ addon.install(doc);
+ const notify=()=>observers.forEach(cb=>cb());
+ const fire=type=>Array.from(listeners.get(type)||[]).forEach(cb=>cb());
+ return {cards,doc,notify,fire,timers,clicks,listeners,observers};
 }
 
-test('Retry-After schedules one real request per network; does not merely repaint',()=>{
- const x=fixture();
- const a=x.schedule('pons',30000);
- assert.equal(a.automatic,true);
- assert.equal(a.delay,36000,'Pons gets a stagger to avoid four simultaneous quota requests');
- assert.equal(x.overviewRetryAt.get('pons'),41000);
- assert.equal(x.requests.length,0,'never request before the cooldown');
- x.scheduled[0].fn();
- assert.deepEqual(x.requests,['pons']);
- assert.equal(x.overviewRetryAt.has('pons'),false);
- assert.equal(x.overviewRetryTimers.has('pons'),false);
- const b=x.schedule('pons',30000);
- assert.equal(b.automatic,false,'do not create repeating API calls after another rate limit');
- x.scheduled[1].fn();
- assert.deepEqual(x.requests,['pons'],'second cooldown only re-enables manual retry');
- assert.equal(x.renders.length,1);
+test('one recovered network request only after previously observed cooldown expires',()=>{
+ const x=mounted(),{card,button}=x.cards.get('robinhood');
+ x.notify();
+ assert.equal(x.timers.length,0,'an ordinary enabled manual control never auto-clicks');
+ button.disabled=true;button.textContent='Kaynak bekleme süresinde';x.notify();
+ button.disabled=false;button.textContent='Yeniden Dene ↻';x.notify();
+ assert.equal(x.timers.length,1);
+ assert.equal(x.timers[0].ms,4000,'Robinhood retry is staggered');
+ assert.deepEqual(x.clicks,[]);
+ x.timers[0].fn();
+ assert.deepEqual(x.clicks,['robinhood']);
+ button.disabled=true;button.textContent='Kaynak bekleme süresinde';x.notify();
+ button.disabled=false;button.textContent='Yeniden Dene ↻';x.notify();
+ assert.equal(x.timers.length,1,'subsequent rate limits do not schedule retry storms');
+ assert.deepEqual(x.clicks,['robinhood']);
+ assert.equal(card.hidden,false);
 });
 
-test('a backgrounded tab defers its single retry until visible',()=>{
- const x=fixture();x.doc.visibilityState='hidden';
- x.schedule('arc',1000);x.scheduled[0].fn();
- assert.deepEqual(x.requests,[]);
- assert.equal(x.listeners.has('visibilitychange'),true);
- x.doc.visibilityState='visible';x.listeners.get('visibilitychange')();
- assert.deepEqual(x.requests,['arc']);
- assert.equal(x.listeners.size,0,'visibility listener must be removed');
+test('Pons cooldown recovers when its previously hidden card becomes visible',()=>{
+ const x=mounted(),{card,button}=x.cards.get('pons');
+ button.disabled=true;button.textContent='Kaynak bekleme süresinde';x.notify();
+ button.disabled=false;button.textContent='Yeniden Dene ↻';x.notify();
+ assert.equal(x.timers.length,0,'hidden network cards must not consume the retry quota');
+ card.hidden=false;x.notify();
+ assert.equal(x.timers.length,1);
+ assert.equal(x.timers[0].ms,6000);
+ x.timers[0].fn();
+ assert.deepEqual(x.clicks,['pons']);
 });
 
-test('retry is independently bounded and isolated per network',()=>{
- const x=fixture();
- assert.equal(x.schedule('arc',2000).delay,2000);
- assert.equal(x.schedule('ethereum',2000).delay,4000);
- assert.equal(x.schedule('robinhood',2000).delay,6000);
- assert.equal(x.schedule('pons',2000).delay,8000);
- assert.equal(x.overviewAutoRetryUsed.size,4);
- assert.equal(x.schedule('arc',48*3600*1000).delay,24*3600*1000);
- assert(x.cleared.length>=1);
+test('background tabs do not send an additional request until visible',()=>{
+ const x=mounted(),{button}=x.cards.get('robinhood');
+ button.disabled=true;button.textContent='Kaynak bekleme süresinde';x.notify();
+ button.disabled=false;button.textContent='Yeniden Dene ↻';x.notify();
+ x.doc.visibilityState='hidden';x.timers[0].fn();
+ assert.deepEqual(x.clicks,[]);
+ assert.equal(x.listeners.get('visibilitychange')?.size,1);
+ x.doc.visibilityState='visible';x.fire('visibilitychange');
+ assert.deepEqual(x.clicks,['robinhood']);
+ assert.equal(x.listeners.get('visibilitychange')?.size,0);
+});
+
+test('bad or non-cooldown source states never trigger retries or false data',()=>{
+ const x=mounted(),{button}=x.cards.get('robinhood');
+ button.disabled=true;button.textContent='KONTROL EDİLİYOR';x.notify();
+ button.disabled=false;button.textContent='Yeniden Dene ↻';x.notify();
+ assert.equal(x.timers.length,0);
+ button.disabled=true;button.textContent='Kaynak bekleme süresinde';x.notify();
+ button.disabled=false;button.textContent='Bu pencerede liste boş';x.notify();
+ assert.equal(x.timers.length,0);
+ assert.deepEqual(x.clicks,[]);
 });
