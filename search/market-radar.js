@@ -230,7 +230,7 @@ const change24hReason=item=>{
  const networkTheme={arc:'arc',ethereum:'ethereum',robinhood:'robinhood',pons:'pons'};
  const icon={arc:'',ethereum:'',robinhood:'',pons:''};
  const overviewData=new Map();
- const overviewPending=new Map(),overviewRetryAt=new Map(),overviewRetryTimers=new Map(),overviewAutoRetryUsed=new Set();
+ const overviewPending=new Map(),overviewRetryAt=new Map(),overviewRetryTimers=new Map();
  let expandedNetwork=null;
  // UI-only: explain the source-backed V3 score without extra provider requests.
  function explainDiscovery(raw){
@@ -561,33 +561,6 @@ const change24hReason=item=>{
  prev.addEventListener('click',()=>{if(page>0){page--;render();}});
  next.addEventListener('click',()=>{if((page+1)*5<items.length){page++;render();}});
  setView('research');
- // One source-controlled, quota-respecting automatic recovery per network per page session.
- // A cooldown can be long; a hidden tab waits until it becomes visible before retrying.
- function scheduleOverviewRetry(network,wait){
-  const stagger={arc:0,ethereum:2000,robinhood:4000,pons:6000}[network]||0;
-  const delay=Math.max(1,Math.min(24*3600*1000,Math.ceil(wait)+stagger));
-  overviewRetryAt.set(network,Date.now()+delay);
-  clearTimeout(overviewRetryTimers.get(network));
-  const automatic=!overviewAutoRetryUsed.has(network);
-  if(automatic)overviewAutoRetryUsed.add(network);
-  const timer=setTimeout(()=>{
-   overviewRetryAt.delete(network);
-   overviewRetryTimers.delete(network);
-   if(!automatic){renderOverview(network,null);return;}
-   if(document.visibilityState==='hidden'){
-    const onVisible=()=>{
-     if(document.visibilityState==='hidden')return;
-     document.removeEventListener('visibilitychange',onVisible);
-     void refreshOverview(network);
-    };
-    document.addEventListener('visibilitychange',onVisible);
-    renderOverview(network,null);
-   }else void refreshOverview(network);
-  },delay);
-  timer.unref?.();
-  overviewRetryTimers.set(network,timer);
-  return {automatic,delay};
- }
  async function refreshOverview(network){
   if(overviewPending.has(network))return overviewPending.get(network);
   if((overviewRetryAt.get(network)||0)>Date.now())return false;
@@ -600,18 +573,14 @@ const change24hReason=item=>{
      const raw=response.headers?.get?.('retry-after');
      const seconds=raw&&/^\d+$/.test(raw)?Number(raw):null;
      const until=seconds!==null?Date.now()+seconds*1000:Date.parse(raw||'');
-     let retryHint=null;
-     if([429,502,503,504].includes(response.status)&&Number.isFinite(until)&&until>Date.now()){
-      const {automatic,delay}=scheduleOverviewRetry(network,until-Date.now());
-      retryHint='HTTP '+response.status+' · '+Math.ceil(delay/1000)+' sn kaynak bekleme · '+
-       (automatic?'tek seferlik otomatik deneme':'sonrasında manuel deneyin');
+     if(Number.isFinite(until)&&until>Date.now()){
+      const wait=Math.min(until-Date.now(),24*3600*1000);
+      overviewRetryAt.set(network,Date.now()+wait);
+      clearTimeout(overviewRetryTimers.get(network));
+      const retryTimer=setTimeout(()=>{overviewRetryAt.delete(network);overviewRetryTimers.delete(network);renderOverview(network,null);},wait);
+      retryTimer.unref?.();overviewRetryTimers.set(network,retryTimer);
      }
-     renderOverview(network,null);
-     if(retryHint){
-      const updated=overview.querySelector('[data-overview="'+network+'"]')?.querySelector('.arcy-radar-overview-updated');
-      if(updated)updated.textContent=retryHint;
-     }
-     return false;
+     renderOverview(network,null);return false;
     }
     const data=await response.json();
     renderOverview(network,data);
