@@ -75,6 +75,55 @@
   return {short:featured.join(' · ')||'NOT VERIFIED',full:translated.join(' · ')||'NOT VERIFIED',sections};
  }
 
+
+ // Additive recovery only: the immutable Radar renderer retains full control of
+ // Retry-After, disabled buttons, cache provenance, API validation and ranking.
+ // A real network request happens only by activating its already enabled manual
+ // retry control once, after that control transitions out of cooldown.
+ function installRetryRecovery(doc){
+  const overview=doc.querySelector('.arcy-radar-overview');
+  const Observer=doc.defaultView?.MutationObserver;
+  if(!overview||typeof Observer!=='function')return false;
+  const sawCooldown=new Set(),retried=new Set();
+  const offsets={arc:0,ethereum:2000,robinhood:4000,pons:6000};
+  const cardFor=network=>Array.from(overview.querySelectorAll('[data-overview]'))
+   .find(card=>card.dataset.overview===network);
+  const eligible=network=>{
+   const card=cardFor(network),button=card?.querySelector('.arcy-radar-overview-action');
+   return !card?.hidden&&button&&!button.disabled&&button.textContent==='Yeniden Dene ↻'?button:null;
+  };
+  const run=network=>{
+   const button=eligible(network);
+   if(!button)return;
+   if(doc.visibilityState==='hidden'){
+    const onVisible=()=>{
+     if(doc.visibilityState==='hidden')return;
+     doc.removeEventListener('visibilitychange',onVisible);
+     eligible(network)?.click();
+    };
+    doc.addEventListener('visibilitychange',onVisible);
+    return;
+   }
+   button.click();
+  };
+  const scan=()=>{
+   for(const card of overview.querySelectorAll('[data-overview]')){
+    const network=card?.dataset?.overview;
+    if(!Object.hasOwn(offsets,network))continue;
+    const button=card.querySelector('.arcy-radar-overview-action');
+    if(!button)continue;
+    if(button.disabled&&button.textContent==='Kaynak bekleme süresinde')sawCooldown.add(network);
+    if(!sawCooldown.has(network)||retried.has(network)||!eligible(network))continue;
+    retried.add(network);
+    setTimeout(()=>run(network),offsets[network]);
+   }
+  };
+  const observer=new Observer(scan);
+  observer.observe(overview,{subtree:true,childList:true,attributes:true,attributeFilter:['disabled','hidden']});
+  scan();
+  return true;
+ }
+
  function install(doc){
   if(doc.__arcyRadarReadableInfo)return;
   doc.__arcyRadarReadableInfo=true;
@@ -157,6 +206,7 @@
    close(false);
   });
   if(typeof window!=='undefined')window.addEventListener('resize',()=>{if(owner)close(false);},{passive:true});
+  installRetryRecovery(doc);
  }
  return Object.freeze({translateReason:explainDiscovery,install});
 });
