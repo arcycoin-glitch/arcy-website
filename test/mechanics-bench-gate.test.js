@@ -143,3 +143,25 @@ test('V7: token-side zero tax promotion requires same digest, pinned direct-runt
  const unrelated=structuredClone(after);unrelated[4].f.tradingTaxes.evidence[0].tokenTaxScope='DEX_AND_TOKEN';
  assert.match(gate(before,unrelated).out,/stronger proof/);
 });
+
+test('V9: pinned-proxy snapshot zero tax is accepted only with same digest/block, mutable+snapshot-only flags and a complete effective binding',()=>{
+ const digest='c'.repeat(64),before=rows(),after=rows();
+ const proof={sourceDigest:digest,runtimeMatch:'exact_match',address:before[4].address,block:before[4].block};
+ before[4].f.tradingTaxes={ok:true,cls:'SINGLE_SOURCE',status:'VERIFIED_SOURCE',value:'Transfer 0% · DEX/hook fees NOT VERIFIED',evidence:[proof]};
+ const binding={pathComplete:true,verificationStatus:'VERIFIED',implementation:'0x'+'2'.repeat(40),effectiveImplementation:'0x'+'2'.repeat(40)};
+ const exact={...proof,coverage:'TOKEN_TAX_ALL_TRANSFERS',tokenTaxScope:'TOKEN_CONTRACT_ONLY',sourceBoundProxyRuntime:true,mutable:true,tokenTax:{upgradeable:true,snapshotOnly:true},binding};
+ after[4].f.tradingTaxes={ok:true,cls:'ON_CHAIN_VERIFIED',status:'VERIFIED_SOURCE_AND_STATE',value:'Buy 0% · Sell 0% · Transfer 0%',evidence:[exact]};
+ assert.equal(gate(before,after).ok,true,gate(before,after).out);
+ const mutate=fn=>{const a=structuredClone(after);fn(a[4].f.tradingTaxes.evidence[0]);return gate(before,a);};
+ for(const [name,fn] of Object.entries({
+  differentDigest:e=>{e.sourceDigest='d'.repeat(64);},
+  notMutable:e=>{e.mutable=false;},
+  notSnapshot:e=>{e.tokenTax.snapshotOnly=false;},
+  noProxyRuntime:e=>{e.sourceBoundProxyRuntime=false;},
+  incompletePath:e=>{e.binding.pathComplete=false;},
+  unresolved:e=>{e.binding.effectiveImplementation=null;},
+  mismatched:e=>{e.binding.effectiveImplementation='0x'+'3'.repeat(40);},
+  noBinding:e=>{delete e.binding;},
+  differentBlock:e=>{e.block='0x99';}
+ }))assert.match(mutate(fn).out,/stronger proof/,name);
+});
