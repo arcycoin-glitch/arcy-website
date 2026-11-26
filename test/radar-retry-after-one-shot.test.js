@@ -5,8 +5,9 @@ const addon=require('../search/radar-info-readable.js');
 
 // Exercise the production optional addon against a controlled DOM.
 // The byte-locked market-radar.js renderer is intentionally unchanged.
-function mounted(){
+function mounted({lateOverview=false}={}){
  const timers=[],observers=[],clicks=[],listeners=new Map();
+ let rootReady=!lateOverview;
  const cards=new Map();
  for(const id of ['arc','ethereum','robinhood','pons']){
   const button={disabled:false,textContent:'Yeniden Dene ↻',click(){clicks.push(id);}};
@@ -21,25 +22,30 @@ function mounted(){
  const doc={
   visibilityState:'visible',defaultView:{
    MutationObserver:class{
-    constructor(cb){observers.push(cb);}
+    constructor(cb){this.cb=cb;this.connected=false;observers.push(this);}
     observe(target,options){
-     assert.equal(target,root);
+     this.connected=true;this.target=target;
      assert.equal(options.subtree,true);
-     assert(options.attributeFilter.includes('disabled'));
-     assert(options.attributeFilter.includes('hidden'));
+     if(target===root){
+      assert(options.attributeFilter.includes('disabled'));
+      assert(options.attributeFilter.includes('hidden'));
+     }else assert.equal(target,doc.documentElement,'late-init observer must watch DOM insertion only');
     }
+    disconnect(){this.connected=false;}
    },
    setTimeout(fn,ms){const timer={fn,ms};timers.push(timer);return timer;}
   },
-  querySelector(selector){return selector==='.arcy-radar-overview'?root:null;},
+  documentElement:{},
+  querySelector(selector){return selector==='.arcy-radar-overview'&&rootReady?root:null;},
   addEventListener(type,handler){const set=listeners.get(type)||new Set();set.add(handler);listeners.set(type,set);},
   removeEventListener(type,handler){listeners.get(type)?.delete(handler);},
   createElement(){throw Error('Information popover is not exercised by this suite');}
  };
  addon.install(doc);
- const notify=()=>observers.forEach(cb=>cb());
+ const notify=()=>observers.filter(o=>o.connected).forEach(o=>o.cb());
  const fire=type=>Array.from(listeners.get(type)||[]).forEach(cb=>cb());
- return {cards,doc,notify,fire,timers,clicks,listeners,observers};
+ const mountOverview=()=>{rootReady=true;notify();};
+ return {cards,doc,notify,fire,mountOverview,timers,clicks,listeners,observers};
 }
 
 test('one recovered network request only after previously observed cooldown expires',()=>{
@@ -93,4 +99,45 @@ test('bad or non-cooldown source states never trigger retries or false data',()=
  button.disabled=false;button.textContent='Bu pencerede liste boş';x.notify();
  assert.equal(x.timers.length,0);
  assert.deepEqual(x.clicks,[]);
+});
+
+test('async addon installs its observer after Radar overview mounts',()=>{
+ const x=mounted({lateOverview:true});
+ assert.equal(x.observers.length,2,'one root observer and one late mount watcher');
+ assert.equal(x.observers.some(o=>o.connected&&o.target===x.doc.documentElement),true);
+ x.mountOverview();
+ assert.equal(x.observers.filter(o=>o.connected&&o.target===x.doc.documentElement).length,0,'bootstrap observer removed');
+ assert.equal(x.observers.filter(o=>o.connected).length,1,'only Radar observer remains');
+ const {button}=x.cards.get('robinhood');
+ button.disabled=true;button.textContent='Kaynak bekleme süresinde';x.notify();
+ button.disabled=false;button.textContent='Yeniden Dene ↻';x.notify();
+ assert.equal(x.timers.length,1);
+ x.timers[0].fn();
+ assert.deepEqual(x.clicks,['robinhood']);
+});
+
+test('changing selected network while a retry is queued does not spend the only recovery',()=>{
+ const x=mounted(),{card,button}=x.cards.get('robinhood');
+ button.disabled=true;button.textContent='Kaynak bekleme süresinde';x.notify();
+ button.disabled=false;button.textContent='Yeniden Dene ↻';x.notify();
+ assert.equal(x.timers.length,1);
+ card.hidden=true;x.notify();
+ x.timers[0].fn();
+ assert.deepEqual(x.clicks,[]);
+ card.hidden=false;x.notify();
+ assert.equal(x.timers.length,2);
+ x.timers[1].fn();
+ assert.deepEqual(x.clicks,['robinhood']);
+});
+
+test('manual refresh during pending cooldown recovery cancels extra automatic request',()=>{
+ const x=mounted(),{button}=x.cards.get('robinhood');
+ button.disabled=true;button.textContent='Kaynak bekleme süresinde';x.notify();
+ button.disabled=false;button.textContent='Yeniden Dene ↻';x.notify();
+ assert.equal(x.timers.length,1);
+ button.disabled=true;button.textContent='Kontrol ediliyor…';x.notify();
+ x.timers[0].fn();
+ assert.deepEqual(x.clicks,[],'only the manually initiated fetch is allowed');
+ button.disabled=false;button.textContent='Yeniden Dene ↻';x.notify();
+ assert.equal(x.timers.length,1,'automatic attempt quota was consumed');
 });
