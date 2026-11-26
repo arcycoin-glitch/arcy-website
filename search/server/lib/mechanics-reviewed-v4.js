@@ -110,6 +110,13 @@ async function apply({profile,fields,details,proof,fact,word,call,address,block,
  }
  if(profile==='UPGRADEABLE_NO_DIRECT_MINT'){
   fields.tradingTaxes=transfer('Current reviewed implementation transfers full token units and updates delegation bookkeeping separately; external DEX/hook fees and future upgrades are unknown.');
+  // V9: same snapshot policy as the MORPHO UUPS precedent. Strict zero only when the proxy path to the reviewed
+  // implementation is complete, VERIFIED and effectively resolved to exactly this source's target; mutable by design.
+  const binding=details.proxyBinding;
+  if(!direct&&admin&&binding&&binding.pathComplete===true&&binding.verificationStatus==='VERIFIED'&&binding.implementation&&
+   binding.effectiveImplementation===binding.implementation&&binding.sourceDigest)
+   fields.tradingTaxes=require('./mechanics-v8-fees').pinnedUupsZero(fact,{...proof,profile},binding,
+    'Verified implementation at this block transfers the full amount (no deduction in the transfer path); delegation bookkeeping is separate. Pinned-block snapshot: the proxy admin can upgrade the implementation, so this is not a permanence claim. No pool, router or hook fee is implied.');
   if(!direct&&admin)fields.mintCapability=fact('No direct mint · upgradeable','Reviewed current implementation + pinned proxy admin',{
    ...proof,proxyAdmin:admin,scope:'No public/external issuance path in this implementation; initialize is revision-gated and empty. This is NOT permanent fixed-supply or renouncement evidence: proxy upgrades can introduce issuance.'},'VERIFIED_SOURCE_AND_STATE');
  }
