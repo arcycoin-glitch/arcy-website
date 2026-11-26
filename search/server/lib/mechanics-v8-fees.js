@@ -27,12 +27,12 @@ function directZero(fact,proof,scope){
   scope
  },'VERIFIED_SOURCE_AND_STATE');
 }
-function pinnedUupsZero(fact,proof,binding){
+function pinnedUupsZero(fact,proof,binding,note){
  return fact(TRIPLET,'Exact reviewed UUPS ERC20 transfer paths + slot and implementation getter at the same block',{
   ...proof,coverage:ALL,tokenTaxScope:ONLY,sourceBoundNonDelegatingRuntime:false,sourceBoundProxyRuntime:true,mutable:true,
   tokenTax:{classification:'CURRENT_VERIFIED_TAX',denominator:'100',buy:'0',sell:'0',transfer:'0',
    rounding:'NO_DEDUCTION',scope:ONLY,upgradeable:true,snapshotOnly:true},
-  binding,scope:'The verified implementation at this block uses full-amount ERC20 balance updates and separate delegate vote bookkeeping. A later implementation may change transfer behavior. No pool, router or hook fee is implied.'
+  binding,scope:note||'The verified implementation at this block uses full-amount ERC20 balance updates and separate delegate vote bookkeeping. A later implementation may change transfer behavior. No pool, router or hook fee is implied.'
  },'VERIFIED_SOURCE_AND_STATE');
 }
 // Existing deep enrichment preserves verified fields. Refine the displayed
