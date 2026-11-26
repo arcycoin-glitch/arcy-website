@@ -49,7 +49,7 @@ const OWNABLE_FN=new Set(['owner','_checkOwner','_transferOwnership']);
 const BANNED=/\b(assembly|delegatecall|callcode|selfdestruct|suicide)\b/;
 const LIB_CONTRACTS=['ERC20','IERC20','IERC20Metadata','ERC20Burnable','Ownable','Context','IERC20Errors','IERC721Errors','IERC1155Errors',
  'ERC20Permit','IERC20Permit','EIP712','Nonces','IERC5267','AccessControl','IAccessControl','ERC165','IERC165','ECDSA','Strings','Math','SignedMath','ShortStrings','StorageSlot','MessageHashUtils','Counters',
- 'AccessControlEnumerable','IAccessControlEnumerable','EnumerableSet','ERC20Capped','ERC20Votes','Votes','IVotes','IERC5805','IERC6372','Time','Checkpoints','SafeCast','Panic','Ownable2Step'];
+ 'AccessControlEnumerable','IAccessControlEnumerable','EnumerableSet','ERC20Capped','ERC20Votes','Votes','IVotes','IERC5805','IERC6372','Time','Checkpoints','SafeCast','Panic','Ownable2Step','Bytes'];
 /**
  * @param {Object<string,{content:string}>} sources Sourcify-style source map (path -> {content})
  * @param {{lib:Object<string,string>, main?:string}} opts lib maps sha256(content)->canonical library file name
