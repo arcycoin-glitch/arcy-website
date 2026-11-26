@@ -67,6 +67,8 @@ jobs:
     if: needs.freshness.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    outputs:
+      degraded: ${{ steps.verify.outputs.degraded }}
     env:
       DATA_REF: ${{ (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.target != 'production')) && 'radar-v4-snapshots-preview' || 'radar-v4-snapshots' }}
     steps:
@@ -102,6 +104,7 @@ jobs:
           RADAR_OHLCV_KEYLESS: ${{ github.event_name != 'schedule' && '1' || '' }}
         run: node scripts/radar-v4-snapshot.cjs --previous snap/radar-v4/snapshot.json --out snap/radar-v4/snapshot.json --index snap/radar-v4/index.json --responses snap/radar-v4/served --memory snap/radar-v4/market-memory.json --history hist/radar-v4/snapshot.json --ohlcv-cache snap/radar-v4/ohlcv-cache.json --official-cache snap/radar-v4/official-cache.json
       - name: Verify exact Top 10 and current engine before publishing
+        id: verify
         if: env.DATA_REF == 'radar-v4-snapshots'
         run: |
           node -e '
@@ -109,7 +112,16 @@ jobs:
           const s=JSON.parse(fs.readFileSync("snap/radar-v4/snapshot.json","utf8"));
           const g=S.publishable(s,{commit:process.env.GITHUB_SHA});
           console.log(JSON.stringify({engineCommit:s.engineCommit,expected:process.env.GITHUB_SHA,generatedAt:s.generatedAt,...g}));
-          if(!g.ok){console.error("Refusing to publish stale, carried-forward or incomplete Radar Top 10 snapshot: "+g.problems.join(", "));process.exit(1);}
+          if(!g.ok){
+            // Issue #232: a section that could not be rebuilt must not freeze the healthy ones. Publish section-isolated ONLY when
+            // every problem is a carried-forward / not-built section that keeps its own older asOf (served STALE after 6 h, refused
+            // after 24 h). Structural, identity, engine, duplicate or overlap problems still refuse everything.
+            const d=S.publishDecision(s,{commit:process.env.GITHUB_SHA});
+            console.log(JSON.stringify({publishDecision:d}));
+            if(!d.ok){console.error("Refusing to publish stale, carried-forward or incomplete Radar Top 10 snapshot: "+g.problems.join(", "));process.exit(1);}
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,"degraded="+Object.keys(d.degraded).join(",")+"\n");
+            console.log("::warning title=Radar snapshot degraded sections::Published SECTION_ISOLATED. Fresh: "+d.fresh.join(",")+". Degraded (true older asOf, labelled STALE): "+Object.entries(d.degraded).map(([n,p])=>n+" "+p.join("+")).join("; "));
+          }
           '
       - name: Commit (fast-forward only, never force)
         run: |
@@ -157,6 +169,7 @@ jobs:
           LEVEL: ${{ needs.freshness.outputs.level }}
           AGE: ${{ needs.freshness.outputs.age_min }}
           BUILD: ${{ needs.snapshot.result }}
+          DEGRADED: ${{ needs.snapshot.outputs.degraded }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           title="Radar Production snapshot needs attention"
@@ -164,6 +177,10 @@ jobs:
           if [ "$BUILD" = "failure" ] || [ "$BUILD" = "cancelled" ] || { [ "$BUILD" = "skipped" ] && [ "$LEVEL" != "FRESH" ]; }; then
             body="Production snapshot build: ${BUILD}. Published snapshot age before this run: ${AGE:-unknown} min (level ${LEVEL}). Run: ${RUN_URL}. The site keeps serving the last valid snapshot (STALE after 6 h, legacy fallback after 24 h) until a run publishes again."
             echo "::error title=Radar snapshot alert::$body"
+            if [ -n "$num" ]; then gh issue comment "$num" -R "$REPO" --body "$body"; else gh issue create -R "$REPO" --title "$title" --body "$body"; fi
+          elif [ "$BUILD" = "success" ] && [ -n "$DEGRADED" ]; then
+            body="Production snapshot published SECTION_ISOLATED: section(s) ${DEGRADED} could not be rebuilt and keep their true older asOf (served STALE after 6 h, refused after 24 h); the other networks are fresh. Run: ${RUN_URL}."
+            echo "::warning title=Radar snapshot degraded::$body"
             if [ -n "$num" ]; then gh issue comment "$num" -R "$REPO" --body "$body"; else gh issue create -R "$REPO" --title "$title" --body "$body"; fi
           elif [ "$BUILD" = "success" ] && [ -n "$num" ]; then
             gh issue close "$num" -R "$REPO" --comment "Recovered: Production snapshot published by ${RUN_URL}."

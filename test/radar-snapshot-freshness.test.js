@@ -38,3 +38,11 @@ test('FR-3: workflow wiring — frequent off-peak cron, freshness gate, preview-
  // schedules and pushes still write Production; pull requests never do
  assert.match(y,/github\.event_name == 'pull_request' \|\| \(github\.event_name == 'workflow_dispatch'/);
 });
+
+test('#232: workflow wiring — section-isolated decision after the unchanged strict gate, degraded output and alert',()=>{
+ const y=fs.readFileSync(path.join(__dirname,'../.github/workflows/radar-v4-snapshot.yml'),'utf8');
+ assert.match(y,/S\.publishDecision\(s,\{commit:process\.env\.GITHUB_SHA\}\)/);
+ assert.match(y,/if\(!d\.ok\)\{console\.error\("Refusing to publish/,'structural problems still refuse');
+ assert.match(y,/id: verify/);assert.match(y,/degraded: \$\{\{ steps\.verify\.outputs\.degraded \}\}/);
+ assert.match(y,/DEGRADED: \$\{\{ needs\.snapshot\.outputs\.degraded \}\}/);
+});
