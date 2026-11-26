@@ -5,7 +5,7 @@ const CF=require('../lib/radar-v2/intel/custom-filter');
 const info=require('../search/radar-info-readable');
 const token=(over={})=>({
  network:'robinhood',chainId:4663,address:'0x'+'9'.repeat(40),key:'4663:'+'0x'+'9'.repeat(40),
- symbol:'RESEARCH',name:'Research Candidate',marketObserved:true,
+ symbol:'RESEARCH',name:'Research Candidate',marketObserved:true,eligibility:'REVIEW',
  identity:{level:'OFFICIAL_CONTRACT_VERIFIED'},
  category:{category:'EARLY_STAGE_CANDIDATE'},
  volume24hUsd:336771.81,liquidityUsd:3323059.47,trades24h:1262,
