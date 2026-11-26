@@ -48,7 +48,18 @@ for(let i=0;i<before.rows.length;i++){
        yp.sourceBoundNonDelegatingRuntime===true&&/^[0-9a-f]{64}$/.test(yp.sourceDigest||'')&&
        (x.evidence||[]).some(xp=>xp.sourceDigest===yp.sourceDigest&&
         xp.runtimeMatch===yp.runtimeMatch&&xp.address?.toLowerCase()===yp.address?.toLowerCase()&&xp.block===yp.block));
-    assert.ok(upgrade||bound||zeroTax,'Previously verified field changed without same-owner stronger proof: '+id+'/'+f+' old='+x.value+' new='+y.value);
+    // V9 pinned-proxy snapshot variant (AAVE, same policy as MORPHO): the same reviewed digest/runtime/block as the prior partial claim,
+    // an explicitly MUTABLE and SNAPSHOT-ONLY proof, and a complete execution binding whose implementation is the reviewed target.
+    const zeroTaxProxy=f==='tradingTaxes'&&x.status==='VERIFIED_SOURCE'&&y.status==='VERIFIED_SOURCE_AND_STATE'&&
+      x.cls==='SINGLE_SOURCE'&&y.cls==='ON_CHAIN_VERIFIED'&&
+      x.value==='Transfer 0% · DEX/hook fees NOT VERIFIED'&&y.value==='Buy 0% · Sell 0% · Transfer 0%'&&
+      (y.evidence||[]).some(yp=>yp.coverage==='TOKEN_TAX_ALL_TRANSFERS'&&yp.tokenTaxScope==='TOKEN_CONTRACT_ONLY'&&
+       yp.sourceBoundProxyRuntime===true&&yp.mutable===true&&yp.tokenTax?.upgradeable===true&&yp.tokenTax?.snapshotOnly===true&&
+       yp.binding?.pathComplete===true&&yp.binding?.verificationStatus==='VERIFIED'&&yp.binding?.implementation&&
+       yp.binding.effectiveImplementation===yp.binding.implementation&&/^[0-9a-f]{64}$/.test(yp.sourceDigest||'')&&
+       (x.evidence||[]).some(xp=>xp.sourceDigest===yp.sourceDigest&&
+        xp.runtimeMatch===yp.runtimeMatch&&xp.address?.toLowerCase()===yp.address?.toLowerCase()&&xp.block===yp.block));
+    assert.ok(upgrade||bound||zeroTax||zeroTaxProxy,'Previously verified field changed without same-owner stronger proof: '+id+'/'+f+' old='+x.value+' new='+y.value);
    }}
   stats[f].before+=Number(x.ok);stats[f].after+=Number(y.ok);
   if(!x.ok&&y.ok)stats[f].gain++;
