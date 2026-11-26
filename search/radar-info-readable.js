@@ -75,6 +75,80 @@
   return {short:featured.join(' · ')||'NOT VERIFIED',full:translated.join(' · ')||'NOT VERIFIED',sections};
  }
 
+
+ // Additive recovery only: the immutable Radar renderer retains full control of
+ // Retry-After, disabled buttons, cache provenance, API validation and ranking.
+ // A real network request happens only by activating its already enabled manual
+ // retry control once, after that control transitions out of cooldown.
+ function installRetryRecovery(doc){
+  const Observer=doc.defaultView?.MutationObserver;
+  if(typeof Observer!=='function')return false;
+  let overview=null;
+  const sawCooldown=new Set(),retried=new Set(),pending=new Set();
+  const offsets={arc:0,ethereum:2000,robinhood:4000,pons:6000};
+  const schedule=doc.defaultView.setTimeout?.bind(doc.defaultView)||setTimeout;
+  const cardFor=network=>Array.from(overview?.querySelectorAll('[data-overview]')||[])
+   .find(card=>card.dataset.overview===network);
+  const eligible=network=>{
+   const card=cardFor(network),button=card?.querySelector('.arcy-radar-overview-action');
+   return card&&!card.hidden&&button&&!button.disabled&&button.textContent==='Yeniden Dene ↻'?button:null;
+  };
+  const run=network=>{
+   if(retried.has(network)){pending.delete(network);return;}
+   if(doc.visibilityState==='hidden'){
+    const onVisible=()=>{
+     if(doc.visibilityState==='hidden')return;
+     doc.removeEventListener('visibilitychange',onVisible);
+     pending.delete(network);
+     const button=eligible(network);
+     if(button&&!retried.has(network)){retried.add(network);button.click();}
+     else scan(); // A different selected network must not consume this recovery.
+    };
+    doc.addEventListener('visibilitychange',onVisible);
+    return;
+   }
+   pending.delete(network);
+   const button=eligible(network);
+   if(button&&!retried.has(network)){retried.add(network);button.click();}
+   // If another network is selected now, the MutationObserver can try again
+   // when the original card is shown; no extra provider call is made.
+  };
+  const scan=()=>{
+   if(!overview)return;
+   for(const card of overview.querySelectorAll('[data-overview]')){
+    const network=card?.dataset?.overview;
+    if(!Object.hasOwn(offsets,network))continue;
+    const button=card.querySelector('.arcy-radar-overview-action');
+    if(!button)continue;
+    if(button.disabled&&button.textContent==='Kaynak bekleme süresinde')sawCooldown.add(network);
+    // If a user has retried manually while an automatic recovery was queued,
+    // do not send a second request when the old timer fires.
+    if(pending.has(network)&&button.disabled&&button.textContent==='Kontrol ediliyor…'){
+     pending.delete(network);retried.add(network);
+    }
+    if(!sawCooldown.has(network)||retried.has(network)||pending.has(network)||!eligible(network))continue;
+    pending.add(network);
+    schedule(()=>run(network),offsets[network]);
+   }
+  };
+  const observer=new Observer(scan);
+  const mount=()=>{
+   const found=doc.querySelector('.arcy-radar-overview');
+   if(!found)return false;
+   overview=found;
+   observer.observe(overview,{subtree:true,childList:true,attributes:true,attributeFilter:['disabled','hidden']});
+   scan();
+   return true;
+  };
+  if(!mount()){
+   // The optional script is async. It can arrive before the Radar renderer
+   // creates its overview; install once it appears rather than silently fail.
+   const boot=new Observer(()=>{if(mount())boot.disconnect();});
+   boot.observe(doc.documentElement||doc,{subtree:true,childList:true});
+  }
+  return true;
+ }
+
  function install(doc){
   if(doc.__arcyRadarReadableInfo)return;
   doc.__arcyRadarReadableInfo=true;
@@ -157,6 +231,7 @@
    close(false);
   });
   if(typeof window!=='undefined')window.addEventListener('resize',()=>{if(owner)close(false);},{passive:true});
+  installRetryRecovery(doc);
  }
  return Object.freeze({translateReason:explainDiscovery,install});
 });
