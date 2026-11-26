@@ -98,3 +98,43 @@ test('P0-5: a failed section is never filled with an older engine list; same-eng
  assert.equal(m.sections.pons.carriedForward,true,'same-engine section may be carried (labelled), but the publish gate still refuses it');
  assert.equal(S.publishable(m,{commit:'abc'}).ok,false);
 });
+
+test('#232: section-isolated publication — a Pons outage does not freeze Arc/Ethereum/Robinhood; true asOf kept; structural problems still refuse',()=>{
+ const s=snapshot();
+ assert.equal(S.publishDecision(s,{commit:'abc'}).mode,'COMPLETE');
+ // Pons could not be rebuilt: carried forward from the previous run, shortened by the ledger, asOf stays the OLD observation
+ const carried=structuredClone(s);
+ const old=new Date(Date.parse(s.generatedAt)-8*3600000).toISOString();
+ Object.assign(carried.sections.pons,{carriedForward:true,asOf:old});carried.sections.pons.rows=carried.sections.pons.rows.slice(0,7);
+ const g=S.publishable(carried,{commit:'abc'});
+ assert.ok(g.problems.includes('pons:CARRIED_FORWARD')&&g.problems.some(p=>p.startsWith('pons:INCOMPLETE_7_OF_10')),'the strict gate still refuses it');
+ const d=S.publishDecision(carried,{commit:'abc'});
+ assert.equal(d.ok,true,JSON.stringify(d));assert.equal(d.mode,'SECTION_ISOLATED');
+ assert.deepEqual(d.fresh,['arc','ethereum','robinhood']);assert.deepEqual(Object.keys(d.degraded),['pons']);
+ assert.equal(carried.sections.pons.asOf,old,'never relabelled as current');
+ // a carried section relabelled to the snapshot time is refused
+ const relabelled=structuredClone(carried);relabelled.sections.pons.asOf=relabelled.generatedAt;
+ assert.ok(S.publishDecision(relabelled,{commit:'abc'}).blocking.includes('pons:CARRIED_ASOF_NOT_OLDER_THAN_SNAPSHOT'));
+ // carried beyond 24 h is flagged as not served (still not presented as current)
+ const ancient=structuredClone(carried);ancient.sections.pons.asOf=new Date(Date.parse(s.generatedAt)-30*3600000).toISOString();
+ assert.ok(S.publishDecision(ancient,{commit:'abc'}).degraded.pons.includes('pons:CARRIED_BEYOND_24H_NOT_SERVED'));
+ // NOT_BUILT section: healthy sections still publish; the missing one is empty, never filled
+ const nb=structuredClone(s);nb.sections.pons={status:'NOT_BUILT',reason:'SOURCE_UNAVAILABLE',asOf:null,rows:[]};
+ const dn=S.publishDecision(nb,{commit:'abc'});assert.equal(dn.ok,true,JSON.stringify(dn));assert.deepEqual(Object.keys(dn.degraded),['pons']);
+ // everything that is NOT a rebuild failure still blocks the whole snapshot
+ assert.equal(S.publishDecision(carried,{commit:'other'}).ok,false,'wrong engine commit');
+ const old2=structuredClone(carried);for(const x of old2.sections.arc.rows)x.opportunity.researchRank.version='arcy-custom-filter-2';
+ assert.equal(S.publishDecision(old2,{commit:'abc'}).ok,false,'older-engine rows in a FRESH section');
+ const shortFresh=structuredClone(carried);shortFresh.sections.robinhood.rows=shortFresh.sections.robinhood.rows.slice(0,1);
+ assert.equal(S.publishDecision(shortFresh,{commit:'abc'}).ok,false,'a FRESH section that is short without a recorded shortfall');
+ const dup=structuredClone(carried);dup.sections.arc.rows[1].address=dup.sections.arc.rows[0].address;
+ assert.equal(S.publishDecision(dup,{commit:'abc'}).ok,false,'duplicate exact contract');
+ const overlap=structuredClone(carried);overlap.sections.robinhood.rows[0].address=overlap.sections.pons.rows[0].address;
+ assert.equal(S.publishDecision(overlap,{commit:'abc'}).ok,false,'Pons/Robinhood overlap');
+ // nothing fresh at all: nothing new to publish
+ const none=structuredClone(s);for(const n of ['arc','ethereum','robinhood','pons']){none.sections[n].carriedForward=true;none.sections[n].asOf=new Date(Date.parse(s.generatedAt)-3600000).toISOString();}
+ assert.equal(S.publishDecision(none,{commit:'abc'}).ok,false);
+ // reader side: the carried section ages honestly
+ const sv=structuredClone(carried);
+ assert.ok(Date.parse(sv.generatedAt)-Date.parse(sv.sections.pons.asOf)>6*3600000);
+});
