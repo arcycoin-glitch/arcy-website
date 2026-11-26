@@ -1,6 +1,6 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),crypto=require('node:crypto');
-const {analyze,strip}=require('../search/server/lib/oz-template');
+const {analyze,strip,diagnose}=require('../search/server/lib/oz-template');
 const sha=t=>crypto.createHash('sha256').update(t).digest('hex');
 // Synthetic stand-ins for the pinned library files; real pins live in oz-library-hashes.js.
 const L={ERC20:'// SPDX\ncontract ERC20 is Context, IERC20 { }',IERC20:'interface IERC20 {}',Ownable:'abstract contract Ownable is Context { modifier onlyOwner(){_;} function owner() public view returns(address){} }',Context:'abstract contract Context {}',ERC20Burnable:'abstract contract ERC20Burnable is Context, ERC20 { function burn(uint256 a) public {} }',AccessControl:'abstract contract AccessControl is Context { modifier onlyRole(bytes32 r){_;} }',ERC20Permit:'abstract contract ERC20Permit is ERC20 { }',ECDSA:'library ECDSA { function tryRecover(bytes32 h) internal pure { assembly { } } }'};
@@ -184,4 +184,17 @@ test('partial OpenZeppelin transfer-tax evidence never becomes a full Buy/Sell/T
  assert.equal(verdict.rows[1],true,'independently verified mint remains available');
  assert.equal(verdict.rows[2],true,'independently verified ownership remains available');
  assert.equal(verdict.visible,true,'other independently verified facts remain displayed');
+});
+
+test('V9: OpenZeppelin utils/Bytes.sol (5.2–5.7) is pinned by npm-tarball hash; an unpinned look-alike assembly Bytes library is still rejected',()=>{
+ const real=require('../search/server/lib/oz-library-hashes');
+ const pinned=Object.entries(real).filter(([,n])=>n==='Bytes').map(([h])=>h);
+ assert.equal(pinned.length,5);
+ assert.ok(pinned.includes('3ce9120a27934c75a074cb785d3a88868069ef6529dbe4dc6b845af0836f3c70'),'OZ 5.6.0 Bytes.sol (STONKBROKER bundle)');
+ const bytesLib='library Bytes { function f() internal pure { assembly { mstore(0,1) } } }';
+ const withPinned=analyze(src({'T.sol':'contract T is ERC20 { constructor() ERC20("A","B"){ _mint(msg.sender,1e24); } }'},{'Bytes.sol':{content:bytesLib}}),{lib:{...lib,[sha(bytesLib)]:'Bytes'},main:'T'});
+ assert.equal(withPinned.profile,'OZ_ERC20_TEMPLATE','pinned library assembly is not token assembly');
+ const lookalike=diagnose(src({'T.sol':'contract T is ERC20 { }','Bytes.sol':bytesLib}),{lib,main:'T'});
+ assert.equal(lookalike.reason,'BANNED_ASSEMBLY','same text but NOT a pinned release file must still be rejected');
+ assert.equal(lookalike.file,'Bytes.sol');
 });
