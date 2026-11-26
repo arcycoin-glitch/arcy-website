@@ -300,4 +300,11 @@ module.exports=Object.freeze({
  'cec996abb05f5c986d2dc2eefac3ad44e8ec2b9f649ea17030466cef4d48cac7':'Votes', // governance/utils/Votes.sol from 4.5.0
  'dea1532e5e0d920d9c40a6719a84e71b5de91391c1e2f65bb50d03878e7270bb':'Votes', // governance/utils/Votes.sol from 5.1.0
  'feded838fdab8e52e1a3352f95dd7e63311b2c079f2293bda17633fbefda6d96':'Votes', // governance/utils/Votes.sol from 5.2.0
+ // utils/Bytes.sol (OpenZeppelin >=5.2, imported by Strings.sol from 5.4): assembly helper, pinned from the published npm tarballs
+ // (CI run of scripts/collect-oz-hashes.cjs, OZ_ONLY=utils/Bytes.sol, 38 releases) so library assembly is not mistaken for token assembly.
+ 'bd37fcf26006ea494a6f9c07dd2a48db2da3fcddacf856c8416c9c45711f8a2c':'Bytes', // utils/Bytes.sol from 5.2.0
+ 'b8ecad25855c07fe0c65cffaf19c1517751b2837640f8a144ab26d5bf4e6f741':'Bytes', // utils/Bytes.sol from 5.4.0
+ '4902950980da33a4d0c52dbbe22d5c65fd665717163dab7f5325f73810d71f20':'Bytes', // utils/Bytes.sol from 5.5.0
+ '3ce9120a27934c75a074cb785d3a88868069ef6529dbe4dc6b845af0836f3c70':'Bytes', // utils/Bytes.sol from 5.6.0
+ '78b01e1da6f6e6aaa8ef97b5d5ed885f638520bfdafb65e813b900a14c9d4eac':'Bytes', // utils/Bytes.sol from 5.7.0
 });
