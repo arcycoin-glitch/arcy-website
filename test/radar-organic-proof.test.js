@@ -8,7 +8,7 @@ const token=(over={})=>({
  symbol:'RESEARCH',name:'Research Candidate',marketObserved:true,eligibility:'REVIEW',
  identity:{level:'OFFICIAL_CONTRACT_VERIFIED'},
  category:{category:'EARLY_STAGE_CANDIDATE'},
- volume24hUsd:336771.81,liquidityUsd:3323059.47,trades24h:1262,
+ priceUsd:0.0047,volume24hUsd:336771.81,liquidityUsd:3323059.47,trades24h:1262,
  buys24h:800,sells24h:462,change24hPct:-8.7,
  marketCapUsd:3400000,fdvUsd:4700000,
  history:{observations:3,flags:[],drawdownFromPeakPct:-32},
