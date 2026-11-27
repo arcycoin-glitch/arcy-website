@@ -33,3 +33,19 @@ test('unreviewed exact-source profile is still not verified; success data is nev
  const good={value:'Transfer 0%',status:'VERIFIED_SOURCE',dataState:'DATA_FOUND'};
  assert.equal(explain('tradingTaxes',good,d),good);
 });
+
+// #337: TENDIES 4663:0x45242320… Sourcify 200 / runtimeMatch match / language Yul (CI probe-mechanics-sources-337).
+test('Yul verified source keeps the stable reason code but says precisely why; never a promotion',()=>{
+ const f=explain('tradingTaxes',original,detail('UNSUPPORTED_SOURCE_LANGUAGE_YUL'));
+ assert.equal(f.reasonCode,'MECHANICS_SOURCE_IDENTITY_UNVERIFIED');assert.equal(f.dataState,'NOT_VERIFIED');assert.equal(f.value,null);
+ assert.equal(f.reason,'Verified source is hand-written Yul; its execution paths are not reviewed.');
+ assert.match(f.explanation,/exact runtime bytecode match/);assert.equal(f.verificationGap.sourceCause,'UNSUPPORTED_SOURCE_LANGUAGE_YUL');
+});
+test('validateSource: matched Yul record fails with the precise Yul code, other malformed records stay SOURCE_SCHEMA_INVALID',()=>{
+ const {validateSource}=require('../search/server/lib/mechanics-deep');
+ const A='0x45242320dbb855eea8fd36804c6487e10e97fcf9',code='0x6001600055';
+ const base={chainId:4663,address:A,runtimeMatch:'match',runtimeBytecode:{onchainBytecode:code},sources:{'a.yul':{content:'x'}}};
+ assert.throws(()=>validateSource({...base,compilation:{language:'Yul'},abi:null},{chainId:4663,address:A,code}),/UNSUPPORTED_SOURCE_LANGUAGE_YUL/);
+ assert.throws(()=>validateSource({...base,compilation:{language:'Solidity'},abi:null},{chainId:4663,address:A,code}),/SOURCE_SCHEMA_INVALID/);
+ assert.throws(()=>validateSource({...base,compilation:{language:'Yul'},abi:null,runtimeMatch:null},{chainId:4663,address:A,code}),/SOURCE_BYTECODE_MISMATCH/,'identity/bytecode checks still run first');
+});

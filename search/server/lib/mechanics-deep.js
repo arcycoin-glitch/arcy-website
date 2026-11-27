@@ -47,6 +47,9 @@ function digest(sources){return crypto.createHash('sha256').update(JSON.stringif
 function validateSource(d,{chainId,address,code}){
  if(String(d?.chainId)!==String(chainId)||d?.address?.toLowerCase()!==address.toLowerCase())throw Error('SOURCE_IDENTITY_MISMATCH');
  if(!['match','exact_match'].includes(d.runtimeMatch)||!CODE.test(code)||d.runtimeBytecode?.onchainBytecode?.toLowerCase()!==code.toLowerCase())throw Error('SOURCE_BYTECODE_MISMATCH');
+ // Identity and exact runtime already proven above. A hand-written Yul object has no Solidity ABI/AST to review: report that
+ // precisely (#337, TENDIES 4663:0x4524…fcf9) instead of a generic schema failure. Still fail-closed, never a bypass.
+ if(String(d.compilation?.language||'').toLowerCase()==='yul'&&!Array.isArray(d.abi))throw Error('UNSUPPORTED_SOURCE_LANGUAGE_YUL');
  if(!Array.isArray(d.abi)||!d.abi.every(f=>f&&typeof f.type==='string'&&(f.type!=='function'||typeof f.name==='string'&&Array.isArray(f.inputs)&&Array.isArray(f.outputs)&&[...f.inputs,...f.outputs].every(p=>typeof p?.type==='string')))||!d.sources||!Object.keys(d.sources).length||!Object.values(d.sources).every(x=>typeof x?.content==='string'))throw Error('SOURCE_SCHEMA_INVALID');
  return {abi:d.abi,digest:digest(d.sources),runtimeMatch:d.runtimeMatch,compilation:d.compilation,immutableReferences:d.runtimeBytecode.immutableReferences};
 }
@@ -68,7 +71,7 @@ async function sourceFor(cfg,address,code,diagnostics){
   const reason=e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':
    e.code==='SOURCE_TIMEOUT'?'SOURCE_TIMEOUT':
    /exceeds .*size limit/.test(e.message)?'SOURCE_RESPONSE_LIMIT':e.code==='SOURCE_CAPACITY_LIMIT'?'SOURCE_CAPACITY_LIMIT':
-   ['SOURCE_BYTECODE_MISMATCH','SOURCE_IDENTITY_MISMATCH','SOURCE_SCHEMA_INVALID'].includes(e.message)?e.message:
+   ['SOURCE_BYTECODE_MISMATCH','SOURCE_IDENTITY_MISMATCH','SOURCE_SCHEMA_INVALID','UNSUPPORTED_SOURCE_LANGUAGE_YUL'].includes(e.message)?e.message:
    e.code==='SOURCE_SCHEMA_INVALID'?'SOURCE_SCHEMA_INVALID':'SOURCE_API_FAILED';
   diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason});
   // Unpublished source only: a curated, exact-matched sibling reference may be reused (see mechanics-sibling-runtime.js).
