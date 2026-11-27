@@ -52,10 +52,10 @@ jobs:
         with:
           node-version: '22'
       - name: Fixed 40-token Next Unlock — main (before)
-        run: ROOT=before LABEL=before node after/scripts/probe-next-unlock-cohort.cjs > before.json
+        run: ROOT=before LABEL=before node after/scripts/probe-next-unlock-cohort.cjs | tee before.json | grep "^::notice"
         continue-on-error: true
       - name: Fixed 40-token Next Unlock — this branch (after)
-        run: ROOT=after LABEL=after node after/scripts/probe-next-unlock-cohort.cjs > after.json
+        run: ROOT=after LABEL=after node after/scripts/probe-next-unlock-cohort.cjs | tee after.json | grep "^::notice"
   browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
