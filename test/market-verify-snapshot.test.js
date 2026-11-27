@@ -29,3 +29,9 @@ test('MVS-4 loader: immutable commit URL, bounded, fails closed, opt-out switch'
  S._reset();assert.equal(await S.load({fetcher:async()=>{throw Error('down');},now:NOW,env:{}}),null);
  S._reset();assert.equal(await S.load({fetcher,now:NOW,env:{SEARCH_MARKET_VERIFY_SNAPSHOT:'off'}}),null);
 });
+test('MVS-5 request path keeps the Arc/pool-count guards; only durable callers lift them',async()=>{
+ const MV=require('../search/server/lib/market-volume');const prim={volume24h:{evidence:[{pairs:['0x'+'a'.repeat(40)]}]}};
+ const r=await MV.inspect('arc','0x'+'1'.repeat(40),prim,{rpc:async()=>{throw Error('no read in request path');}});assert.equal(r.profile.reason,'VOLUME_WINDOW_EXCEEDS_RPC_BUDGET');
+ const many={volume24h:{evidence:[{pairs:Array.from({length:13},(_,i)=>'0x'+(i+1).toString(16).padStart(40,'0'))}]}};
+ assert.match((await MV.inspect('robinhood','0x'+'1'.repeat(40),many,{rpc:async()=>{throw Error('x');}})).profile.reason,/VOLUME_SCOPE_EXCEEDS_BUDGET/);
+});
