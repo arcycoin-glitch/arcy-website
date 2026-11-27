@@ -32,6 +32,8 @@ function asField(value,network,address,selected,method,scope,kind){
   evidence:[{network,chainId:cfg.chainId,address,provider:'DEX Screener',
    sourceUrl:pairs.length?'https://dexscreener.com/'+NETWORKS[network]+'/'+pairs[0].pair:null,
    pairs:pairs.map(p=>p.pair),method,scope,
+   // Per-pool first-party values for summed fields, so an independent check can reproduce the largest pools exactly (#352).
+   ...(method==='sum(liquidity.usd)'?{pairLiquidityUsd:pairs.map(p=>p.liquidity)}:{}),
    checkedAt:new Date().toISOString()}]};
  if(kind)out.kind=kind;
  return out;

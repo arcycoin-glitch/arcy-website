@@ -28,9 +28,15 @@ function merge(primary,secondary,{now,secondaryReason}){
   const a=primary?.[key],b=secondary?.[key];
   if(found(a)&&found(b)){
    const pools=f=>[...new Set((f.evidence||[]).flatMap(e=>e.pairs||e.pools||[]).map(x=>String(x).toLowerCase()))].sort();
-   const ap=pools(a),bp=pools(b),same=ap.length>0&&JSON.stringify(ap)===JSON.stringify(bp);
+   const ap=pools(a),bp=pools(b);
+   // #352 narrow exception (liquidityUsd only): an on-chain secondary that reproduced a SUBSET of the provider's own pools
+   // holding >= 95% of the provider total (market-onchain coverage path) is the same scope up to a stated coverage share.
+   const cov=key==='liquidityUsd'?Number(b.evidence?.[0]?.coverageOfProviderLiquidity):NaN;
+   const subset=bp.length>0&&bp.every(x=>ap.includes(x));
+   const covered=Number.isFinite(cov)&&cov>=0.95&&cov<=1&&subset;
+   const same=ap.length>0&&(JSON.stringify(ap)===JSON.stringify(bp)||covered);
    const diff=rel(a.value,b.value),tol=TOLERANCE[key],agree=same&&a.source!==b.source&&diff<=tol;
-   out[key]={...a,crossCheck:{state:!same?'SCOPE_MISMATCH':agree?'AGREE':'DISAGREE',providers:[a.source,b.source],values:{[a.source]:a.value,[b.source]:b.value},relativeDifference:+diff.toFixed(4),tolerance:tol,checkedAt:at,
+   out[key]={...a,crossCheck:{state:!same?'SCOPE_MISMATCH':agree?'AGREE':'DISAGREE',...(covered?{scope:'COVERAGE',coverageOfProviderLiquidity:cov,coveredPools:bp.length,providerPools:ap.length}:{}),providers:[a.source,b.source],values:{[a.source]:a.value,[b.source]:b.value},relativeDifference:+diff.toFixed(4),tolerance:tol,checkedAt:at,
     ...(agree?{}:{reasonCode:!same?'POOL_SCOPE_MISMATCH':'PROVIDER_DISAGREEMENT'})},evidence:[...(a.evidence||[]),...(b.evidence||[]).map(e=>({...e,role:'cross-check'}))]};
   }else if(found(a)){
    out[key]={...a,crossCheck:{state:'UNAVAILABLE',providers:[a.source],reasonCode:(secondaryReason&&typeof secondaryReason==='object'?secondaryReason[key]||secondaryReason.all:secondaryReason)||(b?.reasonCode)||'SECONDARY_SOURCE_NO_DATA',checkedAt:at}};
