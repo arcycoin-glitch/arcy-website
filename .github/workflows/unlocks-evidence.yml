@@ -57,7 +57,7 @@ jobs:
       - name: Fixed 40-token Next Unlock — this branch (after)
         run: ROOT=after LABEL=after node after/scripts/probe-next-unlock-cohort.cjs > after.json
   browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
