@@ -1,0 +1,20 @@
+name: Ethereum holder census feasibility (read-only, #337)
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-eth-holder-feasibility.cjs'
+      - 'scripts/eth-holder-census-proof.cjs'
+      - 'lib/holder-chains.js'
+      - '.github/workflows/eth-holder-feasibility.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-eth-holder-feasibility.cjs
