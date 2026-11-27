@@ -1,0 +1,28 @@
+name: Market on-chain A/B (main vs branch, read-only)
+on:
+  pull_request:
+    paths:
+      - 'search/server/lib/market-onchain.js'
+      - 'search/server/lib/market-cross.js'
+      - 'search/server/lib/v4-tvl.js'
+      - 'search/server/lib/dex-market.js'
+      - 'scripts/probe-market-ab.cjs'
+      - '.github/workflows/market-ab.yml'
+permissions:
+  contents: read
+jobs:
+  ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: branch
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node branch/scripts/probe-market-ab.cjs main branch

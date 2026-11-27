@@ -53,6 +53,8 @@ const QUOTES=Object.freeze({
   '0x3600000000000000000000000000000000000000':{asset:'USDC',basis:'Arc USDC ERC-20 interface of the native token'}}});
 const TOLERANCE=Object.freeze({priceUsd:0.03,liquidityUsd:0.10});
 const MAX_CALLS=24,TIMEOUT_MS=2500,CACHE_MS=30000,MAX_LIQ_POOLS=6;
+// Liquidity coverage path budget (separate from the price budget so price evidence is never starved).
+const COVERAGE_MIN=0.95,COVERAGE_MAX_POOLS=8,COVERAGE_MAX_CALLS=96,COVERAGE_TIMEOUT_MS=6000;
 const SOURCE={ethereum:'Ethereum RPC pool state',robinhood:'Robinhood Chain RPC pool state',arc:'Arc RPC pool state'};
 const cache=new Map(),poolKeys=new Map();
 const ADDR=/^0x[0-9a-f]{40}$/,ID=/^0x[0-9a-f]{64}$/;
@@ -122,9 +124,10 @@ async function readPool(pool,{network,token,rpc,call,block}){
   const k=await v4Key(pool,{network,rpc,call,block});
   if(![k.currency0,k.currency1].includes(token))throw code('POOL_DOES_NOT_CONTAIN_TOKEN');
   const other=k.currency0===token?k.currency1:k.currency0,q=QUOTES[network]?.[other];if(!q)throw code('QUOTE_ASSET_UNSUPPORTED',{quote:other});
-  const sqrtP=words(await call(v.stateView,SEL.getSlot0+pool.slice(2)))[0]&((1n<<160n)-1n);
+  const s0=words(await call(v.stateView,SEL.getSlot0+pool.slice(2))),sqrtP=s0[0]&((1n<<160n)-1n),tick=Number(signed(s0[1],24));
   const [d0,d1]=[await decimalsOf(call,network,k.currency0),await decimalsOf(call,network,k.currency1)];
-  return {pool,kind:'UNISWAP_V4',quote:other,quoteAsset:q.asset,price:fromSqrt(sqrtP,d0,d1,k.currency0===token),tvl:null,tvlReason:'POOL_TVL_UNSUPPORTED_V4',poolKey:k};
+  return {pool,kind:'UNISWAP_V4',quote:other,quoteAsset:q.asset,price:fromSqrt(sqrtP,d0,d1,k.currency0===token),tvl:null,tvlReason:'POOL_TVL_UNSUPPORTED_V4',poolKey:k,
+   sqrtPriceX96:sqrtP,tick,decimals:{[k.currency0]:d0,[k.currency1]:d1}};
  }
  if(!ADDR.test(pool))throw code('POOL_ID_INVALID');
  const t0=addrOf(await call(pool,SEL.token0)),t1=addrOf(await call(pool,SEL.token1));
@@ -171,8 +174,8 @@ async function inspect(network,address,primary,{rpc=rpcFor(network),ethRpc=rpcFo
    }catch(e){profile.reasons.priceUsd=e.code||'ONCHAIN_READ_FAILED';}
   }else profile.reasons.priceUsd=pricePools.length?'PROVIDER_PRICE_SCOPE_NOT_ONE_POOL':'PROVIDER_PRICE_POOL_UNKNOWN';
   if(!liqPools.length)profile.reasons.liquidityUsd='PROVIDER_LIQUIDITY_POOLS_UNKNOWN';
-  else if(liqPools.length>MAX_LIQ_POOLS)profile.reasons.liquidityUsd='LIQUIDITY_SCOPE_EXCEEDS_BUDGET ('+liqPools.length+' pools)';
-  else if(tokenUsd===null)profile.reasons.liquidityUsd='TOKEN_USD_UNVERIFIED';
+  else if(liqPools.length>MAX_LIQ_POOLS)await coverage('LIQUIDITY_SCOPE_EXCEEDS_BUDGET ('+liqPools.length+' pools)');
+  else if(tokenUsd===null)await coverage('TOKEN_USD_UNVERIFIED');
   else try{
    let total=0;const parts=[];
    for(const p of liqPools){const x=p===best?.pool?best:await readPool(p,ctx);
@@ -183,7 +186,48 @@ async function inspect(network,address,primary,{rpc=rpcFor(network),ethRpc=rpcFo
    fields.liquidityUsd={value:total,status:'ON_CHAIN_DERIVED',dataState:'DATA_FOUND',source:SOURCE[network],network,
     evidence:ev(liqPools,{pools:parts,basis:'sum of pool token balances x on-chain token price x Chainlink quote USD'}),
     freshness:{retrievedAt:at,ageMs:0,basis:'pinned-block chain read at '+block}};
-  }catch(e){profile.reasons.liquidityUsd=e.code||'ONCHAIN_READ_FAILED';}
+  }catch(e){profile.reasons.liquidityUsd=e.code||'ONCHAIN_READ_FAILED';if(!fields.liquidityUsd)await coverage(profile.reasons.liquidityUsd);}
+  // Coverage path (#352): when the provider's whole scope cannot be reproduced (too many pools, unsupported quote/venue/hook), the
+  // largest provider pools are re-read on-chain one by one (v2 reserves / v3 balances / v4 tick-state principal). Each pool must
+  // agree with the provider's own per-pool value within tolerance, and the reproduced pools must cover >= 95% of the provider's
+  // summed liquidity. The on-chain value is the covered sum (a lower bound of the provider scope), with the coverage stated.
+  async function coverage(prior){
+   // Without per-pool provider values the coverage path cannot start: the original reason is kept unchanged.
+   const reason=r=>{profile.reasons.liquidityUsd=r==='PROVIDER_POOL_VALUES_UNKNOWN'&&prior?prior:(prior?prior+' | coverage: ':'')+r;};
+   const ev0=(primary?.liquidityUsd?.evidence||[]).find(e=>Array.isArray(e?.pairs)&&Array.isArray(e?.pairLiquidityUsd)&&e.pairs.length===e.pairLiquidityUsd.length);
+   const dsTotal=Number(primary?.liquidityUsd?.value);
+   if(!ev0||!(dsTotal>0))return reason('PROVIDER_POOL_VALUES_UNKNOWN');
+   const ranked=ev0.pairs.map((p,i)=>({pool:String(p).toLowerCase(),ds:Number(ev0.pairLiquidityUsd[i])})).filter(x=>x.ds>0).sort((a,b)=>b.ds-a.ds);
+   let need=0,acc=0;for(const x of ranked){need++;acc+=x.ds;if(acc/dsTotal>=COVERAGE_MIN)break;}
+   if(acc/dsTotal<COVERAGE_MIN||need>COVERAGE_MAX_POOLS)return reason('LIQUIDITY_COVERAGE_EXCEEDS_BUDGET ('+need+' pools for '+Math.round(1000*acc/dsTotal)/10+'%)');
+   const lstate={calls:0,maxCalls:COVERAGE_MAX_CALLS,deadline:Date.now()+COVERAGE_TIMEOUT_MS},lr=budgeted(rpc,lstate),ler=budgeted(ethRpc,lstate);
+   const lcall=(to,data)=>lr('eth_call',[{to,data},block]),lctx={network,token,rpc:lr,call:lcall,block};
+   const lusd={...usd},lusdOf=async a=>lusd[a]||=await quoteUsd(a,{ethRpc:ler,now});
+   try{
+    let sum=0;const parts=[];
+    for(const x of ranked.slice(0,need)){
+     const p=await readPool(x.pool,lctx);if(!p.quoteAsset)throw code('QUOTE_ASSET_UNSUPPORTED');
+     const q=await lusdOf(p.quoteAsset);let tokAmt,quoteAmt,extra={};
+     if(p.kind==='UNISWAP_V4'){
+      const pr=await require('./v4-tvl').poolPrincipal({call:lcall,getCode:a=>lr('eth_getCode',[a,block]),stateView:V4[network].stateView,poolId:x.pool,key:p.poolKey,tick:p.tick,sqrtPriceX96:p.sqrtPriceX96});
+      const k=p.poolKey,tokIs0=k.currency0===token;
+      tokAmt=(tokIs0?pr.amount0Raw:pr.amount1Raw)/10**p.decimals[token];quoteAmt=(tokIs0?pr.amount1Raw:pr.amount0Raw)/10**p.decimals[p.quote];
+      extra={initializedTicks:pr.initializedTicks,activeLiquidity:pr.activeLiquidity,proof:pr.proof,hooks:k.hooks};
+     }else{tokAmt=p.amounts[token];quoteAmt=p.amounts[p.quote];}
+     const poolTokenUsd=p.price*q.usd,value=tokAmt*poolTokenUsd+quoteAmt*q.usd;
+     if(!Number.isFinite(value)||value<0)throw code('POOL_TVL_INVALID');
+     const rel=Math.abs(value-x.ds)/x.ds;if(rel>TOLERANCE.liquidityUsd)throw code('POOL_LIQUIDITY_DISAGREES',{pool:x.pool,rel});
+     sum+=value;parts.push({pool:x.pool,kind:p.kind,usd:value,providerUsd:x.ds,relativeDifference:Math.round(rel*1e4)/1e4,...extra});
+    }
+    fields.liquidityUsd={value:sum,status:'ON_CHAIN_DERIVED',dataState:'DATA_FOUND',source:SOURCE[network],network,
+     evidence:ev(parts.map(x=>x.pool),{pools:parts,providerPools:ranked.length,coverageOfProviderLiquidity:Math.round(1e4*acc/dsTotal)/1e4,
+      basis:'largest provider pools re-read on-chain (v2 reserves, v3 balances, v4 tick-state principal) x each pool\'s own on-chain price x Chainlink quote USD; covered pools hold >= '+Math.round(COVERAGE_MIN*100)+'% of the provider total; remaining pools not reproduced',
+      scope:'Lower bound of the provider-scoped liquidity: excludes uncollected fees, hook-held balances and the uncovered provider pools.'}),
+     freshness:{retrievedAt:at,ageMs:0,basis:'pinned-block chain read at '+block}};
+    delete profile.reasons.liquidityUsd;
+   }catch(e){reason(e.code||'ONCHAIN_READ_FAILED');}
+   finally{profile.coverageCalls=lstate.calls;}
+  }
   // 24h volume needs tens of eth_getLogs per token. Run inside the report it competed with Mechanics for the same public RPC and
   // degraded reviewed tax/mint/owner evidence (CI A/B 2026-11-22: TAO 2/2 repeats). It therefore never runs in the request path:
   // a paced background job (one per chain, opt-in SEARCH_MARKET_ONCHAIN_VOLUME=on) fills a 5-minute cache that later reports read.

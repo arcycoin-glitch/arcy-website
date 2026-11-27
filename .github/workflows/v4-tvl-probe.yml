@@ -1,0 +1,19 @@
+name: Uniswap v4 pool TVL agreement probe (read-only)
+on:
+  pull_request:
+    paths:
+      - 'search/server/lib/v4-tvl.js'
+      - 'scripts/probe-v4-tvl.cjs'
+      - '.github/workflows/v4-tvl-probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-v4-tvl.cjs

@@ -108,3 +108,40 @@ test('MO-8 volume never runs in the report path: opt-in, background job (one per
  process.env.SEARCH_MARKET_ONCHAIN_VOLUME='on';
  try{M._reset();const off=await M.inspect('arc',TOKEN,p,{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env:ENV});assert.ok(off.profile.reasons.volume24h);}finally{delete process.env.SEARCH_MARKET_ONCHAIN_VOLUME;}
 });
+
+// #352 coverage path: the largest provider pools reproduce >= 95% of the provider total, each within tolerance.
+const many7=Array.from({length:7},(_,i)=>i===0?POOL3:'0x'+String(i+4).repeat(40).slice(0,40));
+const covPrimary=(vals)=>{const p=primary(0.5,vals.reduce((a,b)=>a+b,0),many7);p.liquidityUsd.evidence=[{provider:'DEX Screener',pairs:many7,pairLiquidityUsd:vals}];return p;};
+test('COV-1 >6 pools: top pool covering >= 95% is reproduced on-chain; value is the covered lower bound with coverage stated',async()=>{
+ M._reset();const vals=[1000100,9000,8000,7000,6000,5000,4000];
+ const r=await M.inspect('arc',TOKEN,covPrimary(vals),{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env:ENV});
+ const f=r.fields.liquidityUsd;assert.ok(f,'field present: '+JSON.stringify(r.profile.reasons));
+ assert.ok(Math.abs(f.value-(1e6*0.5*1.0001+500000*1.0001))<1e-3);
+ const e=f.evidence[0];assert.deepEqual(e.pairs,[POOL3]);assert.equal(e.providerPools,7);assert.ok(e.coverageOfProviderLiquidity>=0.95&&e.coverageOfProviderLiquidity<1);
+ assert.match(e.scope,/Lower bound/);assert.equal(r.profile.reasons.liquidityUsd,undefined);
+ mc._reset();M._reset();const x=await mc.inspect('arc',TOKEN,{env:ENV,dexInspect:async()=>covPrimary(vals),onchainInspect:(n,a,p)=>M.inspect(n,a,p,{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env:ENV})});
+ assert.equal(x.liquidityUsd.value,vals.reduce((a,b)=>a+b,0),'displayed value stays the provider total');assert.equal(x.liquidityUsd.crossCheck.state,'AGREE');assert.equal(x.liquidityUsd.crossCheck.scope,'COVERAGE');assert.equal(ec.classify(x.liquidityUsd,{card:'liquidity'}).evidenceClass,'CROSS_VERIFIED');
+});
+test('COV-2 per-pool disagreement beyond tolerance fails closed (never a partial sum)',async()=>{
+ M._reset();const vals=[2000000,9000,8000,7000,6000,5000,4000];
+ const r=await M.inspect('arc',TOKEN,covPrimary(vals),{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env:ENV});
+ assert.equal(r.fields.liquidityUsd,undefined);assert.match(r.profile.reasons.liquidityUsd,/LIQUIDITY_SCOPE_EXCEEDS_BUDGET \(7 pools\) \| coverage: POOL_LIQUIDITY_DISAGREES/);
+});
+test('COV-3 coverage needing more than the pool budget, or without per-pool provider values, keeps the original reason path',async()=>{
+ const many12=Array.from({length:12},(_,i)=>i===0?POOL3:'0x'+(i+4).toString(16).repeat(40).slice(0,40));
+ const flatP=primary(0.5,1.2e6,many12);flatP.liquidityUsd.evidence=[{provider:'DEX Screener',pairs:many12,pairLiquidityUsd:Array(12).fill(100000)}];
+ M._reset();let r=await M.inspect('arc',TOKEN,flatP,{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env:ENV});
+ assert.equal(r.fields.liquidityUsd,undefined);assert.match(r.profile.reasons.liquidityUsd,/coverage: LIQUIDITY_COVERAGE_EXCEEDS_BUDGET/);
+ M._reset();r=await M.inspect('arc',TOKEN,{...primary(0.5,1e6),liquidityUsd:{...primary(0.5,1e6).liquidityUsd,evidence:[{pairs:many7}]}},{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env:ENV});
+ assert.equal(r.profile.reasons.liquidityUsd,'LIQUIDITY_SCOPE_EXCEEDS_BUDGET (7 pools)');
+});
+test('COV-4 market-cross coverage exception is narrow: subset + >=95% + liquidityUsd only',()=>{
+ const a={value:100,source:'DEX Screener',dataState:'DATA_FOUND',evidence:[{pairs:['0xa','0xb','0xc']}]};
+ const b=(cov,pairs)=>({value:97,source:'Arc RPC pool state',dataState:'DATA_FOUND',evidence:[{pairs,coverageOfProviderLiquidity:cov}]});
+ assert.equal(mc.merge({liquidityUsd:a},{liquidityUsd:b(0.96,['0xa'])},{now:NOW}).liquidityUsd.crossCheck.state,'AGREE');
+ assert.equal(mc.merge({liquidityUsd:a},{liquidityUsd:b(0.94,['0xa'])},{now:NOW}).liquidityUsd.crossCheck.state,'SCOPE_MISMATCH');
+ assert.equal(mc.merge({liquidityUsd:a},{liquidityUsd:b(0.99,['0xz'])},{now:NOW}).liquidityUsd.crossCheck.state,'SCOPE_MISMATCH','not a provider pool');
+ assert.equal(mc.merge({liquidityUsd:a},{liquidityUsd:{...b(0.99,['0xa']),value:80}},{now:NOW}).liquidityUsd.crossCheck.state,'DISAGREE');
+ const p={value:1,source:'DEX Screener',dataState:'DATA_FOUND',evidence:[{pairs:['0xa','0xb']}]};
+ assert.equal(mc.merge({priceUsd:p},{priceUsd:{value:1,source:'Arc RPC pool state',dataState:'DATA_FOUND',evidence:[{pairs:['0xa'],coverageOfProviderLiquidity:0.99}]}},{now:NOW}).priceUsd.crossCheck.state,'SCOPE_MISMATCH','other fields keep the exact-scope rule');
+});
