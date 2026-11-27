@@ -9,6 +9,8 @@ const T=require('../lib/holder-index').TRANSFER;
 const fs=require('node:fs'),path=require('node:path');
 const cohort=JSON.parse(fs.readFileSync(path.join(__dirname,'../data/verified-coverage/radar-cohort-20261121.json'),'utf8')).tokens.filter(t=>t.chainId===1);
 let id=0;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function paced(url,method,params){for(let i=0;i<5;i++){await sleep(300*(i+1));const r=await call(url,method,params);if(!r.error||/range|Invalid params/i.test(r.error))return r;}return await call(url,method,params);}
 async function call(url,method,params){const t0=Date.now();try{const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:++id,method,params}),signal:AbortSignal.timeout(30000)});
  const text=await r.text();let j;try{j=JSON.parse(text)}catch{return {http:r.status,error:'NON_JSON',ms:Date.now()-t0}}
  return {http:r.status,result:j.result,error:j.error?String(j.error.message||j.error.code).slice(0,140):null,ms:Date.now()-t0};}catch(e){return {error:e.name,ms:Date.now()-t0}}}
@@ -26,9 +28,9 @@ const hex=n=>'0x'+n.toString(16);
  const {u,head}=live[0];
  for(const t of cohort){
   let lo=0,hi=head,calls=0;
-  while(lo<hi){const mid=Math.floor((lo+hi)/2);const r=await call(u,'eth_getCode',[t.address,hex(mid)]);calls++;if(r.error){lo=-1;break;}if(r.result&&r.result.length>2)hi=mid;else lo=mid+1;}
+  while(lo<hi){const mid=Math.floor((lo+hi)/2);const r=await paced(u,'eth_getCode',[t.address,hex(mid)]);calls++;if(r.error){console.log('CODE_ERR',t.symbol,r.error);lo=-1;break;}if(r.result&&r.result.length>2)hi=mid;else lo=mid+1;}
   const deploy=lo<0?null:lo,samples=[];
-  if(deploy!=null)for(const at of [deploy,Math.floor((deploy+head)/2),head-1999]){const r=await call(u,'eth_getLogs',[{address:t.address,topics:[T],fromBlock:hex(at),toBlock:hex(Math.min(head,at+1998))}]);samples.push(Array.isArray(r.result)?r.result.length:r.error);}
+  if(deploy!=null)for(const at of [deploy,Math.floor((deploy+head)/2),head-1999]){const r=await paced(u,'eth_getLogs',[{address:t.address,topics:[T],fromBlock:hex(at),toBlock:hex(Math.min(head,at+1998))}]);samples.push(Array.isArray(r.result)?r.result.length:r.error);}
   const dense=samples.filter(x=>typeof x==='number');
   console.log('TOKEN '+JSON.stringify({symbol:t.symbol,address:t.address,deployBlock:deploy,spanBlocks:deploy!=null?head-deploy:null,codeSearchCalls:calls,logsPer2000Blocks:samples,
    roughLogsIfUniform:dense.length&&deploy!=null?Math.round(dense.reduce((a,b)=>a+b,0)/dense.length*(head-deploy)/2000):null}));
