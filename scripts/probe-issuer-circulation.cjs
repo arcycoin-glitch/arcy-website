@@ -32,8 +32,21 @@ async function docRows(symbol){
   const ts=block.result?await rpc(k.rpc,'eth_call',[{to:k.address,data:'0x18160ddd'},block.result]):{result:null};
   const sym=block.result?await rpc(k.rpc,'eth_call',[{to:k.address,data:'0x95d89b41'},block.result]):{result:null};
   const dec=block.result?await rpc(k.rpc,'eth_call',[{to:k.address,data:'0x313ce567'},block.result]):{result:null};
+  (global.__probe||(global.__probe={}))[k.chainId+':'+k.address]={block:block.result,totalSupplyRaw:ts.result&&ts.result!=='0x'?BigInt(ts.result).toString():null};
   console.log('CANDIDATE '+JSON.stringify({symbol:k.symbol,chainId:k.chainId,address:k.address,block:block.result,via:block.via,
    totalSupplyRaw:ts.result&&ts.result!=='0x'?BigInt(ts.result).toString():null,decimals:dec.result&&dec.result!=='0x'?Number(BigInt(dec.result)):null,
    symbolAbi:sym.result&&sym.result.length>=194?Buffer.from(sym.result.slice(130),'hex').toString('utf8').replace(/\0+$/,''):null}));
  }
+ // End-to-end: the production parser on live Circle data + the pinned totalSupply read above.
+ const circle=require('../search/server/lib/circle-circulating'),units=(raw,d)=>{const r=String(raw).padStart(d+1,'0');return r.slice(0,-d)+'.'+r.slice(-d);};
+ let ok=0;
+ for(const k of CANDIDATES){
+  const last=global.__probe?.[k.chainId+':'+k.address];if(!last)continue;
+  const f=await circle.inspect(k.address,units(last.totalSupplyRaw,6),{network:k.network,chainId:k.chainId,block:last.block});
+  if(f?.dataState==='DATA_FOUND')ok++;
+  console.log('E2E '+JSON.stringify({symbol:k.symbol,chainId:k.chainId,address:k.address,dataState:f?.dataState,status:f?.status,value:f?.value,sourceAsOf:f?.evidence?.[0]?.sourceAsOf,issuerMinusRpcRaw:f?.evidence?.[0]?.issuerMinusRpcRaw,reasonCode:f?.reasonCode||null}));
+ }
+ const controls=[['ethereum',1,'0xdac17f958d2ee523a2206206994597c13d831ec7'],['arc',5042,'0x1abaea1f7c830bd89acc67ec4af516284b1bc33c'],['ethereum',1,'0x5a98fcbea516cf06857215779fd812ca3bef1b32']];
+ for(const [network,chainId,address] of controls){const f=await circle.inspect(address,'1',{network,chainId,block:'0x1'});console.log('CONTROL '+JSON.stringify({network,address,result:f===null?'NOT_MAPPED_NO_FETCH':f.reasonCode}));}
+ console.log('E2E_TOTAL '+JSON.stringify({mapped:CANDIDATES.length,dataFound:ok}));
 })().catch(e=>{console.error(e.name);process.exitCode=1;});
