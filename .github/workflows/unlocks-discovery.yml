@@ -1,0 +1,26 @@
+name: Unlocks discovery (read-only, 40 contracts)
+on:
+  pull_request:
+    paths: ['scripts/unlock-discover.cjs','scripts/arc-lookup-diagnose.cjs','lib/unlock-onchain.cjs','.github/workflows/unlocks-discovery.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  arc-diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Arc per-contract step diagnostics
+        run: node scripts/arc-lookup-diagnose.cjs | grep "^::notice"
+  discover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Chain identity, holders and vesting-interface discovery (40 contracts)
+        run: node scripts/unlock-discover.cjs | tee discover.json | grep "^::notice"
