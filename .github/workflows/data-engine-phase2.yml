@@ -60,14 +60,32 @@ jobs:
         run: |
           node -e "const c=require('crypto');const {privateKey,publicKey}=c.generateKeyPairSync('ed25519');require('fs').writeFileSync('/tmp/sign.pem',privateKey.export({format:'pem',type:'pkcs8'}));require('fs').writeFileSync('/tmp/pub.pem',publicKey.export({format:'pem',type:'spki'}))"
           openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/tls.key -out /tmp/tls.crt -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost" 2>/dev/null
-      # Checkpoints persist across runs (same role as the Railway volume): heavy histories (AI, PONS) resume, never restart from 0.
+      # Dependency-aware census reuse. The fingerprint covers ONLY code that can change census output. A COMPLETE census (every cohort token
+      # COMPLETE, signed snapshots) is stored under an immutable fingerprint key and reused by any PR that leaves that code untouched; the A/B
+      # step still verifies every snapshot signature, so reuse never weakens verification. Partial runs only feed the rolling resume cache.
+      - name: Census input fingerprint
+        id: fp
+        working-directory: branch
+        run: |
+          fp=$(cat lib/holder-*.js scripts/holder-chain-census.cjs scripts/ci-publication-server.cjs search/server/lib/{holders,holder-attribution,holder-intelligence,holder-snapshot,large-holders,robinhood-holder-count,robinhood-holder-rank,chains,arc-holder-count,arc-holder-publication}.js | sha256sum | cut -c1-16)
+          echo "fp=$fp" >> "$GITHUB_OUTPUT"
+      - name: Reuse a verified COMPLETE chain-4663 census (same fingerprint)
+        id: reuse
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /tmp/holder-index
+            /tmp/holder-pub
+          key: holder-complete-4663-${{ steps.fp.outputs.fp }}
       - name: Restore chain-4663 checkpoints from the previous run
+        if: steps.reuse.outputs.cache-hit != 'true'
         uses: actions/cache/restore@v4
         with:
           path: /tmp/holder-index
           key: holder-index-4663-${{ github.run_id }}
           restore-keys: holder-index-4663-
       - name: Chain-4663 durable census (real Robinhood Chain RPC, Robinhood + Pons cohort)
+        if: steps.reuse.outputs.cache-hit != 'true'
         working-directory: branch
         env:
           ARC_HOLDER_STORAGE: local
@@ -76,14 +94,27 @@ jobs:
           CENSUS_BUDGET_MS: '4500000'
         run: |
           export ARC_HOLDER_SIGNING_KEY="$(cat /tmp/sign.pem)"
-          node scripts/holder-chain-census.cjs
+          node scripts/holder-chain-census.cjs | tee /tmp/census.log | grep -E "CENSUS_TOTAL|CENSUS_RESOURCES" || true
           ls -la /tmp/holder-pub/4663 | head -30 || true
+          node -e "const l=require('fs').readFileSync('/tmp/census.log','utf8').split('\n').find(x=>x.startsWith('CENSUS_TOTAL '));const t=l&&JSON.parse(l.slice(13));if(t&&t.tokens>0&&t.complete===t.tokens&&t.failed===0)require('fs').writeFileSync('/tmp/census-complete','1');console.log('census complete marker:',!!(t&&t.tokens>0&&t.complete===t.tokens&&t.failed===0))"
       - name: Save chain-4663 checkpoints for the next run
-        if: always()
+        if: always() && steps.reuse.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: /tmp/holder-index
           key: holder-index-4663-${{ github.run_id }}
+      - name: Detect COMPLETE census marker
+        id: mark
+        if: always() && steps.reuse.outputs.cache-hit != 'true'
+        run: test -f /tmp/census-complete && echo "done=true" >> "$GITHUB_OUTPUT" || echo "done=false" >> "$GITHUB_OUTPUT"
+      - name: Save verified COMPLETE census for fingerprint reuse
+        if: always() && steps.reuse.outputs.cache-hit != 'true' && steps.mark.outputs.done == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /tmp/holder-index
+            /tmp/holder-pub
+          key: holder-complete-4663-${{ steps.fp.outputs.fp }}
       - name: Start publication server, main and branch
         run: |
           sudo "$(which node)" branch/scripts/ci-publication-server.cjs /tmp/holder-pub /tmp/tls.crt /tmp/tls.key > /tmp/pubsrv.log 2>&1 &
