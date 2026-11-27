@@ -2,6 +2,36 @@
  "schema": "arcy-radar-v4-snapshot-index/1",
  "revisions": [
   {
+   "generatedAt": "2026-11-27T14:24:09.721Z",
+   "engineCommit": "8b25d75e35f08b0066193e1221d9cd6c023702e7",
+   "sections": {
+    "arc": {
+     "status": "BUILT",
+     "asOf": "2026-11-27T14:20:01.362Z",
+     "shown": 10,
+     "carriedForward": false
+    },
+    "ethereum": {
+     "status": "BUILT",
+     "asOf": "2026-11-27T14:20:11.254Z",
+     "shown": 10,
+     "carriedForward": false
+    },
+    "robinhood": {
+     "status": "BUILT",
+     "asOf": "2026-11-27T14:20:01.532Z",
+     "shown": 10,
+     "carriedForward": false
+    },
+    "pons": {
+     "status": "BUILT_FROM_STALE_SOURCE",
+     "asOf": "2026-11-27T12:17:43.723Z",
+     "shown": 10,
+     "carriedForward": false
+    }
+   }
+  },
+  {
    "generatedAt": "2026-11-27T12:25:00.610Z",
    "engineCommit": "8b25d75e35f08b0066193e1221d9cd6c023702e7",
    "sections": {
