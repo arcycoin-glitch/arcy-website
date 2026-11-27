@@ -55,7 +55,7 @@ async function sourceFor(cfg,address,code,diagnostics){
  if(compiled)return compiled;
  const url='https://sourcify.dev/server/v2/contract/'+cfg.chainId+'/'+address+'?fields=abi,sources,compilation,runtimeBytecode';
  try{
-  const body=await reader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{validateSource(d,{chainId:cfg.chainId,address,code});return true;}});
+  const body=await reader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{if(require('./mechanics-yul').matchedYul(d,{chainId:cfg.chainId,address,code}))throw Error('UNSUPPORTED_SOURCE_LANGUAGE_YUL');validateSource(d,{chainId:cfg.chainId,address,code});return true;}});
   const checked=validateSource(body,{chainId:cfg.chainId,address,code});
   const family=runtimeReview.classify(body.sources,body.compilation);
   const opts={lib:require('./oz-library-hashes'),main:typeof body.compilation?.name==='string'?body.compilation.name:undefined};
@@ -68,7 +68,7 @@ async function sourceFor(cfg,address,code,diagnostics){
   const reason=e.httpStatus===404?'SOURCE_CODE_UNAVAILABLE':e.httpStatus===429?'SOURCE_RATE_LIMIT':
    e.code==='SOURCE_TIMEOUT'?'SOURCE_TIMEOUT':
    /exceeds .*size limit/.test(e.message)?'SOURCE_RESPONSE_LIMIT':e.code==='SOURCE_CAPACITY_LIMIT'?'SOURCE_CAPACITY_LIMIT':
-   ['SOURCE_BYTECODE_MISMATCH','SOURCE_IDENTITY_MISMATCH','SOURCE_SCHEMA_INVALID'].includes(e.message)?e.message:
+   ['SOURCE_BYTECODE_MISMATCH','SOURCE_IDENTITY_MISMATCH','SOURCE_SCHEMA_INVALID','UNSUPPORTED_SOURCE_LANGUAGE_YUL'].includes(e.message)?e.message:
    e.code==='SOURCE_SCHEMA_INVALID'?'SOURCE_SCHEMA_INVALID':'SOURCE_API_FAILED';
   diagnostics.push({source:'Sourcify',address,chainId:cfg.chainId,sourceUrl:url,reason});
   // Unpublished source only: a curated, exact-matched sibling reference may be reused (see mechanics-sibling-runtime.js).

@@ -55,3 +55,20 @@ test('Arc adapter: Circle contracts get issuer circulation, any other Arc token 
  assert.equal(f.value,'50','same Circle ARC row (reader cache is shared within the process)');assert.equal(f.status,'SOURCE_REPORTED');
  assert.equal(m.MAPPINGS.length,4);assert(Object.isFrozen(m.MAPPINGS));
 });
+
+// Production regression: the full Search supply formatter must accept exact Arc issuer identity,
+// retain the source-reported status, and still reject cross-chain and wrong-token evidence.
+test('Circle exact mapping survives Search supply context identity checks',()=>{
+ const {formatCard}=require('../search/server/lib/data-engine'),{chain}=require('../search/server/lib/chains');
+ for(const map of m.MAPPINGS){
+  const ctx={address:map.address,block:options.block};
+  const f=m.parse(multi(),{...options,address:map.address,network:map.network,chainId:map.chainId});
+  assert.equal(f.chainId,map.chainId);assert.equal(f.network,map.network);
+  const raw={fields:{circulatingSupply:f}};
+  const accepted=formatCard('supply',raw,chain(map.network),ctx).context.circulatingSupply;
+  assert.equal(accepted.dataState,'DATA_FOUND');assert.equal(accepted.status,'SOURCE_REPORTED');assert.equal(accepted.value,f.value);
+  const foreign=map.network==='arc'?'ethereum':'arc';
+  assert.equal(formatCard('supply',raw,chain(foreign),ctx).context.circulatingSupply.reasonCode,'SOURCE_IDENTITY_MISMATCH');
+  assert.equal(formatCard('supply',raw,chain(map.network),{...ctx,address:'0x'+'1'.repeat(40)}).context.circulatingSupply.reasonCode,'SUPPLY_CONTEXT_TOKEN_MISMATCH');
+ }
+});
