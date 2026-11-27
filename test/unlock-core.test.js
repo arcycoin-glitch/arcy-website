@@ -72,6 +72,16 @@ test('sanitizeEvents: conflicting amounts are quarantined, namesakes and version
  assert.equal(out.events.find(e=>e.symbol==='ALP'),undefined);
 });
 
+test('calendar execution remains unverified even with fabricated well-formed receipt identifiers',()=>{
+ const fake={chainId:5042,txHash:'0x'+'a'.repeat(64),block:123456};
+ const item={name:'Example',symbol:'EX',amount:'10M EX',date:'2026-12-01',allocation:'Team',verification:'project-confirmed',sourceUrl:'https://api.coinbell.in/token-unlocks',executionProof:fake};
+ assert.equal(core.executionVerification(item),'NOT_VERIFIED');
+ const result=core.sanitizeEvents([item]);
+ assert.equal(result.events.length,1);
+ assert.equal(result.events[0].executionVerification,'NOT_VERIFIED');
+ assert.equal(result.events[0].scheduleStatus,'SCHEDULED');
+});
+
 // ---------- cross-runtime parity ----------
 function apiContext(fetchImpl){
  const evidence=fs.readFileSync(path.join(root,'lib/unlock-evidence.js'),'utf8').replaceAll('export const','const');
