@@ -1,0 +1,60 @@
+name: Durable market verification snapshot (read-only chain reads, data-only branch)
+# #356. Computes on-chain 24h volume (largest provider pools covering >= 95%) OUTSIDE visitor requests and publishes it to the
+# data-only branch `market-verify-snapshots` (Vercel deployments disabled). Production reads it with freshness/scope checks.
+# Runs after every Radar snapshot run (Railway-dispatched every ~2 h), on a fallback schedule and manually. PRs: dry run only.
+on:
+  workflow_run:
+    workflows: ['Radar continuous research snapshot (V4–V7, read-only sources)']
+    types: [completed]
+  schedule:
+    - cron: '41 */3 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/market-verify-snapshot.cjs'
+      - 'search/server/lib/market-verify-snapshot.js'
+      - 'search/server/lib/market-volume.js'
+      - '.github/workflows/market-verify-snapshot.yml'
+permissions:
+  contents: write
+concurrency:
+  group: market-verify-snapshot-${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DATA_REF: market-verify-snapshots
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build snapshot
+        env:
+          MARKET_VERIFY_BUDGET_MS: '2700000'
+        run: node scripts/market-verify-snapshot.cjs --out out/market-verify/snapshot.json
+      - name: Publish to data-only branch (main only)
+        if: github.event_name != 'pull_request'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          url="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$url" "$DATA_REF" >/dev/null; then git clone -q --depth 20 --branch "$DATA_REF" "$url" snap; else mkdir snap && cd snap && git init -q -b "$DATA_REF" && git remote add origin "$url" && cd ..; fi
+          mkdir -p snap/market-verify && cp out/market-verify/snapshot.json snap/market-verify/snapshot.json
+          cd snap
+          git config user.name "arcy-market-verify-bot"; git config user.email "actions@users.noreply.github.com"
+          printf '{\n  "git": { "deploymentEnabled": false }\n}\n' > vercel.json
+          printf 'Data-only branch for ARCY durable market verification (#356). Written by .github/workflows/market-verify-snapshot.yml.\n' > README.md
+          git add market-verify vercel.json README.md
+          git diff --cached --quiet && { echo "No change"; exit 0; }
+          git commit -q -m "market-verify snapshot $(date -u +%Y-%m-%dT%H:%MZ) engine ${GITHUB_SHA::12}"
+          git push -q origin "HEAD:${DATA_REF}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: market-verify-snapshot
+          path: out/market-verify/snapshot.json
