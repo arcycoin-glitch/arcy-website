@@ -6,7 +6,7 @@
 // Tiers come from the existing verified-coverage tierOf (evidence-class taxonomy): VERIFIED | SOURCE_BACKED | HISTORICAL |
 // STALE | CONFLICTING | NOT_VERIFIED. No field is dropped from a denominator here; inapplicability is reported, not applied.
 const fs=require('node:fs'),path=require('node:path'),V=require('../search/server/lib/verified-coverage');
-const BASE=process.env.ARCY_BASE||'https://www.arcyusdc.xyz',PACE=Number(process.env.MATRIX_PACE_MS||1500);
+const BASE=process.env.ARCY_BASE||'https://www.arcyusdc.xyz',PACE=Number(process.env.MATRIX_PACE_MS||2500);
 const cohort=JSON.parse(fs.readFileSync(path.join(__dirname,'../data/verified-coverage/radar-cohort-20261121.json'),'utf8'));
 const OUT=process.env.MATRIX_OUT||null;
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -27,7 +27,7 @@ const short=v=>v==null?null:String(typeof v==='object'?JSON.stringify(v):v).slic
     const f=fields[key],tr=V.tierOf(f,card,now),ev=Array.isArray(f?.evidence)?f.evidence[0]:null;
     rows.push({section:t.section,chainId:t.chainId,symbol:t.symbol,address:t.address,card,key,tier:tr.tier,reason:tr.tier==='VERIFIED'||tr.tier==='SOURCE_BACKED'?null:(f?.reasonCode||tr.reason||null),
      status:f?.status||null,dataState:f?.dataState||null,value:short(f?.value),source:short(f?.source||ev?.source||ev?.provider),
-     block:ev?.block||f?.snapshot?.block||null,asOf:f?.freshness?.sourceAsOf||f?.freshness?.observedAt||ev?.sourceAsOf||null,ms:r.ms});
+     crossCheck:f?.crossCheck?(f.crossCheck.reasonCode||f.crossCheck.state||null):null,block:ev?.block||f?.snapshot?.block||null,asOf:f?.freshness?.sourceAsOf||f?.freshness?.observedAt||ev?.sourceAsOf||null,ms:r.ms});
    }
   }
   await wait(PACE);
