@@ -36,7 +36,8 @@ const BASELINE = Object.freeze({
   "v8-premium.js": "7b2e9c36ca6bbaab9beb75a59e5affc121f2b522",
   "hero-video.js": "40942f382f1650b90d1d7572d0d1874217d4a3c0",
   // Issue #263: evidence labels and exact-chain missing-contract error presentation; API and metrics unchanged.
-  "search/index.html": "f6296dbfb39f2ecbd0e461187951f19aa12087d9",
+  // 2026-11-27 owner-authorized UNI release: script-only addition (Supply card evidence-panel entry); DOM/CSS untouched.
+  "search/index.html": "466a32ee3cbd8cb811875c5b20708e1c3ddbff5c",
   // 2026-11-01 owner-requested Pons availability exception: truthful source states and controlled manual retry; layout/CSS unchanged.
   // 2026-11-07 owner-authorized Radar SCORE display repair: accept the existing
   // discovery-2 backend schema and hide absent rationales; no HTML/CSS/skeleton,

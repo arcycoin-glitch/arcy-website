@@ -1,27 +1,15 @@
+import core from '../lib/unlock-core.cjs';
 import { VERIFIED_EVENTS, COVERAGE_REVIEWS, suppressingReview } from '../lib/unlock-evidence.js';
 
 const SOURCE_URL = 'https://api.coinbell.in/token-unlocks?sort=soonest&window=30';
 const SOURCE_URLS = ['soonest', 'impact', 'value'].map(sort => `https://api.coinbell.in/token-unlocks?sort=${sort}&window=30`);
 const SIX_HOURS = 6 * 60 * 60 * 1000;
 async function fetchWithTimeout(url, options = {}) { return fetch(url, { ...options, signal: AbortSignal.timeout(15000) }); }
-function stripTags(value = '') { return String(value).replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&#39;/g, "'").replace(/&quot;/gi, '"').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/\s+/g, ' ').trim(); }
-function isoDate(text = '') { const match = String(text).match(/\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\b/i); if (!match) return null; const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 }, date = new Date(Date.UTC(Number(match[3]), months[match[2].toLowerCase()], Number(match[1]))); return date.getUTCDate() === Number(match[1]) ? date.toISOString().slice(0, 10) : null; }
+const { stripTags, isoDate, parseFeed, sanitizeEvents } = core;
 function utcToday() { return new Date().toISOString().slice(0, 10); }
 function dayDiff(date, today) { return Math.round((Date.parse(date + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 86400000); }
 
-function parseRows(html, sourceUrl = SOURCE_URL) {
-  const rows = [];
-  for (const row of String(html).matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
-    const cells = [...row[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(cell => stripTags(cell[1]));
-    if (cells.length < 6 || !/^\d+$/.test(cells[0])) continue;
-    const date = isoDate(cells[2]), amount = cells[3] || '', symbol = amount.match(/\s([A-Z0-9][A-Z0-9._-]{0,14})\s*$/)?.[1] || '';
-    if (!date || !symbol || !/^\d+(?:[.,]\d+)*(?:[KMB])?\s+[A-Z0-9._-]+$/.test(amount)) continue;
-    let name = cells[1] || symbol;
-    if (name.toUpperCase().endsWith(symbol)) name = name.slice(0, -symbol.length).trim() || symbol;
-    rows.push({ name, symbol, date, amount, percent: cells[5] || '', value: cells[4] || '', allocation: cells[6] || '', source: 'CoinBell / DefiLlama', sourceUrl, verification: 'source-published', evidence: [{ url: sourceUrl, kind: 'published-calendar', checkedAt: new Date().toISOString() }] });
-  }
-  return rows;
-}
+function parseRows(html, sourceUrl = SOURCE_URL) { return parseFeed(html, sourceUrl, Date.now()).rows; }
 
 async function fetchCmcLogos(events) {
   // CoinMarketCap Pro requires an API key. Use the exact-name logo registry or initials otherwise.
@@ -96,12 +84,13 @@ function safeCurrentEdition(raw, now = Date.now()) {
     const roundedZero = /^%?0(?:[.,]0+)?%?$/.test(percentText);
     events.push({ ...e, percent: (percentReview && e.verification !== 'project-confirmed') || roundedZero ? '' : e.percent, percentStatus: roundedZero ? 'ROUNDED_ZERO_UNDISCLOSED' : 'SOURCE_PUBLISHED_UNVERIFIED', daysFromToday: dayDiff(e.date, today), ...provenance(e, raw) });
   }
+  const guarded = sanitizeEvents(events); events.splice(0, events.length, ...guarded.events);
   events.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name) || String(a.allocation || '').localeCompare(String(b.allocation || '')));
   return { ...raw, events, windows: {
     today: events.filter(e => e.daysFromToday === 0),
     next7: events.filter(e => e.daysFromToday >= 1 && e.daysFromToday <= 7),
     days8to30: events.filter(e => e.daysFromToday >= 8 && e.daysFromToday <= 30)
-  }, partial: Boolean(raw.partial || excluded.length || percentageConflicts.length || raw.coverage?.quarantined?.length), networkScope: 'CROSS_ECOSYSTEM', coverage: { ...(raw.coverage || {}), complete: false, independentPublishers: 1, publisherNote: 'The soonest, impact and value sorts are three views of one publisher (CoinBell), not independent confirmations.', reviews: COVERAGE_REVIEWS, quarantined: [...(Array.isArray(raw.coverage?.quarantined)?raw.coverage.quarantined:[]),...excluded], percentageConflicts } };
+  }, partial: Boolean(raw.partial || excluded.length || percentageConflicts.length || raw.coverage?.quarantined?.length || guarded.conflicts.length), networkScope: 'CROSS_ECOSYSTEM', coverage: { ...(raw.coverage || {}), complete: false, editionConflicts: guarded.conflicts, independentPublishers: 1, publisherNote: 'The soonest, impact and value sorts are three views of one publisher (CoinBell), not independent confirmations.', reviews: COVERAGE_REVIEWS, quarantined: [...(Array.isArray(raw.coverage?.quarantined)?raw.coverage.quarantined:[]),...excluded], percentageConflicts } };
 }
 function validEdition(value) { return !!(value && value.schemaVersion === 1 && value.success === true && Array.isArray(value.events) && value.windows && ['today', 'next7', 'days8to30'].every(name => Array.isArray(value.windows[name]))); }
 function base64(value) { return Uint8Array.from(atob(value), char => char.charCodeAt(0)); }
@@ -124,14 +113,15 @@ export default async function handler(req, res) {
   const secondsToMidnight = Math.max(1, Math.floor((Date.parse(utcToday() + 'T00:00:00Z') + 86400000 - Date.now()) / 1000));
   res.setHeader('Cache-Control', `public, s-maxage=${Math.min(21600, secondsToMidnight)}, must-revalidate`);
   try {
-    const collected = await Promise.all(SOURCE_URLS.map(async url => { try { const response = await fetchWithTimeout(url, { headers: { accept: 'text/html,application/xhtml+xml', 'user-agent': 'ARCY-Research/1.0 (+https://arcyusdc.xyz)' } }); if (!response.ok) throw Error(); const rows = parseRows(await response.text(), url); if (!rows.length) throw Error(); return { url, status: 'available', rows }; } catch { return { url, status: 'unavailable', rows: [] }; } }));
+    const collected = await Promise.all(SOURCE_URLS.map(async url => { try { const response = await fetchWithTimeout(url, { headers: { accept: 'text/html,application/xhtml+xml', 'user-agent': 'ARCY-Research/1.0 (+https://arcyusdc.xyz)' } }); if (!response.ok) throw Object.assign(Error('SOURCE_HTTP_' + response.status), { retryAfter: response.headers?.get?.('retry-after') }); const { rows, diagnostics } = parseFeed(await response.text(), url, Date.now()); if (diagnostics.drift) throw Object.assign(Error('SOURCE_MARKUP_DRIFT'), { diagnostics }); if (!rows.length) throw Object.assign(Error('SOURCE_EMPTY'), { diagnostics }); return { url, status: 'available', rows, diagnostics }; } catch (error) { const retry = Number(error?.retryAfter); return { url, status: 'unavailable', rows: [], reason: String(error?.message || 'SOURCE_FAILED').slice(0, 60), diagnostics: error?.diagnostics || null, ...(Number.isFinite(retry) ? { retryAfterSeconds: retry } : {}) }; } }));
     const supplemental = await collectVerifiedEvents(VERIFIED_EVENTS);
+    const onchain = await core.onchainEvents(); supplemental.events.push(...onchain.events);
     if (!collected.some(source => source.status === 'available') && !supplemental.events.length) throw Error();
-    const today = utcToday(), merged = mergeEvents([...collected.flatMap(source => source.rows), ...supplemental.events]), events = merged.events.map(event => ({ ...event, daysFromToday: dayDiff(event.date, today) })).filter(event => event.daysFromToday >= 0 && event.daysFromToday <= 30).sort((left, right) => left.date.localeCompare(right.date) || left.name.localeCompare(right.name) || left.allocation.localeCompare(right.allocation)), partial = collected.some(source => source.status !== 'available') || supplemental.rejected.length > 0 || merged.conflicts.length > 0;
+    const today = utcToday(), merged = mergeEvents([...core.dropOnchainDuplicates(collected.flatMap(source => source.rows), onchain.events), ...supplemental.events]), events = merged.events.map(event => ({ ...event, daysFromToday: dayDiff(event.date, today) })).filter(event => event.daysFromToday >= 0 && event.daysFromToday <= 30).sort((left, right) => left.date.localeCompare(right.date) || left.name.localeCompare(right.name) || left.allocation.localeCompare(right.allocation)), partial = collected.some(source => source.status !== 'available') || supplemental.rejected.length > 0 || merged.conflicts.length > 0;
     if (partial) res.setHeader('Cache-Control', 'no-store');
     let logos = {}; try { logos = await fetchCmcLogos(events); } catch {}
     const enriched = events.map(event => ({ ...event, logo: logos[event.symbol] || '' }));
-    const responseBody = { ok: true, live: true, source: 'CoinBell published calendar (DefiLlama attribution); project-confirmed supplements when available', partial, coverage: { complete: false, sources: collected.map(({ url, status, rows }) => ({ url, status, rowCount: rows.length })), reviews: COVERAGE_REVIEWS, conflicts: merged.conflicts, quarantined: merged.quarantined, rejectedSupplements: supplemental.rejected }, sourceUrl: SOURCE_URL, updatedAt: new Date().toISOString(), windowTimeZone: 'UTC', refreshAt: new Date(Date.parse(utcToday() + 'T00:00:00Z') + 86400000).toISOString(), windows: { today: enriched.filter(event => event.daysFromToday === 0), next7: enriched.filter(event => event.daysFromToday >= 1 && event.daysFromToday <= 7), days8to30: enriched.filter(event => event.daysFromToday >= 8 && event.daysFromToday <= 30) }, events: enriched };
+    const responseBody = { ok: true, live: true, source: 'CoinBell published calendar (DefiLlama attribution); project-confirmed supplements when available', partial, coverage: { complete: false, sources: collected.map(({ url, status, rows, reason, diagnostics, retryAfterSeconds }) => ({ url, status, rowCount: rows.length, ...(reason ? { reason } : {}), ...(diagnostics ? { parse: { dataRows: diagnostics.dataRows, parsed: diagnostics.parsed, rejected: diagnostics.rejected, ambiguousAmounts: diagnostics.ambiguousAmounts } } : {}), ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}) })), reviews: COVERAGE_REVIEWS, conflicts: merged.conflicts, quarantined: merged.quarantined, rejectedSupplements: supplemental.rejected }, sourceUrl: SOURCE_URL, updatedAt: new Date().toISOString(), windowTimeZone: 'UTC', refreshAt: new Date(Date.parse(utcToday() + 'T00:00:00Z') + 86400000).toISOString(), windows: { today: enriched.filter(event => event.daysFromToday === 0), next7: enriched.filter(event => event.daysFromToday >= 1 && event.daysFromToday <= 7), days8to30: enriched.filter(event => event.daysFromToday >= 8 && event.daysFromToday <= 30) }, events: enriched };
     const checked = safeCurrentEdition(responseBody);
     if (checked.partial) res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ...checked, ...chainNotice(req) });

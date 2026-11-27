@@ -27,15 +27,21 @@ function measure(body) {
       sourceLinkUnavailable: events.filter(event => !view.sourceUrl(event.sourceUrl)).length
     },
     quarantinedRecords: body.coverage?.quarantined?.length || 0,
+    conflicts: body.coverage?.conflicts?.length || 0,
+    editionConflicts: body.coverage?.editionConflicts?.length || 0,
+    windowEvents: { today: (body.windows?.today || []).length, next7: (body.windows?.next7 || []).length, days8to30: (body.windows?.days8to30 || []).length },
+    sourceStatuses: (body.coverage?.sources || []).map(source => ({ status: source.status, reason: source.reason || null, rows: source.rowCount })),
+    networkScope: body.networkScope || null, chainFilterApplied: body.chainFilterApplied ?? null,
     tokens: [...identities.values()].map(entry => ({ ...entry, dates: entry.dates.size }))
       .sort((a, b) => a.name.localeCompare(b.name) || a.symbol.localeCompare(b.symbol))
   };
 }
 async function probe(base = 'https://www.arcyusdc.xyz', fetcher = fetch) {
-  const url = new URL('/api/unlocks', base);
+  const url = new URL('/api/unlocks', base), started = Date.now();
   const response = await fetcher(url, { headers: { accept: 'application/json', referer: url.origin + '/', 'sec-fetch-site': 'same-origin' }, signal: AbortSignal.timeout(25000) });
   if (!response.ok) throw Error('UNLOCK_HTTP_' + response.status);
-  return measure(await response.json());
+  const result = measure(await response.json());
+  return { ...result, httpStatus: response.status, latencyMs: Date.now() - started, cacheControl: response.headers?.get?.('cache-control') ?? null };
 }
 if (require.main === module) probe(process.env.ARCY_BASE).then(result => console.log(JSON.stringify(result, null, 2))).catch(error => {
   console.error(JSON.stringify({ ok: false, error: error.message }));

@@ -1,0 +1,23 @@
+name: Coverage matrix (read-only, #337)
+# Fixed 40-token x every Search card field evidence matrix, measured against PRODUCTION (read-only GETs). No secrets.
+on:
+  pull_request:
+    paths:
+      - 'scripts/coverage-matrix.cjs'
+      - '.github/workflows/coverage-matrix.yml'
+permissions:
+  contents: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: MATRIX_OUT=/tmp/matrix.json node scripts/coverage-matrix.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-matrix-production
+          path: /tmp/matrix.json

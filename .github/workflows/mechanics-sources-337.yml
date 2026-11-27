@@ -1,0 +1,18 @@
+name: Mechanics source availability probe (read-only, #337)
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-mechanics-sources-337.cjs'
+      - '.github/workflows/mechanics-sources-337.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-mechanics-sources-337.cjs

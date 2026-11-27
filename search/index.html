@@ -655,6 +655,27 @@ function render(report){
         scope.textContent=extra.limitation||'Wallet custody is not verified circulating supply.';
         item.append(link,scope);proofList.append(item);
        }
+      // Verified scheduled unlock (e.g. UNI): research context only. Never one of the four metrics or the 20-check tally.
+      if(spec.id==='supply'){
+       const u=card.scheduledUnlock,okAddr=a=>typeof a==='string'&&/^0x[0-9a-f]{40}$/i.test(a);
+       if(u&&u.kind==='SCHEDULED_UNLOCK'&&u.executed===false&&u.chainId===1&&okAddr(u.vestingContract)&&okAddr(u.recipient)&&
+          typeof u.date==='string'&&/^\d{4}-\d{2}-\d{2}T/.test(u.date)&&Number.isFinite(Date.parse(u.date))&&
+          typeof u.amount==='string'&&/^\d+(?:\.\d+)?$/.test(u.amount)&&typeof u.percentOfTotalSupply==='number'){
+        const item=document.createElement('div');item.className='proof-entry';item.dataset.scheduledUnlock='1';
+        const head=document.createElement('div');head.className='proof-entry-head';
+        const t=document.createElement('strong');t.textContent='Next scheduled unlock (on-chain)';
+        const st=document.createElement('span');st.className='proof-state';st.textContent='SCHEDULED · NOT EXECUTED';head.append(t,st);
+        const line=document.createElement('p');line.className='proof-scope';
+        const when=new Date(u.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+        const amt=Number(u.amount).toLocaleString('en-US',{maximumFractionDigits:4});
+        line.textContent=when+' (00:00 UTC) · '+amt+' '+String(u.symbol||'').replace(/[^A-Za-z0-9]/g,'').slice(0,12)+' · '+u.percentOfTotalSupply.toFixed(2)+'% of total supply';
+        const cat=document.createElement('p');cat.className='proof-scope';cat.textContent='Allocation: '+String(u.allocationCategory||'').slice(0,160)+' · Evidence: on-chain contract state + official governance record';
+        const link=document.createElement('a');link.textContent='UNIVesting contract on Etherscan';link.href='https://etherscan.io/address/'+u.vestingContract;link.target='_blank';link.rel='noopener noreferrer';
+        const gov=document.createElement('a');gov.textContent='Governance proposal 93';gov.href='https://vote.uniswapfoundation.org/proposals/93';gov.target='_blank';gov.rel='noopener noreferrer';gov.style.marginLeft='10px';
+        const cav=document.createElement('p');cav.className='proof-scope';cav.textContent='Revocable schedule: the owner (Uniswap Governance Timelock) can revoke the allowance or change the amount before release. Scheduled release only, not an executed transaction.';
+        item.append(head,line,cat,link,gov,cav);proofList.append(item);
+       }
+      }
       for(const [key,label] of spec.fields){
         const field=card.fields[key];if(!field)continue;
         const block=document.createElement('div');block.className='proof-entry';
