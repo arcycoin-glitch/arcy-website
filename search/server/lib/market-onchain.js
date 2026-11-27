@@ -130,8 +130,8 @@ async function readPool(pool,{network,token,rpc,call,block}){
    sqrtPriceX96:sqrtP,tick,decimals:{[k.currency0]:d0,[k.currency1]:d1}};
  }
  if(!ADDR.test(pool))throw code('POOL_ID_INVALID');
- const t0=addrOf(await call(pool,SEL.token0)),t1=addrOf(await call(pool,SEL.token1));
- if(!t0||!t1)throw code('POOL_KIND_UNSUPPORTED');
+ const t0=addrOf(await call(pool,SEL.token0).catch(e=>{if(e.code==='ONCHAIN_BUDGET_EXHAUSTED'||e.code==='ONCHAIN_TIMEOUT')throw e;return null;})),t1=t0?addrOf(await call(pool,SEL.token1)):null;
+ if(!t0||!t1){const c=await curvePool(pool,{network,token,call});if(c)return c;throw code('POOL_KIND_UNSUPPORTED');}
  if(![t0,t1].includes(token))throw code('POOL_DOES_NOT_CONTAIN_TOKEN');
  const other=t0===token?t1:t0,q=QUOTES[network]?.[other];
  const [d0,d1]=[await decimalsOf(call,network,t0),await decimalsOf(call,network,t1)];
@@ -144,6 +144,26 @@ async function readPool(pool,{network,token,rpc,call,block}){
  const s=await call(pool,SEL.slot0);const sqrtP=words(s)[0]&((1n<<160n)-1n);
  const b0=big(await call(t0,SEL.balanceOf+word(pool))),b1=big(await call(t1,SEL.balanceOf+word(pool)));
  return {pool,kind:'V3_SLOT0',quote:other,quoteAsset:q?.asset||null,price:fromSqrt(sqrtP,d0,d1,t0===token),amounts:{[t0]:human(b0,d0),[t1]:human(b1,d1)}};
+}
+// Curve 2-coin pools (#357): identity = the token is coins(0) or coins(1) of the pool contract and coins(2) does not exist;
+// price = get_dy(token -> quote, 1 token) at the pinned block (includes the pool fee, well inside the 3% cross-check tolerance);
+// amounts = balances(i). Native ETH placeholder 0xeeee… maps to the chain's native quote. Anything else fails closed.
+const EEE='0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+const n64=i=>BigInt(i).toString(16).padStart(64,'0');
+async function curvePool(pool,{network,token,call}){
+ const tryCall=async(sels,args)=>{for(const s of sels){try{const r=await call(pool,s+args);if(typeof r==='string'&&/^0x[0-9a-f]{64}/i.test(r))return r;}catch(e){if(e.code==='ONCHAIN_BUDGET_EXHAUSTED'||e.code==='ONCHAIN_TIMEOUT')throw e;}}return null;};
+ const coin=async i=>{const r=await tryCall(['0xc6610657','0x23746eb8'],n64(i));const a=r?addrOf(r.slice(0,66)):null;return a===EEE?NATIVE:a;};
+ const c0=await coin(0),c1=await coin(1);if(!c0||!c1||c0===c1)return null;
+ if(![c0,c1].includes(token))throw code('POOL_DOES_NOT_CONTAIN_TOKEN');
+ if(await coin(2))throw code('CURVE_POOL_NOT_TWO_COIN');
+ const i=c0===token?0:1,j=1-i,other=j===0?c0:c1,q=QUOTES[network]?.[other];
+ const [dt,dq]=[await decimalsOf(call,network,token),await decimalsOf(call,network,other)];
+ const dyRaw=await tryCall(['0x556d6e9f','0x5e0d443f'],n64(i)+n64(j)+n64(10n**BigInt(dt)));if(!dyRaw)throw code('CURVE_GET_DY_UNAVAILABLE');
+ const dy=big(dyRaw);if(dy<=0n)throw code('POOL_PRICE_ZERO');
+ const bal=async k=>{const r=await tryCall(['0x4903b0d1','0x065a80d8'],n64(k));if(!r)throw code('CURVE_BALANCES_UNAVAILABLE');return big(r);};
+ const [b0,b1]=[await bal(0),await bal(1)];if(b0<=0n||b1<=0n)throw code('POOL_EMPTY');
+ const amounts={[c0]:human(b0,c0===token?dt:dq),[c1]:human(b1,c1===token?dt:dq)};
+ return {pool,kind:'CURVE_2COIN',quote:other,quoteAsset:q?.asset||null,price:human(dy,dq),amounts};
 }
 // Secondary fields for the provider's own pools. Returns {fields, profile}; never throws.
 async function inspect(network,address,primary,{rpc=rpcFor(network),ethRpc=rpcFor('ethereum'),now=Date.now(),maxCalls=MAX_CALLS,timeoutMs=TIMEOUT_MS,env=process.env}={}){
