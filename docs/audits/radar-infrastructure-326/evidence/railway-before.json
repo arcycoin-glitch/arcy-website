@@ -1,0 +1,116 @@
+{
+  "observedAt": "2026-11-27 06:57:09 UTC",
+  "projectId": "8ba19c51-0434-44ee-b61c-8eddcd3bb941",
+  "environmentId": "ebdf4579-5ca8-45b0-b37e-fd67b1875279",
+  "scheduler": {
+    "serviceId": "609b13bc-fe54-4b4a-b78d-e56cd41f3e5d",
+    "source": {
+      "repo": "arcycoin-glitch/arcy-website",
+      "branch": "main"
+    },
+    "deploy": {
+      "startCommand": "node scripts/radar-railway-dispatch.cjs",
+      "restartPolicyType": "NEVER",
+      "useLegacyStacker": false,
+      "ipv6EgressEnabled": false,
+      "cronSchedule": "17 */2 * * *",
+      "runtime": "V2",
+      "multiRegionConfig": {
+        "iad": {
+          "numReplicas": 1
+        }
+      }
+    },
+    "variableNamePresent": true,
+    "latestDeployment": "53c9e59a-1239-44d0-b727-735329c66d94",
+    "status": "CRASHED",
+    "runtime": [
+      {
+        "at": "2026-11-26T22:21:29.769495222Z",
+        "message": "Starting Container",
+        "attributes": {}
+      },
+      {
+        "at": "2026-11-26T22:21:29.850091663Z",
+        "message": "",
+        "attributes": {
+          "state": "BLOCKED",
+          "reason": "DISPATCH_HTTP_403",
+          "ageMin": 560,
+          "snapshotReadable": true
+        }
+      },
+      {
+        "at": "2026-11-27T00:23:34.398007748Z",
+        "message": "Starting Container",
+        "attributes": {}
+      },
+      {
+        "at": "2026-11-27T00:23:34.920018021Z",
+        "message": "",
+        "attributes": {
+          "state": "BLOCKED",
+          "reason": "DISPATCH_HTTP_403",
+          "ageMin": 103,
+          "snapshotReadable": true
+        }
+      },
+      {
+        "at": "2026-11-27T02:21:48.005237950Z",
+        "message": "Starting Container",
+        "attributes": {}
+      },
+      {
+        "at": "2026-11-27T02:21:48.135833334Z",
+        "message": "",
+        "attributes": {
+          "state": "BLOCKED",
+          "reason": "DISPATCH_HTTP_403",
+          "ageMin": 221,
+          "snapshotReadable": true
+        }
+      },
+      {
+        "at": "2026-11-27T04:20:11.778732501Z",
+        "message": "Starting Container",
+        "attributes": {}
+      },
+      {
+        "at": "2026-11-27T04:20:12.829599821Z",
+        "message": "",
+        "attributes": {
+          "state": "BLOCKED",
+          "reason": "DISPATCH_HTTP_403",
+          "ageMin": 339,
+          "snapshotReadable": true
+        }
+      },
+      {
+        "at": "2026-11-27T06:19:04.374957718Z",
+        "message": "Starting Container",
+        "attributes": {}
+      },
+      {
+        "at": "2026-11-27T06:19:05.211445714Z",
+        "message": "",
+        "attributes": {
+          "state": "BLOCKED",
+          "reason": "DISPATCH_HTTP_403",
+          "ageMin": 101,
+          "snapshotReadable": true
+        }
+      }
+    ]
+  },
+  "holderSecretHygiene": {
+    "serviceId": "5503b7a6-d6d3-43a7-9645-86b4429d58c7",
+    "serviceName": "arcy-holder-durable",
+    "variableName": "RADAR_GITHUB_DISPATCH_TOKEN",
+    "presentByName": true,
+    "valuesRetrieved": false,
+    "configurationChanged": false,
+    "dependencySearch": "Tracked references to this variable occur only in Radar dispatcher, its tests and Radar docs; Holder image does not copy the dispatcher."
+  },
+  "stagedChanges": null,
+  "conclusion": "Native cron starts the scheduler; workflow-dispatch POST is rejected with HTTP403. Nonzero exit correctly becomes CRASHED; no successful Railway dispatch is proven."
+}
