@@ -42,6 +42,35 @@ does not display an empty message with only structured attributes. This changes
 diagnosis and observability; it does not grant the missing permission or make a
 failed dispatch successful.
 
+### Repository-side causes ruled out (27 November 2026, 10:45–11:30 TRT)
+
+Checked through the GitHub REST API without the scheduler credential:
+`radar-v4-snapshot.yml` is `active` with a `workflow_dispatch` trigger and a
+`target` choice input on `main`; Actions executes (native schedule run
+45940762414 succeeded); `main` has no branch protection; and the repository is
+**public and owned by a personal account**, so organization approval, SSO
+authorization and organization PAT policy cannot apply. No `workflow_dispatch`
+run of this workflow has ever existed. The remaining cause is the credential
+itself: authenticated and readable, but without Actions **write** on this
+repository (fine-grained token with Actions read-only or this repository not
+selected; classic token without `repo`; or a token owned by an account
+without write access).
+
+The dispatcher now also records non-secret credential metadata returned by
+GitHub on the successful run-state read: `credentialKind`
+(`classic` / `fine-grained-or-app`), allowlisted classic scope names,
+`classicRepoScope`, `credentialExpiresAt`/`credentialExpired`, and on a
+dispatch 403 a `remediation` code:
+
+| `remediation` | Owner action |
+| --- | --- |
+| `FINE_GRAINED_TOKEN_NEEDS_ACTIONS_WRITE_ON_REPOSITORY` | Edit the fine-grained token: Repository access → only `arcycoin-glitch/arcy-website`; Repository permissions → Actions: **Read and write** |
+| `CLASSIC_TOKEN_MISSING_REPO_SCOPE` | Replace with a fine-grained token as above (preferred) or a classic token with `repo` |
+| `TOKEN_OWNER_OR_TOKEN_LACKS_ACTIONS_WRITE` | Create the token from the `arcycoin-glitch` account itself |
+
+After updating the token, paste the new value only into Railway →
+`arcy-radar-scheduler` → Variables → `RADAR_GITHUB_DISPATCH_TOKEN`.
+
 ## Runtime safeguards
 
 At every Railway Cron invocation the one-shot process:

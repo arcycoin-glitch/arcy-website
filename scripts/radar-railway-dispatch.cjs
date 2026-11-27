@@ -19,7 +19,29 @@ function safeHeaders(response){
  return {...(typeof id==='string'&&/^[a-z0-9:._-]{1,100}$/i.test(id)?{githubRequestId:id}:{}),
   ...(/^required(?:;|$)/i.test(sso||'')?{ssoAuthorizationRequired:true}:{}),
   ...(typeof permissions==='string'&&/(?:^|[,;\s])actions=write(?:$|[,;\s])/i.test(permissions)?{actionsWriteRequired:true}:{}),
-  ...(h?.get?.('x-ratelimit-remaining')==='0'||h?.get?.('retry-after')?{rateLimitReported:true}:{})};
+  ...(h?.get?.('x-ratelimit-remaining')==='0'||h?.get?.('retry-after')?{rateLimitReported:true}:{}),...credentialHints(h)};
+}
+// Non-secret credential metadata that GitHub returns for an authenticated request. Scope NAMES and the
+// expiry DATE are not secrets; the token value and response bodies never leave this process.
+const CLASSIC_SCOPES=new Set(['repo','public_repo','workflow','repo:status','repo_deployment','read:org','write:org','admin:org','gist','user','read:user','user:email','notifications','delete_repo','write:packages','read:packages','delete:packages','admin:repo_hook','write:repo_hook','read:repo_hook','project','read:project','codespace','security_events']);
+function credentialHints(h){
+ if(!h?.get)return {};
+ const out={},scopes=h.get('x-oauth-scopes'),expiry=h.get('github-authentication-token-expiration');
+ if(typeof scopes==='string'){
+  const list=scopes.split(',').map(x=>x.trim()).filter(Boolean);
+  if(list.length){out.credentialKind='classic';out.credentialScopes=list.filter(x=>CLASSIC_SCOPES.has(x)).slice(0,24);out.classicRepoScope=list.includes('repo');}
+  else out.credentialKind='fine-grained-or-app';
+ }
+ if(typeof expiry==='string'&&expiry.length<=40){const at=Date.parse(expiry.replace(' UTC','Z').replace(' ','T'));if(Number.isFinite(at)){out.credentialExpiresAt=new Date(at).toISOString();out.credentialExpired=at<=Date.now();}}
+ return out;
+}
+const CREDENTIAL_KEYS=['credentialKind','credentialScopes','classicRepoScope','credentialExpiresAt','credentialExpired'];
+const pickCredential=o=>Object.fromEntries(CREDENTIAL_KEYS.filter(k=>o&&o[k]!==undefined).map(k=>[k,o[k]]));
+function remediation(status,stage,hints){
+ if(status!==403||stage!=='dispatch')return {};
+ if(hints.credentialKind==='classic'&&!hints.classicRepoScope)return {remediation:'CLASSIC_TOKEN_MISSING_REPO_SCOPE'};
+ if(hints.credentialKind==='fine-grained-or-app')return {remediation:'FINE_GRAINED_TOKEN_NEEDS_ACTIONS_WRITE_ON_REPOSITORY'};
+ return {remediation:'TOKEN_OWNER_OR_TOKEN_LACKS_ACTIONS_WRITE'};
 }
 async function textWithin(response,limit){
  const length=response?.headers?.get?.('content-length');
@@ -52,7 +74,7 @@ async function request(fetcher,url,options,{deadline,requestTimeoutMs}){
  catch(error){if(['RUN_DEADLINE','REQUEST_TIMEOUT','RESPONSE_TOO_LARGE'].includes(error?.code))throw error;throw fail(error?.name==='AbortError'||error?.name==='TimeoutError'?'REQUEST_TIMEOUT':'TRANSPORT_ERROR');}
  finally{clearTimeout(timer);}
 }
-async function readJson(fetcher,url,headers,timing){
+async function readJson(fetcher,url,headers,timing,onHeaders){
  for(let attempt=1;attempt<=GET_ATTEMPTS;attempt++){
   let response;
   try{response=await request(fetcher,url,{method:'GET',headers:{accept:'application/json',...headers}},timing);}
@@ -61,7 +83,7 @@ async function readJson(fetcher,url,headers,timing){
    if(attempt===GET_ATTEMPTS||!['TRANSPORT_ERROR','REQUEST_TIMEOUT'].includes(error.code)||Date.now()+delay>=timing.deadline)throw error;
    await timing.delay(delay);continue;
   }
-  if(response.status>=200&&response.status<300){try{return JSON.parse(response.text);}catch{throw fail('INVALID_JSON');}}
+  if(response.status>=200&&response.status<300){onHeaders?.(response.headers);try{return JSON.parse(response.text);}catch{throw fail('INVALID_JSON');}}
   const retry=[429,500,502,503,504].includes(response.status),delay=response.retryMs??500*attempt;
   if(!retry||attempt===GET_ATTEMPTS||delay>MAX_BACKOFF_MS||Date.now()+delay>=timing.deadline)
    throw fail('HTTP_'+(response.status||'UNAVAILABLE'),{httpStatus:response.status,...response.headers});
@@ -74,14 +96,14 @@ function recentOrBusy(run,now){
  return ['queued','in_progress','waiting','pending','requested'].includes(run.status)||
   recent&&['workflow_dispatch','schedule','push'].includes(run.event);
 }
-function configuration(stage,error,common){
- const status=error.httpStatus;
+function configuration(stage,error,all){
+ const {credential,...common}=all,status=error.httpStatus,hints={...pickCredential(credential),...pickCredential(error)};
  if(status===403&&error.rateLimitReported)return outcome('BLOCKED','GITHUB_RATE_LIMITED',{...common,stage,httpStatus:status});
  if(![401,403,404,422].includes(status))return null;
  const reason=status===401?'GITHUB_CREDENTIAL_REJECTED':status===403?'GITHUB_ACTIONS_PERMISSION_DENIED':status===404?'GITHUB_WORKFLOW_OR_REPOSITORY_INACCESSIBLE':'GITHUB_DISPATCH_CONFIGURATION_INVALID';
  return outcome('CONFIGURATION_REQUIRED',reason,{...common,stage,httpStatus:status,
   ...(error.githubRequestId?{githubRequestId:error.githubRequestId}:{}),...(error.ssoAuthorizationRequired?{ssoAuthorizationRequired:true}:{}),
-  ...(error.actionsWriteRequired?{actionsWriteRequired:true}:{}),
+  ...(error.actionsWriteRequired?{actionsWriteRequired:true}:{}),...hints,...remediation(status,stage,hints),
   requiredCapability:stage==='dispatch'?'Repository Actions: write; approved token/application access':'Repository Actions: read; approved token/application access'});
 }
 async function inspect({fetcher,now,token,timing}){
@@ -94,15 +116,15 @@ async function inspect({fetcher,now,token,timing}){
   ...(sourceError?{snapshotErrorCode:sourceError}:{})};
  if(!age.build)return outcome('SKIPPED','SNAPSHOT_UNDER_100_MINUTES',common);
  const headers={accept:'application/vnd.github+json',authorization:'Bearer '+token,'user-agent':'ARCY-Radar-Railway-Scheduler','x-github-api-version':'2022-11-28'};
- let recent;
- try{const data=await readJson(fetcher,RUNS_URL,headers,timing);if(!Array.isArray(data?.workflow_runs)||data.workflow_runs.length>100||!data.workflow_runs.every(r=>r&&typeof r==='object'&&!Array.isArray(r)&&['queued','in_progress','waiting','pending','requested','completed'].includes(r.status)))return outcome('BLOCKED','GITHUB_RUNS_INVALID',common);recent=data.workflow_runs;}
+ let recent,credential={};
+ try{const data=await readJson(fetcher,RUNS_URL,headers,timing,h=>{credential=pickCredential(h);});if(!Array.isArray(data?.workflow_runs)||data.workflow_runs.length>100||!data.workflow_runs.every(r=>r&&typeof r==='object'&&!Array.isArray(r)&&['queued','in_progress','waiting','pending','requested','completed'].includes(r.status)))return outcome('BLOCKED','GITHUB_RUNS_INVALID',common);recent=data.workflow_runs;}
  catch(error){return configuration('run-state',error,common)||outcome('BLOCKED','GITHUB_RUNS_UNAVAILABLE',{...common,errorCode:error.code||'UNKNOWN'});}
  if(recent.some(r=>recentOrBusy(r,now)))return outcome('SKIPPED','WORKFLOW_ALREADY_RUNNING_OR_RECENT',common);
  // POST is non-idempotent: no retry after an ambiguous transport/5xx result.
  let cache=attempted.get(fetcher);if(!cache){cache=new Map();attempted.set(fetcher,cache);}cache.set(token,now);
  try{
   const response=await request(fetcher,DISPATCH_URL,{method:'POST',headers:{...headers,'content-type':'application/json'},body:JSON.stringify({ref:'main',inputs:{target:'production',only_if_due:true}})},timing);
-  if(response.status!==204){const error={httpStatus:response.status,...response.headers};return configuration('dispatch',error,common)||outcome('BLOCKED','DISPATCH_HTTP_'+(response.status||'UNAVAILABLE'),{...common,httpStatus:response.status,dispatchAcceptance:response.status>=500||response.status>=200&&response.status<300?'UNKNOWN':'NOT_CONFIRMED'});}
+  if(response.status!==204){const error={httpStatus:response.status,...response.headers};return configuration('dispatch',error,{...common,credential})||outcome('BLOCKED','DISPATCH_HTTP_'+(response.status||'UNAVAILABLE'),{...common,httpStatus:response.status,dispatchAcceptance:response.status>=500||response.status>=200&&response.status<300?'UNKNOWN':'NOT_CONFIRMED'});}
   return outcome('DISPATCHED',sourceError?'SNAPSHOT_SOURCE_UNREADABLE':'DUE',common);
  }catch(error){return outcome('BLOCKED','DISPATCH_OUTCOME_UNKNOWN',{...common,errorCode:error.code||'UNKNOWN',dispatchAcceptance:'UNKNOWN'});}
 }
