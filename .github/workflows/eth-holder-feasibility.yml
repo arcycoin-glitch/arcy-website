@@ -44,6 +44,10 @@ jobs:
           path: /tmp/holder-index
           key: holder-index-1-${{ github.run_id }}
           restore-keys: holder-index-1-
+      - name: Creation-block proof for the 6 tokens (fails fast before the long census)
+        working-directory: branch
+        run: |
+          node -e "const ch=require('./lib/holder-chains'),cr=require('./lib/holder-creation'),c=require('./lib/core');const rpc=ch.rpcClient(1);(async()=>{let ok=0;for(const a of process.argv.slice(1)){try{const x=await ch.run(1,()=>cr.creationBlock(a,{chainId:1,rpc,getJson:u=>c.json(u)}),{rpc});ok++;console.log('CREATION '+JSON.stringify({address:a,...x}));}catch(e){console.log('CREATION '+JSON.stringify({address:a,error:e.code||e.message}));}}if(!ok)process.exitCode=1;})()" 0x56072c95faa701256059aa122697b133aded9279 0x58d97b57bb95320f9a05dc918aef65434969c2b2 0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b 0x0b38210ea11411557c13457d4da7dc6ea731b88a 0x5a98fcbea516cf06857215779fd812ca3bef1b32 0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e
       - name: Chain-1 durable census (SKY, MORPHO, CVX, API3, LDO, YFI)
         working-directory: branch
         env:

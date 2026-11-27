@@ -25,3 +25,19 @@ test('Ethereum chain config matches the measured public-RPC limits and keeps exi
  assert.equal(chains.get(5042).ledger.startFromCreation,undefined);assert.equal(chains.get(4663).ledger.startFromCreation,undefined);
  assert.deepEqual(chains.enabledChains({}),[5042],'production default stays Arc-only until ARC_HOLDER_CHAINS is changed by release');
 });
+
+test('receipt-free fallback: plain CREATE whose rlp([from, nonce]) address equals the token, with current code',async()=>{
+ const from='0x6ac7ea33f8831ea9dcc53393aaa88b25a785dbf0',tok='0xfffd933a0bc612844eaf0c6fe3e5b8e9b6c1d19c';
+ const m={hash:tok,creation_transaction_hash:TX};
+ const txo=(o={})=>({hash:TX,blockNumber:'0x10',from,nonce:'0x3',to:null,...o});
+ const go=(t,code='0x6001')=>C.creationBlock(tok,{chainId:1,getJson:async()=>m,rpc:async(method)=>method==='eth_getTransactionReceipt'?null:method==='eth_getTransactionByHash'?t:code});
+ const ok=await go(txo());assert.equal(ok.block,16);assert.match(ok.method,/rlp\(\[from, nonce\]\)/);
+ await assert.rejects(()=>go(txo({nonce:'0x2'})),{code:'CREATION_NOT_DIRECT_DEPLOYMENT'});
+ await assert.rejects(()=>go(txo({to:'0x'+'9'.repeat(40)})),{code:'CREATION_NOT_DIRECT_DEPLOYMENT'},'factory/CREATE2 fails closed');
+ await assert.rejects(()=>go(txo(),'0x'),{code:'CREATION_CODE_ABSENT'});
+ await assert.rejects(()=>go(null),{code:'CREATION_RECEIPT_UNAVAILABLE'});
+ await assert.rejects(()=>go(txo({blockNumber:null})),{code:'CREATION_RECEIPT_UNAVAILABLE'},'pending tx is not a creation proof');
+ await assert.rejects(()=>go(txo({hash:'0x'+'cd'.repeat(32)})),{code:'CREATION_RECEIPT_UNAVAILABLE'});
+ await assert.rejects(()=>go(txo({from:'0x12'})),{code:'CREATION_TRANSACTION_INVALID'});
+ assert.equal(C.createAddress(from,0n),'0xcd234a471b72ba2f1ccf0a70fcaba648a5eecd8d');
+});
