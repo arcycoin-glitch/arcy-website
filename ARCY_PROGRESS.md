@@ -237,3 +237,16 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - #183 paced coverage matrix + production acceptance probe + Lighthouse. Paced: Arc 114/140, Ethereum 166/180, Robinhood 181/200, Pons 191/200, 0 errors, 41 requests. These are measurement corrections, not product coverage gains.
 - #184 live follow-ups: backlog excluded completed tokens; Arc excerpts entity-decoded and sentence-bounded.
 - Open: Railway worker redeploy (operator) for #179 worker commit, #181 Arc signed edition, #182 changes; Arc Pulse #6 not signed since 2026-10-26; mobile LCP 15 s (Lighthouse simulate, 6.7 MB); Arc Mechanics 10/28 and Holders 20/28 remain the weakest cards.
+
+## Mechanics V9 (2026-11-26, branch feat/mechanics-v9-evidence-engine, PR #324 draft)
+- Base main fbf570e (V8, PR #322); strict baseline 24/40 on the immutable cohort. Full diagnosis of the 16 non-strict contracts: docs/MECHANICS_V9_20261126.md (live read-only CI probes, per-contract jobs).
+- Findings: 6 contracts have no source anywhere (ARCOON, FAZE, LONG, oBrain, AI, STATICS), 3 are hook/pool-scoped fees (ARGUS, CRA, ARCANUS), LDO/AAVE are partial by design (external controller / upgradeable), MSS2/TENDIES need manual review of large custom code; FLOCK, STONKBROKER, API3 were engine gaps.
+- Changed: pinned OZ `utils/Bytes.sol` hashes (5.2-5.7, from npm tarballs); FLOCK registered under the reviewed CCIP profile by file-identical bundle; API3 reviewed profile `OWNER_MINTER_STATUS_SELF_BURN` (owner is the dead address: minter set frozen, minters not enumerated). Tests: test/mechanics-v9.test.js + oz-template Bytes test; profile-count test updated (19 -> 21).
+- Next exact actions: read paired benchmark result (FIXED_40), run browser regression, report. No merge/deploy (needs explicit owner approval).
+
+### V9 round 2 (PR #324, review findings)
+- Strict 24 → 29/40 (paired CI run 45710217987 on 86b68b6). New: MSS2 (digest-pinned tax-only profile), AAVE (MORPHO-consistent pinned-proxy snapshot, mutable). 27 earlier proofs preserved.
+- Changed: mechanics-reviewed-tokens.js (UPDATE_GATE_FULL_AMOUNT_TOKEN, LDO structured controller evidence, API3 wording), mechanics-reviewed-v4.js + mechanics-v8-fees.js (AAVE policy), lib/verified-source.js (Yul reason), assert-mechanics-bench.cjs (narrow zeroTaxProxy), mechanics-bench-proof.cjs (binding/mutable provenance), tests.
+- Tests: full suite 1695/1695 locally; gate tests 19/19.
+- Unresolved: LDO (external controller), ARGUS/CRA/ARCANUS (scoped), TENDIES (Yul), ARCOON/FAZE/LONG/oBrain/AI/STATICS (no source).
+- Next exact actions: owner review of PR #324; no merge/deploy without explicit approval.

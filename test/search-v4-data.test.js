@@ -5,8 +5,8 @@ const pub=require('../search/server/lib/arc-holder-publication');
 const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40),C='0x'+'c'.repeat(40),block='0x123';
 const word=n=>'0x'+BigInt(n).toString(16).padStart(64,'0'),addr=a=>'0x'+a.slice(2).padStart(64,'0');
 const profile=name=>Object.keys(v4.PROFILES).find(k=>v4.PROFILES[k]===name);
-async function reviewed(name,{calls={},direct=true,fields={},admin=null}={}){
- const details={observations:[]};await v4.apply({profile:name,fields,details,proof:{sourceDigest:profile(name)},direct,admin,
+async function reviewed(name,{calls={},direct=true,fields={},admin=null,binding}={}){
+ const details={observations:[]};if(binding)details.proxyBinding=binding;await v4.apply({profile:name,fields,details,proof:{sourceDigest:profile(name)},direct,admin,
   fact:(value,method,extra,status)=>({value,method,evidence:[extra],status}),word:async(_,s)=>calls[s]??null,
   call:async(_,s)=>calls[s]??null,address:A,block,keccak:require('../lib/keccak')});return {fields,details};
 }
@@ -172,4 +172,21 @@ test('warm validated art survives another thumbnail exhausting the aggregate dea
   const out=await logos.enhance('ethereum',rows);assert.equal(out[3].logoUrl,warm);assert.equal(warmReads,1);
   assert.equal(images.cached(warm,{now:Date.now()+901000}),undefined);
  }finally{global.fetch=saved;}
+});
+
+test('V9 AAVE-style reviewed upgradeable source: strict snapshot zero only with a complete verified effective proxy path',async()=>{
+ const good={pathComplete:true,verificationStatus:'VERIFIED',implementation:B,effectiveImplementation:B,sourceDigest:'a'.repeat(64)};
+ const ok=await reviewed('UPGRADEABLE_NO_DIRECT_MINT',{direct:false,admin:B,binding:good});
+ const tax=ok.fields.tradingTaxes.evidence[0];
+ assert.equal(tax.coverage,'TOKEN_TRANSFER_ALL'.replace('TOKEN_TRANSFER_ALL','TOKEN_TAX_ALL_TRANSFERS'));
+ assert.equal(tax.tokenTax.scope,'TOKEN_CONTRACT_ONLY');assert.equal(tax.tokenTax.upgradeable,true);assert.equal(tax.tokenTax.snapshotOnly,true);assert.equal(tax.mutable,true);
+ assert.match(tax.scope,/admin can upgrade/);assert.match(tax.scope,/No pool, router or hook fee/);
+ for(const bad of [{...good,pathComplete:false},{...good,verificationStatus:'PARTIALLY_VERIFIED'},{...good,effectiveImplementation:null},{...good,effectiveImplementation:A},{...good,sourceDigest:null}]){
+  const r=await reviewed('UPGRADEABLE_NO_DIRECT_MINT',{direct:false,admin:B,binding:bad});
+  assert.equal(r.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TRANSFER_ONLY','incomplete or mismatched proxy path must stay partial');
+ }
+ const noAdmin=await reviewed('UPGRADEABLE_NO_DIRECT_MINT',{direct:false,binding:good});
+ assert.equal(noAdmin.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TRANSFER_ONLY');
+ const direct=await reviewed('UPGRADEABLE_NO_DIRECT_MINT',{direct:true,admin:B,binding:good});
+ assert.equal(direct.fields.tradingTaxes.evidence[0].coverage,'TOKEN_TRANSFER_ONLY');
 });

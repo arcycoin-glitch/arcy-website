@@ -49,7 +49,18 @@ const PROFILES=Object.freeze({
  // Ethereum UNI: time-gated capped mint authority, full-value transfer/transferFrom without fee logic.
  '292fad46b97e1b50bd191dfd857de081abfb199ad96ff02a055124da4a708cf2':'TIMED_CAPPED_MINTER',
  // GnosisToken.sol, solc 0.4.10: complete StandardToken inheritance; constructor-only allocation, no authority surface.
- '1d7a05b0de7c2f71ce081d8a80a381973dbd7749e6eef357b033aac690166ee8':'FIXED_SUPPLY_LEGACY_ALLOCATION'
+ '1d7a05b0de7c2f71ce081d8a80a381973dbd7749e6eef357b033aac690166ee8':'FIXED_SUPPLY_LEGACY_ALLOCATION',
+ // Mechanics V9 (docs/MECHANICS_V9_20261126.md). Robinhood FLOCK: the 14 source files (BurnMintERC20, vendored OpenZeppelin 4.8.3 ERC20/
+ // ERC20Burnable/AccessControl, helpers) are byte-identical, file by file, to the reviewed TAO bundle (7aa78076...). Only the Sourcify
+ // path prefix (node_modules/) and compiler patch (0.8.24 vs 0.8.27) differ, so the bundle digest differs; the exact runtime match and the
+ // pinned MINTER_ROLE/BURNER_ROLE/maxSupply reads below are still required.
+ '44f9395ff609b012cff940ff06d4ebd486196ea888c42af96af73b7fe62e40a7':'CCIP_BURN_MINT_ROLE_TOKEN',
+ // Ethereum API3 (Api3Token.sol, solc 0.6.12, one file): unmodified OpenZeppelin 3.x ERC20 (SafeMath, empty _beforeTokenTransfer); the
+ // owner (DAO) grants minter status without a cap; anyone may declare itself a burner and burn only its own balance.
+ '667726c81d43fa7fa2157e26dda00ab03b4a4119c593f05ad950f3d36fd77649':'OWNER_MINTER_STATUS_SELF_BURN',
+ // V9 MSS2 (OpenZeppelin 5.5.0 ERC20 + LayerZero OFT): the only own override is an _update gate that may revert transfers before
+ // launch; the OZ super._update moves the full amount. Reviewed for the TOKEN-SIDE deduction question ONLY (no mint/owner claim).
+ 'e307a028f221cce924c89ee05d3a028fd48159c1da26af553661414c9a21cffa':'UPDATE_GATE_FULL_AMOUNT_TOKEN'
 });
 // Bounded reads that only these profiles issue (benchmark budget kind "augReviewed"). Everything else they use is a read
 // the generic verified-source path already made at the same pinned block (owner(), cap(), role enumeration).
@@ -64,7 +75,7 @@ const V6_GETTERS=Object.freeze(['totalSupply()','decimals()','MINTER_ROLE()','BU
 const REVIEWED_GETTERS=Object.freeze([...TORCH_GETTERS,...PAXOS_GETTERS,...V6_GETTERS]);
 const REVIEWED_BUDGET=8;
 const slotKey=i=>'0x'+i.toString(16).padStart(64,'0');
-const ZERO='0x'+'0'.repeat(40);
+const ZERO='0x'+'0'.repeat(40),DEAD='0x000000000000000000000000000000000000dead';
 const pct=bps=>Number(bps)/100;
 function observed(details,method){return details.observations.find(x=>x.method===method);}
 // Evidence stages are independent. A role identifier or controller address proves neither role membership nor that an
@@ -253,6 +264,29 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
   fields.mintCapability=noMint('The constructor sets totalSupply and distributes all initial balances. No runtime function changes totalSupply or creates balances without debiting another balance; no burn entry point exists.');
   fields.ownerAdmin=fact('No token owner/admin','Reviewed complete non-delegating StandardToken/GnosisToken source',{...p,scope:'Constructor owners[] are allocation recipients, not administrators. Runtime exposes only ERC20 transfer, approve and getters; no mint, burn, pause, blacklist, fee setter, ownership or upgrade authority exists.'},'VERIFIED_SOURCE');
  }
+ if(profile==='OWNER_MINTER_STATUS_SELF_BURN'){
+  fields.tradingTaxes=noTokenTax('Unmodified OpenZeppelin 3.x ERC20 (SafeMath): transfer and transferFrom call _transfer, which debits and credits the same amount; Api3Token overrides neither _transfer nor the empty _beforeTokenTransfer and has no fee code. Pool/hook fees are separate.');
+  if(!direct)return;
+  const owner=await ownerWord();
+  if(owner&&owner!==ZERO){
+   // A burn-address owner is a verified fact about who can change the minter set (nobody can), never a claim that no minter exists:
+   // minter status is a private mapping that cannot be enumerated, so existing minters stay unknown.
+   const frozen=owner===DEAD;
+   fields.mintCapability=fact(frozen?'Minter set frozen · owner is the dead address · current minters not enumerated':'Owner-managed minters · uncapped',
+    'Reviewed mint(require isMinter[msg.sender]) + onlyOwner updateMinterStatus + pinned owner()',{...p,owner,
+    mintAuthority:mintAuthority({mechanism:'OWNER_MANAGED_MAPPING',entryPoint:'mint(address,uint256)',authority:owner,constraints:{capped:false,ownershipRenounceable:false,ownerCanChangeMinterSet:!frozen}}),
+    scope:frozen?'Only an address with minter status can mint, without a supply cap. The owner is the dead address, an address with no known accessible key, so no known party can grant or revoke minter status (renounceOwnership() reverts in source; ownership was transferred instead). This is an observed state, not a cryptographic proof that the address is unreachable. The minter set is a private mapping that is not enumerated: whether a current minter exists and can mint is NOT claimed.'
+    :'Any address with minter status can mint without a supply cap; only the owner grants or revokes minter status and renounceOwnership() always reverts. The minter set is a mapping and is not enumerated, so current minters and an executable mint are not claimed.'},'VERIFIED_SOURCE_AND_STATE');
+   fields.ownerAdmin=fields.ownerAdmin||fact('Owner: '+owner+(frozen?' (dead address)':''),'Reviewed onlyOwner surface + pinned owner()',{...p,owner,scope:frozen?'The owner is the dead address: no known accessible key can change minter status or transfer ownership (observed state, not an absolute cryptographic guarantee). The source has no pause, blacklist, fee or upgrade function.':'The owner manages minter status and may transfer ownership (to a non-zero address); renouncement is blocked in source. The source has no pause, blacklist, fee or upgrade function. Whether the owner is a contract or multisig is not inferred.'},'VERIFIED_SOURCE_AND_STATE');
+   details.observations.push({method:'Reviewed self-declared burner path',block,...p,status:'VERIFIED_SOURCE',burnAuthority:{functionPresent:true,entryPoints:['burn(uint256)'],mechanism:'SELF_DECLARED_BURNER',holderSelfBurn:true,holderAllowanceRequired:false,arbitraryHolderBalance:false,currentUsability:'NOT_VERIFIED'},scope:'burn(uint256) reduces only the caller\'s balance and requires the caller to have declared itself a burner via updateBurnerStatus.'});
+  }
+ }
+ if(profile==='UPDATE_GATE_FULL_AMOUNT_TOKEN'){
+  // Bounded scope: the transfer path deducts nothing. A pre-launch revert is a transfer denial, not a tax. Mint paths (paid curve,
+  // staking rewards, owner liquidity seeding) and OFT bridge burn/mint are separate supply mechanics and are deliberately not asserted here.
+  fields.tradingTaxes=noTokenTax('The only own _update override is a launch gate that can revert a transfer (denial, not a deduction); the inherited OpenZeppelin 5.5.0 _update moves the full amount. Bridge (OFT) burn/mint, mint paths and pool/hook fees are separate and not asserted.');
+  return;
+ }
  if(profile==='CCIP_BURN_MINT_ROLE_TOKEN'){
   fields.tradingTaxes=noTokenTax('Inherited OpenZeppelin ERC20 _transfer moves the full amount; the only override rejects the token contract itself as recipient. Pool/hook fees are separate.');
   if(!direct)return;
@@ -293,6 +327,11 @@ async function apply({profile,fields,details,proof,fact,word,storage,address,blo
  }
  if(profile==='MINIME_CONTROLLED'){
   fields.tradingTaxes=transferOnly('doTransfer moves the full amount; there is no fee code. Transfers require transfersEnabled and, when the controller is a contract, its onTransfer approval, so they can revert or be vetoed. Pool fees are separate.');
+  // V9: keep the three questions apart. (1) token-source deduction: none in the reviewed source; (2) controller veto of a transfer is a
+  // denial, not a tax; (3) controller-initiated balance changes (mint/destroy/forced move) are privileged supply/balance powers. The
+  // controller's own logic is NOT resolved here, so no all-transactions zero is claimed.
+  if(fields.tradingTaxes?.evidence?.[0])Object.assign(fields.tradingTaxes.evidence[0],{tokenSourceDeduction:'NONE_IN_REVIEWED_SOURCE',
+   controllerTransferVeto:'POSSIBLE_VIA_onTransfer',controllerBalanceChanges:'POSSIBLE_VIA_generateTokens_destroyTokens_transferFrom',controllerLogic:'UNRESOLVED'});
   if(!direct)return;
   const controller=addressWord(await word(address,'controller()')),enabled=await word(address,'transfersEnabled()');
   if(enabled!==null&&BigInt(enabled)<=1n)details.observations.push({method:'transfersEnabled()',value:BigInt(enabled)===1n,block,...p,scope:'Reviewed MiniMe transfer gate at the pinned block.'});

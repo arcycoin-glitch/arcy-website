@@ -8,7 +8,9 @@ const FILES=['token/ERC20/ERC20.sol','token/ERC20/IERC20.sol','token/ERC20/exten
  'utils/cryptography/EIP712.sol','utils/cryptography/draft-EIP712.sol','utils/cryptography/ECDSA.sol','utils/cryptography/MessageHashUtils.sol','utils/Strings.sol','utils/math/Math.sol','utils/math/SignedMath.sol',
  'utils/ShortStrings.sol','utils/StorageSlot.sol','utils/Nonces.sol','utils/Counters.sol','interfaces/IERC5267.sol','access/AccessControl.sol','access/IAccessControl.sol','utils/introspection/ERC165.sol','utils/introspection/IERC165.sol',
  'access/AccessControlEnumerable.sol','access/IAccessControlEnumerable.sol','utils/structs/EnumerableSet.sol','token/ERC20/extensions/ERC20Capped.sol',
- 'token/ERC20/extensions/ERC20Votes.sol','governance/utils/Votes.sol','governance/utils/IVotes.sol','interfaces/IERC5805.sol','interfaces/IERC6372.sol','utils/types/Time.sol','utils/structs/Checkpoints.sol','utils/math/SafeCast.sol','utils/Panic.sol','access/Ownable2Step.sol'];
+ 'token/ERC20/extensions/ERC20Votes.sol','governance/utils/Votes.sol','governance/utils/IVotes.sol','interfaces/IERC5805.sol','interfaces/IERC6372.sol','utils/types/Time.sol','utils/structs/Checkpoints.sol','utils/math/SafeCast.sol','utils/Panic.sol',
+ // OpenZeppelin >=5.4 Strings imports Bytes (assembly helper); unpinned it made canonical OZ ERC20 stacks fail with BANNED_ASSEMBLY (V9 diagnosis: STONKBROKER)
+ 'utils/Bytes.sol','access/Ownable2Step.sol'];
 const versions=JSON.parse(execFileSync('npm',['view','@openzeppelin/contracts','versions','--json'],{encoding:'utf8'})).filter(v=>/^[45]\.\d+\.\d+$/.test(v));
 const out={},tmp=fs.mkdtempSync(path.join(os.tmpdir(),'oz-'));
 for(const v of versions){
@@ -17,7 +19,7 @@ for(const v of versions){
   execFileSync('npm',['pack','@openzeppelin/contracts@'+v,'--pack-destination',dir],{cwd:dir,stdio:'ignore'});
   const tgz=fs.readdirSync(dir).find(f=>f.endsWith('.tgz'));
   execFileSync('tar',['xzf',tgz,'--strip-components=1'],{cwd:dir});
-  for(const f of new Set(FILES)){const p=path.join(dir,f);if(!fs.existsSync(p))continue;const h=crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');((out[f]||={})[h]||=[]).push(v);}
+  for(const f of new Set(FILES)){if(process.env.OZ_ONLY&&!process.env.OZ_ONLY.split(',').includes(f))continue;const p=path.join(dir,f);if(!fs.existsSync(p))continue;const h=crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');((out[f]||={})[h]||=[]).push(v);}
  }catch(e){console.error('skip',v,e.message);}
 }
 fs.writeFileSync('oz-hashes.json',JSON.stringify(out,null,1));
