@@ -20,7 +20,7 @@ function explain(key,field,details){
  if(!field||field.dataState==='DATA_FOUND'||!Object.hasOwn(LABELS,key))return field;
  const info=details?.sourceVerification;
  if(!info)return field; // no supported runtime result, preserve existing fail-closed reason
- let reasonCode,reason,preciseSourceReason=null;
+ let reasonCode,reason,preciseSourceReason=null,sourceCause=null;
  const label=LABELS[key];
  const fails=Array.isArray(details?.failures)?details.failures:[];
  if(info.matched){
@@ -39,6 +39,12 @@ function explain(key,field,details){
  }else if(fails.some(f=>f.reason==='IMPLEMENTATION_EXECUTION_UNRESOLVED')){
   reasonCode='MECHANICS_IMPLEMENTATION_UNRESOLVED';
   reason='The executed implementation or delegated control path could not be independently established. '+label.hint;
+ }else if(fails.some(f=>f.reason==='UNSUPPORTED_SOURCE_LANGUAGE_YUL')){
+  // Identity and exact runtime bytecode match were established; the published source is a Yul object without a Solidity ABI.
+  // Stable API reason code (no new client-facing code); the precise cause is in reason + verificationGap.sourceCause.
+  reasonCode='MECHANICS_SOURCE_IDENTITY_UNVERIFIED';sourceCause='UNSUPPORTED_SOURCE_LANGUAGE_YUL';
+  preciseSourceReason='Verified source is hand-written Yul; its execution paths are not reviewed.';
+  reason='Chain, address and exact runtime bytecode match the published source, but it is a hand-written Yul object without a Solidity ABI; fee, mint and admin execution paths are not reviewed. '+label.hint;
  }else if(fails.some(f=>/SOURCE_BYTECODE_MISMATCH|SOURCE_IDENTITY_MISMATCH|SOURCE_SCHEMA_INVALID/.test(f.reason||''))){
   reasonCode='MECHANICS_SOURCE_IDENTITY_UNVERIFIED';
   const cause=fails.find(f=>f?.reason==='SOURCE_SCHEMA_INVALID'||f?.reason==='SOURCE_BYTECODE_MISMATCH'||f?.reason==='SOURCE_IDENTITY_MISMATCH')?.reason;
@@ -65,6 +71,6 @@ function explain(key,field,details){
    verifiedAbiHints:info.matched?(Array.isArray(details?.interfaceCandidates)?details.interfaceCandidates:[])
     .filter(x=>x&&typeof x.name==='string'&&/^[A-Za-z_][A-Za-z_0-9]{0,60}$/.test(x.name))
     .slice(0,16).map(x=>({name:x.name,mutability:x.stateMutability||null})):[],
-   cause:reasonCode}};
+   cause:reasonCode,...(sourceCause?{sourceCause}:{})}};
 }
 module.exports={explain,LABELS,SHORT};
