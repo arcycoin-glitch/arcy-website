@@ -113,7 +113,7 @@ async function apply({profile,fields,details,proof,fact,word,call,address,block,
    fields.ownerAdmin=fields.ownerAdmin||fact('NONE DETECTED ✓','Reviewed complete runtime: no owner/admin storage, no setter, all parameters immutable',{
     ...proof,scope:'No privileged function exists in this exact runtime: no owner, role, pause, blacklist or parameter setter; launchFactory and deployer only appear as immutable exemptions from the launch buy limits. External pool, factory or hook privileges are not audited here.'},'VERIFIED_SOURCE');
   }
-  for(const signature of ['restrictionEndBlock()','launchBlock()','maxWalletLimit()','maxTxLimit()','poolFee()']){
+  for(const signature of ['restrictionEndBlock()','poolFee()']){
    const raw=await word(address,signature);if(raw)details.observations.push({method:signature,raw:BigInt(raw).toString(),block,...proof,scope:'Reviewed immutable parameter; launch limits and pool fee tier are not token tax percentages.'});
   }
  }
