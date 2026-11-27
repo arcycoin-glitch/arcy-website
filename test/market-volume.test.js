@@ -50,3 +50,15 @@ test('VOL-5 ENS namehash is the standard EIP-137 value (feed names are resolved 
  assert.equal(M.namehash('eth'),'0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae');
  assert.equal(M.FEEDS.USDS.address,undefined);assert.equal(M.FEEDS.USDS.ens,'usds-usd.data.eth');
 });
+test('VOL-CRV Curve 2-coin pool: TokenExchange quote side counted once per swap; coin index checked; 3-coin fails closed',async()=>{
+ const E=10n**18n,P='0x'+'c'.repeat(40),n=i=>W(i);
+ const coins=(extra)=>{const base=chain({token0:{},token1:{},swaps:{[P+':'+V.TOPIC.CURVE[1]]:[{n:HEAD-20-100,data:'0x'+W(0)+W(9n*E)+W(1)+W(2n*E)},{n:HEAD-20-200,i:1,data:'0x'+W(1)+W(3n*E)+W(0)+W(13n*E)}]}});
+  return async(m,p)=>{if(m==='eth_call'){const {to,data}=p[0];if(to===P&&data==='0x0dfe1681')throw Error('revert');
+   if(to===P&&data==='0xc6610657'+n(0))return A(TOKEN);if(to===P&&data==='0xc6610657'+n(1))return A('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
+   if(extra&&to===P&&data==='0xc6610657'+n(2))return A(OTHER);}
+   return base(m,p);};};
+ V._reset();let r=await V.inspect('robinhood',TOKEN,primary([P]),{rpc:coins(false),usdOf,now:Date.now()});
+ assert.ok(r.field,'reason '+r.profile.reason);assert.equal(r.field.value,(2+3)*3000,'native ETH side: 2 bought + 3 sold');
+ V._reset();r=await V.inspect('robinhood',TOKEN,primary([P]),{rpc:coins(true),usdOf,now:Date.now()});
+ assert.equal(r.field,null);assert.equal(r.profile.reason,'CURVE_POOL_NOT_TWO_COIN');
+});

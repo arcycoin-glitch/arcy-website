@@ -15,7 +15,9 @@
 //              (24h = ~172,800 blocks) => VOLUME_WINDOW_EXCEEDS_RPC_BUDGET, not a guess.
 const M=require('./market-onchain');
 const TOPIC=Object.freeze({V2:'0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822',V3:'0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67',
- V4:'0x40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f'});
+ V4:'0x40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f',
+ // Curve TokenExchange: stableswap (int128 ids), cryptoswap (uint256 ids), twocrypto-ng (uint256 ids + fee + packed_price_scale)
+ CURVE:['0x8b3e96f2b889fa771c53c981b40daf005f63f637f1869f707052d15a3dd97140','0xb2e76ae99761dc136e598d4a629bb347eccb9532a5f8bbd72e18467c3c34cc98','0x143f1f8e861fbdeddd5b46e844b7d3ac7b86a122f36e8c463859ee6811b1f29c']});
 // Measured public-RPC log limits per chain (span in blocks, max logs per answer).
 const LIMITS=Object.freeze({ethereum:{span:50000,logs:10000,confirmations:3},robinhood:{span:9990000,logs:10000,confirmations:20},arc:{span:5000,logs:1000,confirmations:2}});
 const MAX_POOLS=12,MAX_CALLS=60,TIMEOUT_MS=5000,DAY=86400;
@@ -52,7 +54,10 @@ async function logs(rpc,filter,from,to,limits,acc,seen,state){
   const id=l.blockHash.toLowerCase()+':'+BigInt(l.logIndex);if(seen.has(id))continue;seen.add(id);acc.push(l);}
 }
 // quote-side absolute raw amount of one swap
-function quoteAmount(kind,l,quoteIs0){const w=words(l.data);
+// Curve: data = [sold_id, tokens_sold, bought_id, tokens_bought, ...]; ids are 0/1 in a 2-coin pool; the quote side is counted once.
+function quoteAmount(kind,l,quoteIs0,quoteIdx){const w=words(l.data);
+ if(kind==='CURVE'){if(w.length<4)throw code('MALFORMED_SWAP_LOG');const si=signed(w[0],128),bi=signed(w[2],128);
+  if(!((si===0n&&bi===1n)||(si===1n&&bi===0n)))throw code('CURVE_COIN_INDEX_INVALID');return BigInt(quoteIdx)===si?w[1]:w[3];}
  if(kind==='V2'){if(w.length<4)throw code('MALFORMED_SWAP_LOG');return quoteIs0?w[0]+w[2]:w[1]+w[3];}
  if(kind==='V3'){if(w.length<5)throw code('MALFORMED_SWAP_LOG');return abs(signed(quoteIs0?w[0]:w[1],256));}
  if(w.length<6)throw code('MALFORMED_SWAP_LOG');return abs(signed(quoteIs0?w[0]:w[1],128));}
@@ -75,18 +80,23 @@ async function inspect(network,address,primary,{rpc=M.rpcFor?.(network),ethRpc,u
   const call=(to,data)=>r('eth_call',[{to,data},'0x'+toBlock.toString(16)]);
   const dec=new Map();const decimals=async a=>{if(dec.has(a))return dec.get(a);const d=a===M.NATIVE?M.QUOTES[network]?.[a]?.decimals??18:Number(words(await call(a,'0x313ce567'))[0]);if(!Number.isInteger(d)||d<0||d>36)throw code('TOKEN_DECIMALS_INVALID');dec.set(a,d);return d;};
   let usd=0;const parts=[];
-  for(const p of pools){const acc=[],seen=new Set();let kind,quote,quoteIs0;
+  for(const p of pools){const acc=[],seen=new Set();let kind,quote,quoteIs0,quoteIdx,t0c;
    if(ID.test(p)){kind='V4';const v=M.V4[network];if(!v)throw code('V4_NOT_DEPLOYED');const k=await M.v4Key(p,{network,rpc:r,call,block:'0x'+toBlock.toString(16)});
     if(![k.currency0,k.currency1].includes(token))throw code('POOL_DOES_NOT_CONTAIN_TOKEN');quote=k.currency0===token?k.currency1:k.currency0;quoteIs0=k.currency0===quote;
     await logs(r,{address:v.poolManager,topics:[TOPIC.V4,p]},w.from.n,toBlock,limits,acc,seen,state);}
-   else if(ADDR.test(p)){const t0a=addrOf(await call(p,'0x0dfe1681')),t1a=addrOf(await call(p,'0xd21220a7'));if(!t0a||!t1a)throw code('POOL_KIND_UNSUPPORTED');
+   else if(ADDR.test(p)&&!(t0c=addrOf(await call(p,'0x0dfe1681').catch(e=>{if(e.code==='ONCHAIN_BUDGET_EXHAUSTED'||e.code==='ONCHAIN_TIMEOUT')throw e;return null;})))){
+    // Curve 2-coin pool (#358): same identity rules as market-onchain (coins(0..1), coins(2) absent)
+    const c=await curveCoins(p,call);if(!c)throw code('POOL_KIND_UNSUPPORTED');
+    if(!c.includes(token))throw code('POOL_DOES_NOT_CONTAIN_TOKEN');kind='CURVE';quoteIdx=c[0]===token?1:0;quote=c[quoteIdx];
+    await logs(r,{address:p,topics:[TOPIC.CURVE]},w.from.n,toBlock,limits,acc,seen,state);}
+   else if(ADDR.test(p)){const t0a=t0c,t1a=addrOf(await call(p,'0xd21220a7'));if(!t0a||!t1a)throw code('POOL_KIND_UNSUPPORTED');
     if(![t0a,t1a].includes(token))throw code('POOL_DOES_NOT_CONTAIN_TOKEN');quote=t0a===token?t1a:t0a;quoteIs0=t0a===quote;
     // one query for both Swap signatures (topic OR); each log is classified by its own topic0
     const both=[];await logs(r,{address:p,topics:[[TOPIC.V2,TOPIC.V3]]},w.from.n,toBlock,limits,both,seen,state);
     const a2=both.filter(l=>String(l.topics[0]).toLowerCase()===TOPIC.V2),a3=both.filter(l=>String(l.topics[0]).toLowerCase()===TOPIC.V3);
     if(a2.length&&a3.length)throw code('POOL_KIND_AMBIGUOUS');kind=a3.length?'V3':'V2';acc.push(...a2,...a3);}
    else throw code('POOL_ID_INVALID');
-   let raw=0n;for(const l of acc)raw+=quoteAmount(kind,l,quoteIs0);
+   let raw=0n;for(const l of acc)raw+=quoteAmount(kind,l,quoteIs0,quoteIdx);
    profile.swaps+=acc.length;
    if(acc.length===0){parts.push({pool:p,kind,swaps:0,usd:0});continue;}
    const q=M.QUOTES[network]?.[quote];if(!q)throw code('QUOTE_ASSET_UNSUPPORTED',{quote});
@@ -102,5 +112,9 @@ async function inspect(network,address,primary,{rpc=M.rpcFor?.(network),ethRpc,u
    freshness:{retrievedAt:at,ageMs:0,basis:'pinned-block log window ending at '+toBlock}},profile};
  }catch(e){profile.calls=state.calls;if(!e.code)profile.error=String(e.message||e).slice(0,160);return fail(e.code||'VOLUME_READ_FAILED');}
 }
+async function curveCoins(p,call){const n=i=>BigInt(i).toString(16).padStart(64,'0');
+ const coin=async i=>{for(const sel of ['0xc6610657','0x23746eb8']){try{const r=await call(p,sel+n(i));const a=typeof r==='string'&&/^0x[0-9a-f]{64}/i.test(r)?addrOf(r.slice(0,66)):null;
+  if(a)return a==='0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'?M.NATIVE:a;}catch(e){if(e.code==='ONCHAIN_BUDGET_EXHAUSTED'||e.code==='ONCHAIN_TIMEOUT')throw e;}}return null;};
+ const c0=await coin(0),c1=await coin(1);if(!c0||!c1||c0===c1)return null;if(await coin(2))throw code('CURVE_POOL_NOT_TWO_COIN');return [c0,c1];}
 function _reset(){windows.clear();}
 module.exports={TOPIC,LIMITS,MAX_POOLS,inspect,quoteAmount,_reset};

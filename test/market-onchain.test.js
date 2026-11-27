@@ -145,3 +145,25 @@ test('COV-4 market-cross coverage exception is narrow: subset + >=95% + liquidit
  const p={value:1,source:'DEX Screener',dataState:'DATA_FOUND',evidence:[{pairs:['0xa','0xb']}]};
  assert.equal(mc.merge({priceUsd:p},{priceUsd:{value:1,source:'Arc RPC pool state',dataState:'DATA_FOUND',evidence:[{pairs:['0xa'],coverageOfProviderLiquidity:0.99}]}},{now:NOW}).priceUsd.crossCheck.state,'SCOPE_MISMATCH','other fields keep the exact-scope rule');
 });
+test('CRV-1 Curve 2-coin pool: identity via coins(i), price via get_dy at the pinned block, TVL via balances(i); 3-coin fails closed',async()=>{
+ const P='0x'+'c'.repeat(40),n=i=>W(i).slice(2),dy=W(500050n);// 1 token -> 0.50005 USDC
+ const t={[P+':0x0dfe1681']:()=>{throw Error('revert')},[P+':0xc6610657:'+n(0)]:A(TOKEN),[P+':0xc6610657:'+n(1)]:A(USDC_ARC),
+  [TOKEN+':0x313ce567']:W(18),[USDC_ARC+':0x313ce567']:W(6),[P+':0x556d6e9f:'+n(0)+n(1)+W(10n**18n).slice(2)]:dy,
+  [P+':0x4903b0d1:'+n(0)]:W(10n**24n),[P+':0x4903b0d1:'+n(1)]:W(500000n*10n**6n)};
+ M._reset();let r=await M.inspect('arc',TOKEN,primary(0.5,1e6,[P]),{rpc:chainRpc(t),ethRpc:ethRpc(),now:NOW,env:ENV});
+ assert.equal(r.fields.priceUsd.evidence[0].kind,'CURVE_2COIN');assert.ok(Math.abs(r.fields.priceUsd.value-0.50005*1.0001)<1e-9);
+ assert.ok(Math.abs(r.fields.liquidityUsd.value-(1e6*0.50005*1.0001+500000*1.0001))<1e-3);
+ M._reset();r=await M.inspect('arc',TOKEN,primary(0.5,1e6,[P]),{rpc:chainRpc({...t,[P+':0xc6610657:'+n(2)]:A('0x'+'7'.repeat(40))}),ethRpc:ethRpc(),now:NOW,env:ENV});
+ assert.equal(r.fields.priceUsd,undefined);assert.equal(r.profile.reasons.priceUsd,'CURVE_POOL_NOT_TWO_COIN');
+ M._reset();r=await M.inspect('arc',TOKEN,primary(0.5,1e6,[P]),{rpc:chainRpc({[P+':0x0dfe1681']:()=>{throw Error('revert')}}),ethRpc:ethRpc(),now:NOW,env:ENV});
+ assert.equal(r.profile.reasons.priceUsd,'POOL_KIND_UNSUPPORTED');
+});
+test('WBTC-1 composite quote: WBTC/BTC x BTC/USD, both identity/decimals/freshness checked; a wrong description fails closed',async()=>{
+ const mk=(btcDesc='BTC / USD')=>async(m,p)=>{if(m==='eth_blockNumber')return '0x1500000';const {to,data}=p[0];
+  const f=Object.entries(M.FEEDS).find(([,x])=>x.address===to);if(!f)throw Error('unknown '+to);
+  if(data==='0x7284e416')return str(f[0]==='BTC'?btcDesc:f[1].description);if(data==='0x313ce567')return W(8);
+  const ans=f[0]==='BTC'?9000000000000n:99800000n;return '0x'+[1n,ans,0n,BigInt(Math.floor(NOW/1000)-60),1n].map(x=>x.toString(16).padStart(64,'0')).join('');};
+ const q=await M.quoteUsd('WBTC',{ethRpc:mk(),now:NOW});assert.ok(Math.abs(q.usd-90000*0.998)<1e-6);assert.equal(q.evidence.parts.length,2);
+ await assert.rejects(M.quoteUsd('WBTC',{ethRpc:mk('BTC / ETH'),now:NOW}),e=>e.code==='QUOTE_FEED_IDENTITY_MISMATCH');
+ assert.equal(M.QUOTES.ethereum['0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'].asset,'WBTC');
+});
