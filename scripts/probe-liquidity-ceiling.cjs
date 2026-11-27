@@ -11,7 +11,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  const sum={tokens:0,v2v3Only:0,v2v3v4:0,withCurveBalancer:0,quoteBlocked:0,fetchFailed:0};
  for(const t of cohort){
   const net=t.network==='pons'?'robinhood':t.network;let pairs=[];
-  try{const r=await fetch('https://api.dexscreener.com/tokens/v1/'+DS[t.network]+'/'+t.address,{signal:AbortSignal.timeout(15000)});pairs=await r.json();}catch{sum.fetchFailed++;continue;}
+  try{const r=await fetch('https://api.dexscreener.com/latest/dex/tokens/'+t.address,{signal:AbortSignal.timeout(15000)});const j=await r.json();pairs=j.pairs||[];}catch{sum.fetchFailed++;continue;}
   pairs=(Array.isArray(pairs)?pairs:[]).filter(p=>p.chainId===DS[t.network]).slice(0,30);
   const rows=pairs.map(p=>{const base=p.baseToken?.address?.toLowerCase(),quote=p.quoteToken?.address?.toLowerCase();const other=base===t.address?quote:base;
    const labels=(p.labels||[]).map(String),kind=labels.includes('v4')?'V4':labels.includes('v3')?'V3':labels.includes('v2')||/uniswap|sushi|pancake/.test(p.dexId||'')?'V2':'OTHER:'+p.dexId;
