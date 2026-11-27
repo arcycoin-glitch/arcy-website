@@ -61,30 +61,76 @@ jobs:
         run: |
           node -e "const c=require('crypto');const {privateKey,publicKey}=c.generateKeyPairSync('ed25519');require('fs').writeFileSync('/tmp/sign.pem',privateKey.export({format:'pem',type:'pkcs8'}));require('fs').writeFileSync('/tmp/pub.pem',publicKey.export({format:'pem',type:'spki'}))"
           openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/tls.key -out /tmp/tls.crt -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost" 2>/dev/null
-      # Checkpoints persist across runs (same role as the Railway volume): heavy histories (AI, PONS) resume, never restart from 0.
+      # Dependency-aware census reuse (scripts/ci-census-cache.cjs). ONLY unsigned checkpoints are cached: every CI run signs with its own
+      # ephemeral key, so cached signed snapshots would be unverifiable and the private key is never written to a cached path. A reused
+      # checkpoint set is re-published and RE-SIGNED by a short top-up census (which also catches up to the current head), so the A/B step
+      # still verifies fresh signatures. The cache key covers the cohort file, holder/census code and wallet-budget config; the manifest
+      # records provenance and is rejected when older than 72 h. "Complete" means every token is COMPLETE or in a deterministic scale-limit
+      # terminal state (e.g. PONS above the 100k wallet budget), never FAILED/BUILDING.
+      - name: Census input fingerprint
+        id: fp
+        working-directory: branch
+        run: echo "fp=$(node scripts/ci-census-cache.cjs fingerprint)" >> "$GITHUB_OUTPUT"
+      - name: Restore bounded-complete chain-4663 checkpoints (same fingerprint)
+        id: reuse
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /tmp/holder-index
+            /tmp/census-provenance
+          key: holder-complete-4663-v2-${{ steps.fp.outputs.fp }}
+      - name: Validate cache provenance, freshness and absence of key material
+        id: valid
+        working-directory: branch
+        env:
+          ARC_INDEX_CACHE_DIR: /tmp/holder-index
+        run: |
+          if [ "${{ steps.reuse.outputs.cache-hit }}" = "true" ] && node scripts/ci-census-cache.cjs validate; then
+            echo "reuse=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "reuse=false" >> "$GITHUB_OUTPUT"; rm -rf /tmp/holder-index /tmp/census-provenance
+          fi
       - name: Restore chain-4663 checkpoints from the previous run
+        if: steps.valid.outputs.reuse != 'true'
         uses: actions/cache/restore@v4
         with:
           path: /tmp/holder-index
           key: holder-index-4663-${{ github.run_id }}
           restore-keys: holder-index-4663-
-      - name: Chain-4663 durable census (real Robinhood Chain RPC, Robinhood + Pons cohort)
+      - name: Chain-4663 durable census (real Robinhood Chain RPC; short top-up + re-sign when checkpoints were reused)
         working-directory: branch
         env:
           ARC_HOLDER_STORAGE: local
           ARC_INDEX_CACHE_DIR: /tmp/holder-index
           ARC_HOLDER_PUBLISHED_DIR: /tmp/holder-pub
-          CENSUS_BUDGET_MS: '4500000'
+          CENSUS_BUDGET_MS: ${{ steps.valid.outputs.reuse == 'true' && '900000' || '4500000' }}
         run: |
           export ARC_HOLDER_SIGNING_KEY="$(cat /tmp/sign.pem)"
-          node scripts/holder-chain-census.cjs
+          node scripts/holder-chain-census.cjs | tee /tmp/census.log | grep -E "CENSUS_TOTAL|CENSUS_RESOURCES" || true
           ls -la /tmp/holder-pub/4663 | head -30 || true
-      - name: Save chain-4663 checkpoints for the next run
-        if: always()
+      - name: Save chain-4663 checkpoints for the next run (rolling resume cache)
+        if: always() && steps.valid.outputs.reuse != 'true'
         uses: actions/cache/save@v4
         with:
           path: /tmp/holder-index
           key: holder-index-4663-${{ github.run_id }}
+      - name: Provenance + key-material scan for bounded-complete census
+        id: mark
+        if: always() && steps.valid.outputs.reuse != 'true'
+        working-directory: branch
+        env:
+          ARC_INDEX_CACHE_DIR: /tmp/holder-index
+        run: |
+          node scripts/ci-census-cache.cjs scan
+          if node scripts/ci-census-cache.cjs write /tmp/census.log; then echo "done=true" >> "$GITHUB_OUTPUT"; else echo "done=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Save bounded-complete checkpoints for fingerprint reuse
+        if: always() && steps.valid.outputs.reuse != 'true' && steps.mark.outputs.done == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /tmp/holder-index
+            /tmp/census-provenance
+          key: holder-complete-4663-v2-${{ steps.fp.outputs.fp }}
       - name: Start publication server, main and branch
         run: |
           sudo "$(which node)" branch/scripts/ci-publication-server.cjs /tmp/holder-pub /tmp/tls.crt /tmp/tls.key > /tmp/pubsrv.log 2>&1 &
