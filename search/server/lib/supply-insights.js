@@ -72,8 +72,8 @@ async function arcNext(base){
  // block global schedules: an incomplete vesting address list is source-scoped.
  const records=require('../../../lib/unlock-sources');
  const options=await Promise.allSettled([
-  withTimeout(records.vesting(base.address),3500,'Arc source vesting timeout'),
-  withTimeout(records.documentation(base.address),3500,'Arc metadata timeout')
+  withTimeout(records.vesting(base.address),6500,'Arc source vesting timeout'),
+  withTimeout(records.documentation(base.address),6500,'Arc metadata timeout')
  ]);
  const verified=options.map((o,i)=>o.status==='fulfilled'?sourceSchedule('arc',base.address,o.value,
   i===0?'Arc contract-linked funded vesting report':'Arc contract-selected project schedule',
@@ -113,7 +113,7 @@ async function inspect({network,base}){
  const result=baseline(network);
  if(network==='arc'){
   const [next,burn]=await Promise.allSettled([
-   withTimeout(arcNext(base),3900,'Arc unlock lookup deadline'),
+   withTimeout(arcNext(base),7000,'Arc unlock lookup deadline'),
    withTimeout(arcNonburnableZero(base),3900,'Arc burn proof deadline')
   ]);
   if(next.status==='fulfilled')result.nextUnlock=next.value;
@@ -131,6 +131,14 @@ async function inspect({network,base}){
   }
  }
  if(network==='ethereum'&&result.nextUnlock?.status===EMPTY){
+  const live=await withTimeout(require('./onchain-vesting').inspect(base.address),3900,'On-chain vesting deadline').catch(()=>null);
+  if(live?.dataState==='DATA_FOUND'&&eventTime(live.value)){
+   const proof=live.evidence[0];
+   result.nextUnlock=found(network,base.address,live.value,live.source,{...proof,method:'vesting-contract state at one pinned block'},'ONCHAIN_VERIFIED');
+  }else if(live&&!['NO_ONCHAIN_VESTING_RECORD'].includes(live.reasonCode))
+   result.nextUnlock=withBlocker(result.nextUnlock,'ONCHAIN_VESTING_NOT_ESTABLISHED',{onchainReason:live.reasonCode});
+ }
+ if(network==='ethereum'&&result.nextUnlock?.status===EMPTY&&!result.nextUnlock.blocker){
   const rc=reviewedReason(base.address);
   result.nextUnlock=withBlocker(result.nextUnlock,rc==='NO_VERIFIED_FUTURE_EVENT'?'NO_CURRENT_FUTURE_EVENT':'NO_REVIEWED_CONTRACT_SCHEDULE',{registryReason:rc});
  }
