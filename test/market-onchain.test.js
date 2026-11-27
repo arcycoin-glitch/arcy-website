@@ -158,3 +158,12 @@ test('CRV-1 Curve 2-coin pool: identity via coins(i), price via get_dy at the pi
  M._reset();r=await M.inspect('arc',TOKEN,primary(0.5,1e6,[P]),{rpc:chainRpc({[P+':0x0dfe1681']:()=>{throw Error('revert')}}),ethRpc:ethRpc(),now:NOW,env:ENV});
  assert.equal(r.profile.reasons.priceUsd,'POOL_KIND_UNSUPPORTED');
 });
+test('WBTC-1 composite quote: WBTC/BTC x BTC/USD, both identity/decimals/freshness checked; a wrong description fails closed',async()=>{
+ const mk=(btcDesc='BTC / USD')=>async(m,p)=>{if(m==='eth_blockNumber')return '0x1500000';const {to,data}=p[0];
+  const f=Object.entries(M.FEEDS).find(([,x])=>x.address===to);if(!f)throw Error('unknown '+to);
+  if(data==='0x7284e416')return str(f[0]==='BTC'?btcDesc:f[1].description);if(data==='0x313ce567')return W(8);
+  const ans=f[0]==='BTC'?9000000000000n:99800000n;return '0x'+[1n,ans,0n,BigInt(Math.floor(NOW/1000)-60),1n].map(x=>x.toString(16).padStart(64,'0')).join('');};
+ const q=await M.quoteUsd('WBTC',{ethRpc:mk(),now:NOW});assert.ok(Math.abs(q.usd-90000*0.998)<1e-6);assert.equal(q.evidence.parts.length,2);
+ await assert.rejects(M.quoteUsd('WBTC',{ethRpc:mk('BTC / ETH'),now:NOW}),e=>e.code==='QUOTE_FEED_IDENTITY_MISMATCH');
+ assert.equal(M.QUOTES.ethereum['0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'].asset,'WBTC');
+});

@@ -35,7 +35,12 @@ const FEEDS=Object.freeze({
  DAI:{address:'0xaed0c38402a5d19df6e4c03f4e2dced6e29c1ee9',description:'DAI / USD',maxAgeS:3600+600},
  // No address is hard-coded here: Chainlink publishes this feed only as the ENS name usds-usd.data.eth (data.chain.link). The name is
  // resolved on-chain through the ENS registry at the pinned Ethereum block, then description() must still equal 'USDS / USD'.
- USDS:{ens:'usds-usd.data.eth',description:'USDS / USD',maxAgeS:86400+600}});
+ USDS:{ens:'usds-usd.data.eth',description:'USDS / USD',maxAgeS:86400+600},
+ // WBTC (#358): USD = Chainlink WBTC / BTC x Chainlink BTC / USD, both 8-decimal feeds (decimals() checked), each identity-checked by
+ // description() and freshness-checked on its own heartbeat. No WBTC price is ever taken from a DEX pool (non-circular).
+ BTC:{address:'0xf4030086522a5beea4988f8ca5b36dbc97bee88c',description:'BTC / USD',maxAgeS:3600+600,decimals:8},
+ WBTC_BTC:{address:'0xfdfd9c85ad200c506cf9e21f1fd8dd01932fbb23',description:'WBTC / BTC',maxAgeS:86400+600,decimals:8}});
+const COMPOSITE=Object.freeze({WBTC:['WBTC_BTC','BTC']});
 const ENS_REGISTRY='0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e';
 function namehash(name){let node=Buffer.alloc(32);for(const label of name.split('.').reverse()){const h=Buffer.from(keccak(Buffer.from(label)).slice(2),'hex');node=Buffer.from(keccak(Buffer.concat([node,h])).slice(2),'hex');}return '0x'+node.toString('hex');}
 const ensCache=new Map();
@@ -46,7 +51,8 @@ const QUOTES=Object.freeze({
   '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48':{asset:'USDC',basis:'Circle USDC'},
   '0xdac17f958d2ee523a2206206994597c13d831ec7':{asset:'USDT',basis:'Tether USDT'},
   '0x6b175474e89094c44da98b954eedeac495271d0f':{asset:'DAI',basis:'MakerDAO DAI'},
-  '0xdc035d45d973e3ec169d2276ddab16f1e407384f':{asset:'USDS',basis:'Sky USDS (Sky Protocol stablecoin contract)'}},
+  '0xdc035d45d973e3ec169d2276ddab16f1e407384f':{asset:'USDS',basis:'Sky USDS (Sky Protocol stablecoin contract)'},
+  '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599':{asset:'WBTC',basis:'BitGo Wrapped BTC (WBTC)'}},
  robinhood:{[NATIVE]:{asset:'ETH',decimals:18,basis:'native ETH gas token (Arbitrum Orbit, Uniswap v4 currency 0)'},
   '0x0bd7d308f8e1639fab988df18a8011f41eacad73':{asset:'ETH',basis:'Robinhood Chain WETH (pool quote asset; 1:1 ETH wrapper)'}},
  arc:{[NATIVE]:{asset:'USDC',decimals:18,basis:'Arc native USDC gas token (18-decimal native accounting, Uniswap v4 currency 0)'},
@@ -78,6 +84,8 @@ function poolId(k){
 async function decimalsOf(call,network,a){const q=QUOTES[network]?.[a];if(a===NATIVE)return q?q.decimals:null;const d=Number(big(await call(a,SEL.decimals)));if(!Number.isInteger(d)||d<0||d>36)throw code('TOKEN_DECIMALS_INVALID');return d;}
 // Chainlink USD reference (Ethereum mainnet, pinned block, description + freshness checked)
 async function quoteUsd(asset,{ethRpc,now}){
+ if(COMPOSITE[asset]){const parts=[];for(const a of COMPOSITE[asset])parts.push(await quoteUsd(a,{ethRpc,now}));
+  return {usd:parts.reduce((x,p)=>x*p.usd,1),evidence:{composite:COMPOSITE[asset].join(' x '),parts:parts.map(p=>p.evidence)}};}
  const f=FEEDS[asset];if(!f)throw code('QUOTE_USD_UNVERIFIED');
  const block=await ethRpc('eth_blockNumber',[]);
  const call=(to,data)=>ethRpc('eth_call',[{to,data},block]);
@@ -87,6 +95,7 @@ async function quoteUsd(asset,{ethRpc,now}){
   feed='0x'+String(await call(resolver,'0x3b3b57de'+node.slice(2))).slice(-40).toLowerCase();if(/^0x0{40}$/.test(feed))throw code('QUOTE_FEED_ENS_UNRESOLVED');ensCache.set(f.ens,{address:feed,at:now});}}
  const desc=require('./eth').abiString?.(await call(feed,SEL.description));
  if(desc!==f.description)throw code('QUOTE_FEED_IDENTITY_MISMATCH');
+ if(f.decimals!==undefined&&Number(big(await call(feed,SEL.decimals)))!==f.decimals)throw code('QUOTE_FEED_DECIMALS_MISMATCH');
  const w=words(await call(feed,SEL.latestRoundData));const answer=signed(w[1],256),updatedAt=Number(w[3]);
  if(answer<=0n)throw code('QUOTE_FEED_INVALID');
  const age=Math.floor(now/1000)-updatedAt;if(!(age>=-60&&age<=f.maxAgeS))throw code('QUOTE_FEED_STALE',{age});
