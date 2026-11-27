@@ -136,9 +136,9 @@ test('PARITY: a tampered/older signed edition with conflicting amounts or a host
  void today;
 });
 
-test('executionVerification: ONCHAIN_VERIFIED only with a complete transaction proof; a calendar row never qualifies',()=>{
+test('executionVerification: receipt-shaped identifiers do not prove calendar execution',()=>{
  const ok={chainId:1,txHash:'0x'+'a'.repeat(64),block:123};
- assert.equal(core.executionVerification({executionProof:ok}),'ONCHAIN_VERIFIED');
+ assert.equal(core.executionVerification({executionProof:ok}),'NOT_VERIFIED');
  for(const bad of [undefined,{},{...ok,txHash:'0x12'},{...ok,chainId:0},{...ok,block:-1},{...ok,block:'1'},{chainId:1,txHash:ok.txHash}])
   assert.equal(core.executionVerification({executionProof:bad}),'NOT_VERIFIED');
  assert.equal(core.executionVerification({verification:'project-confirmed',date:'2026-12-01'}),'NOT_VERIFIED','a project-confirmed SCHEDULE is not an execution');
