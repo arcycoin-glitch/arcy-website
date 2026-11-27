@@ -13,7 +13,10 @@ const crypto=require('node:crypto');
  const rt=src.slice(src.indexOf('object "NoxaFunTokenV15_514_deployed"')>=0?src.indexOf('object "NoxaFunTokenV15_514_deployed"'):src.lastIndexOf('_deployed'));
  const fn=name=>{const i=rt.indexOf('function '+name+'(');if(i<0)return null;let depth=0,j=rt.indexOf('{',i);for(let k=j;k<rt.length;k++){if(rt[k]==='{')depth++;else if(rt[k]==='}'){depth--;if(!depth)return rt.slice(i,k+1);}}return null;};
  const sw=rt.match(/case 0x[0-9a-f]{8}/g)||[];console.log('SELECTORS '+JSON.stringify([...new Set(sw)]));
- const seen=new Set(),queue=['fun_transfer'];
+ const names=[...rt.matchAll(/function ([A-Za-z0-9_$]+)\(/g)].map(m=>m[1]);console.log('FUNCTIONS '+JSON.stringify(names));
+ for(const n of names){const b=fn(n);if(b&&/\b(sstore|staticcall|log3|log1|log2|log4)\(/.test(b))console.log('=== WRITE/CALL '+n+' ===\n'+b);}
+ for(const sel of ['0xa9059cbb','0x23b872dd']){const i=rt.indexOf('case '+sel);console.log('=== DISPATCH '+sel+' ===\n'+rt.slice(i,i+900));}
+ const seen=new Set(),queue=[...names.filter(n=>/^fun_transfer/.test(n))];
  while(queue.length){const n=queue.shift();if(seen.has(n))continue;seen.add(n);const body=fn(n);if(!body){console.log('MISSING '+n);continue;}
   console.log('=== '+n+' ===\n'+body);
   for(const m of body.matchAll(/\b(fun_[A-Za-z0-9_]+|modifier_[A-Za-z0-9_]+)\(/g))if(!seen.has(m[1]))queue.push(m[1]);}
