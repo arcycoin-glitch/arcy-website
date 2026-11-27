@@ -36,3 +36,13 @@ test('scale diagnostic distinguishes retained ledger entries from historical wal
  assert.equal(unknown.retainedLedgerAddresses,null);
  assert.equal(unknown.walletBudget,100000);
 });
+
+test('bounded census stops at COMPLETE or deterministic budget breach, but keeps waiting on transient states',()=>{
+ const p=worker.censusPending;
+ assert.equal(p([{state:'COMPLETE'},{state:'NOT_VERIFIED',reasonCode:'BALANCE_RECONCILIATION_BUDGET_EXCEEDED'}]),false,'PONS-like breach must not burn the whole budget');
+ assert.equal(p([{state:'COMPLETE'},{state:'BUILDING',reasonCode:'TRANSFER_BACKFILL_IN_PROGRESS'}]),true);
+ assert.equal(p([{state:'NOT_VERIFIED',reasonCode:'HOLDER_RPC_UNAVAILABLE'}]),true,'transient failures are retried within budget');
+ assert.equal(p([{state:'FAILED',reasonCode:'RPC_CALL_FAILED'}]),true);
+ assert.equal(p([{}]),true,'a contract with no result yet is still pending');
+ assert.equal(p([]),false);
+});
