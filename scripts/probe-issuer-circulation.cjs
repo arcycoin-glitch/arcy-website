@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+'use strict';
+// #335 / #77 read-only probe. Prints ONLY public issuer publication metadata needed to review an exact-contract
+// circulating-supply mapping: currency identity, per-chain codes, amounts, update times, and the pinned
+// totalSupply() of each candidate contract on its own chain. Writes nothing; no credentials are used.
+const CANDIDATES=[
+ {symbol:'USDC',network:'ethereum',chainId:1,rpc:['https://ethereum-rpc.publicnode.com','https://eth.llamarpc.com'],address:'0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',decimals:6},
+ {symbol:'EURC',network:'ethereum',chainId:1,rpc:['https://ethereum-rpc.publicnode.com','https://eth.llamarpc.com'],address:'0x1abaea1f7c830bd89acc67ec4af516284b1bc33c',decimals:6}
+];
+async function rpc(urls,method,params){
+ for(const u of urls){try{const r=await fetch(u,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(10000)});const j=await r.json();if(j.result!==undefined)return {result:j.result,via:new URL(u).hostname};}catch{}}
+ return {result:null,via:null};
+}
+(async()=>{
+ const t0=Date.now();let body=null,status=0;
+ try{const r=await fetch('https://api.circle.com/v1/stablecoins',{signal:AbortSignal.timeout(15000)});status=r.status;body=await r.json();}catch(e){console.log('CIRCLE_FETCH_FAILED',e.name);}
+ console.log('CIRCLE_STATUS',status,'ms',Date.now()-t0);
+ for(const c of body?.data||[])console.log('CIRCLE_CURRENCY '+JSON.stringify({symbol:c.symbol,name:c.name,totalAmount:c.totalAmount??null,chains:(c.chains||[]).map(x=>({chain:x.chain,amount:x.amount,updateDate:x.updateDate}))}));
+ for(const k of CANDIDATES){
+  const block=await rpc(k.rpc,'eth_blockNumber',[]);
+  const ts=block.result?await rpc(k.rpc,'eth_call',[{to:k.address,data:'0x18160ddd'},block.result]):{result:null};
+  const sym=block.result?await rpc(k.rpc,'eth_call',[{to:k.address,data:'0x95d89b41'},block.result]):{result:null};
+  const dec=block.result?await rpc(k.rpc,'eth_call',[{to:k.address,data:'0x313ce567'},block.result]):{result:null};
+  console.log('CANDIDATE '+JSON.stringify({symbol:k.symbol,chainId:k.chainId,address:k.address,block:block.result,via:block.via,
+   totalSupplyRaw:ts.result&&ts.result!=='0x'?BigInt(ts.result).toString():null,decimals:dec.result&&dec.result!=='0x'?Number(BigInt(dec.result)):null,
+   symbolAbi:sym.result&&sym.result.length>=194?Buffer.from(sym.result.slice(130),'hex').toString('utf8').replace(/\0+$/,''):null}));
+ }
+})().catch(e=>{console.error(e.name);process.exitCode=1;});

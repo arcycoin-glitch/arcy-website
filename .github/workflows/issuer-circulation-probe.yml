@@ -1,0 +1,20 @@
+name: Issuer circulation probe (read-only, #335)
+# Read-only evidence for exact-contract issuer circulation mappings. No secrets, no writes.
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-issuer-circulation.cjs'
+      - 'search/server/lib/circle-circulating.js'
+      - '.github/workflows/issuer-circulation-probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-issuer-circulation.cjs
