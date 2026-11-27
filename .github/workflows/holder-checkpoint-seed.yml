@@ -1,0 +1,50 @@
+name: Holder checkpoint seed (main, read-only chain reads)
+# GitHub Actions caches written on a PR branch are invisible to other PR branches; caches written on main are readable by all.
+# This job keeps a validated chain-4663 Transfer-ledger checkpoint on main so every PR's real-chain gate (data-engine-phase2)
+# resumes from it instead of re-indexing from block 0. Ephemeral signing key; publications stay on the runner; no secrets.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/holder-*.js'
+      - 'scripts/holder-chain-census.cjs'
+      - '.github/workflows/holder-checkpoint-seed.yml'
+  schedule:
+    - cron: '23 3 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: holder-checkpoint-seed
+  cancel-in-progress: false
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Restore previous chain-4663 checkpoints
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/holder-index
+          key: holder-index-4663-${{ github.run_id }}
+          restore-keys: holder-index-4663-
+      - name: Chain-4663 census (resumes; stops at COMPLETE or deterministic budget breach)
+        env:
+          ARC_HOLDER_STORAGE: local
+          ARC_INDEX_CACHE_DIR: /tmp/holder-index
+          ARC_HOLDER_PUBLISHED_DIR: /tmp/holder-pub
+          CENSUS_BUDGET_MS: '5400000'
+        run: |
+          node -e "const c=require('crypto');const {privateKey}=c.generateKeyPairSync('ed25519');require('fs').writeFileSync('/tmp/sign.pem',privateKey.export({format:'pem',type:'pkcs8'}))"
+          export ARC_HOLDER_SIGNING_KEY="$(cat /tmp/sign.pem)"
+          node scripts/holder-chain-census.cjs | grep -E "CENSUS_TOTAL|CENSUS_RESOURCES"
+      - name: Save checkpoints for PR branches
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/holder-index
+          key: holder-index-4663-${{ github.run_id }}
