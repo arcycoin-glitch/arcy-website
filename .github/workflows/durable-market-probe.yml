@@ -1,0 +1,18 @@
+name: Durable market verification ceiling (read-only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-durable-market.cjs'
+      - '.github/workflows/durable-market-probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-durable-market.cjs
