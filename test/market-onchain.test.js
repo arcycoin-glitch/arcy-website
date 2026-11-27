@@ -128,8 +128,9 @@ test('COV-2 per-pool disagreement beyond tolerance fails closed (never a partial
  assert.equal(r.fields.liquidityUsd,undefined);assert.match(r.profile.reasons.liquidityUsd,/LIQUIDITY_SCOPE_EXCEEDS_BUDGET \(7 pools\) \| coverage: POOL_LIQUIDITY_DISAGREES/);
 });
 test('COV-3 coverage needing more than the pool budget, or without per-pool provider values, keeps the original reason path',async()=>{
- M._reset();const flat=[150000,150000,150000,150000,150000,150000,100000];
- let r=await M.inspect('arc',TOKEN,covPrimary(flat),{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env:ENV});
+ const many12=Array.from({length:12},(_,i)=>i===0?POOL3:'0x'+(i+4).toString(16).repeat(40).slice(0,40));
+ const flatP=primary(0.5,1.2e6,many12);flatP.liquidityUsd.evidence=[{provider:'DEX Screener',pairs:many12,pairLiquidityUsd:Array(12).fill(100000)}];
+ M._reset();let r=await M.inspect('arc',TOKEN,flatP,{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env:ENV});
  assert.equal(r.fields.liquidityUsd,undefined);assert.match(r.profile.reasons.liquidityUsd,/coverage: LIQUIDITY_COVERAGE_EXCEEDS_BUDGET/);
  M._reset();r=await M.inspect('arc',TOKEN,{...primary(0.5,1e6),liquidityUsd:{...primary(0.5,1e6).liquidityUsd,evidence:[{pairs:many7}]}},{rpc:chainRpc(v3Table(0.5)),ethRpc:ethRpc(),now:NOW,env:ENV});
  assert.equal(r.profile.reasons.liquidityUsd,'LIQUIDITY_SCOPE_EXCEEDS_BUDGET (7 pools)');
