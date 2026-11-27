@@ -295,7 +295,7 @@ function rpcFor(members,launches=[]){
   if(c.method==='eth_blockNumber')return {jsonrpc:'2.0',id:c.id,result:'0x64'};
   const data=c.params[0].data,tok='0x'+data.slice(-40);
   if(data.startsWith(pons.SEL.getLaunchedToken)){
-   if(c.params[0].to!==sources.PONS.factories[0]||!members.includes(tok))return {jsonrpc:'2.0',id:c.id,result:'0x'+'0'.repeat(832)};
+   if(c.params[0].to!==sources.PONS.factories[0]||!members.includes(tok))return {jsonrpc:'2.0',id:c.id,result:'0x'+'0'.repeat(sources.PONS.versions[c.params[0].to]==='v2'?960:832)};
    const w=x=>x.replace('0x','').padStart(64,'0');const words=[tok,addr(7),addr(8)].map(w);while(words.length<11)words.push('0'.repeat(64));words.push('0'.repeat(63)+'1','0'.repeat(64));
    return {jsonrpc:'2.0',id:c.id,result:'0x'+words.join('')};
   }
