@@ -123,11 +123,11 @@ test('three chains rank independently; Pons launches never appear in Robinhood (
  assert.equal(d.pons.candidates.length,1);assert.equal(d.arc.candidates.length,1,'same address on another chain is a different contract');
 });
 // ── snapshot path ──
-function engineResult(){
+function engineResult(observedAt=NOW){
  const disp=(net,n)=>({key:(net==='arc'?5042:4663)+':'+A(n),network:net,address:A(n),symbol:'T'+n,eligibility:'REVIEW',displayTier:'WATCHLIST_NOT_VERIFIED',selectionTier:4,
   category:{category:'EARLY_STAGE_CANDIDATE'},opportunity:{version:'arcy-opportunity-intel-4',score:12,dimensions:{},flags:[],divergence:{signal:'PRICE_HISTORY_NOT_VERIFIED'}},
   evidenceConfidence:{score:0.2},missingProof:['IDENTITY'],provenance:['RADAR_QUIET_VOLUME_FLOOR'],infoV4:'Araştırma izleme listesi — DOĞRULANMADI; Ürün/geliştirme kanıtı yok'});
- const net=(name,rows)=>({source:{status:'OBSERVED',asOf:iso(0)},counts:{},display:{shown:rows.length},displayCandidates:rows,all:rows});
+ const net=(name,rows)=>({source:{status:'OBSERVED',asOf:new Date(observedAt).toISOString()},counts:{},display:{shown:rows.length},displayCandidates:rows,all:rows});
  return {registry:{version:'t',approvedProjects:0},cost:{},networks:{arc:net('arc',[disp('arc',1)]),ethereum:{source:{status:'SOURCE_UNAVAILABLE'}},robinhood:net('robinhood',[disp('robinhood',2),disp('robinhood',3)]),pons:net('pons',[disp('pons',3)])}};
 }
 const sections={arc:{excluded:[{address:A(1),symbol:'T1',name:'T1',priceUsd:0.1,volume24hUsd:3000,liquidityUsd:40000,poolCreatedAt:iso(40),buys24h:40,sells24h:30}]},robinhood:{excluded:[{address:A(2),symbol:'T2',name:'T2',priceUsd:1,volume24hUsd:4000,liquidityUsd:30000,poolCreatedAt:iso(20),buys24h:30,sells24h:20}]},pons:{tokens:[]}};
@@ -148,7 +148,7 @@ test('snapshot build: valid DTO rows, discovery-2 formula kept, Pons removed fro
  const eligibleLie=structuredClone(snap);eligibleLie.sections.arc.rows[0].opportunity.displayTier='ELIGIBLE';assert.equal(S.validate(eligibleLie).ok,false);
 });
 test('snapshot merge: a failed section carries forward the previous valid one, labelled',()=>{
- const prev=S.build(engineResult(),sections,{now:NOW-5*3600000});
+ const prev=S.build(engineResult(NOW-5*3600000),sections,{now:NOW-5*3600000});
  const r=engineResult();r.networks.arc={source:{status:'SOURCE_UNAVAILABLE'}};
  const m=S.merge(prev,S.build(r,sections,{now:NOW}));
  assert.equal(m.sections.arc.carriedForward,true);assert.equal(m.sections.arc.asOf,prev.sections.arc.asOf);assert.equal(S.validate(m).ok,true);
@@ -212,7 +212,7 @@ async function withEnv(vars,fn){const keys=Object.keys(vars),old=Object.fromEntr
 const ON={RADAR_V4_OPPORTUNITY_ENABLED:'true',MARKET_RADAR_PUBLIC_DISPLAY_APPROVED:'true',MARKET_RADAR_JSON_DELIVERY_APPROVED:'true'};
 const providerDown=async()=>{throw Object.assign(Error('RADAR_PROVIDER_HTTP_503'),{code:'RADAR_PROVIDER_HTTP_503'});};
 test('handler: fresh V4 snapshot is served even when the legacy provider fails (no legacy call)',()=>withEnv(ON,async()=>{
- const {radar,call}=handlerHarness();const snap=S.build(engineResult(),sections,{now:Date.now()});let legacyCalls=0;
+ const {radar,call}=handlerHarness();const snap=S.build(engineResult(Date.now()),sections,{now:Date.now()});let legacyCalls=0;
  radar.load=async()=>{legacyCalls++;return providerDown();};
  global.fetch=async(u)=>{assert.equal(u,S.url(process.env));return {ok:true,status:200,text:async()=>JSON.stringify(snap)};};
  const r=await call('arc');
@@ -220,14 +220,14 @@ test('handler: fresh V4 snapshot is served even when the legacy provider fails (
  assert.match(r.headers['Cache-Control'],/s-maxage=/);assert.equal(r.body.version,2);assert.equal(r.body.engine,'arcy-radar-v3');
 }));
 test('handler: stale (6-24 h) V4 snapshot is served as STALE with no-store when the provider fails',()=>withEnv(ON,async()=>{
- const {radar,call}=handlerHarness();const snap=S.build(engineResult(),sections,{now:Date.now()-8*3600000});
+ const {radar,call}=handlerHarness();const snap=S.build(engineResult(Date.now()-8*3600000),sections,{now:Date.now()-8*3600000});
  radar.load=providerDown;global.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify(snap)});
  const r=await call('arc');assert.equal(r.code,200);assert.equal(r.body.freshness,'STALE');assert.equal(r.headers['Cache-Control'],'no-store');assert.equal(r.body.opportunity.status,'STALE');
 }));
 test('handler: expired / invalid / missing-branch snapshot + healthy legacy => legacy list, labelled; both down => honest 503',()=>withEnv(ON,async()=>{
  const {radar,call}=handlerHarness();
  radar.load=async(n)=>({...live(n),network:n});
- for(const [body,status,reason] of [[S.build(engineResult(),sections,{now:Date.now()-30*3600000}),200,'SNAPSHOT_SECTION_EXPIRED'],[{schema:'bad'},200,'SNAPSHOT_SCHEMA_INVALID'],[{},404,'SNAPSHOT_HTTP_404'],[{},403,'SNAPSHOT_HTTP_403'],[{},429,'SNAPSHOT_HTTP_429'],[{},503,'SNAPSHOT_HTTP_503']]){
+ for(const [body,status,reason] of [[S.build(engineResult(Date.now()-30*3600000),sections,{now:Date.now()-30*3600000}),200,'SNAPSHOT_SECTION_EXPIRED'],[{schema:'bad'},200,'SNAPSHOT_SCHEMA_INVALID'],[{},404,'SNAPSHOT_HTTP_404'],[{},403,'SNAPSHOT_HTTP_403'],[{},429,'SNAPSHOT_HTTP_429'],[{},503,'SNAPSHOT_HTTP_503']]){
   S._reset();global.fetch=async()=>({ok:status===200,status,text:async()=>JSON.stringify(body)});
   const r=await call('arc');assert.equal(r.code,200);assert.equal(r.body.tokens[0].address,A(500));assert.equal(r.body.opportunity.reason,reason,reason);
  }

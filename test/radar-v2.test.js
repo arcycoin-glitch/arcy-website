@@ -296,7 +296,7 @@ function rpcRouter({members=[],chainId=4663,fail=false}={}){
    const {to,data}=c.params[0];const token='0x'+data.slice(-40);
    if(data.startsWith(pons.SEL.getLaunchedToken)){
     const ok=members.includes(token)&&to===sources.PONS.factories[0];
-    return {jsonrpc:'2.0',id:c.id,result:ok?launchWord(token):'0x'+'0'.repeat(832)};
+    return {jsonrpc:'2.0',id:c.id,result:ok?launchWord(token):'0x'+'0'.repeat(sources.PONS.versions[to]==='v2'?960:832)};
    }
    if(data.startsWith(pons.SEL.graduationStatus))return {jsonrpc:'2.0',id:c.id,result:gradWord};
    return {jsonrpc:'2.0',id:c.id,error:{code:-32601,message:'x'}};
@@ -576,6 +576,33 @@ test('Pons membership RPC outage serves the last verified Pons ranking as bounde
  assert.deepEqual(stale.tokens.map(t=>t.address),fresh.tokens.map(t=>t.address),'no token added or invented');
  now=T0+4*3600*1000;http._resetCooldowns();
  await assert.rejects(radar.load('pons',options),{code:'RADAR_PONS_MEMBERSHIP_UNAVAILABLE'},'beyond the 3 h bound the outage is reported, not hidden');
+});
+
+test('one failed factory eth_call cannot shrink ten Pons rows to a fresh nine or poison the membership cache',async()=>{
+ const body=geckoBody('robinhood',{count:10}),members=Array.from({length:10},(_,i)=>addr(i+1));
+ const healthy=rpcRouter({members});let partialFailure=false;
+ const f=router([...CG('robinhood',body),[/dexscreener/,()=>resp([])],[/rpc\.example/,async(u,o)=>{
+  const answer=await healthy(u,o),data=JSON.parse(await answer.text()),calls=parseBatch(o);
+  if(partialFailure)for(let i=0;i<calls.length;i++){
+   const c=calls[i];if(c.method==='eth_call'&&c.params[0].to===sources.PONS.factories[0]&&
+    c.params[0].data===pons.calldata(pons.SEL.getLaunchedToken,addr(10)))
+    data[i]={jsonrpc:'2.0',id:c.id,error:{code:-32005,message:'temporary rate limit'}};
+  }
+  return resp(data);
+ }]]);
+ let now=T0;const options={env:DEMO,fetcher:f,now:()=>now,rpcUrl:'https://rpc.example/'};
+ const fresh=await radar.load('pons',options);assert.equal(fresh.tokens.length,10);
+ partialFailure=true;now=T0+81*60000;
+ const preserved=await radar.load('pons',options);
+ assert.equal(preserved.tokens.length,10,'infrastructure uncertainty does not become a token exclusion');
+ assert.equal(preserved.freshness,'STALE');assert.equal(preserved.staleReason,'RADAR_PONS_MEMBERSHIP_UNAVAILABLE');
+ assert.equal(preserved.asOf,fresh.asOf,'failed new reads cannot refresh the old observation timestamp');
+ assert.deepEqual(preserved.tokens.map(t=>t.address),fresh.tokens.map(t=>t.address));
+ // Repair inside the source TTL. A failed membership pass must not have cached addr(10) as a negative.
+ partialFailure=false;now++;
+ const repaired=await radar.load('pons',options);assert.equal(repaired.freshness,'FRESH');
+ assert.equal(repaired.tokens.length,10);assert.ok(repaired.tokens.some(t=>t.address===addr(10)));
+ assert.notEqual(repaired.asOf,fresh.asOf);
 });
 
 // ── Data Engine V2: categories from already-inspected candidates (no extra calls, ranking unchanged) ──────────

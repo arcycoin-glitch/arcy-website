@@ -25,7 +25,7 @@ test('FR-2: staleness is classified explicitly (never silently treated as fresh)
 });
 
 test('FR-3: workflow wiring — frequent off-peak cron, freshness gate, preview-default manual runs, alert job, publish gate kept',()=>{
- const y=fs.readFileSync(path.join(__dirname,'../.github/workflows/radar-v4-snapshot.yml'),'utf8');
+ const y=fs.readFileSync(path.join(__dirname,'../.github/workflows/radar-v4-snapshot.yml'),'utf8').replace(/\r\n/g,'\n');
  assert.match(y,/cron: '4,19,34,49 \* \* \* \*'/);
  assert.doesNotMatch(y,/cron: '0 /,'never on the top of the hour');
  assert.match(y,/needs: freshness\n\s+if: needs\.freshness\.outputs\.build == 'true'/);
@@ -40,7 +40,7 @@ test('FR-3: workflow wiring — frequent off-peak cron, freshness gate, preview-
 });
 
 test('#232: workflow wiring — section-isolated decision after the unchanged strict gate, degraded output and alert',()=>{
- const y=fs.readFileSync(path.join(__dirname,'../.github/workflows/radar-v4-snapshot.yml'),'utf8');
+ const y=fs.readFileSync(path.join(__dirname,'../.github/workflows/radar-v4-snapshot.yml'),'utf8').replace(/\r\n/g,'\n');
  assert.match(y,/S\.publishDecision\(s,\{commit:process\.env\.GITHUB_SHA\}\)/);
  assert.match(y,/if\(!d\.ok\)\{console\.error\("Refusing to publish/,'structural problems still refuse');
  assert.match(y,/id: verify/);assert.match(y,/degraded: \$\{\{ steps\.verify\.outputs\.degraded \}\}/);

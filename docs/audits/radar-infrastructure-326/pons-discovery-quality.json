@@ -1,0 +1,2121 @@
+{
+  "schema": "radar-infrastructure-326-quality-audit/1",
+  "source": {
+    "dataBranchSha": "db6a95a531889c733673c8c0ea3de9d78deb0888",
+    "snapshotUrl": "https://raw.githubusercontent.com/arcycoin-glitch/arcy-website/db6a95a531889c733673c8c0ea3de9d78deb0888/radar-v4/snapshot.json",
+    "generatedAt": "2026-11-27T04:37:54.673Z",
+    "engineCommit": "bf3372654ebc9949f30b8fb81e8bbf5b514b93c7"
+  },
+  "attributableCoverageDelta": 0,
+  "policyChanged": false,
+  "sections": {
+    "arc": {
+      "shown": 10,
+      "sourceRadarAsOf": "2026-11-27T04:35:11.505Z",
+      "customVetoCounts": {
+        "CUSTOM_PEGGED_OR_STABLE_ASSET": 3,
+        "CUSTOM_NO_REAL_MARKET_OBSERVATION": 44,
+        "CUSTOM_UNSUPPORTED_OR_IMPERSONATING_CATEGORY": 1,
+        "CUSTOM_NO_VERIFIABLE_PROJECT_PROFILE": 1
+      },
+      "customVetoSample": [
+        {
+          "symbol": "GBPA",
+          "address": "0xbbe6aab0ed76e90aea0d1cd978ec231c8adcdf8b",
+          "reason": "PEGGED_OR_STABLE_ASSET",
+          "category": "STABLECOIN",
+          "identity": null
+        },
+        {
+          "symbol": "Rolana",
+          "address": "0x05277c70dae6101f6c0906ac1b41c4b4a6772777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "Scat",
+          "address": "0x0bbca11404e5aa43116bbb97734c333717160777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "CALL",
+          "address": "0x1322cd9044be3825e405740439cf7621bc3e7777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "SpaceXCoin",
+          "address": "0x1545941b56a3351a99b811875c6e80a4d8625777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "cirBTC",
+          "address": "0x171a4217b86a807a64eb94757db6849fb4bdbaa0",
+          "reason": "UNSUPPORTED_OR_IMPERSONATING_CATEGORY",
+          "category": "IMPERSONATION_SUSPECT",
+          "identity": null
+        },
+        {
+          "symbol": "XAUM",
+          "address": "0x178b01f61cbea1d2a5581fe1621be607835ec349",
+          "reason": "PEGGED_OR_STABLE_ASSET",
+          "category": "COMMODITY_TICKER_WITHOUT_IDENTITY",
+          "identity": null
+        },
+        {
+          "symbol": "cow",
+          "address": "0x1a26dc0b5c437eff0684420e4681c1ca60b4e777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "hSOL",
+          "address": "0x1f7772793a332aa0980cfc4183d0ae2c61ac9777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "RICE",
+          "address": "0x2ac37ec3f50f9334c23ab9895bb0a735076d7777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "Elonmas",
+          "address": "0x2c5bbc6ededf6ead23b3cde2c3c479e58c0a4777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "CHESS",
+          "address": "0x2cd8fab8dd760ea16d6e04a93dd234546499e777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "JIMMY",
+          "address": "0x34997e99c29637b6fd6793ccbe8c43d931865777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "PILLMAN",
+          "address": "0x3f5adc7f3cb3d41bf81556fbbe1c0cc09e82d777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "Kindness",
+          "address": "0x465c04234656018469fa183deaaf47af1f9d1777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "CRAB",
+          "address": "0x490500230bb87894598214640c62b53d8b322777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "steppa",
+          "address": "0x5738d5144e1cf9a9591e02b53cc396de85f2b777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "GEMMA",
+          "address": "0x5a0b3a3661cf6eea21d8333273b9707dcce7a777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "Irochan",
+          "address": "0x71e7f29b246a24a3864c415eaadbf9be780db777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "Solana",
+          "address": "0x785beb69a36a373ec3ea7562eaddf0eefce0c777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "PUMPGIVING",
+          "address": "0x7c77b373ce516059a5eb6decadcba2209f3d1777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "PAIRS",
+          "address": "0x9b73f1d20cab4d2f7bbf0343bf03624db111b777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "BASKET",
+          "address": "0x9bc81bafc4bb58752fdf37d0e1c0fbbd1a0f8777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "FIONA",
+          "address": "0xa588265b46e7913c0a57e96683eb15c326f48777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "slip",
+          "address": "0xb23a30be7f8807c49d448e2909e21f1da424a777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "Elonmas",
+          "address": "0xb38565859317e936643e5e25fb4b3f6e6f890777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "RUDOLPH",
+          "address": "0xb3b7e8cfb85d32cd495cfede516dac1f888df777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "fineshyt",
+          "address": "0xbcbfecbbaffd70b494db95d6070892fc49c95777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "NI",
+          "address": "0xbcfb414df9ac2bf0946d13c46fe416105614a777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "100x",
+          "address": "0xbd9d626ca9c527f790da44fa57f939f26d811777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "EURC",
+          "address": "0xbef5f6d51cb62b58e6a8f77868681825c6fe21c1",
+          "reason": "PEGGED_OR_STABLE_ASSET",
+          "category": "STABLECOIN",
+          "identity": null
+        },
+        {
+          "symbol": "avalanche",
+          "address": "0xc106250fcf8b009b38403e2983a6149eba3d6777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "WASTED",
+          "address": "0xc6bbbc10342a07595c3a997391b6d00297bcb777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "SLRIV",
+          "address": "0xc749c56bab12a4e546f165e561694fbae51549c7",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "Zero",
+          "address": "0xcbb6bc006c361922d2e40296333d7b7a9595a777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "POPPY",
+          "address": "0xcf18f2cf289e26a68ef4434c157c8636189f8777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "Cakemas",
+          "address": "0xd1fdcf9ebe510c5df07a26962b87b2222feba777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "DEXPAID",
+          "address": "0xd3011c2f5cce140f582af61b19ce4604c906c777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "CARS",
+          "address": "0xd4d7ea6c2f114ae939208871d64c138f064fc777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "530A",
+          "address": "0xdf2fb6fba3c1ec1ae65d53fbe8404748b2df5777",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        }
+      ],
+      "rows": [
+        {
+          "address": "0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed",
+          "chainId": 5042,
+          "symbol": "ARCOON",
+          "measuredAt": "2026-11-27T04:35:11.505Z",
+          "priceUsd": 0.007789897984,
+          "volume24hUsd": 64916.7666506771,
+          "liquidityUsd": 223230.5205,
+          "change24hPct": 0.01,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://arcoon.io/",
+            "LIVE_CHECK:ADDRESS_FOUND"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [
+            "WASH_TRADING_PATTERN"
+          ],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 0.07,
+          "maxRunupMultiple": 1,
+          "drawdownFromPeakPct": -0.9,
+          "runupStatus": "RUNUP_CLEARED",
+          "researchLiquidityFloor": 20000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0xece5ca8bf9220718e5727754026757512212cb3c",
+          "chainId": 5042,
+          "symbol": "ARGUS",
+          "measuredAt": "2026-11-27T04:35:11.505Z",
+          "priceUsd": 0.002929434529,
+          "volume24hUsd": 68164.5862013829,
+          "liquidityUsd": 250747.89,
+          "change24hPct": null,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://argus.world/token/0xeCe5cA8bf9220718E5727754026757512212cb3c"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 39.719,
+          "maxRunupMultiple": 2.19,
+          "drawdownFromPeakPct": 0,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 20000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0xd36687146385f7dc84a18fea3d00319d39d6d1a0",
+          "chainId": 5042,
+          "symbol": "SOLON",
+          "measuredAt": "2026-11-27T04:35:11.505Z",
+          "priceUsd": 0.00007518571367,
+          "volume24hUsd": 5010.8171729694,
+          "liquidityUsd": 31354.7066,
+          "change24hPct": -12.168,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://solonpad.fun/",
+            "LIVE_CHECK:ADDRESS_FOUND"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": true,
+          "peak24hRisePct": 45.99,
+          "maxRunupMultiple": 4.91,
+          "drawdownFromPeakPct": -30.5,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 20000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x394d38f807ee0027a182216f5e67a15ae441fa2e",
+          "chainId": 5042,
+          "symbol": "FAZE",
+          "measuredAt": "2026-11-27T04:35:11.505Z",
+          "priceUsd": 0.0003850818353,
+          "volume24hUsd": 7520.3898108949,
+          "liquidityUsd": 76398.5755,
+          "change24hPct": 7.516,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://faze.fun/world/terminal",
+            "LIVE_CHECK:ADDRESS_FOUND"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 7.516,
+          "maxRunupMultiple": 1.08,
+          "drawdownFromPeakPct": -23.9,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 20000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+          "chainId": 5042,
+          "symbol": "TOLLY",
+          "measuredAt": "2026-11-27T04:35:11.505Z",
+          "priceUsd": 0.0007114940355,
+          "volume24hUsd": 35993.927160202,
+          "liquidityUsd": 148698.4843,
+          "change24hPct": 46.528,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://tollylabs.com/"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 46.528,
+          "maxRunupMultiple": 1.59,
+          "drawdownFromPeakPct": 0,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 20000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x29316db42ff99f640fd4d1bb169635b6318cd430",
+          "chainId": 5042,
+          "symbol": "ARCANUS",
+          "measuredAt": "2026-11-27T04:35:11.505Z",
+          "priceUsd": 0.00008376791985,
+          "volume24hUsd": 15458.8092387497,
+          "liquidityUsd": 26346.4729,
+          "change24hPct": 49.933,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://arcanus.network/docs"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": true,
+          "peak24hRisePct": 110.342,
+          "maxRunupMultiple": 3.06,
+          "drawdownFromPeakPct": 0,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 20000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x08adbf431569a1aacac2606d2adcd18f4ebf2a71",
+          "chainId": 5042,
+          "symbol": "GLITCH",
+          "measuredAt": "2026-11-27T04:35:11.505Z",
+          "priceUsd": 0.00002461,
+          "volume24hUsd": 3025.54,
+          "liquidityUsd": 13574.26,
+          "change24hPct": 5.06,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "PROJECT_CHANNELS_LISTED",
+          "profileEvidence": [
+            "LISTED_WEBSITE:https://glitch404.xyz/",
+            "LISTED_TWITTER:https://x.com/GlitchOnArc",
+            "LISTED_TELEGRAM:https://t.me/GlitchOnArc"
+          ],
+          "band": "LOW_CONFIDENCE_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 30.55,
+          "maxRunupMultiple": 1.31,
+          "drawdownFromPeakPct": -23.9,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 20000,
+          "belowResearchLiquidityFloor": true,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x643098f125e765081fec0b67384bfe5ca498f24a",
+          "chainId": 5042,
+          "symbol": "AKARII",
+          "measuredAt": "2026-11-27T04:35:11.505Z",
+          "priceUsd": 25.072,
+          "volume24hUsd": 80.81,
+          "liquidityUsd": 56969.3,
+          "change24hPct": -0.39,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "PROJECT_CHANNELS_LISTED",
+          "profileEvidence": [
+            "LISTED_WEBSITE:https://aka404.art",
+            "LISTED_TWITTER:https://x.com/akadotfun",
+            "LISTED_TELEGRAM:https://t.me/akadotfun"
+          ],
+          "band": "LOW_CONFIDENCE_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 0.23,
+          "maxRunupMultiple": 1.13,
+          "drawdownFromPeakPct": -5.9,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 20000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0xa37c1f9b2483b3b45ced74b10e19223aa76d18f2",
+          "chainId": 5042,
+          "symbol": "Builders",
+          "measuredAt": "2026-11-27T04:35:11.505Z",
+          "priceUsd": 0.00002553,
+          "volume24hUsd": 448.81,
+          "liquidityUsd": 14740.31,
+          "change24hPct": 10.78,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "PROJECT_CHANNELS_LISTED",
+          "profileEvidence": [
+            "LISTED_WEBSITE:https://www.buildersonarc.xyz/",
+            "LISTED_TELEGRAM:https://t.me/buildersonarc"
+          ],
+          "band": "LOW_CONFIDENCE_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 10.78,
+          "maxRunupMultiple": 1.11,
+          "drawdownFromPeakPct": 0,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 20000,
+          "belowResearchLiquidityFloor": true,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x28f986a61e078795639f239675582a12b4cf7f01",
+          "chainId": 5042,
+          "symbol": "oBrain",
+          "measuredAt": "2026-11-27T04:35:11.505Z",
+          "priceUsd": 0.00005423,
+          "volume24hUsd": 2231.43,
+          "liquidityUsd": 25481.03,
+          "change24hPct": 33.87,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "PROJECT_CHANNELS_LISTED",
+          "profileEvidence": [
+            "LISTED_WEBSITE:https://obrain.cloud/",
+            "LISTED_WEBSITE:https://github.com/obrainarc/obrain",
+            "LISTED_TWITTER:https://x.com/obrainarc"
+          ],
+          "band": "LOW_CONFIDENCE_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": true,
+          "peak24hRisePct": 44.18,
+          "maxRunupMultiple": 1.47,
+          "drawdownFromPeakPct": -47.1,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 20000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        }
+      ]
+    },
+    "ethereum": {
+      "shown": 10,
+      "sourceRadarAsOf": "2026-11-27T04:35:15.136Z",
+      "customVetoCounts": {
+        "CUSTOM_PEGGED_OR_STABLE_ASSET": 2,
+        "CUSTOM_NO_REAL_MARKET_OBSERVATION": 5,
+        "CUSTOM_WRAPPED_OR_REPRESENTATION_ASSET": 2,
+        "CUSTOM_PROVIDER_CRITICAL_CONFLICT": 2,
+        "CUSTOM_CONFIRMED_CONTRACT_OR_EXIT_RISK": 1,
+        "CUSTOM_NO_VERIFIABLE_PROJECT_PROFILE": 50
+      },
+      "customVetoSample": [
+        {
+          "symbol": "PAXG",
+          "address": "0x45804880de22913dafe09f4980848ece6ecbaf78",
+          "reason": "PEGGED_OR_STABLE_ASSET",
+          "category": "COMMODITY_BACKED",
+          "identity": null
+        },
+        {
+          "symbol": "GDLR",
+          "address": "0xa038a26bf960451b8ce75ec4c92013c6307f8e4e",
+          "reason": "PEGGED_OR_STABLE_ASSET",
+          "category": "COMMODITY_BACKED",
+          "identity": null
+        },
+        {
+          "symbol": "TYTSPE",
+          "address": "0x05c69bf348be75e84c5493cc2035664ba2811ec7",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "WPRL",
+          "address": "0x07696dcab55e62cfef953666b29fe1970518cb00",
+          "reason": "WRAPPED_OR_REPRESENTATION_ASSET",
+          "category": "WRAPPED_OR_BASE_ASSET",
+          "identity": null
+        },
+        {
+          "symbol": "$WLR13D",
+          "address": "0x163b8d349cce26997e82ba90817e6b60f2369d15",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "RALLY",
+          "address": "0x19640000000ba88d36206beb10d0e86011c8d08c",
+          "reason": "PROVIDER_CRITICAL_CONFLICT",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "PLVC.A",
+          "address": "0x740d0b2774d12e3e5d2efa7a77fc81d16b17e695",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "NEAR",
+          "address": "0x85f17cf997934a597031b2e18a9ab6ebd4b9f6a4",
+          "reason": "WRAPPED_OR_REPRESENTATION_ASSET",
+          "category": "BRIDGED_ESTABLISHED_ASSET",
+          "identity": null
+        },
+        {
+          "symbol": "BULL",
+          "address": "0x8e9de09f9b28c262e06d10766093e5069b1dcf3e",
+          "reason": "PROVIDER_CRITICAL_CONFLICT",
+          "category": "ESTABLISHED_LARGE_CAP",
+          "identity": null
+        },
+        {
+          "symbol": "$NRW25BP",
+          "address": "0x915b8d18a6b62e9f6c0cbf2313b5285289accaa3",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "TORCH24",
+          "address": "0x95733dc05561e5b71a3e2b5d69cec0c0e134297d",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "TRAC",
+          "address": "0xaa7a9ca87d3694b5755f213b5d04094b8d0f0a6f",
+          "reason": "CONFIRMED_CONTRACT_OR_EXIT_RISK",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "PEJAK",
+          "address": "0xe018d1e8747ac44d87d35197ba1e9a73a721097c",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        },
+        {
+          "symbol": "PEPE",
+          "address": "0x6982508145454ce325ddbe47a25d4ec3d2311933",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "LEGACY_MEME",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        },
+        {
+          "symbol": "TAC",
+          "address": "0xdf92a58d2a910241bb433c872343d5f002f8ba9d",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        },
+        {
+          "symbol": "QNT",
+          "address": "0x4a220e6096b25eadb88358cb44068a3248254675",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_LARGE_CAP",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        },
+        {
+          "symbol": "ADI",
+          "address": "0x8b1484d57abbe239bb280661377363b03c89caea",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_LARGE_CAP",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        },
+        {
+          "symbol": "CON",
+          "address": "0x7ad1a8fc42ac150b04ded5825d21a0c90b6d28d8",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        },
+        {
+          "symbol": "UMA",
+          "address": "0x04fa0d235c4abf4bcf4787af4cf447de572ef828",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "BAT",
+          "address": "0x0d8775f648430679a709e98d2b0cb6250d2887ef",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "1INCH",
+          "address": "0x111111111117dc0aa78b770fa6a738034120c302",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "AUDIO",
+          "address": "0x18aaa7115705e8be94bffebde57af9bfc265b998",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "THANKSGIVI",
+          "address": "0x1be67aefcb6b1c042a8ec5828e9cb694709c3504",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "OFFICIAL_IDENTITY_UNESTABLISHED"
+        },
+        {
+          "symbol": "COOLDOG",
+          "address": "0x231b1e6d55f163a55629c4ada2dfe714349ae237",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        },
+        {
+          "symbol": "RSR",
+          "address": "0x320623b8e4ff03373931769a31fc52a4e78b5d70",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "SAND",
+          "address": "0x3845badade8e6dff049820680d1f14bd3903a5d0",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "POL",
+          "address": "0x455e53cbb86018ac2b8092fdcd39d8444affc3f6",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "BLUR",
+          "address": "0x5283d291dbcf85356a21ba090e6db59121208b44",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "LPT",
+          "address": "0x58b6a8a3302369daec383334672404ee733ab239",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "SAFE",
+          "address": "0x5afe3855358e112b5647b952709e6165e1c1eeee",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "BEAM",
+          "address": "0x62d0a8458ed7719fdaf978fe5929c6d342b0bfce",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "MATURE_LEGACY_MARKET",
+          "identity": "OFFICIAL_IDENTITY_UNESTABLISHED"
+        },
+        {
+          "symbol": "MASK",
+          "address": "0x69af81e73a73b40adf4f3d4223cd9b1ece623074",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "SUSHI",
+          "address": "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "LQTY",
+          "address": "0x6dea81c8171d0ba574754ef6f8b412f2ed88c54d",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "YARL",
+          "address": "0x769f383699d80f4d3bca94c9b5b932694c921276",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        },
+        {
+          "symbol": "POPO",
+          "address": "0x7b43495c05581bd2d9326fe9c1c18c62c63dd2fc",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        },
+        {
+          "symbol": "TEL",
+          "address": "0x7e13b43065380acdec1c2d138c579cbbbafa0731",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        },
+        {
+          "symbol": "ANKR",
+          "address": "0x8290333cef9e6d528dd5618fb97a76f268f3edd4",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_BLUE_CHIP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "NPC",
+          "address": "0x8ed97a637a790be1feff5e888d43629dc05408f6",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "MATURE_LEGACY_MARKET",
+          "identity": "OFFICIAL_IDENTITY_UNESTABLISHED"
+        },
+        {
+          "symbol": "SHIB",
+          "address": "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "LEGACY_MEME",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        }
+      ],
+      "rows": [
+        {
+          "address": "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
+          "chainId": 1,
+          "symbol": "CVX",
+          "measuredAt": "2026-11-27T04:35:15.136Z",
+          "priceUsd": 1.16,
+          "volume24hUsd": 265398.92000000004,
+          "liquidityUsd": 5131881.699999999,
+          "change24hPct": 5.37,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://www.convexfinance.com/"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 7.42,
+          "maxRunupMultiple": 1.11,
+          "drawdownFromPeakPct": -7.2,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 200000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x56072c95faa701256059aa122697b133aded9279",
+          "chainId": 1,
+          "symbol": "SKY",
+          "measuredAt": "2026-11-27T04:35:15.136Z",
+          "priceUsd": 0.04706747107,
+          "volume24hUsd": 4971487.9629183,
+          "liquidityUsd": 5073063.5684570465,
+          "change24hPct": 9.879,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://raw.githubusercontent.com/sky-ecosystem/spells-mainnet/master/src/test/addresses_mainnet.sol"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 11.591,
+          "maxRunupMultiple": 1.17,
+          "drawdownFromPeakPct": 0,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 200000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x57e114b691db790c35207b2e685d4a43181e6061",
+          "chainId": 1,
+          "symbol": "ENA",
+          "measuredAt": "2026-11-27T04:35:15.136Z",
+          "priceUsd": 0.1041097395,
+          "volume24hUsd": 274711.263468915,
+          "liquidityUsd": 3559580.5846481742,
+          "change24hPct": 0.96,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://docs.ethena.fi/technical-design/key-addresses"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 8.735,
+          "maxRunupMultiple": 1.12,
+          "drawdownFromPeakPct": -0.6,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 200000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+          "chainId": 1,
+          "symbol": "AAVE",
+          "measuredAt": "2026-11-27T04:35:15.136Z",
+          "priceUsd": 96.0430441691,
+          "volume24hUsd": 5618022.37272142,
+          "liquidityUsd": 12585243.018427791,
+          "change24hPct": 0.852,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://aave.com/docs/reference/addresses"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 5.427,
+          "maxRunupMultiple": 1.07,
+          "drawdownFromPeakPct": -6.9,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 200000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x5a98fcbea516cf06857215779fd812ca3bef1b32",
+          "chainId": 1,
+          "symbol": "LDO",
+          "measuredAt": "2026-11-27T04:35:15.136Z",
+          "priceUsd": 0.2417,
+          "volume24hUsd": 111466.45,
+          "liquidityUsd": 1185469.5199999996,
+          "change24hPct": 2.42,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://docs.lido.fi/deployed-contracts/"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 5.09,
+          "maxRunupMultiple": 1.08,
+          "drawdownFromPeakPct": -5.6,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 200000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x514910771af9ca656af840dff83e8264ecf986ca",
+          "chainId": 1,
+          "symbol": "LINK",
+          "measuredAt": "2026-11-27T04:35:15.136Z",
+          "priceUsd": 9.54,
+          "volume24hUsd": 2325287.6799999997,
+          "liquidityUsd": 25856273.479999997,
+          "change24hPct": 3.57,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://docs.chain.link/resources/link-token-contracts"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 7.3,
+          "maxRunupMultiple": 1.14,
+          "drawdownFromPeakPct": 0,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 200000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x0b38210ea11411557c13457d4da7dc6ea731b88a",
+          "chainId": 1,
+          "symbol": "API3",
+          "measuredAt": "2026-11-27T04:35:15.136Z",
+          "priceUsd": 0.1809,
+          "volume24hUsd": 12356.83,
+          "liquidityUsd": 762296.75,
+          "change24hPct": 3.27,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://api3.org/"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 6.25,
+          "maxRunupMultiple": 1.16,
+          "drawdownFromPeakPct": 0,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 200000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+          "chainId": 1,
+          "symbol": "YFI",
+          "measuredAt": "2026-11-27T04:35:15.136Z",
+          "priceUsd": 1635.31,
+          "volume24hUsd": 27850.12,
+          "liquidityUsd": 713856.2199999999,
+          "change24hPct": 1.08,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://docs.yearn.fi/developers/addresses/core-contracts/"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 3.05,
+          "maxRunupMultiple": 1.06,
+          "drawdownFromPeakPct": -2.9,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 200000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+          "chainId": 1,
+          "symbol": "UNI",
+          "measuredAt": "2026-11-27T04:35:15.136Z",
+          "priceUsd": 4.84,
+          "volume24hUsd": 6047127.339999998,
+          "liquidityUsd": 28245307.250000007,
+          "change24hPct": 1.24,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://raw.githubusercontent.com/Uniswap/sdk-core/main/src/addresses.ts"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 6.54,
+          "maxRunupMultiple": 1.13,
+          "drawdownFromPeakPct": -0.8,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 200000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0xc944e90c64b2c07662a292be6244bdf05cda44a7",
+          "chainId": 1,
+          "symbol": "GRT",
+          "measuredAt": "2026-11-27T04:35:15.136Z",
+          "priceUsd": 0.01685,
+          "volume24hUsd": 10551.51,
+          "liquidityUsd": 237114.5,
+          "change24hPct": 1.57,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://thegraph.com/docs/en/contracts/"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 5.08,
+          "maxRunupMultiple": 1.09,
+          "drawdownFromPeakPct": -0.2,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 200000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        }
+      ]
+    },
+    "robinhood": {
+      "shown": 10,
+      "sourceRadarAsOf": "2026-11-27T04:35:17.695Z",
+      "customVetoCounts": {
+        "CUSTOM_WRAPPED_OR_REPRESENTATION_ASSET": 6,
+        "CUSTOM_PEGGED_OR_STABLE_ASSET": 3,
+        "CUSTOM_NO_REAL_MARKET_OBSERVATION": 5,
+        "CUSTOM_UNSUPPORTED_OR_IMPERSONATING_CATEGORY": 1,
+        "CUSTOM_NO_VERIFIABLE_PROJECT_PROFILE": 25,
+        "CUSTOM_CONTRACT_IDENTITY_CONFLICT": 1
+      },
+      "customVetoSample": [
+        {
+          "symbol": "ANT",
+          "address": "0xbbb6c29bcc3a1028a2b54310df73f4f7a3bcb373",
+          "reason": "WRAPPED_OR_REPRESENTATION_ASSET",
+          "category": "TOKENIZED_EQUITY",
+          "identity": null
+        },
+        {
+          "symbol": "SPCX",
+          "address": "0x4a0e65a3eccec6dbe60ae065f2e7bb85fae35eea",
+          "reason": "WRAPPED_OR_REPRESENTATION_ASSET",
+          "category": "TOKENIZED_EQUITY",
+          "identity": null
+        },
+        {
+          "symbol": "WETH",
+          "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+          "reason": "WRAPPED_OR_REPRESENTATION_ASSET",
+          "category": "WRAPPED_OR_BASE_ASSET",
+          "identity": null
+        },
+        {
+          "symbol": "USDe",
+          "address": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+          "reason": "PEGGED_OR_STABLE_ASSET",
+          "category": "STABLECOIN",
+          "identity": null
+        },
+        {
+          "symbol": "UUSD",
+          "address": "0x61a10e8556bed032ea176330e7f17d6a12a10000",
+          "reason": "PEGGED_OR_STABLE_ASSET",
+          "category": "STABLECOIN",
+          "identity": null
+        },
+        {
+          "symbol": "SHIT",
+          "address": "0xa044e325bbc09b60a53d72b0a54ab378928bafd2",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "OBSIDOKAP",
+          "address": "0xa89cac327a39afa9e42fe444b1188047befccccc",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "U",
+          "address": "0xce24439f2d9c6a2289f741120fe202248b666666",
+          "reason": "PEGGED_OR_STABLE_ASSET",
+          "category": "STABLECOIN",
+          "identity": null
+        },
+        {
+          "symbol": "cbBTC",
+          "address": "0xcec185eb182c47d1ba1efc84e6959e18cd620be4",
+          "reason": "UNSUPPORTED_OR_IMPERSONATING_CATEGORY",
+          "category": "IMPERSONATION_SUSPECT",
+          "identity": null
+        },
+        {
+          "symbol": "NVDA",
+          "address": "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec",
+          "reason": "WRAPPED_OR_REPRESENTATION_ASSET",
+          "category": "TOKENIZED_EQUITY",
+          "identity": null
+        },
+        {
+          "symbol": "COBALTOAD",
+          "address": "0xde547fadec027d1a6d278953a096c0b8499ccccc",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "GOOGLon",
+          "address": "0xe10cc5f0cd0c90322ebeb33e7757b2c9090146dc",
+          "reason": "WRAPPED_OR_REPRESENTATION_ASSET",
+          "category": "TOKENIZED_EQUITY",
+          "identity": null
+        },
+        {
+          "symbol": "NVDAon",
+          "address": "0xf1b95ae4e7700b962714702ea53784dc8492a856",
+          "reason": "WRAPPED_OR_REPRESENTATION_ASSET",
+          "category": "TOKENIZED_EQUITY",
+          "identity": null
+        },
+        {
+          "symbol": "PANKO",
+          "address": "0xf1e149b599dbdaa79f8573275fe64ae9c65a1490",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "SpaceXCoin",
+          "address": "0xfbfaa2a9e65ceedaefbf487f9f667936b6b981a4",
+          "reason": "NO_REAL_MARKET_OBSERVATION",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "FIONA",
+          "address": "0xe92906149fef3599175f6b3fca3e96954388fb46",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        },
+        {
+          "symbol": "TIBBIR",
+          "address": "0x4db7374e966097be94c6680d49156d580f097bbf",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "EXACT_CONTRACT_OBSERVED"
+        },
+        {
+          "symbol": "SUSHI",
+          "address": "0x0bb40d7fbae7f0c69bc5910c601987dce697d85f",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "syrupUSDG",
+          "address": "0x40858070814a57fdf33a613ae84fe0a8b4a874f7",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "LINK",
+          "address": "0x492641f648a4986844848e0befe66d14817bce34",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "ESTABLISHED_LARGE_CAP",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "ABC",
+          "address": "0x528a38868d580925e3f580a060cda2f1eefafe83",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "OFFICIAL_IDENTITY_UNESTABLISHED"
+        },
+        {
+          "symbol": "REBELIAN",
+          "address": "0x5d114e2b832de2a97d8fe999aa9a59004e81de46",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "OFFICIAL_IDENTITY_UNESTABLISHED"
+        },
+        {
+          "symbol": "PENDLE",
+          "address": "0x5e49e1f85813f2b65858860a3fa231b4186f2e0e",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "PEM",
+          "address": "0x6293b53fd9c6efd4dbe33344c5a260f7d286b057",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "OFFICIAL_IDENTITY_UNESTABLISHED"
+        },
+        {
+          "symbol": "BBC",
+          "address": "0x6c98f06bc7f579def38d0429d73e8abd32550087",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "OFFICIAL_IDENTITY_UNESTABLISHED"
+        },
+        {
+          "symbol": "KSKD",
+          "address": "0x6ddb8541af17dadea47df41d1c13faf8deee1902",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "ASCODE",
+          "address": "0x6e7c5edb017e41ed39f452f19f70c517ce7ce0ac",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "OFFICIAL_IDENTITY_UNESTABLISHED"
+        },
+        {
+          "symbol": "SN80",
+          "address": "0x6f63d869011f95274498023b4abfc00b30c34378",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "PENGU",
+          "address": "0x74be72affafbc8de30f0c11247814036314d625f",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "hOHM",
+          "address": "0x76cf788606f3d968b93b8a243d0e185c974ee407",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "SWARM",
+          "address": "0x7eebda046d451bc7a7d12491eff72a861aa8136e",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "EDEL",
+          "address": "0x88c4c42ed68584ff02f5a00d5d3d985108a3961c",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "CTRL",
+          "address": "0x8d3239ded281ab175d88f605de287d7a0d134fc4",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "OFFICIAL_IDENTITY_UNESTABLISHED"
+        },
+        {
+          "symbol": "GreenPill",
+          "address": "0xaf51ef5787bc17c8921a6d19e322a14fe2300087",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "OFFICIAL_IDENTITY_UNESTABLISHED"
+        },
+        {
+          "symbol": "DUAL",
+          "address": "0xca6f20e241c73de4eeb873107b217ce2463c3b1d",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "SOLMAS",
+          "address": "0xd90c6c8e699f628c44fb9bb6032c915824fb0087",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "OFFICIAL_IDENTITY_UNESTABLISHED"
+        },
+        {
+          "symbol": "IXS",
+          "address": "0xdcd7face6a1d0bdd0665ea1b0842fc9ce797862b",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "HEY",
+          "address": "0xe80078efd7f74270d9e4934e5b4ba81e2d3f396d",
+          "reason": "CONTRACT_IDENTITY_CONFLICT",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "IMPERSONATION_EVIDENCE"
+        },
+        {
+          "symbol": "LIT",
+          "address": "0xeeca2e7dc194a320d349122d88259bb9595a4cb0",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "mihao",
+          "address": "0xefc231c87b0eb98a79bf9e3566274f36f8773ff2",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "OFFICIAL_IDENTITY_UNESTABLISHED"
+        }
+      ],
+      "rows": [
+        {
+          "address": "0x2d8d6f4a93acd7a916a5a654ec8b690ba3b3eadd",
+          "chainId": 4663,
+          "symbol": "STATICS",
+          "measuredAt": "2026-11-27T04:35:17.695Z",
+          "priceUsd": 0.002618,
+          "volume24hUsd": 120694.09,
+          "liquidityUsd": 1924816.68,
+          "change24hPct": 4.26,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://staticsprotocol.com/"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 4.26,
+          "maxRunupMultiple": 1.06,
+          "drawdownFromPeakPct": -48,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 25000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x000de658153f47f23e92973c8eb1e89762703676",
+          "chainId": 4663,
+          "symbol": "FOBO",
+          "measuredAt": "2026-11-27T04:35:17.695Z",
+          "priceUsd": 0.002538441758,
+          "volume24hUsd": 71763.9737673778,
+          "liquidityUsd": 1798311.2739,
+          "change24hPct": 61.709,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://docs.fobo.fun/contracts"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": true,
+          "peak24hRisePct": 84.293,
+          "maxRunupMultiple": 2.43,
+          "drawdownFromPeakPct": 0,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 25000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111",
+          "chainId": 4663,
+          "symbol": "TORCH",
+          "measuredAt": "2026-11-27T04:35:17.695Z",
+          "priceUsd": 0.003402,
+          "volume24hUsd": 86684.35,
+          "liquidityUsd": 1020555.72,
+          "change24hPct": -1.02,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "PROJECT_CHANNELS_LISTED",
+          "profileEvidence": [
+            "LISTED_WEBSITE:https://torchpad.fun",
+            "LISTED_TWITTER:https://x.com/Torchpaddotfun",
+            "LISTED_TELEGRAM:https://t.me/torchpaddotfunofficial"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 22.17,
+          "maxRunupMultiple": 1.54,
+          "drawdownFromPeakPct": -2.4,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 25000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0xe934e36a439c94017b64a3fece66af12099abf50",
+          "chainId": 4663,
+          "symbol": "STONKBROKER",
+          "measuredAt": "2026-11-27T04:35:17.695Z",
+          "priceUsd": 0.003049,
+          "volume24hUsd": 153672.96999999997,
+          "liquidityUsd": 1700480.1199999996,
+          "change24hPct": 1.91,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://stonkbrokers.io/docs/stonkbroker-token"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 7.5,
+          "maxRunupMultiple": 1.11,
+          "drawdownFromPeakPct": -9.8,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 25000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0xfce34d21a92069100e3226638140706cf03a266e",
+          "chainId": 4663,
+          "symbol": "GLDSTN",
+          "measuredAt": "2026-11-27T04:35:17.695Z",
+          "priceUsd": 0.005574929537,
+          "volume24hUsd": 317554.807803352,
+          "liquidityUsd": 681069.9665144498,
+          "change24hPct": -3.325,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://www.goldsteingroup.xyz/",
+            "LIVE_CHECK:ADDRESS_FOUND"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [
+            "WASH_TRADING_PATTERN"
+          ],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": -3.325,
+          "maxRunupMultiple": 1.02,
+          "drawdownFromPeakPct": 0,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 25000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x18e674231a58c239dc7daedcffe15ec3a24cff5c",
+          "chainId": 4663,
+          "symbol": "HOOKR",
+          "measuredAt": "2026-11-27T04:35:17.695Z",
+          "priceUsd": 0.009265215501,
+          "volume24hUsd": 267870.952127462,
+          "liquidityUsd": 646155.6249,
+          "change24hPct": 0.004,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://hookr.fun/"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 23.416,
+          "maxRunupMultiple": 1.34,
+          "drawdownFromPeakPct": -33,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 25000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x020bfc650a365f8bb26819deaabf3e21291018b4",
+          "chainId": 4663,
+          "symbol": "CASHCAT",
+          "measuredAt": "2026-11-27T04:35:17.695Z",
+          "priceUsd": 0.04538744805,
+          "volume24hUsd": 1754001.10391193,
+          "liquidityUsd": 1528785.5965942761,
+          "change24hPct": 4.217,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://cashcat.cc/",
+            "LIVE_CHECK:ADDRESS_FOUND"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 14.852,
+          "maxRunupMultiple": 1.27,
+          "drawdownFromPeakPct": 0,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 25000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0xf3081494b87e8d5fb7960f066e931d1d0e6e3d67",
+          "chainId": 4663,
+          "symbol": "TAO",
+          "measuredAt": "2026-11-27T04:35:17.695Z",
+          "priceUsd": 185.44,
+          "volume24hUsd": 19741.88,
+          "liquidityUsd": 281646.18,
+          "change24hPct": 1.23,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "PROJECT_CHANNELS_LISTED",
+          "profileEvidence": [
+            "LISTED_WEBSITE:https://forevermoney.ai/",
+            "LISTED_WEBSITE:https://docs.forevermoney.ai/",
+            "LISTED_TWITTER:https://x.com/forevermoney_ai"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 6.39,
+          "maxRunupMultiple": 1.09,
+          "drawdownFromPeakPct": -3.1,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 25000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x88ad8ddf1e3898412146a534538d418c6f8a9062",
+          "chainId": 4663,
+          "symbol": "STANDARD",
+          "measuredAt": "2026-11-27T04:35:17.695Z",
+          "priceUsd": 0.09464,
+          "volume24hUsd": 39824.54,
+          "liquidityUsd": 6512623.99,
+          "change24hPct": 0.62,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "PROJECT_CHANNELS_LISTED",
+          "profileEvidence": [
+            "LISTED_WEBSITE:https://thestandardreserve.xyz/home/",
+            "LISTED_TWITTER:https://x.com/standard_rsv"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 3.23,
+          "maxRunupMultiple": 1.06,
+          "drawdownFromPeakPct": -13.3,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 25000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        },
+        {
+          "address": "0x45242320dbb855eea8fd36804c6487e10e97fcf9",
+          "chainId": 4663,
+          "symbol": "TENDIES",
+          "measuredAt": "2026-11-27T04:35:17.695Z",
+          "priceUsd": 0.002363,
+          "volume24hUsd": 34450.22,
+          "liquidityUsd": 226069.89,
+          "change24hPct": 6.28,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "PROJECT_CHANNELS_LISTED",
+          "profileEvidence": [
+            "LISTED_WEBSITE:https://memedepot.com/d/showmetendies",
+            "LISTED_WEBSITE:https://www.tendies.now/",
+            "LISTED_TWITTER:https://x.com/TendiesRH"
+          ],
+          "band": "LOW_CONFIDENCE_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 22.55,
+          "maxRunupMultiple": 1.24,
+          "drawdownFromPeakPct": -22.5,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 25000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": null
+        }
+      ]
+    },
+    "pons": {
+      "shown": 10,
+      "sourceRadarAsOf": "2026-11-27T04:35:18.591Z",
+      "customVetoCounts": {
+        "CUSTOM_PROVIDER_CRITICAL_CONFLICT": 5,
+        "CUSTOM_NO_VERIFIABLE_PROJECT_PROFILE": 8
+      },
+      "customVetoSample": [
+        {
+          "symbol": "OCULON",
+          "address": "0x12a3f1a05d827007f17a43a250cce44868c4a263",
+          "reason": "PROVIDER_CRITICAL_CONFLICT",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "FEM",
+          "address": "0x6f6a3a9b30f783ef9f9f8651e49b797b8c2aa117",
+          "reason": "PROVIDER_CRITICAL_CONFLICT",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "VEXT",
+          "address": "0x8b1dd03f9c8c89293c7c27ed8fb0c67056459483",
+          "reason": "PROVIDER_CRITICAL_CONFLICT",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "GMEC",
+          "address": "0xa8c53b1dacfbd07895dc8d2c638f1bfde10c0122",
+          "reason": "PROVIDER_CRITICAL_CONFLICT",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "MCAT",
+          "address": "0xbc3b223fde2a8667d4874f81d56fcc0e9af3b259",
+          "reason": "PROVIDER_CRITICAL_CONFLICT",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": null
+        },
+        {
+          "symbol": "GRIT",
+          "address": "0x36ab9c4712c000c603c9fdcec222102c0073fdf3",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "Cazren",
+          "address": "0x3901e26b0e8aea0ce553b955885ec84f7b8e583b",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "HELIX",
+          "address": "0x682a2c615d9ee82c807fbbe3fe49d5c5a76b9364",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "UBIK",
+          "address": "0x812486eaea648819853f8e372dc9f1516c7868bd",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "HYL",
+          "address": "0xaecf9909e55f5e98b84a9a737db0238b87393e1a",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "SANTA",
+          "address": "0xbd45e923dd225bcb1865557d92f08d0a51637f56",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "VELMAR",
+          "address": "0xc4e0ccdad5b213011e1a2dfb2d808f885bd13556",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        },
+        {
+          "symbol": "CONZEAL",
+          "address": "0xc55a719e7fcd11d1a60dd7e4b00c23f96d127b90",
+          "reason": "NO_VERIFIABLE_PROJECT_PROFILE",
+          "category": "EARLY_STAGE_CANDIDATE",
+          "identity": "METADATA_CROSS_CORROBORATED"
+        }
+      ],
+      "rows": [
+        {
+          "address": "0xaa07a0e9209e16ac99708c3ec70159c6ef3128a3",
+          "chainId": 4663,
+          "symbol": "ORBIO",
+          "measuredAt": "2026-11-27T04:35:18.591Z",
+          "priceUsd": 0.01858329918,
+          "volume24hUsd": 542813.957313062,
+          "liquidityUsd": 786738.8974793962,
+          "change24hPct": 7.787,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://orbio.so/protocol"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 59.6,
+          "maxRunupMultiple": 2.37,
+          "drawdownFromPeakPct": -5.4,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 10000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e"
+        },
+        {
+          "address": "0xedbf91223639800bcd5756815caf908df3b890be",
+          "chainId": 4663,
+          "symbol": "PRIORS",
+          "measuredAt": "2026-11-27T04:35:18.591Z",
+          "priceUsd": 0.002407405657,
+          "volume24hUsd": 160354.776923148,
+          "liquidityUsd": 315706.4887178774,
+          "change24hPct": -14.57,
+          "identity": "OFFICIAL_CONTRACT_VERIFIED",
+          "profile": "OFFICIAL_PROJECT",
+          "profileEvidence": [
+            "OFFICIAL_SOURCE_PUBLISHES_EXACT_CONTRACT:https://priors.trade/"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [
+            "WALLET_CONCENTRATION"
+          ],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 30.586,
+          "maxRunupMultiple": 1.34,
+          "drawdownFromPeakPct": -59,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 10000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e"
+        },
+        {
+          "address": "0x6511c233790ec10f7d673c64dc82c3f941d57828",
+          "chainId": 4663,
+          "symbol": "OAK",
+          "measuredAt": "2026-11-27T04:35:18.591Z",
+          "priceUsd": 0.0007780884045,
+          "volume24hUsd": 102040.426453332,
+          "liquidityUsd": 67913.2985,
+          "change24hPct": 34.482,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://oakagentkit.org/",
+            "LIVE_CHECK:ADDRESS_FOUND"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": true,
+          "peak24hRisePct": 99.03,
+          "maxRunupMultiple": 1,
+          "drawdownFromPeakPct": -5.5,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 10000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e"
+        },
+        {
+          "address": "0xe8ffd7e24187f72afb08d75b1bb13088a989a791",
+          "chainId": 4663,
+          "symbol": "DELTA",
+          "measuredAt": "2026-11-27T04:35:18.591Z",
+          "priceUsd": 0.002217748664,
+          "volume24hUsd": 46943.5898369863,
+          "liquidityUsd": 260706.4804,
+          "change24hPct": 1.496,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "PROJECT_CHANNELS_LISTED",
+          "profileEvidence": [
+            "LISTED_WEBSITE:https://deltaliquidity.app/",
+            "LISTED_TWITTER:https://x.com/deltaliquidity",
+            "LISTED_DISCORD:https://discord.com/invite/deltaliquidity"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [
+            "WALLET_CONCENTRATION"
+          ],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 7.501,
+          "maxRunupMultiple": 1.17,
+          "drawdownFromPeakPct": -25.7,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 10000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": "0xa5aab3f0c6eeadf30ef1d3eb997108e976351feb"
+        },
+        {
+          "address": "0x39dbed3a2bd333467115de45665cc57f813c4571",
+          "chainId": 4663,
+          "symbol": "PONS",
+          "measuredAt": "2026-11-27T04:35:18.591Z",
+          "priceUsd": 0.09574821409,
+          "volume24hUsd": 5345249.22959311,
+          "liquidityUsd": 2193095.5183274895,
+          "change24hPct": 7.079,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://ponsfamily.com/launchpad",
+            "LIVE_CHECK:ADDRESS_FOUND"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 7.079,
+          "maxRunupMultiple": 1.14,
+          "drawdownFromPeakPct": -21.1,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 10000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": "0x0c37a24f5d23a486fa692d1500881d698b1f77a4"
+        },
+        {
+          "address": "0x07ebb29a38fbcb41563817e5e19f2cec619c90d2",
+          "chainId": 4663,
+          "symbol": "BUN",
+          "measuredAt": "2026-11-27T04:35:18.591Z",
+          "priceUsd": 0.01288,
+          "volume24hUsd": 24074.94,
+          "liquidityUsd": 276239.08,
+          "change24hPct": -8.17,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "PROJECT_CHANNELS_LISTED",
+          "profileEvidence": [
+            "LISTED_WEBSITE:https://mosh.trade/",
+            "LISTED_TWITTER:https://x.com/BundleCatAI",
+            "LISTED_TELEGRAM:https://t.me/moshtrade"
+          ],
+          "band": "MARKET_OPPORTUNITY_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 29.45,
+          "maxRunupMultiple": 1.39,
+          "drawdownFromPeakPct": -21.7,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 10000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e"
+        },
+        {
+          "address": "0x7fe995a80075df3dc8ae11a9b82c7fe4202cd87f",
+          "chainId": 4663,
+          "symbol": "HMM",
+          "measuredAt": "2026-11-27T04:35:18.591Z",
+          "priceUsd": 0.006232,
+          "volume24hUsd": 37376.68,
+          "liquidityUsd": 264124.44,
+          "change24hPct": 5.14,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://hmmmm.fun/",
+            "LIVE_CHECK:ADDRESS_FOUND"
+          ],
+          "band": "LOW_CONFIDENCE_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 16.89,
+          "maxRunupMultiple": 1.35,
+          "drawdownFromPeakPct": -15.3,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 10000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": "0xa5aab3f0c6eeadf30ef1d3eb997108e976351feb"
+        },
+        {
+          "address": "0x7dbf38976f6d3b9c529e7d9484a71898b409ee6a",
+          "chainId": 4663,
+          "symbol": "ZZZ",
+          "measuredAt": "2026-11-27T04:35:18.591Z",
+          "priceUsd": 0.004339,
+          "volume24hUsd": 15882.35,
+          "liquidityUsd": 160383.08,
+          "change24hPct": 14.13,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "PROJECT_CHANNELS_LISTED",
+          "profileEvidence": [
+            "LISTED_WEBSITE:https://zzz.link/",
+            "LISTED_TWITTER:https://x.com/zzz_community"
+          ],
+          "band": "LOW_CONFIDENCE_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 14.13,
+          "maxRunupMultiple": 1.27,
+          "drawdownFromPeakPct": -10.8,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 10000,
+          "belowResearchLiquidityFloor": false,
+          "held": false,
+          "launchFactory": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e"
+        },
+        {
+          "address": "0x1f243c6638a6becd787f326b240227687a3835bc",
+          "chainId": 4663,
+          "symbol": "JAZZ",
+          "measuredAt": "2026-11-27T04:35:18.591Z",
+          "priceUsd": 0.00005067836247,
+          "volume24hUsd": 24798.3011062422,
+          "liquidityUsd": 9218.803940680815,
+          "change24hPct": -14.739,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://newjazzcity.pages.dev/jazz/",
+            "LIVE_CHECK:ADDRESS_FOUND"
+          ],
+          "band": "LOW_CONFIDENCE_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [],
+          "historicalPriceEvent": false,
+          "peak24hRisePct": 23.038,
+          "maxRunupMultiple": 1.4,
+          "drawdownFromPeakPct": -29.5,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 10000,
+          "belowResearchLiquidityFloor": true,
+          "held": false,
+          "launchFactory": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e"
+        },
+        {
+          "address": "0x2acfaedcb9e1e1f69cf50a7ea7bab5afa0868c19",
+          "chainId": 4663,
+          "symbol": "HYENA",
+          "measuredAt": "2026-11-27T04:35:18.591Z",
+          "priceUsd": 0.00001867771255,
+          "volume24hUsd": 110581.910319413,
+          "liquidityUsd": 5262.386355012065,
+          "change24hPct": null,
+          "identity": "METADATA_CROSS_CORROBORATED",
+          "profile": "SELF_PUBLISHED_PROJECT_SITE",
+          "profileEvidence": [
+            "PROJECT_SITE_PUBLISHES_EXACT_CONTRACT:https://huygena.xyz/",
+            "LIVE_CHECK:CARRIED_FROM_RECENT_CHECK"
+          ],
+          "band": "LOW_CONFIDENCE_WATCH",
+          "confirmedCritical": [],
+          "suspicious": [
+            "THIN_LIQUIDITY_HIGH_VOLUME"
+          ],
+          "historicalPriceEvent": true,
+          "peak24hRisePct": 34.458,
+          "maxRunupMultiple": 1.35,
+          "drawdownFromPeakPct": -61.6,
+          "runupStatus": "RUNUP_NOT_VERIFIED",
+          "researchLiquidityFloor": 10000,
+          "belowResearchLiquidityFloor": true,
+          "held": false,
+          "launchFactory": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e"
+        }
+      ]
+    }
+  }
+}

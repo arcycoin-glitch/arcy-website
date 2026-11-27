@@ -17,7 +17,7 @@ function harness({snapshotAgeMin=125,runs=[],dispatchStatus=204,snapshotStatus=2
  };
  return {fetcher,calls};
 }
-const run=(h,extra={})=>S.check({fetcher:h.fetcher,token:TOKEN,now:NOW,...extra});
+const run=(h,extra={})=>S.check({fetcher:h.fetcher,token:TOKEN,now:NOW,delay:async()=>{},...extra});
 
 test('a snapshot under 100 minutes needs no workflow dispatch or GitHub API read',async()=>{
  const h=harness({snapshotAgeMin:99});
@@ -32,7 +32,7 @@ test('a genuinely due snapshot dispatches main production once with fixed endpoi
  assert.deepEqual(h.calls.map(c=>c.url),[S.SNAPSHOT_URL,S.RUNS_URL,S.DISPATCH_URL]);
  const p=h.calls[2].opts;
  assert.equal(p.method,'POST');assert.equal(p.redirect,'error');
- assert.deepEqual(JSON.parse(p.body),{ref:'main',inputs:{target:'production'}});
+ assert.deepEqual(JSON.parse(p.body),{ref:'main',inputs:{target:'production',only_if_due:true}});
  assert.equal(p.headers.authorization,'Bearer '+TOKEN);
  assert(!JSON.stringify(r).includes(TOKEN));
  assert.equal(S.REPO,'arcycoin-glitch/arcy-website');
@@ -58,10 +58,11 @@ test('failed, absent or short credentials never initiate network activity',async
   assert.equal(r.state,'CONFIGURATION_REQUIRED');assert.deepEqual(h.calls,[]);
  }
 });
-test('if run-state API is unavailable, fail closed rather than duplicate',async()=>{
+test('a forbidden run-state API reports configuration required without dispatching or retrying',async()=>{
  const h=harness({runsStatus:403});
  const r=await run(h);
- assert.equal(r.state,'BLOCKED');assert.equal(r.reason,'GITHUB_RUNS_UNAVAILABLE');
+ assert.equal(r.state,'CONFIGURATION_REQUIRED');assert.equal(r.reason,'GITHUB_ACTIONS_PERMISSION_DENIED');assert.equal(r.stage,'run-state');
+ assert.equal(h.calls.filter(x=>x.url===S.RUNS_URL).length,1);
  assert(!h.calls.some(x=>x.url===S.DISPATCH_URL));
 });
 test('if dispatch fails, report non-secret status and do not fabricate success',async()=>{
@@ -75,7 +76,7 @@ test('unreadable production snapshot attempts bounded recovery only after checki
  const r=await run(h);
  assert.equal(r.state,'DISPATCHED');assert.equal(r.reason,'SNAPSHOT_SOURCE_UNREADABLE');
  assert.equal(r.snapshotReadable,false);
- assert.equal(h.calls.length,3);
+ assert.equal(h.calls.length,4,'one bounded GET retry, then the run-state gate and one POST');
 });
 test('a failed start/created date does not by itself mark a completed old run as recent',()=>{
  assert.equal(S.recentOrBusy({status:'completed',event:'schedule',created_at:'n/a'},NOW),false);
