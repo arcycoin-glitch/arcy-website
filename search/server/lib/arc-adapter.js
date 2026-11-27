@@ -236,7 +236,8 @@ async function activity({address,base},cardId){
    fallback[k]||NO('Exact-contract evidence unavailable.','MARKET_SOURCE_NOT_VERIFIED')]));
  // On-chain cross-check bridge: the displayed legacy value may carry the fallback's on-chain crossCheck ONLY when it is the same
  // DEX Screener observation (same provider, value within 0.5%), i.e. the exact pool set the chain re-read. Otherwise unchanged.
- for(const key of ['priceUsd','liquidityUsd']){
+ // volume24h (#360): the durable on-chain 24h volume (market-verify snapshot) is bridged under the same exact-observation rule.
+ for(const key of ['priceUsd','liquidityUsd','volume24h']){
   const shown=fields[key],fb=fallback?.[key];
   if(!shown||shown===fb||shown.dataState!=='DATA_FOUND'||shown.crossCheck||!fb?.crossCheck||typeof shown.value!=='number'||typeof fb.value!=='number')continue;
   const same=/dex ?screener/i.test(String(shown.source||''))&&/dex ?screener/i.test(String(fb.source||''))&&Math.abs(shown.value-fb.value)<=0.005*Math.max(Math.abs(shown.value),Math.abs(fb.value));
