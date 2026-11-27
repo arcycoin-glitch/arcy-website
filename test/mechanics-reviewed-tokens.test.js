@@ -27,7 +27,8 @@ test('every reviewed token profile is keyed by a full 64-hex source digest and r
  // 6 original profiles + 5 Mechanics V5 reviewed sources (UERC20, SHIB, BNB, NPC, BUSD implementation)
  // + 6 Mechanics V6 reviewed sources (FoboToken, CCIP BurnMintERC20, YFI, ConvexToken, MiniMeToken, GnosisToken).
  // + 2 existing deep-source profiles reused for V7 verified zero token taxes (SKY, UNI).
- assert.equal(Object.keys(reviewed.PROFILES).length,19);
+ // + 2 Mechanics V9 reviewed bundles (FLOCK = file-identical to the reviewed TAO CCIP bundle; API3 Api3Token.sol).
+ assert.equal(Object.keys(reviewed.PROFILES).length,22);
  for(const [digest,name] of Object.entries(reviewed.PROFILES)){assert.match(digest,/^[0-9a-f]{64}$/);assert.equal(mechanics.PROFILES[digest],name);}
 });
 test('PEPE-style source: renounced owner freezes blacklist/rules; constructor-only mint; transfer-only tax claim',async()=>{

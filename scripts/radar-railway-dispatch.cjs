@@ -1,88 +1,144 @@
 #!/usr/bin/env node
 'use strict';
-// A separate, no-HTTP Railway Cron job for ARCY Radar. Does NOT run in the Holder
-// worker or write snapshots itself. It only dispatches the reviewed GitHub Action.
-// Fixed host/repository/workflow and single-snapshot age/busy gates prevent
-// token exfiltration, provider credit bursts and unauthenticated triggering.
-const {decide}=require('./radar-snapshot-freshness.cjs');
-
-const REPO='arcycoin-glitch/arcy-website';
-const WORKFLOW='radar-v4-snapshot.yml';
+// Independent, one-shot Railway Cron. It dispatches the fixed reviewed Action;
+// it never builds snapshots or shares Holder storage/signing credentials.
+const {snapshotDecision}=require('./radar-snapshot-freshness.cjs');
+const REPO='arcycoin-glitch/arcy-website',WORKFLOW='radar-v4-snapshot.yml';
 const SNAPSHOT_URL='https://raw.githubusercontent.com/'+REPO+'/radar-v4-snapshots/radar-v4/snapshot.json';
 const API='https://api.github.com/repos/'+REPO+'/actions/workflows/'+WORKFLOW;
-const RUNS_URL=API+'/runs?branch=main&per_page=10';
-const DISPATCH_URL=API+'/dispatches';
-const RECENT_MS=45*60*1000;
-const REQUEST_TIMEOUT_MS=15000;
-const JSON_LIMIT=3000000;
-
+const RUNS_URL=API+'/runs?branch=main&per_page=10',DISPATCH_URL=API+'/dispatches';
+const RECENT_MS=45*60*1000,REQUEST_TIMEOUT_MS=15000,TOTAL_TIMEOUT_MS=45000,JSON_LIMIT=3000000;
+const GET_ATTEMPTS=2,MAX_BACKOFF_MS=3000;
+const pending=new WeakMap(),attempted=new WeakMap();
 const outcome=(state,reason,other={})=>({state,reason,...other});
-
-async function readJson(fetcher,url,headers={}){
- const response=await fetcher(url,{method:'GET',headers:{accept:'application/json',...headers},redirect:'error',
-  signal:AbortSignal.timeout(REQUEST_TIMEOUT_MS)});
- if(!response?.ok)throw Error('HTTP_'+(response?.status||'UNAVAILABLE'));
- const text=await response.text();
- if(text.length>JSON_LIMIT)throw Error('RESPONSE_TOO_LARGE');
- try{return JSON.parse(text);}catch{throw Error('INVALID_JSON');}
+const fail=(code,extra={})=>Object.assign(Error(code),{code,...extra});
+const exitCode=r=>r.state==='CONFIGURATION_REQUIRED'?2:['SKIPPED','DISPATCHED'].includes(r.state)?0:1;
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function safeHeaders(response){
+ const h=response?.headers,id=h?.get?.('x-github-request-id'),sso=h?.get?.('x-github-sso'),permissions=h?.get?.('x-accepted-github-permissions');
+ return {...(typeof id==='string'&&/^[a-z0-9:._-]{1,100}$/i.test(id)?{githubRequestId:id}:{}),
+  ...(/^required(?:;|$)/i.test(sso||'')?{ssoAuthorizationRequired:true}:{}),
+  ...(typeof permissions==='string'&&/(?:^|[,;\s])actions=write(?:$|[,;\s])/i.test(permissions)?{actionsWriteRequired:true}:{}),
+  ...(h?.get?.('x-ratelimit-remaining')==='0'||h?.get?.('retry-after')?{rateLimitReported:true}:{}),...credentialHints(h)};
 }
-
+// Non-secret credential metadata that GitHub returns for an authenticated request. Scope NAMES and the
+// expiry DATE are not secrets; the token value and response bodies never leave this process.
+const CLASSIC_SCOPES=new Set(['repo','public_repo','workflow','repo:status','repo_deployment','read:org','write:org','admin:org','gist','user','read:user','user:email','notifications','delete_repo','write:packages','read:packages','delete:packages','admin:repo_hook','write:repo_hook','read:repo_hook','project','read:project','codespace','security_events']);
+function credentialHints(h){
+ if(!h?.get)return {};
+ const out={},scopes=h.get('x-oauth-scopes'),expiry=h.get('github-authentication-token-expiration');
+ if(typeof scopes==='string'){
+  const list=scopes.split(',').map(x=>x.trim()).filter(Boolean);
+  if(list.length){out.credentialKind='classic';out.credentialScopes=list.filter(x=>CLASSIC_SCOPES.has(x)).slice(0,24);out.classicRepoScope=list.includes('repo');}
+  else out.credentialKind='fine-grained-or-app';
+ }
+ if(typeof expiry==='string'&&expiry.length<=40){const at=Date.parse(expiry.replace(' UTC','Z').replace(' ','T'));if(Number.isFinite(at)){out.credentialExpiresAt=new Date(at).toISOString();out.credentialExpired=at<=Date.now();}}
+ return out;
+}
+const CREDENTIAL_KEYS=['credentialKind','credentialScopes','classicRepoScope','credentialExpiresAt','credentialExpired'];
+const pickCredential=o=>Object.fromEntries(CREDENTIAL_KEYS.filter(k=>o&&o[k]!==undefined).map(k=>[k,o[k]]));
+function remediation(status,stage,hints){
+ if(status!==403||stage!=='dispatch')return {};
+ if(hints.credentialKind==='classic'&&!hints.classicRepoScope)return {remediation:'CLASSIC_TOKEN_MISSING_REPO_SCOPE'};
+ if(hints.credentialKind==='fine-grained-or-app')return {remediation:'FINE_GRAINED_TOKEN_NEEDS_ACTIONS_WRITE_ON_REPOSITORY'};
+ return {remediation:'TOKEN_OWNER_OR_TOKEN_LACKS_ACTIONS_WRITE'};
+}
+async function textWithin(response,limit){
+ const length=response?.headers?.get?.('content-length');
+ if(length&&/^\d+$/.test(length)&&Number(length)>limit)throw fail('RESPONSE_TOO_LARGE');
+ if(response?.body?.getReader){
+  const reader=response.body.getReader(),parts=[];let bytes=0;
+  try{for(;;){const {value,done}=await reader.read();if(done)break;bytes+=value.byteLength;if(bytes>limit)throw fail('RESPONSE_TOO_LARGE');parts.push(Buffer.from(value));}return Buffer.concat(parts).toString('utf8');}
+  catch(error){Promise.resolve().then(()=>reader.cancel()).catch(()=>{});throw error;}
+ }
+ const text=await response.text();if(Buffer.byteLength(text)>limit)throw fail('RESPONSE_TOO_LARGE');return text;
+}
+// The ref-counted watchdog spans headers AND body, even for fetchers/streams
+// that ignore AbortSignal. A total run budget bounds retries.
+async function request(fetcher,url,options,{deadline,requestTimeoutMs}){
+ const ms=Math.min(requestTimeoutMs,deadline-Date.now());if(ms<=0)throw fail('RUN_DEADLINE');
+ const controller=new AbortController();let timer,response;
+ const watchdog=new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();Promise.resolve().then(()=>response?.body?.cancel?.()).catch(()=>{});reject(fail('REQUEST_TIMEOUT'));},ms);});
+ try{return await Promise.race([(async()=>{
+  response=await fetcher(url,{...options,redirect:'error',signal:controller.signal});
+  const status=response?.status||0,headers=safeHeaders(response);
+  if(status===204||options.method==='POST'){Promise.resolve().then(()=>response?.body?.cancel?.()).catch(()=>{});return {status,headers,text:null,retryMs:null};}
+  // Never log upstream error bodies; only allowlisted headers/status leave.
+  if(!response?.ok){
+   const raw=response?.headers?.get?.('retry-after'),seconds=Number(raw),parsed=raw?(Number.isFinite(seconds)?seconds*1000:Date.parse(raw)-Date.now()):null;
+   Promise.resolve().then(()=>response?.body?.cancel?.()).catch(()=>{});
+   return {status,headers,text:null,retryMs:parsed!==null&&Number.isFinite(parsed)?Math.max(0,parsed):null};
+  }
+  return {status,headers,text:await textWithin(response,JSON_LIMIT),retryMs:null};
+ })(),watchdog]);}
+ catch(error){if(['RUN_DEADLINE','REQUEST_TIMEOUT','RESPONSE_TOO_LARGE'].includes(error?.code))throw error;throw fail(error?.name==='AbortError'||error?.name==='TimeoutError'?'REQUEST_TIMEOUT':'TRANSPORT_ERROR');}
+ finally{clearTimeout(timer);}
+}
+async function readJson(fetcher,url,headers,timing,onHeaders){
+ for(let attempt=1;attempt<=GET_ATTEMPTS;attempt++){
+  let response;
+  try{response=await request(fetcher,url,{method:'GET',headers:{accept:'application/json',...headers}},timing);}
+  catch(error){
+   const delay=500*attempt;
+   if(attempt===GET_ATTEMPTS||!['TRANSPORT_ERROR','REQUEST_TIMEOUT'].includes(error.code)||Date.now()+delay>=timing.deadline)throw error;
+   await timing.delay(delay);continue;
+  }
+  if(response.status>=200&&response.status<300){onHeaders?.(response.headers);try{return JSON.parse(response.text);}catch{throw fail('INVALID_JSON');}}
+  const retry=[429,500,502,503,504].includes(response.status),delay=response.retryMs??500*attempt;
+  if(!retry||attempt===GET_ATTEMPTS||delay>MAX_BACKOFF_MS||Date.now()+delay>=timing.deadline)
+   throw fail('HTTP_'+(response.status||'UNAVAILABLE'),{httpStatus:response.status,...response.headers});
+  await timing.delay(delay);
+ }
+}
 function recentOrBusy(run,now){
  if(!run||typeof run!=='object')return false;
- const started=Date.parse(run.created_at||'');
- const recent=Number.isFinite(started)&&started<=now&&now-started<RECENT_MS;
- // GitHub serializes this workflow. Never queue extra runs while one is active.
+ const started=Date.parse(run.created_at||''),recent=Number.isFinite(started)&&started<=now&&now-started<RECENT_MS;
  return ['queued','in_progress','waiting','pending','requested'].includes(run.status)||
-  (recent&&['workflow_dispatch','schedule','push'].includes(run.event));
+  recent&&['workflow_dispatch','schedule','push'].includes(run.event);
 }
-
-async function check({fetcher=global.fetch,now=Date.now(),token=process.env.RADAR_GITHUB_DISPATCH_TOKEN}={}){
- // This credential is separate from the Holder signing key and Railway tokens.
- // Do not log it, print request headers or accept URL overrides.
- if(typeof token!=='string'||token.length<20)return outcome('CONFIGURATION_REQUIRED','RADAR_GITHUB_DISPATCH_TOKEN_MISSING');
-
- let generatedAt=null,sourceError=null;
- try{
-  const s=await readJson(fetcher,SNAPSHOT_URL,{'cache-control':'no-cache'});
-  generatedAt=typeof s?.generatedAt==='string'?s.generatedAt:null;
- }catch(e){sourceError=e?.message||'SNAPSHOT_SOURCE_FAILED';}
- const age=decide({generatedAt,now,event:'schedule'});
- const common={ageMin:age.ageMin,level:age.level,snapshotReadable:sourceError===null};
+function configuration(stage,error,all){
+ const {credential,...common}=all,status=error.httpStatus,hints={...pickCredential(credential),...pickCredential(error)};
+ if(status===403&&error.rateLimitReported)return outcome('BLOCKED','GITHUB_RATE_LIMITED',{...common,stage,httpStatus:status});
+ if(![401,403,404,422].includes(status))return null;
+ const reason=status===401?'GITHUB_CREDENTIAL_REJECTED':status===403?'GITHUB_ACTIONS_PERMISSION_DENIED':status===404?'GITHUB_WORKFLOW_OR_REPOSITORY_INACCESSIBLE':'GITHUB_DISPATCH_CONFIGURATION_INVALID';
+ return outcome('CONFIGURATION_REQUIRED',reason,{...common,stage,httpStatus:status,
+  ...(error.githubRequestId?{githubRequestId:error.githubRequestId}:{}),...(error.ssoAuthorizationRequired?{ssoAuthorizationRequired:true}:{}),
+  ...(error.actionsWriteRequired?{actionsWriteRequired:true}:{}),...hints,...remediation(status,stage,hints),
+  requiredCapability:stage==='dispatch'?'Repository Actions: write; approved token/application access':'Repository Actions: read; approved token/application access'});
+}
+async function inspect({fetcher,now,token,timing}){
+ let snapshot=null,sourceError=null;
+ try{snapshot=await readJson(fetcher,SNAPSHOT_URL,{'cache-control':'no-cache'},timing);const generatedAt=typeof snapshot?.generatedAt==='string'?snapshot.generatedAt:null;
+  if(!Number.isFinite(Date.parse(generatedAt||''))||Date.parse(generatedAt)>now+60000)sourceError='SNAPSHOT_TIMESTAMP_INVALID';}
+ catch(error){sourceError=error.code||'SNAPSHOT_SOURCE_FAILED';}
+ const age=snapshotDecision(snapshot,{now,event:'schedule'}),common={ageMin:age.ageMin,level:age.level,snapshotReadable:sourceError===null,
+  sectionFreshness:age.sectionFreshness,degradedSections:age.degradedSections,oldestSectionAgeMin:age.oldestSectionAgeMin,
+  ...(sourceError?{snapshotErrorCode:sourceError}:{})};
  if(!age.build)return outcome('SKIPPED','SNAPSHOT_UNDER_100_MINUTES',common);
-
- // Fine-grained GitHub PAT permissions: Actions read/write on this repo only.
- // A failed run-state check aborts rather than risking duplicate dispatch.
- const headers={accept:'application/vnd.github+json',authorization:'Bearer '+token,
-  'user-agent':'ARCY-Radar-Railway-Scheduler','x-github-api-version':'2022-11-28'};
- let recent=[];
+ const headers={accept:'application/vnd.github+json',authorization:'Bearer '+token,'user-agent':'ARCY-Radar-Railway-Scheduler','x-github-api-version':'2022-11-28'};
+ let recent,credential={};
+ try{const data=await readJson(fetcher,RUNS_URL,headers,timing,h=>{credential=pickCredential(h);});if(!Array.isArray(data?.workflow_runs)||data.workflow_runs.length>100||!data.workflow_runs.every(r=>r&&typeof r==='object'&&!Array.isArray(r)&&['queued','in_progress','waiting','pending','requested','completed'].includes(r.status)))return outcome('BLOCKED','GITHUB_RUNS_INVALID',common);recent=data.workflow_runs;}
+ catch(error){return configuration('run-state',error,common)||outcome('BLOCKED','GITHUB_RUNS_UNAVAILABLE',{...common,errorCode:error.code||'UNKNOWN'});}
+ if(recent.some(r=>recentOrBusy(r,now)))return outcome('SKIPPED','WORKFLOW_ALREADY_RUNNING_OR_RECENT',common);
+ // POST is non-idempotent: no retry after an ambiguous transport/5xx result.
+ let cache=attempted.get(fetcher);if(!cache){cache=new Map();attempted.set(fetcher,cache);}cache.set(token,now);
  try{
-  const data=await readJson(fetcher,RUNS_URL,headers);
-  if(!Array.isArray(data?.workflow_runs))return outcome('BLOCKED','GITHUB_RUNS_INVALID',common);
-  recent=data.workflow_runs;
- }catch(e){return outcome('BLOCKED','GITHUB_RUNS_UNAVAILABLE', {...common,errorCode:e?.message||'UNKNOWN'});}
- if(recent.some(r=>recentOrBusy(r,now)))
-  return outcome('SKIPPED','WORKFLOW_ALREADY_RUNNING_OR_RECENT',common);
-
- try{
-  const response=await fetcher(DISPATCH_URL,{
-   method:'POST',redirect:'error',signal:AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-   headers:{...headers,'content-type':'application/json'},
-   body:JSON.stringify({ref:'main',inputs:{target:'production'}})
-  });
-  if(response?.status!==204)return outcome('BLOCKED','DISPATCH_HTTP_'+(response?.status||'UNAVAILABLE'),common);
+  const response=await request(fetcher,DISPATCH_URL,{method:'POST',headers:{...headers,'content-type':'application/json'},body:JSON.stringify({ref:'main',inputs:{target:'production',only_if_due:true}})},timing);
+  if(response.status!==204){const error={httpStatus:response.status,...response.headers};return configuration('dispatch',error,{...common,credential})||outcome('BLOCKED','DISPATCH_HTTP_'+(response.status||'UNAVAILABLE'),{...common,httpStatus:response.status,dispatchAcceptance:response.status>=500||response.status>=200&&response.status<300?'UNKNOWN':'NOT_CONFIRMED'});}
   return outcome('DISPATCHED',sourceError?'SNAPSHOT_SOURCE_UNREADABLE':'DUE',common);
- }catch(e){return outcome('BLOCKED','DISPATCH_TRANSPORT_ERROR',{...common,errorCode:e?.name||'UNKNOWN'});}
+ }catch(error){return outcome('BLOCKED','DISPATCH_OUTCOME_UNKNOWN',{...common,errorCode:error.code||'UNKNOWN',dispatchAcceptance:'UNKNOWN'});}
 }
-
+function check({fetcher=global.fetch,now=Date.now(),token=process.env.RADAR_GITHUB_DISPATCH_TOKEN,requestTimeoutMs=REQUEST_TIMEOUT_MS,totalTimeoutMs=TOTAL_TIMEOUT_MS,delay=sleep}={}){
+ if(typeof token!=='string'||token.length<20||token.length>1024||/[\s\x00-\x1f\x7f]/.test(token))return Promise.resolve(outcome('CONFIGURATION_REQUIRED','RADAR_GITHUB_DISPATCH_TOKEN_MISSING_OR_INVALID'));
+ const previous=attempted.get(fetcher)?.get(token);if(previous!==undefined&&now>=previous&&now-previous<RECENT_MS)return Promise.resolve(outcome('SKIPPED','DISPATCH_ALREADY_ATTEMPTED_THIS_PROCESS'));
+ let jobs=pending.get(fetcher);if(!jobs){jobs=new Map();pending.set(fetcher,jobs);}if(jobs.has(token))return jobs.get(token);
+ const timing={deadline:Date.now()+Math.min(TOTAL_TIMEOUT_MS,Math.max(1,Number(totalTimeoutMs)||TOTAL_TIMEOUT_MS)),requestTimeoutMs:Math.min(REQUEST_TIMEOUT_MS,Math.max(1,Number(requestTimeoutMs)||REQUEST_TIMEOUT_MS)),delay};
+ const task=inspect({fetcher,now,token,timing}).finally(()=>{if(jobs.get(token)===task)jobs.delete(token);});jobs.set(token,task);return task;
+}
+function logRecord(event,result={}){return {message:event==='RADAR_SCHEDULER_START'?'ARCY Radar scheduler started':'ARCY Radar scheduler '+result.state+': '+result.reason,event,...result};}
 if(require.main===module){
- check().then(r=>{
-  // Only bounded state/reason/age and non-secret status are logged.
-  console.log(JSON.stringify(r));
-  if(r.state==='CONFIGURATION_REQUIRED')process.exitCode=2;
-  else if(r.state==='BLOCKED')process.exitCode=1;
- }).catch(e=>{
-  console.error(JSON.stringify({state:'BLOCKED',reason:'SCHEDULER_UNEXPECTED_ERROR',type:e?.name||'UNKNOWN'}));
-  process.exitCode=1;
- });
+ console.log(JSON.stringify(logRecord('RADAR_SCHEDULER_START')));
+ check().then(result=>{console.log(JSON.stringify(logRecord('RADAR_SCHEDULER_OUTCOME',result)));process.exitCode=exitCode(result);})
+  .catch(()=>{const result=outcome('BLOCKED','SCHEDULER_UNEXPECTED_ERROR');console.error(JSON.stringify(logRecord('RADAR_SCHEDULER_OUTCOME',result)));process.exitCode=exitCode(result);});
 }
-module.exports={check,recentOrBusy,REPO,WORKFLOW,SNAPSHOT_URL,RUNS_URL,DISPATCH_URL};
+module.exports={check,recentOrBusy,exitCode,logRecord,REPO,WORKFLOW,SNAPSHOT_URL,RUNS_URL,DISPATCH_URL,REQUEST_TIMEOUT_MS,TOTAL_TIMEOUT_MS};

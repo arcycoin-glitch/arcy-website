@@ -1,0 +1,27 @@
+name: Mechanics V9 source review aid (read-only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-mechanics-v9-source.cjs'
+      - '.github/workflows/mechanics-v9-source-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: MSS2-referral, chain: 5042, addr: '0x091f0c7e675a787a4018eb47c30bed3fa2013b65', rx: 'ReferralBook\.sol|interfaces/', part: 0}
+          - {name: MSS2-list, chain: 5042, addr: '0x091f0c7e675a787a4018eb47c30bed3fa2013b65', rx: '.', part: -1}
+          - {name: AAVE-base, chain: 1, addr: '0x5d4aa78b08bc7c530e21bf7447988b1be7991322', rx: 'BaseAaveToken\.sol|AaveTokenV3\.sol', part: 0}
+          - {name: AAVE-base2, chain: 1, addr: '0x5d4aa78b08bc7c530e21bf7447988b1be7991322', rx: 'BaseAaveTokenV2\.sol|DelegationAwareBalance\.sol', part: 0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/probe-mechanics-v9-source.cjs ${{ matrix.chain }} ${{ matrix.addr }} '${{ matrix.rx }}' ${{ matrix.part }}

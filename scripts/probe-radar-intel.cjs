@@ -13,29 +13,52 @@ const BASE='https://www.arcyusdc.xyz',CHAINS=['arc','ethereum','robinhood','pons
 // A timeout / 5xx is retried with a longer budget (the first request usually finishes server-side and warms the cache).
 // The last attempt stays under the 60 s function limit. A section that still fails is reported, never guessed.
 const ATTEMPTS=[20000,45000,58000];
-async function sections(fetcher=global.fetch,{attempts=ATTEMPTS,pauseMs=3000}={}){
+const MAX_BACKOFF_MS=30000;
+function retryDelay(response,attempt,pauseMs,now){
+ const raw=response?.headers?.get?.('retry-after');
+ if(typeof raw==='string'&&raw.length<=80){
+  const seconds=Number(raw),ms=Number.isFinite(seconds)?seconds*1000:Date.parse(raw)-now;
+  if(Number.isFinite(ms)&&ms>0)return ms>MAX_BACKOFF_MS?null:Math.ceil(ms);
+ }
+ return Math.min(MAX_BACKOFF_MS,pauseMs*2**attempt);
+}
+async function sections(fetcher=global.fetch,{attempts=ATTEMPTS,pauseMs=3000,sleep=ms=>new Promise(r=>setTimeout(r,ms))}={}){
+ if(!Array.isArray(attempts)||!attempts.length||attempts.length>3||attempts.some(ms=>!Number.isInteger(ms)||ms<1||ms>58000)||!Number.isFinite(pauseMs)||pauseMs<0||pauseMs>MAX_BACKOFF_MS)throw Error('INVALID_RADAR_SECTION_BUDGET');
  const out={},timing={};
- for(const chain of CHAINS){
+ const load=async chain=>{
   const t0=Date.now(),tries=[];
   for(let i=0;i<attempts.length;i++){
-   const t1=Date.now();
+   const t1=Date.now(),controller=new AbortController();let timer,response;
    try{
-    const r=await fetcher(BASE+'/api/search?action=radar&chain='+chain+'&source=legacy-v3&discovery=v5-expanded',{headers:{referer:BASE+'/',accept:'application/json','sec-fetch-site':'same-origin'},redirect:'error',signal:AbortSignal.timeout(attempts[i])});
-    tries.push({http:r.status,ms:Date.now()-t1});
-    if(r.status>=500&&i<attempts.length-1){await new Promise(z=>setTimeout(z,pauseMs));continue;}
-    const body=r.ok?await r.json():{ok:false,http:r.status};
+    const {r,body}=await Promise.race([(async()=>{
+     const r=response=await fetcher(BASE+'/api/search?action=radar&chain='+chain+'&source=legacy-v3&discovery=v5-expanded',{headers:{referer:BASE+'/',accept:'application/json','sec-fetch-site':'same-origin'},redirect:'error',signal:controller.signal});
+     return {r,body:r.ok?await r.json():{ok:false,http:r.status}};
+    })(),new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(new DOMException('Radar section timeout','TimeoutError'));},attempts[i]);})]);
+    clearTimeout(timer);
+    const attempt={http:r.status,ms:Date.now()-t1};tries.push(attempt);
+    if([408,425,429].includes(r.status)||r.status>=500){
+     if(i<attempts.length-1){
+      const delay=retryDelay(r,i,pauseMs,Date.now());
+      if(delay!==null){attempt.retryBackoffMs=delay;await sleep(delay);continue;}
+      attempt.retryDeferred='RETRY_AFTER_EXCEEDS_BUDGET';
+     }
+    }
     // Circular-input guard: a V4-served section (deployed handler without the legacy-v3 bypass) is never used as engine input.
     if(body?.opportunity?.servedList==='V4_OPPORTUNITY'){out[chain]={ok:false,reason:'CIRCULAR_V4_INPUT_REFUSED'};timing[chain]={http:r.status,ms:Date.now()-t0,circular:true,attempts:tries};}
     else{out[chain]=body;timing[chain]={http:r.status,ms:Date.now()-t0,attempts:tries};}
     break;
    }catch(e){
-    tries.push({error:e?.name||'ERROR',ms:Date.now()-t1});
-    if(i<attempts.length-1){await new Promise(z=>setTimeout(z,pauseMs));continue;}
-    out[chain]={ok:false};timing[chain]={error:e?.name||'ERROR',ms:Date.now()-t0,attempts:tries};
-   }
+    clearTimeout(timer);
+    const error=String(e?.name||'ERROR').replace(/[^A-Za-z0-9_]/g,'').slice(0,40)||'ERROR',attempt={...(response?{http:response.status}:{}),error,ms:Date.now()-t1};tries.push(attempt);
+    if(i<attempts.length-1){attempt.retryBackoffMs=Math.min(MAX_BACKOFF_MS,pauseMs*2**i);await sleep(attempt.retryBackoffMs);continue;}
+    out[chain]={ok:false,reason:'SECTION_'+error.toUpperCase()};timing[chain]={error,ms:Date.now()-t0,attempts:tries};
+   }finally{clearTimeout(timer);}
   }
- }
- return {out,timing};
+ };
+ // Separate the 4663 intake from the other chains. Robinhood and Pons share its provider/cache, so keep those two
+ // sequential; a slow or failed 4663 window does not hold up Arc and Ethereum or amplify simultaneous 4663 scans.
+ await Promise.all([['arc','ethereum'],['robinhood','pons']].map(async group=>{for(const chain of group)await load(chain);}));
+ return {out:Object.fromEntries(CHAINS.map(n=>[n,out[n]])),timing:Object.fromEntries(CHAINS.map(n=>[n,timing[n]]))};
 }
 async function main(){
  const s=await sections();

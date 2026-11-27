@@ -1,0 +1,33 @@
+name: Mechanics V9 diagnosis of the 16 non-strict cohort contracts (read-only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/probe-mechanics-v9-diagnose.cjs'
+      - '.github/workflows/mechanics-v9-diagnose.yml'
+      - 'search/server/lib/oz-*.js'
+      - 'search/server/lib/mechanics-*.js'
+  workflow_dispatch:
+concurrency:
+  group: mechanics-v9-diagnose-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        sym: [ARGUS,ARCOON,FAZE,LONG,CRA,oBrain,ARCANUS,MSS2,LDO,AAVE,API3,STATICS,FLOCK,STONKBROKER,AI,TENDIES]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Source dump (Sourcify, read-only)
+        env:
+          V9_SOURCE: '1'
+        run: node scripts/probe-mechanics-v9-diagnose.cjs ${{ matrix.sym }}
+      - name: Diagnose (V8 engine as shipped, live, read-only)
+        run: node scripts/probe-mechanics-v9-diagnose.cjs ${{ matrix.sym }}

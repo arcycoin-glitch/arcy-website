@@ -77,6 +77,12 @@ limits.ohlcvHasCached=(network,row)=>Boolean(ohCache.entries[NETWORKS[network].c
  const historyRemoved=S.applyMemory(snap,result.marketMemory);
  snap.marketMemoryStatus={version:MM.VERSION,status:memoryStatus,contracts:Object.keys(result.marketMemory.entries).length,carriedRowsRemovedByHistory:historyRemoved};
  snap.run={sectionTiming:s.timing,elapsedMs:Date.now()-t0,limits:{...limits,ponsLaunchLedger:Array.isArray(limits.ponsLaunchLedger)?limits.ponsLaunchLedger.length:0,ponsMembership:Boolean(limits.ponsMembership),ohlcv:Boolean(limits.ohlcv),officialCache:Object.keys(ofCache).length,officialFetcher:true,crossCheckFetcher:true,universeFetcher:true}};
+ snap.run.sectionHealth=Object.fromEntries(Object.keys(require('../lib/radar-v2/sources').NETWORKS).map(n=>[n,{
+  intakeOk:s.out[n]?.ok===true,http:s.timing[n]?.http||null,error:s.timing[n]?.error||null,
+  engineSource:result.networks[n]?.source?.status||'NO_ENGINE_RESULT',sourceRadarAsOf:snap.sections[n]?.sourceRadarAsOf||null,
+  status:snap.sections[n]?.status||'NOT_BUILT',asOf:snap.sections[n]?.asOf||null,
+  carriedForward:snap.sections[n]?.carriedForward===true,buildFailure:snap.sections[n]?.buildFailure||snap.sections[n]?.reason||null
+ }]));
  snap.v6Sources={ohlcv:{...oh.stats,cachedPools:Object.keys(ohCache.entries).length,perNetwork:result.v6?.ohlcv||{}},officialRecheck:result.v6?.official||{},officialDiscovery:result.v6?.discovery||{}};
  snap.v6Sources.ponsExpansion=result.ponsExpansion||null;
  if(Array.isArray(result.ponsLaunchLedger))snap.ponsLaunchLedger=result.ponsLaunchLedger;

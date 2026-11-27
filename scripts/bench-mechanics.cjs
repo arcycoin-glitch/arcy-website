@@ -160,6 +160,11 @@ const short=v=>String(v??'').replace(/\s+/g,' ').slice(0,70);
   const audit=require('./measure-mechanics-v8.cjs').measure(baseline,out);
   fs.writeFileSync('mechanics-bench-fixed40-paired.json',JSON.stringify(audit,null,2));
   console.log('FIXED_40 '+JSON.stringify(audit.total));
+  {const e=x=>String(x).replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A');
+   console.log('::notice title=fixed40-total::'+e(JSON.stringify({total:audit.total,byNetwork:audit.byNetwork||audit.networks||null})));
+   console.log('::notice title=fixed40-measure::'+e(JSON.stringify({before:audit.measurement.before,after:audit.measurement.after,latency:audit.measurement.latencyContext?.fixed40,fixedByV8:audit.fixedByV8.length})).slice(0,3900));
+   const compact=audit.rows.map(r=>[r.symbol,r.network[0],r.before.state[0]+r.before.state[1],r.after.state[0]+r.after.state[1],r.after.cause||'',r.after.diagnosis||'']);
+   for(let i=0;i<compact.length;i+=14)console.log('::notice title=fixed40-rows-'+(i/14)+'::'+e(JSON.stringify(compact.slice(i,i+14))));}
  }
  const esc=x=>x.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A');
  console.log('::notice title=mech-'+label+'-cov::'+esc(JSON.stringify({cov,net,reasons})));
