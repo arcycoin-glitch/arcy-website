@@ -13,7 +13,7 @@ const env={SEARCH_MARKET_ONCHAIN_CHECK:'on'},sleep=ms=>new Promise(r=>setTimeout
  for(const [i,t] of cohort.entries()){
   const net=t.network==='pons'?'robinhood':t.network,row={symbol:t.symbol,section:t.section};
   for(const [k,X] of (i%2?[['B',B],['A',A]]:[['A',A],['B',B]])){
-   try{const f=await X.mc.inspect(net,t.address,{env});
+   const t0=Date.now();try{const f=await X.mc.inspect(net,t.address,{env});row[k+'.ms']=Date.now()-t0;
     for(const [card,key] of [['liquidity','liquidityUsd'],['activity','priceUsd']]){const tr=X.V.tierOf(f[key],card,Date.now()).tier;row[k+'.'+key]=tr+(f[key]?.crossCheck?.state?'/'+f[key].crossCheck.state:'')+(f[key]?.crossCheck?.reasonCode?'/'+String(f[key].crossCheck.reasonCode).slice(0,60):'');
      tiers[k][key]=tiers[k][key]||{};tiers[k][key][tr]=(tiers[k][key][tr]||0)+1;}
    }catch(e){row[k]='ERROR '+(e.code||e.message);}

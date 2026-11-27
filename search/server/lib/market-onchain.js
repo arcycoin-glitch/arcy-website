@@ -54,7 +54,7 @@ const QUOTES=Object.freeze({
 const TOLERANCE=Object.freeze({priceUsd:0.03,liquidityUsd:0.10});
 const MAX_CALLS=24,TIMEOUT_MS=2500,CACHE_MS=30000,MAX_LIQ_POOLS=6;
 // Liquidity coverage path budget (separate from the price budget so price evidence is never starved).
-const COVERAGE_MIN=0.95,COVERAGE_MAX_POOLS=4,COVERAGE_MAX_CALLS=48,COVERAGE_TIMEOUT_MS=3500;
+const COVERAGE_MIN=0.95,COVERAGE_MAX_POOLS=8,COVERAGE_MAX_CALLS=96,COVERAGE_TIMEOUT_MS=6000;
 const SOURCE={ethereum:'Ethereum RPC pool state',robinhood:'Robinhood Chain RPC pool state',arc:'Arc RPC pool state'};
 const cache=new Map(),poolKeys=new Map();
 const ADDR=/^0x[0-9a-f]{40}$/,ID=/^0x[0-9a-f]{64}$/;
