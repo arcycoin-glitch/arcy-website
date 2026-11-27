@@ -36,10 +36,13 @@ async function supply(base){
  // The original website market route queries CoinGecko and GeckoTerminal.
  // Search must not bridge into it while commercial-use scope is unresolved.
  const circ=NO('No permitted, exact-contract circulating-supply source is currently approved. Total supply is not circulating supply.','PROVIDER_DISABLED_LICENSE_UNVERIFIED');
+ // Exact Circle-issued Arc contracts only (USDC 0x3600…0000, EURC 0xbef5…21c1): issuer-published Arc
+ // circulation. Every other Arc token keeps the NOT_VERIFIED result above; nothing is derived from supply/burn.
+ const issuer=await require('./circle-circulating').inspect(base.address,base.totalSupply,{network:'arc',chainId:5042,block:base.block}).catch(()=>null);
  const supplyResearch=await require('./supply-insights').inspect({network:'arc',base});
  return {description:'On-chain total, supply outside zero/dead addresses, current burn-address custody and its percentage. Outside burn addresses does not mean circulating or unlocked supply.',fields:{...supplyResearch,
   totalSupply:proof(base.totalSupply,'Arc RPC',{...details,method:'totalSupply()'},'ON_CHAIN'),
-  circulatingSupply:circ,
+  circulatingSupply:issuer||circ,
   burnAddressBalance:burned===null?NO('Pinned zero/dead address reads failed.','BURN_BALANCE_READ_FAILED'):
    proof(base.burnAddressBalance,'Arc RPC',{...details,method:'balanceOf(0x0,0xdead)'},'ON_CHAIN'),
   burnAddressPct:pct===null?NO('Cannot reconcile current burn-address custody to supply.','BURN_SHARE_UNAVAILABLE'):
