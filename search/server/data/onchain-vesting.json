@@ -1,0 +1,13 @@
+[
+ {
+  "chainId": 1,
+  "token": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+  "symbol": "UNI",
+  "type": "UNI_QUARTERLY_VESTING",
+  "vestingContract": "0xca046a83edb78f74ae338bb5a291bf6fdac9e1d2",
+  "allocationCategory": "Treasury growth budget (UNIfication, governance proposal 93)",
+  "sourceUrl": "https://vote.uniswapfoundation.org/proposals/93",
+  "deploymentUrl": "https://raw.githubusercontent.com/Uniswap/protocol-fees/main/README.md",
+  "reviewedAt": "2026-11-27T00:00:00Z"
+ }
+]

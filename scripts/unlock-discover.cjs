@@ -69,6 +69,21 @@ async function holdersFor(net, addr) {
       return out;
     }
   }
+  // Explorer unavailable (403/DNS): derive candidate recipients from recent Transfer logs over RPC (bounded).
+  const head = await rpc(net, 'eth_blockNumber', []);
+  if (head.result) {
+    const latest = parseInt(head.result, 16), TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+    for (const span of [200000, 50000, 10000, 2000]) {
+      const lg = await rpc(net, 'eth_getLogs', [{ address: addr, topics: [TOPIC], fromBlock: '0x' + Math.max(0, latest - span).toString(16), toBlock: '0x' + latest.toString(16) }]);
+      if (Array.isArray(lg.result)) {
+        const seen = new Map();
+        for (const l of lg.result) { if (l.topics?.length === 3) { const to = '0x' + l.topics[2].slice(26); seen.set(to, (seen.get(to) || 0) + 1); } }
+        out.rows = [...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, HOLDERS).map(([a]) => ({ address: a, value: null, isContract: null, name: null }));
+        out.source = 'rpc-transfer-logs'; out.logSpan = span; out.logs = lg.result.length; out.note = 'EXPLORER_UNAVAILABLE_USED_RPC_LOGS';
+        return out;
+      }
+    }
+  }
   out.note = 'NO_EXPLORER_HOLDER_LIST';
   return out;
 }
@@ -100,7 +115,7 @@ async function one(t) {
   const [name, symbol, supply, decimals] = await Promise.all(['name()', 'symbol()', 'totalSupply()', 'decimals()'].map(s => ethCall(net, t.address, on.SEL(s))));
   row.token = { name: decodeStr(name), symbol: decodeStr(symbol), totalSupplyRaw: supply ? BigInt(supply).toString() : null, decimals: decimals ? Number(BigInt(decimals)) : null };
   const holders = await holdersFor(net, t.address);
-  row.holders = { source: holders.source, status: holders.status, tried: holders.tried, note: holders.note, sampled: holders.rows.length };
+  row.holders = { logSpan: holders.logSpan, logs: holders.logs, source: holders.source, status: holders.status, tried: holders.tried, note: holders.note, sampled: holders.rows.length };
   const contracts = [];
   for (const h of holders.rows) {
     if (!/^0x[0-9a-f]{40}$/.test(h.address)) continue;
