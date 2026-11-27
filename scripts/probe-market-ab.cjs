@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 'use strict';
+process.env.SEARCH_MARKET_ONCHAIN_CHECK='on';
 // Read-only market A/B: for each fixed-cohort token, run market-cross.inspect from two checkouts (A=main, B=branch) back to back,
 // and classify liquidityUsd / priceUsd with the production evidence taxonomy. Usage: node probe-market-ab.cjs <dirA> <dirB>
 const path=require('node:path'),fs=require('node:fs');
