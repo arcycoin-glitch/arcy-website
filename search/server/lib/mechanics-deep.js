@@ -55,12 +55,13 @@ async function sourceFor(cfg,address,code,diagnostics){
  if(compiled)return compiled;
  const url='https://sourcify.dev/server/v2/contract/'+cfg.chainId+'/'+address+'?fields=abi,sources,compilation,runtimeBytecode';
  try{
-  const body=await reader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{if(require('./mechanics-yul').matchedYul(d,{chainId:cfg.chainId,address,code}))throw Error('UNSUPPORTED_SOURCE_LANGUAGE_YUL');validateSource(d,{chainId:cfg.chainId,address,code});return true;}});
-  const checked=validateSource(body,{chainId:cfg.chainId,address,code});
-  const family=runtimeReview.classify(body.sources,body.compilation);
+  const body=await reader.json(url,{maxBytes:4*1024*1024,timeoutMs:4000,validate:d=>{const yul=require('./mechanics-yul');if(yul.matchedYul(d,{chainId:cfg.chainId,address,code})){if(yul.reviewed(d,{chainId:cfg.chainId,address,code}))return true;throw Error('UNSUPPORTED_SOURCE_LANGUAGE_YUL');}validateSource(d,{chainId:cfg.chainId,address,code});return true;}});
+  const reviewedYul=require('./mechanics-yul').reviewed(body,{chainId:cfg.chainId,address,code});
+  const checked=reviewedYul||validateSource(body,{chainId:cfg.chainId,address,code});
+  const family=reviewedYul?null:runtimeReview.classify(body.sources,body.compilation);
   const opts={lib:require('./oz-library-hashes'),main:typeof body.compilation?.name==='string'?body.compilation.name:undefined};
   let template=null,templateDiagnostic=null;
-  try{const oz=require('./oz-template');template=oz.analyze(body.sources,opts);if(!template)templateDiagnostic=oz.diagnose(body.sources,opts)?.reason||'NOT_CLASSIFIED';}catch{}
+  if(!reviewedYul)try{const oz=require('./oz-template');template=oz.analyze(body.sources,opts);if(!template)templateDiagnostic=oz.diagnose(body.sources,opts)?.reason||'NOT_CLASSIFIED';}catch{}
   return {...checked,subjectAddress:address,runtimeFamily:family,...(template?{template}:{}),templateDiagnostic,
    sourceProvider:'Sourcify',sourceAssurance:'EXACT_DEPLOYED_BYTECODE_MATCH',
    url,retrievedAt:new Date(reader.observedAt(url)).toISOString()};
