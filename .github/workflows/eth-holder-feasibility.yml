@@ -18,3 +18,62 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/probe-eth-holder-feasibility.cjs
+  census:
+    # Real read-only Ethereum census for the fixed-cohort tokens whose explorer-reported holder count is <= the 100k cap,
+    # signed with an ephemeral CI key, served locally, and compared main vs branch on the SAME tokens at the same moments.
+    runs-on: ubuntu-latest
+    timeout-minutes: 170
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: branch
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Ephemeral CI key + localhost certificate
+        run: |
+          node -e "const c=require('crypto');const {privateKey,publicKey}=c.generateKeyPairSync('ed25519');require('fs').writeFileSync('/tmp/sign.pem',privateKey.export({format:'pem',type:'pkcs8'}));require('fs').writeFileSync('/tmp/pub.pem',publicKey.export({format:'pem',type:'spki'}))"
+          openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/tls.key -out /tmp/tls.crt -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost" 2>/dev/null
+      - name: Restore chain-1 checkpoints
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/holder-index
+          key: holder-index-1-${{ github.run_id }}
+          restore-keys: holder-index-1-
+      - name: Chain-1 durable census (SKY, MORPHO, CVX, API3, LDO, YFI)
+        working-directory: branch
+        env:
+          ARC_HOLDER_STORAGE: local
+          ARC_INDEX_CACHE_DIR: /tmp/holder-index
+          ARC_HOLDER_PUBLISHED_DIR: /tmp/holder-pub
+          HOLDER_CHAIN: '1'
+          CENSUS_BUDGET_MS: '6000000'
+        run: |
+          export ARC_HOLDER_SIGNING_KEY="$(cat /tmp/sign.pem)"
+          /usr/bin/time -v node scripts/holder-chain-census.cjs 0x56072c95faa701256059aa122697b133aded9279 0x58d97b57bb95320f9a05dc918aef65434969c2b2 0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b 0x0b38210ea11411557c13457d4da7dc6ea731b88a 0x5a98fcbea516cf06857215779fd812ca3bef1b32 0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e 2> /tmp/time.txt || true
+          grep -E "Maximum resident|Elapsed" /tmp/time.txt || true
+          ls -la /tmp/holder-pub/1 || true
+      - name: Save chain-1 checkpoints
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/holder-index
+          key: holder-index-1-${{ github.run_id }}
+      - name: Main vs branch on the 10 Ethereum cohort tokens
+        run: |
+          sudo "$(which node)" branch/scripts/ci-publication-server.cjs /tmp/holder-pub /tmp/tls.crt /tmp/tls.key > /tmp/pubsrv.log 2>&1 &
+          export NODE_EXTRA_CA_CERTS=/tmp/tls.crt ARC_HOLDER_PUBLISHED_URL=https://localhost/snapshots/ ARC_HOLDER_PUBLIC_KEY="$(cat /tmp/pub.pem)"
+          (cd main && PORT=3001 node dev.cjs > /tmp/main.log 2>&1 &)
+          (cd branch && PORT=3002 node dev.cjs > /tmp/branch.log 2>&1 &)
+          sleep 4
+          node -e "const c=require('./branch/data/verified-coverage/radar-cohort-20261121.json');c.tokens=c.tokens.filter(t=>t.chainId===1);require('fs').writeFileSync('/tmp/eth-cohort.json',JSON.stringify(c))"
+          cd branch && COVERAGE_COHORT=/tmp/eth-cohort.json AB_BASE_A=http://127.0.0.1:3001 AB_BASE_B=http://127.0.0.1:3002 AB_OUT_A=/tmp/cov-main.json AB_OUT_B=/tmp/cov-branch.json COVERAGE_PACE_MS=1200 node scripts/coverage-ab.cjs
+          node -e "const a=require('/tmp/cov-main.json'),b=require('/tmp/cov-branch.json');for(const k of Object.keys(b.byToken))console.log('TOKEN_AB '+JSON.stringify({token:k,main:a.byToken[k]&&a.byToken[k].verified,branch:b.byToken[k].verified,applicable:b.byToken[k].applicable}))"
+          node scripts/coverage-compare.cjs /tmp/cov-main.json /tmp/cov-branch.json "main -> ethereum census branch"
+      - name: Server tails
+        if: always()
+        run: tail -n 15 /tmp/main.log /tmp/branch.log /tmp/pubsrv.log || true
