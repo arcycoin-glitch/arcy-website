@@ -68,7 +68,15 @@ async function build(address){
  })();
  // Independent verified cards must not wait for a slow holder/market provider.
  mechanicsWork.then(card=>require('./progress').card('ethereum',t,'mechanics',card)).catch(()=>{});
- const holderWork=holdersSource.inspect(t.address,t.block,t.totalSupplyRaw);
+ // #337: a CURRENT signed COMPLETE Ethereum census (lib/holder-chain-worker.js, chain 1) replaces the Blockscout path for all four
+ // fields, exactly as on Robinhood. Absent, historical or partial publications fall back to the unchanged Blockscout/GoPlus path.
+ const holderWork=(async()=>{
+  try{const signed=await require('./arc-holder-publication').load(t.address,{network:'ethereum'});
+   if(signed?.snapshot?.freshness==='FRESH'&&['holderCount','largestWalletPct','top10Pct','top20Pct'].every(k=>signed.fields?.[k]?.dataState==='DATA_FOUND'))
+    return {...signed,signedCensus:true};
+  }catch{}
+  return holdersSource.inspect(t.address,t.block,t.totalSupplyRaw);
+ })();
  holderWork.then(card=>require('./progress').card('ethereum',t,'holders',card)).catch(()=>{});
  const [marketResult,controlResult,holderResult,circulatingResult,securityResult,goPlusHolderResult]=await Promise.allSettled([
   marketWork,controls,
@@ -109,6 +117,7 @@ async function build(address){
   if(holders.fields[key]?.dataState!=='DATA_FOUND'&&goPlusHolders[key]?.dataState==='DATA_FOUND')
    holders.fields[key]=goPlusHolders[key];
  }
+ if(h.signedCensus){holders.description=h.description+' Full positive-balance census from the Ethereum Transfer ledger; beneficial ownership is not inferred.';holders.snapshot=h.snapshot;}
  if(Array.isArray(h.holderCandidates)&&h.holderCandidates.length)holders.holderCandidates=h.holderCandidates;
  if(Object.values(holders.fields).some(f=>f.dataState==='DATA_FOUND'))
   holders.status='PARTIAL_EVIDENCE';
