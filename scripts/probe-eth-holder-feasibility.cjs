@@ -5,14 +5,14 @@
 // Per token: deployment block (binary search on eth_getCode, archive needed), Transfer-log density in 3 sample windows.
 // Prints measurements only; nothing is written; no credentials.
 const RPCS=(process.env.ETH_PROBE_RPCS||'https://rpc.flashbots.net,https://ethereum-rpc.publicnode.com,https://eth.drpc.org,https://1rpc.io/eth').split(',');
-const T='0xddf252ad1be2c89b69c2b068fc378daa952ba7f179c4a11ba1c2a8ac4aa1d1b';
+const T=require('../lib/holder-index').TRANSFER;
 const fs=require('node:fs'),path=require('node:path');
 const cohort=JSON.parse(fs.readFileSync(path.join(__dirname,'../data/verified-coverage/radar-cohort-20261121.json'),'utf8')).tokens.filter(t=>t.chainId===1);
 let id=0;
 async function call(url,method,params){const t0=Date.now();try{const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:++id,method,params}),signal:AbortSignal.timeout(30000)});
  const text=await r.text();let j;try{j=JSON.parse(text)}catch{return {http:r.status,error:'NON_JSON',ms:Date.now()-t0}}
  return {http:r.status,result:j.result,error:j.error?String(j.error.message||j.error.code).slice(0,140):null,ms:Date.now()-t0};}catch(e){return {error:e.name,ms:Date.now()-t0}}}
-const hex=n=>{const h=n.toString(16);return '0x'+(h.length%2?'0'+h:h);};
+const hex=n=>'0x'+n.toString(16);
 (async()=>{
  const live=[];
  for(const u of RPCS){const c=await call(u,'eth_chainId',[]),h=await call(u,'eth_blockNumber',[]);
