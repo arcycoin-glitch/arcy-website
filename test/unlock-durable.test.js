@@ -80,9 +80,9 @@ test('Vercel Unlocks API returns a verified worker edition before attempting leg
   try {
     const edition = { schemaVersion: 1, success: true, events: [], windows: { today: [], next7: [], days8to30: [] }, generatedAt: new Date(Date.now()-60000).toISOString(), refreshAt: new Date(Date.now()+21000000).toISOString(), trigger: 'worker' };
     const payload = JSON.stringify(edition), envelope = { payload, signature: crypto.sign(null, Buffer.from(payload), pair.privateKey).toString('base64') };
-    const root = path.resolve(__dirname, '..'), evidence = (await fs.readFile(path.join(root, 'lib/unlock-evidence.js'), 'utf8')).replaceAll('export const', 'const'), source = (await fs.readFile(path.join(root, 'api/unlocks.js'), 'utf8')).replace(/^import .*unlock-evidence.*;\r?\n/m, '').replace('export default async function handler', 'async function handler');
+    const root = path.resolve(__dirname, '..'), evidence = (await fs.readFile(path.join(root, 'lib/unlock-evidence.js'), 'utf8')).replaceAll('export const', 'const'), source = (await fs.readFile(path.join(root, 'api/unlocks.js'), 'utf8')).replace(/^import .*(?:unlock-evidence|unlock-core).*;\r?\n/gm, '').replace('export default async function handler', 'async function handler');
     let fetches = 0;
-    const context = vm.createContext({ process, AbortSignal, URL, URLSearchParams, Date, TextEncoder, atob, crypto: crypto.webcrypto, fetch: async () => { fetches++; return { ok: true, json: async () => envelope }; } });
+    const context = vm.createContext({ process, AbortSignal, URL, URLSearchParams, Date, TextEncoder, atob, crypto: crypto.webcrypto, core: require('../lib/unlock-core.cjs'), fetch: async () => { fetches++; return { ok: true, json: async () => envelope }; } });
     vm.runInContext(evidence, context); vm.runInContext(source, context);
     const res = { setHeader() {}, status(code) { this.code = code; return this; }, json(value) { this.body = value; return value; } };
     await context.handler({}, res);

@@ -1,0 +1,72 @@
+name: Unlocks evidence (read-only before/after)
+# Issue #83 / #77 / #337. Read-only: 3 public GETs to the calendar publisher, one /api/unlocks GET to production, Arc public RPC for
+# the Next Unlock cohort probe. No state, secrets, signing keys, Railway data or deployments are touched.
+on:
+  pull_request:
+    paths:
+      - 'lib/unlock-*.cjs'
+      - 'lib/unlock-*.js'
+      - 'api/unlocks.js'
+      - 'search/server/lib/supply-insights.js'
+      - 'scripts/unlock-bench.cjs'
+      - 'scripts/probe-next-unlock-cohort.cjs'
+      - 'scripts/probe-unlock-coverage.cjs'
+      - 'test/unlock-browser.cjs'
+      - '.github/workflows/unlocks-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  calendar-before-after:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: after
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: before
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Production /api/unlocks baseline (one GET)
+        working-directory: after
+        run: node scripts/probe-unlock-coverage.cjs | tee ../prod-unlocks.json | head -c 3500
+        continue-on-error: true
+      - name: Paired recorded-feed before/after (main vs this branch) + worker/API parity
+        run: BEFORE_DIR=before AFTER_DIR=after node after/scripts/unlock-bench.cjs
+  next-unlock-cohort:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: after
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: before
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fixed 40-token Next Unlock — main (before)
+        run: ROOT=before LABEL=before node after/scripts/probe-next-unlock-cohort.cjs | tee before.json | grep "^::notice"
+        continue-on-error: true
+      - name: Fixed 40-token Next Unlock — this branch (after)
+        run: ROOT=after LABEL=after node after/scripts/probe-next-unlock-cohort.cjs | tee after.json | grep "^::notice"
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Unlock calendar at 320 / 390 / 1440 px
+        run: node test/unlock-browser.cjs

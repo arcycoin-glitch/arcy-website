@@ -7,11 +7,11 @@ const worker=require('../lib/unlock-calendar');
 function app(fetchImpl=async()=>{throw Error('No remote fixture')},environment={}){
  const root=path.join(__dirname,'..'),context=vm.createContext({
   process:{env:environment},Date,URL,URLSearchParams,AbortSignal,
-  crypto:crypto.webcrypto,TextEncoder,atob,fetch:fetchImpl
+  crypto:crypto.webcrypto,TextEncoder,atob,fetch:fetchImpl,core:require('../lib/unlock-core.cjs')
  });
  const evidence=fs.readFileSync(path.join(root,'lib/unlock-evidence.js'),'utf8').replaceAll('export const','const');
  const api=fs.readFileSync(path.join(root,'api/unlocks.js'),'utf8')
-  .replace(/^import .*unlock-evidence.*;\r?\n/m,'')
+  .replace(/^import .*(?:unlock-evidence|unlock-core).*;\r?\n/gm,'')
   .replace('export default async function handler','async function handler');
  vm.runInContext(evidence,context);vm.runInContext(api,context);
  return context;
