@@ -21,6 +21,7 @@ const crypto=require('node:crypto');
   console.log('=== '+n+' ===\n'+body);
   for(const m of body.matchAll(/\b(fun_[A-Za-z0-9_]+|modifier_[A-Za-z0-9_]+)\(/g))if(!seen.has(m[1]))queue.push(m[1]);}
  // every sstore and call-family opcode in the runtime object, with surrounding function names
+ let at=0;while((at=rt.indexOf('sstore(',at))>=0){const fnStart=rt.lastIndexOf('function ',at),caseStart=rt.lastIndexOf('case 0x',at);console.log('=== SSTORE @'+at+' in '+(caseStart>fnStart?rt.slice(caseStart,caseStart+15):rt.slice(fnStart,rt.indexOf('(',fnStart)))+' ===\n'+rt.slice(Math.max(0,at-500),at+160));at+=7;}
  const ops=[...rt.matchAll(/\b(sstore|call|delegatecall|callcode|staticcall|selfdestruct|create2?)\(/g)].map(m=>m[1]);
  console.log('OPCOUNTS '+JSON.stringify(ops.reduce((a,o)=>(a[o]=(a[o]||0)+1,a),{})));
 })().catch(e=>{console.error(e);process.exitCode=1;});
