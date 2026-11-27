@@ -41,11 +41,12 @@ test('Yul verified source keeps the stable reason code but says precisely why; n
  assert.equal(f.reason,'Verified source is hand-written Yul; its execution paths are not reviewed.');
  assert.match(f.explanation,/exact runtime bytecode match/);assert.equal(f.verificationGap.sourceCause,'UNSUPPORTED_SOURCE_LANGUAGE_YUL');
 });
-test('validateSource: matched Yul record fails with the precise Yul code, other malformed records stay SOURCE_SCHEMA_INVALID',()=>{
- const {validateSource}=require('../search/server/lib/mechanics-deep');
- const A='0x45242320dbb855eea8fd36804c6487e10e97fcf9',code='0x6001600055';
- const base={chainId:4663,address:A,runtimeMatch:'match',runtimeBytecode:{onchainBytecode:code},sources:{'a.yul':{content:'x'}}};
- assert.throws(()=>validateSource({...base,compilation:{language:'Yul'},abi:null},{chainId:4663,address:A,code}),/UNSUPPORTED_SOURCE_LANGUAGE_YUL/);
- assert.throws(()=>validateSource({...base,compilation:{language:'Solidity'},abi:null},{chainId:4663,address:A,code}),/SOURCE_SCHEMA_INVALID/);
- assert.throws(()=>validateSource({...base,compilation:{language:'Yul'},abi:null,runtimeMatch:null},{chainId:4663,address:A,code}),/SOURCE_BYTECODE_MISMATCH/,'identity/bytecode checks still run first');
+test('matchedYul: only an identity- and runtime-matched Yul record is named; validateSource is unchanged',()=>{
+ const {matchedYul}=require('../search/server/lib/mechanics-yul'),{validateSource}=require('../search/server/lib/mechanics-deep');
+ const A='0x45242320dbb855eea8fd36804c6487e10e97fcf9',code='0x6001600055',o={chainId:4663,address:A,code};
+ const base={chainId:4663,address:A,runtimeMatch:'match',runtimeBytecode:{onchainBytecode:code},sources:{'a.yul':{content:'x'}},compilation:{language:'Yul'},abi:null};
+ assert.equal(matchedYul(base,o),true);
+ for(const bad of [{runtimeMatch:null},{address:'0x'+'1'.repeat(40)},{chainId:1},{compilation:{language:'Solidity'}},{abi:[]},{runtimeBytecode:{onchainBytecode:'0x60'}}])
+  assert.equal(matchedYul({...base,...bad},o),false,JSON.stringify(bad));
+ assert.throws(()=>validateSource(base,o),/SOURCE_SCHEMA_INVALID/,'frozen validator behaviour unchanged');
 });
