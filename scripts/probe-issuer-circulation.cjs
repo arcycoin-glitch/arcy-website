@@ -11,7 +11,18 @@ async function rpc(urls,method,params){
  for(const u of urls){try{const r=await fetch(u,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(10000)});const j=await r.json();if(j.result!==undefined)return {result:j.result,via:new URL(u).hostname};}catch{}}
  return {result:null,via:null};
 }
+const DOCS={USDC:'https://developers.circle.com/stablecoins/usdc-contract-addresses.md',EURC:'https://developers.circle.com/stablecoins/eurc-contract-addresses.md'};
+const ARC_RPC=['https://rpc.mainnet.arc.io','https://rpc.blockdaemon.mainnet.arc.io'];
+async function docRows(symbol){
+ // Mainnet section only: everything before the first 'Testnet' heading.
+ try{const r=await fetch(DOCS[symbol],{signal:AbortSignal.timeout(15000)});const text=await r.text();const main=text.split(/\n#+\s*Testnet/i)[0];
+  const rows=main.split('\n').filter(l=>/^\|\s*(Arc|Ethereum)\s*\|/i.test(l)).map(l=>{const cells=l.split('|').map(x=>x.trim());const addr=(cells[2].match(/0x[0-9a-fA-F]{40}/)||[])[0]||null;return {chain:cells[1],address:addr};});
+  console.log('CIRCLE_DOC '+JSON.stringify({symbol,status:r.status,url:DOCS[symbol],rows}));return rows;}catch(e){console.log('CIRCLE_DOC_FAILED',symbol,e.name);return [];}
+}
 (async()=>{
+ for(const sym of ['USDC','EURC']){const rows=await docRows(sym);const arc=rows.filter(x=>/^arc$/i.test(x.chain)&&x.address);
+  if(arc.length===1)CANDIDATES.push({symbol:sym,network:'arc',chainId:5042,rpc:ARC_RPC,address:arc[0].address.toLowerCase()});}
+ const chain=await rpc(ARC_RPC,'eth_chainId',[]);console.log('ARC_CHAIN_ID',chain.result,chain.via);
  const t0=Date.now();let body=null,status=0;
  try{const r=await fetch('https://api.circle.com/v1/stablecoins',{signal:AbortSignal.timeout(15000)});status=r.status;body=await r.json();}catch(e){console.log('CIRCLE_FETCH_FAILED',e.name);}
  console.log('CIRCLE_STATUS',status,'ms',Date.now()-t0);
