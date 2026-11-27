@@ -9,6 +9,13 @@ on:
   schedule:
     - cron: '41 */3 * * *'
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/market-verify-snapshot.cjs'
+      - 'search/server/lib/market-verify-snapshot.js'
+      - 'search/server/lib/market-volume.js'
+      - '.github/workflows/market-verify-snapshot.yml'
   pull_request:
     paths:
       - 'scripts/market-verify-snapshot.cjs'

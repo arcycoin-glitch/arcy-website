@@ -100,7 +100,7 @@ async function inspect(network,address,primary,{rpc=M.rpcFor?.(network),ethRpc,u
    evidence:[{provider:M.SOURCE[network],source:M.SOURCE[network],network,pairs:pools,method:'arcy-market-volume-1',fromBlock:w.from.n,toBlock,fromBlockHash:w.from.hash,toBlockHash:w.to.hash,
     windowSeconds:w.to.ts-w.from.ts,swaps:profile.swaps,pools:parts,basis:'Sum over the provider pool set of quote-side swap amounts in the last 24h of blocks x CURRENT Chainlink quote USD (not per-swap historical prices).',checkedAt:at}],
    freshness:{retrievedAt:at,ageMs:0,basis:'pinned-block log window ending at '+toBlock}},profile};
- }catch(e){profile.calls=state.calls;return fail(e.code||'VOLUME_READ_FAILED');}
+ }catch(e){profile.calls=state.calls;if(!e.code)profile.error=String(e.message||e).slice(0,160);return fail(e.code||'VOLUME_READ_FAILED');}
 }
 function _reset(){windows.clear();}
 module.exports={TOPIC,LIMITS,MAX_POOLS,inspect,quoteAmount,_reset};

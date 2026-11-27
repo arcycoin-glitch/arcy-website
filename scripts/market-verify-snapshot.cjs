@@ -10,9 +10,13 @@ process.env.SEARCH_MARKET_ONCHAIN_CHECK='on';
 const fs=require('node:fs'),path=require('node:path');
 const M=require('../search/server/lib/market-onchain'),MV=require('../search/server/lib/market-volume'),DEX=require('../search/server/lib/dex-market'),S=require('../search/server/lib/market-verify-snapshot');
 const args=Object.fromEntries(process.argv.slice(2).reduce((a,x,i,arr)=>x.startsWith('--')?[...a,[x.slice(2),arr[i+1]]]:a,[]));
-const OUT=args.out||'market-verify/snapshot.json',TOTAL_MS=Number(process.env.MARKET_VERIFY_BUDGET_MS||45*60000),PACE={arc:350,robinhood:150,ethereum:150};
+const OUT=args.out||'market-verify/snapshot.json',TOTAL_MS=Number(process.env.MARKET_VERIFY_BUDGET_MS||45*60000),PACE={arc:600,robinhood:150,ethereum:150};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-function paced(rpc,ms){let chain=Promise.resolve();return (m,p)=>{const run=chain.then(()=>rpc(m,p));chain=run.catch(()=>{}).then(()=>sleep(ms));return run;};}
+// Paced per chain with bounded retry on rate limits / transient transport errors (never on RPC semantic errors).
+const transient=e=>/429|rate|limit exceeded|timeout|ECONNRESET|socket|fetch failed|HTTP 5\d\d/i.test(String(e?.message||e?.code||''))&&!/range|exceeds|too many results/i.test(String(e?.message||''));
+function paced(rpc,ms){let chain=Promise.resolve();
+ const once=(m,p)=>{const run=chain.then(()=>rpc(m,p));chain=run.catch(()=>{}).then(()=>sleep(ms));return run;};
+ return async(m,p)=>{for(let i=0;;i++){try{return await once(m,p);}catch(e){if(i>=4||!transient(e))throw e;await sleep(1500*2**i);}}};}
 async function tokens(){
  const out=new Map();
  const cohort=JSON.parse(fs.readFileSync(path.join(__dirname,'../data/verified-coverage/radar-cohort-20261121.json'),'utf8')).tokens;
@@ -50,13 +54,13 @@ async function tokens(){
       else{r.field.evidence[0]={...r.field.evidence[0],coverageOfProviderVolume:Math.round(1e4*acc/total)/1e4,providerPools:ranked.length,providerVolumeAtCompute:total,
        scope:'Covered provider pools only (lower bound of the provider scope); quote-side Swap amounts x CURRENT Chainlink quote USD. Uncovered provider pools are not reproduced.'};
        rec.volume24h=r.field;stats.verified++;}
-     }else rec.volumeReason=r.profile.reason;
+     }else{rec.volumeReason=r.profile.reason;if(r.profile.error)rec.volumeError=String(r.profile.error).slice(0,120);}
     }
    }
   }catch(e){rec.volumeReason=e.code||'VOLUME_JOB_FAILED';}
   rec.computedAt=new Date().toISOString();
   if(rec.volumeReason)stats.reasons[rec.volumeReason.replace(/ \(.*/,'')]=(stats.reasons[rec.volumeReason.replace(/ \(.*/,'')]||0)+1;
-  console.log('MV '+JSON.stringify({key,symbol:t.symbol,ok:Boolean(rec.volume24h),reason:rec.volumeReason||null,value:rec.volume24h?Math.round(rec.volume24h.value):null}));
+  console.log('MV '+JSON.stringify({key,symbol:t.symbol,ok:Boolean(rec.volume24h),reason:rec.volumeReason||null,error:rec.volumeError||null,value:rec.volume24h?Math.round(rec.volume24h.value):null}));
  }
  const doc={schema:S.SCHEMA,generatedAt:new Date().toISOString(),engineCommit:process.env.GITHUB_SHA||null,elapsedMs:Date.now()-t0,stats,entries};
  if(!S.valid(doc,Date.now()))throw Error('INVALID_SNAPSHOT');
