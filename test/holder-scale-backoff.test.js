@@ -21,3 +21,18 @@ test('deterministic scale exhaustion backs off without changing transient recove
  assert.equal(worker.retryDelay(null),60*1000);
  assert.equal(worker.REFRESH_MS,10*60*1000,'healthy publication refresh cadence must be unchanged');
 });
+
+// On Robinhood, the positive-only ledger deletes zero-balance entries after
+// every range. Its size cannot be represented as lifetime unique holders.
+test('scale diagnostic distinguishes retained ledger entries from historical wallets',()=>{
+ const d=worker.scaleDiagnostics({positiveLedgerAddresses:100001,historicalWallets:100001,
+  budgetPopulation:'POSITIVE_LEDGER',walletBudget:100000},100000,worker.SCALE_RETRY_MS);
+ assert.deepEqual(d,{positiveLedgerAddresses:100001,retainedLedgerAddresses:100001,
+  walletBudget:100000,budgetPopulation:'POSITIVE_LEDGER',retryAfterMs:3600000});
+ assert.equal(Object.hasOwn(d,'historicalLedgerAddresses'),false,
+  'positive-only compaction cannot establish all historical participants');
+ const unknown=worker.scaleDiagnostics(undefined,100000,worker.SCALE_RETRY_MS);
+ assert.equal(unknown.positiveLedgerAddresses,null);
+ assert.equal(unknown.retainedLedgerAddresses,null);
+ assert.equal(unknown.walletBudget,100000);
+});
