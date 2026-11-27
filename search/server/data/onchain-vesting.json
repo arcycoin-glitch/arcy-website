@@ -8,6 +8,8 @@
   "allocationCategory": "Treasury growth budget (UNIfication, governance proposal 93)",
   "sourceUrl": "https://vote.uniswapfoundation.org/proposals/93",
   "deploymentUrl": "https://raw.githubusercontent.com/Uniswap/protocol-fees/main/README.md",
-  "reviewedAt": "2026-11-27T00:00:00Z"
+  "reviewedAt": "2026-11-27T00:00:00Z",
+  "projectId": "uniswap",
+  "projectName": "Uniswap"
  }
 ]

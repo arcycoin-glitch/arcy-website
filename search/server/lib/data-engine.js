@@ -114,7 +114,9 @@ function formatCard(cardId,raw,cfg,context){
    Number.isInteger(e.decimals)&&e.decimals>=0&&e.decimals<=36).slice(0,1):[];
  const issuerNotes=disclosed.length&&Array.isArray(raw.researchNotes)?
   raw.researchNotes.filter(x=>typeof x==='string'&&x.startsWith('Ondo Foundation disclosed a locked-token custody wallet')&&x.length<600).slice(0,1):[];
+ const scheduledUnlock=cardId==='supply'&&cfg.id==='ethereum'?require('./scheduled-unlock').project(raw?.fields?.nextUnlock,context):null;
  return {...(auxiliarySupply?{context:auxiliarySupply}:{}),
+  ...(scheduledUnlock?{scheduledUnlock}:{}),
   ...(supplementary?{supplementary}:{}),
   ...(holderCandidates.length?{holderCandidates}:{}),
   // Additive holder census / concentration summary (never changes the four schema fields or the 20-check tally)

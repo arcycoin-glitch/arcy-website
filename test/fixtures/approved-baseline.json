@@ -18,7 +18,7 @@
   },
   "current": {
     "files": {
-      "api/unlocks.js": "77e2db4c79e9100d210326f4d7ec3e7d7825e837b917bf83dbb5ae2a9fed5a4c"
+      "api/unlocks.js": "a606d096b500d3224014ee1b0d3b13de157628d89bb41975ef4afe2a6c3e845e"
     },
     "searchIndexWithoutScripts": "a095530dae90cdc047b3cf9372f23592e7eacdd1184d44785ad1328e5c955ccb",
     "schema": "8abad7b06f58e3710595ef35823a0f4a4d6288dfdfa343bfd47367953c180633",
@@ -115,7 +115,15 @@
         "api/unlocks.js"
       ],
       "reason": "Token Unlocks evidence hardening: shared lib/unlock-core.cjs parsing/sanitizing (same-provider view dedupe, conflict quarantine, host-allowlisted links/logos, per-source failure reasons, canonical executionVerification). No visual/DOM change; home Token Unlocks markup untouched."
+    },
+    {
+      "date": "2026-11-27",
+      "files": [
+        "api/unlocks.js",
+        "search/index.html"
+      ],
+      "reason": "UNI verified on-chain scheduled release: api/unlocks.js merges contract-verified scheduled events (project-confirmed, scheduled-not-executed, 30-day window, duplicate-dropping) via lib/unlock-core.cjs; search/index.html changes are script-only (Supply card 'View sources & evidence' panel entry). No DOM/CSS/layout change; four Supply metrics and six cards untouched."
     }
   ],
-  "refreshedAt": "2026-11-27T13:53:42.299Z"
+  "refreshedAt": "2026-11-27T16:51:17.268Z"
 }
