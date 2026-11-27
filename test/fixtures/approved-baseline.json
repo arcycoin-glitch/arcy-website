@@ -18,7 +18,7 @@
   },
   "current": {
     "files": {
-      "api/unlocks.js": "6e365ccd9268dda419ee9a04da833190e48d43f1c7c1a3ba0d46f5848547b885"
+      "api/unlocks.js": "77e2db4c79e9100d210326f4d7ec3e7d7825e837b917bf83dbb5ae2a9fed5a4c"
     },
     "searchIndexWithoutScripts": "a095530dae90cdc047b3cf9372f23592e7eacdd1184d44785ad1328e5c955ccb",
     "schema": "8abad7b06f58e3710595ef35823a0f4a4d6288dfdfa343bfd47367953c180633",
@@ -108,7 +108,14 @@
         "assets/arcy-community-illustration.webp"
       ],
       "reason": "PR #186 explicit mobile performance change only: exact 1400x787 WebP moved byte-for-byte from 499 KB inline data URI to a deferred external asset; preload existing hero WebP. Original section order, UI branding, and all CSS/JS/API untouched; separate immutable art test verifies original bytes and behavior. Preview Lighthouse/visual acceptance required before merge."
+    },
+    {
+      "date": "2026-11-27",
+      "files": [
+        "api/unlocks.js"
+      ],
+      "reason": "Token Unlocks evidence hardening: shared lib/unlock-core.cjs parsing/sanitizing (same-provider view dedupe, conflict quarantine, host-allowlisted links/logos, per-source failure reasons, canonical executionVerification). No visual/DOM change; home Token Unlocks markup untouched."
     }
   ],
-  "refreshedAt": "2026-11-07T10:13:27.438Z"
+  "refreshedAt": "2026-11-27T13:53:42.299Z"
 }

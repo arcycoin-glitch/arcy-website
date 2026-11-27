@@ -250,3 +250,9 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Tests: full suite 1695/1695 locally; gate tests 19/19.
 - Unresolved: LDO (external controller), ARGUS/CRA/ARCANUS (scoped), TENDIES (Yul), ARCOON/FAZE/LONG/oBrain/AI/STATICS (no source).
 - Next exact actions: owner review of PR #324; no merge/deploy without explicit approval.
+
+## 2026-11-27 — Token Unlocks evidence (branch feat/unlocks-evidence-20261127)
+- Done: shared core, parity, conflict quarantine, blocker taxonomy, bench/probe/browser tooling, workflow, baseline fixture refresh, docs/UNLOCKS_EVIDENCE_20261127.md.
+- Tests: full suite 1772 tests, all pass after baseline refresh (search-v3-data 18/18).
+- Open: CI evidence (production baseline, before/after, cohort, browser); Next Unlock stays 0/40 unless proven.
+- Next: read CI annotations, update #83/#77/#337/#326. No merge/deploy.

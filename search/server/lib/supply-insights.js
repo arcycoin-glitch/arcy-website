@@ -27,6 +27,16 @@ function baseline(network){
   nextUnlock:unknown(network,'No exact-contract, future source-reported unlock date has been verified. This does not establish that no future unlock exists.','NO_VERIFIED_NEXT_UNLOCK')
  };
 }
+// Why a Next Unlock is NOT verified (additive diagnostic; never changes status or value). Taxonomy for coverage work:
+//  NO_REVIEWED_CONTRACT_SCHEDULE  exact chainId+contract has no reviewed, source-linked dated schedule in the registry
+//  NO_CURRENT_FUTURE_EVENT        a reviewed record exists but has no future/recent-enough dated amount
+//  NO_CONTRACT_LINKED_SOURCE      the token metadata/vesting lookup found no contract-linked schedule source
+//  SOURCE_LOOKUP_FAILED           a source lookup errored or timed out (a provider failure, not a finding)
+//  NO_SOURCE_ADAPTER_FOR_CHAIN    no Next Unlock source adapter exists for this chain yet
+// None of these means "no unlock exists".
+function withBlocker(field,category,detail={}){
+ return field&&field.status===EMPTY?{...field,blocker:{category,...detail,doesNotImplyNoUnlock:true}}:field;
+}
 function eventTime(text,now=Date.now()){
  if(typeof text!=='string'||!DATE.test(text))return null;
  const ms=Date.parse(text);
@@ -70,7 +80,10 @@ async function arcNext(base){
   i===0?'Funded next installment in a metadata-linked vesting contract; this is not proof of complete vesting coverage or arbitrary release restrictions.':
     'Issuer-reported schedule selected through exact token contract metadata; enforcement and all other unlocks are not proven.') : null).filter(Boolean);
  verified.sort((a,b)=>Date.parse(a.value)-Date.parse(b.value));
- return verified[0]||baseline('arc').nextUnlock;
+ if(verified[0])return verified[0];
+ const reasons=options.map(o=>o.status==='fulfilled'?(o.value?.reasonCode||o.value?.dataState||'NO_RESULT'):'LOOKUP_ERROR');
+ const failed=options.some(o=>o.status!=='fulfilled')||reasons.some(r=>/FAILED|ERROR|TIMEOUT/i.test(String(r)));
+ return withBlocker(baseline('arc').nextUnlock,failed?'SOURCE_LOOKUP_FAILED':'NO_CONTRACT_LINKED_SOURCE',{sourceReasons:reasons.slice(0,4)});
 }
 async function arcNonburnableZero(base){
  // Prove zero only for a reviewed EXACT source whose immutable implementation
@@ -92,6 +105,7 @@ async function arcNonburnableZero(base){
   {block:base.block,sourceDigest:review.sourceDigest,profile:review.profile.id,method:'eth_getCode() + totalSupply() + reviewed immutable supply-reduction logic',
    scope:'The exact reviewed implementation has no supply-decreasing mechanism. Zero applies to lifetime supply-reducing token burns, NOT dead-address custody or buyback execution.'},'ONCHAIN_VERIFIED');
 }
+function reviewedReason(address){try{return require('./unlocks').inspect(address)?.reasonCode||null;}catch{return 'REGISTRY_ERROR';}}
 async function inspect({network,base}){
  if(!['arc','ethereum','robinhood'].includes(network)||
   !ADDRESS.test(base?.address||'')||base.network!==network||
@@ -116,7 +130,12 @@ async function inspect({network,base}){
       scope:'Exact Ethereum token-contract match; schedule source-reported, not proof of global vesting completeness or on-chain execution.'},'SOURCE_REPORTED');
   }
  }
+ if(network==='ethereum'&&result.nextUnlock?.status===EMPTY){
+  const rc=reviewedReason(base.address);
+  result.nextUnlock=withBlocker(result.nextUnlock,rc==='NO_VERIFIED_FUTURE_EVENT'?'NO_CURRENT_FUTURE_EVENT':'NO_REVIEWED_CONTRACT_SCHEDULE',{registryReason:rc});
+ }
+ if(network==='robinhood')result.nextUnlock=withBlocker(result.nextUnlock,'NO_SOURCE_ADAPTER_FOR_CHAIN',{chainId:chain(network).chainId});
  result.nextUnlock=require('./unlock-windows').attach(result.nextUnlock,{network,address:base.address});
  return result;
 }
-module.exports={inspect,baseline,unknown,found,eventTime,sourceSchedule,arcNext,arcNonburnableZero};
+module.exports={withBlocker,inspect,baseline,unknown,found,eventTime,sourceSchedule,arcNext,arcNonburnableZero};

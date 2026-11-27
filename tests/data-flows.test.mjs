@@ -1,3 +1,4 @@
+import {createRequire} from 'node:module';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -7,9 +8,9 @@ const root = new URL('../', import.meta.url);
 const html = fs.readFileSync(new URL('index.html', root), 'utf8');
 function api(file, fetch, date = Date) {
   const evidence=fs.readFileSync(new URL('lib/unlock-evidence.js',root),'utf8').replaceAll('export const','const');
-  const context = vm.createContext({fetch, Date: date, URL, URLSearchParams, process, AbortSignal});
+  const context = vm.createContext({fetch, Date: date, URL, URLSearchParams, process, AbortSignal, core: createRequire(import.meta.url)('../lib/unlock-core.cjs')});
   vm.runInContext(evidence,context);
-  vm.runInContext(fs.readFileSync(new URL(file, root), 'utf8').replace(/^import .*unlock-evidence.*;\r?\n/m,'').replace('export default async function handler', 'async function handler'), context);
+  vm.runInContext(fs.readFileSync(new URL(file, root), 'utf8').replace(/^import .*(?:unlock-evidence|unlock-core).*;\r?\n/gm,'').replace('export default async function handler', 'async function handler'), context);
   return context;
 }
 function response() {
