@@ -1,7 +1,7 @@
 name: Unlocks discovery (read-only, 40 contracts)
 on:
   pull_request:
-    paths: ['scripts/unlock-discover.cjs','scripts/arc-lookup-diagnose.cjs','lib/unlock-onchain.cjs','.github/workflows/unlocks-discovery.yml']
+    paths: ['scripts/unlock-discover.cjs','scripts/unlock-probe-address.cjs','scripts/arc-lookup-diagnose.cjs','lib/unlock-onchain.cjs','.github/workflows/unlocks-discovery.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,3 +24,14 @@ jobs:
         with: { node-version: '22' }
       - name: Chain identity, holders and vesting-interface discovery (40 contracts)
         run: node scripts/unlock-discover.cjs | tee discover.json | grep "^::notice"
+  probe-addresses:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Verified-ABI getters for named vesting contracts
+        env:
+          ADDRS: 'ethereum:0xCa046A83EDB78F74aE338bb5A291bF6FdAc9e1D2'
+        run: node scripts/unlock-probe-address.cjs | grep "^::notice"
