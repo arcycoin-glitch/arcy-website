@@ -9,7 +9,7 @@ const crypto=require('node:crypto');
  const digest=crypto.createHash('sha256').update(JSON.stringify(Object.entries(d.sources).map(([p,x])=>[p,x.content]).sort(([a],[b])=>a.localeCompare(b)))).digest('hex');
  console.log('META '+JSON.stringify({runtimeMatch:d.runtimeMatch,compilation:d.compilation,files:Object.keys(d.sources),digest,abiType:Array.isArray(d.abi)?'array':typeof d.abi,
   runtimeSha256:crypto.createHash('sha256').update(String(d.runtimeBytecode?.onchainBytecode||'').toLowerCase()).digest('hex')}));
- const src=Object.values(d.sources).map(x=>x.content).join('\n');
+ const src=Object.values(d.sources).map(x=>x.content).join('\n').replace(/\/\*\*[\s\S]*?\*\//g,'').replace(/\/\/\/[^\n]*/g,'').replace(/\n\s*\n/g,'\n');
  const rt=src.slice(src.indexOf('object "NoxaFunTokenV15_514_deployed"')>=0?src.indexOf('object "NoxaFunTokenV15_514_deployed"'):src.lastIndexOf('_deployed'));
  const fn=name=>{const i=rt.indexOf('function '+name+'(');if(i<0)return null;let depth=0,j=rt.indexOf('{',i);for(let k=j;k<rt.length;k++){if(rt[k]==='{')depth++;else if(rt[k]==='}'){depth--;if(!depth)return rt.slice(i,k+1);}}return null;};
  const sw=rt.match(/case 0x[0-9a-f]{8}/g)||[];console.log('SELECTORS '+JSON.stringify([...new Set(sw)]));
