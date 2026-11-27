@@ -1,6 +1,6 @@
 name: Coverage matrix (read-only, #337)
 # Fixed 40-token x every Search card field evidence matrix, measured against PRODUCTION (read-only GETs). No secrets.
-# final acceptance measurement 2026-11-27 (post #355/#356/#358/#360)
+# final acceptance measurement 2026-11-27 (post #355/#356/#358/#360, repeat)
 on:
   pull_request:
     paths:
