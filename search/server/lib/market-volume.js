@@ -56,15 +56,17 @@ function quoteAmount(kind,l,quoteIs0){const w=words(l.data);
  if(kind==='V2'){if(w.length<4)throw code('MALFORMED_SWAP_LOG');return quoteIs0?w[0]+w[2]:w[1]+w[3];}
  if(kind==='V3'){if(w.length<5)throw code('MALFORMED_SWAP_LOG');return abs(signed(quoteIs0?w[0]:w[1],256));}
  if(w.length<6)throw code('MALFORMED_SWAP_LOG');return abs(signed(quoteIs0?w[0]:w[1],128));}
-async function inspect(network,address,primary,{rpc=M.rpcFor?.(network),ethRpc,usdOf,block,now=Date.now(),maxCalls=MAX_CALLS,timeoutMs=TIMEOUT_MS}={}){
+// durable=true (background job only, never a report request): same identity/log/USD rules; the pool-count and Arc window guards
+// exist only to bound request latency, so a durable caller lifts them and supplies its own call/time budget.
+async function inspect(network,address,primary,{rpc=M.rpcFor?.(network),ethRpc,usdOf,block,now=Date.now(),maxCalls=MAX_CALLS,timeoutMs=TIMEOUT_MS,durable=false,maxPools=MAX_POOLS}={}){
  const token=String(address||'').toLowerCase(),profile={calls:0,ms:0,pools:0,swaps:0,splits:0,reason:null},t0=Date.now();
  const pools=[...new Set((primary?.volume24h?.evidence||[]).flatMap(e=>Array.isArray(e?.pairs)?e.pairs:[]).map(x=>String(x).toLowerCase()))].sort();
  const limits=LIMITS[network];
  const fail=r=>{profile.reason=r;profile.ms=Date.now()-t0;return {field:null,profile};};
  if(!limits)return fail('NETWORK_UNSUPPORTED');
  if(!pools.length)return fail('PROVIDER_VOLUME_POOLS_UNKNOWN');
- if(pools.length>MAX_POOLS)return fail('VOLUME_SCOPE_EXCEEDS_BUDGET ('+pools.length+' pools)');
- if(network==='arc')return fail('VOLUME_WINDOW_EXCEEDS_RPC_BUDGET');
+ if(pools.length>(durable?maxPools:MAX_POOLS))return fail('VOLUME_SCOPE_EXCEEDS_BUDGET ('+pools.length+' pools)');
+ if(network==='arc'&&!durable)return fail('VOLUME_WINDOW_EXCEEDS_RPC_BUDGET');
  const state={calls:0,maxCalls,deadline:Date.now()+timeoutMs,splits:0};
  const r=async(m,p)=>{if(state.calls>=state.maxCalls)throw code('ONCHAIN_BUDGET_EXHAUSTED');if(Date.now()>state.deadline)throw code('ONCHAIN_TIMEOUT');state.calls++;return rpc(m,p);};
  try{
@@ -98,7 +100,7 @@ async function inspect(network,address,primary,{rpc=M.rpcFor?.(network),ethRpc,u
    evidence:[{provider:M.SOURCE[network],source:M.SOURCE[network],network,pairs:pools,method:'arcy-market-volume-1',fromBlock:w.from.n,toBlock,fromBlockHash:w.from.hash,toBlockHash:w.to.hash,
     windowSeconds:w.to.ts-w.from.ts,swaps:profile.swaps,pools:parts,basis:'Sum over the provider pool set of quote-side swap amounts in the last 24h of blocks x CURRENT Chainlink quote USD (not per-swap historical prices).',checkedAt:at}],
    freshness:{retrievedAt:at,ageMs:0,basis:'pinned-block log window ending at '+toBlock}},profile};
- }catch(e){profile.calls=state.calls;return fail(e.code||'VOLUME_READ_FAILED');}
+ }catch(e){profile.calls=state.calls;if(!e.code)profile.error=String(e.message||e).slice(0,160);return fail(e.code||'VOLUME_READ_FAILED');}
 }
 function _reset(){windows.clear();}
 module.exports={TOPIC,LIMITS,MAX_POOLS,inspect,quoteAmount,_reset};

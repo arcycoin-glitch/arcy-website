@@ -231,7 +231,10 @@ async function inspect(network,address,primary,{rpc=rpcFor(network),ethRpc=rpcFo
   // 24h volume needs tens of eth_getLogs per token. Run inside the report it competed with Mechanics for the same public RPC and
   // degraded reviewed tax/mint/owner evidence (CI A/B 2026-11-22: TAO 2/2 repeats). It therefore never runs in the request path:
   // a paced background job (one per chain, opt-in SEARCH_MARKET_ONCHAIN_VOLUME=on) fills a 5-minute cache that later reports read.
-  try{const r=volumeFromCache(network,token,primary,{now,env});if(r.field)fields.volume24h=r.field;else{profile.reasons.volume24h=r.reason;
+  // Durable snapshot first (#356): computed outside the request path; scope/freshness checked in market-verify-snapshot.js.
+  try{const doc=await require('./market-verify-snapshot').load({now,env});const sv=require('./market-verify-snapshot').volumeField(doc,network,token,primary,{now});
+   if(sv.field)fields.volume24h=sv.field;else profile.reasons.volumeSnapshot=sv.reason;}catch{profile.reasons.volumeSnapshot='VOLUME_SNAPSHOT_READ_FAILED';}
+  if(!fields.volume24h)try{const r=volumeFromCache(network,token,primary,{now,env});if(r.field)fields.volume24h=r.field;else{profile.reasons.volume24h=r.reason;
    if(r.reason==='VOLUME_PENDING_BACKGROUND')startVolume(network,token,primary,{rpc,usdOf:async a=>usdCache[a]?usdCache[a]:quoteUsd(a,{ethRpc,now:Date.now()})});}}
   catch(e){profile.reasons.volume24h=e.code||'VOLUME_READ_FAILED';}
  }catch(e){profile.reasons.all=e.code||'ONCHAIN_READ_FAILED';}

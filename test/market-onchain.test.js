@@ -21,7 +21,7 @@ const v3Table=(price)=>({[POOL3+':0x0dfe1681']:A(TOKEN),[POOL3+':0xd21220a7']:A(
 const primary=(price,liq,pools=[POOL3])=>({priceUsd:{value:price,status:'SOURCE_REPORTED',dataState:'DATA_FOUND',source:'DEX Screener',evidence:[{provider:'DEX Screener',pairs:[pools[0]]}]},
  liquidityUsd:{value:liq,status:'SOURCE_REPORTED',dataState:'DATA_FOUND',source:'DEX Screener',evidence:[{provider:'DEX Screener',pairs:pools}]},
  volume24h:{value:10,status:'SOURCE_REPORTED',dataState:'DATA_FOUND',source:'DEX Screener',evidence:[{provider:'DEX Screener',pairs:pools}]}});
-const ENV={SEARCH_MARKET_ONCHAIN_CHECK:'on'};
+const ENV={SEARCH_MARKET_ONCHAIN_CHECK:'on',SEARCH_MARKET_VERIFY_SNAPSHOT:'off'};
 
 test('MO-1 opt-in: disabled by default, no RPC call',async()=>{
  M._reset();const rpc=chainRpc(v3Table(0.5));const r=await M.inspect('arc',TOKEN,primary(0.5,1e6),{rpc,ethRpc:ethRpc(),now:NOW,env:{}});
