@@ -34,4 +34,6 @@ jobs:
       - name: Verified-ABI getters for named vesting contracts
         env:
           ADDRS: 'ethereum:0xCa046A83EDB78F74aE338bb5A291bF6FdAc9e1D2'
+          SOURCE: '1'
+          ALLOWANCE: '0x1a9C8182C09F50C8318d769245beA52c32BE35BC>0xCa046A83EDB78F74aE338bb5A291bF6FdAc9e1D2'
         run: node scripts/unlock-probe-address.cjs | grep "^::notice"

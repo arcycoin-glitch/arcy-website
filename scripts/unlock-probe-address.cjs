@@ -20,9 +20,11 @@ const typeStr = i => i.type === 'tuple' ? '(' + i.components.map(typeStr).join('
       const data = keccak(`${f.name}()`).slice(0, 10); const r = await rpc(net, 'eth_call', [{ to: addr, data }, 'latest']);
       if (r && /^0x[0-9a-f]{64}$/i.test(r)) row.values[f.name] = f.outputs[0].type.startsWith('uint') ? BigInt(r).toString() : f.outputs[0].type === 'address' ? '0x' + r.slice(26) : r.slice(0, 20);
     }
+    if (process.env.SOURCE && sc.j?.source_code) { const src = sc.j.source_code; const i = src.indexOf('function quartersPassed'); row.src = { len: src.length, files: (sc.j.additional_sources || []).length, quartersPassed: src.slice(Math.max(0, i - 200), i + 700), withdraw: src.slice(src.indexOf('function withdraw'), src.indexOf('function withdraw') + 900) }; }
+    if (process.env.ALLOWANCE) { const [o, sp] = process.env.ALLOWANCE.split('>'); const data = keccak('allowance(address,address)').slice(0, 10) + o.slice(2).toLowerCase().padStart(64, '0') + sp.slice(2).toLowerCase().padStart(64, '0'); const r = await rpc(net, 'eth_call', [{ to: row.values.UNI, data }, 'latest']); row.allowance = r ? BigInt(r).toString() : null; const b = await rpc(net, 'eth_call', [{ to: row.values.UNI, data: keccak('balanceOf(address)').slice(0, 10) + o.slice(2).toLowerCase().padStart(64, '0') }, 'latest']); row.ownerBalance = b ? BigInt(b).toString() : null; const blk = await rpc(net, 'eth_getBlockByNumber', ['latest', false]); row.blockTs = blk ? parseInt(blk.timestamp, 16) : null; }
     out.push(row);
   }
   console.log(JSON.stringify(out));
   const e = s => s.replace(/%/g, '%25').replace(/\r?\n/g, '%0A');
-  out.forEach(r => console.log('::notice title=probe-' + r.addr.slice(0, 10) + '::' + e(JSON.stringify(r)).slice(0, 3900)));
+  out.forEach(r => console.log('::notice title=probe-' + r.addr.slice(0, 10) + '::' + e(JSON.stringify(r)).slice(0, 6000)));
 })();
