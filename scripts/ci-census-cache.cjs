@@ -9,7 +9,9 @@
 //   node scripts/ci-census-cache.cjs scan                   -> exit 1 if any cached path contains private-key material
 const fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto');
 const ROOT = path.resolve(__dirname, '..');
-const CHAIN = Number(process.env.HOLDER_CHAIN || 4663), MAX_WALLETS = 100000;
+const CHAIN = Number(process.env.HOLDER_CHAIN || 4663);
+// Effective wallet budget (default 100,000; a valid ARC_HOLDER_MAX_WALLETS in [100000,250000] raises it) is part of the fingerprint.
+const rawBudget = process.env.ARC_HOLDER_MAX_WALLETS, MAX_WALLETS = /^\d{1,7}$/.test(rawBudget || '') && +rawBudget >= 100000 && +rawBudget <= 250000 ? +rawBudget : 100000;
 const INDEX = process.env.ARC_INDEX_CACHE_DIR || '/tmp/holder-index', PROV = process.env.CENSUS_PROVENANCE_DIR || '/tmp/census-provenance';
 const MAX_AGE_MS = Number(process.env.CENSUS_CACHE_MAX_AGE_MS || 72 * 3600 * 1000);
 const COHORT = 'data/verified-coverage/radar-cohort-20261121.json';
