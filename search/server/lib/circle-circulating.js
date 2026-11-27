@@ -42,6 +42,9 @@ function parse(body,{address,totalSupply,block,network='ethereum',chainId=1,now=
    method:'Circle '+map.symbol+' '+map.chain+' publication mapped to the Circle-listed '+label+' mainnet contract; separate pinned totalSupply observation',
    scope:'Issuer-reported '+label+' circulation at sourceAsOf, not on-chain circulating supply at the scan block. RPC total supply is a different-time observation, not independent proof of circulation; mint/redemption or issuer-held pre-mint may make it lower or higher. No global-chain totals or derived burn exclusions.'
   }],'SOURCE_REPORTED',now);
+  // The common evidence helper defaults to Ethereum; the reviewed exact mapping owns identity.
+  field.chainId=map.chainId;
+  field.network=map.network;
   field.freshness={state:'SOURCE_REPORTED',observedAt:row.updateDate,sourceAsOf:row.updateDate,retrievedAt:new Date(now).toISOString(),ageMs:Math.max(0,now-published),basis:'Circle publication time; not the RPC analysis block.'};
   return field;
  }catch{return fail();}
