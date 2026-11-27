@@ -13,6 +13,7 @@ on:
       - 'lib/radar-v2/**'
       - 'api/search/index.js'
       - 'scripts/radar-v4-snapshot.cjs'
+      - 'scripts/probe-radar-intel.cjs'
       - 'scripts/radar-snapshot-freshness.cjs'
       - '.github/workflows/radar-v4-snapshot.yml'
   schedule:
@@ -27,11 +28,16 @@ on:
         type: choice
         options: [preview, production]
         default: preview
+      only_if_due:
+        description: 'Automated production request: recheck freshness after queued runs finish'
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'lib/radar-v2/**'
       - 'api/search/index.js'
       - 'scripts/radar-v4-snapshot.cjs'
+      - 'scripts/probe-radar-intel.cjs'
       - 'scripts/radar-snapshot-freshness.cjs'
       - '.github/workflows/radar-v4-snapshot.yml'
 permissions:
@@ -49,6 +55,8 @@ jobs:
       build: ${{ steps.age.outputs.build }}
       level: ${{ steps.age.outputs.level }}
       age_min: ${{ steps.age.outputs.age_min }}
+      oldest_section_age_min: ${{ steps.age.outputs.oldest_section_age_min }}
+      section_levels: ${{ steps.age.outputs.section_levels }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,7 +67,9 @@ jobs:
           node-version: '22'
       - id: age
         env:
-          EVENT_NAME: ${{ github.event_name }}
+          # Serialized duplicate scheduler requests recheck the new publication
+          # before spending provider budget; ordinary manual builds stay forced.
+          EVENT_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.target == 'production' && inputs.only_if_due && 'schedule' || github.event_name }}
           SNAPSHOT_URL: https://raw.githubusercontent.com/${{ github.repository }}/radar-v4-snapshots/radar-v4/snapshot.json
         run: node scripts/radar-snapshot-freshness.cjs
   snapshot:
@@ -77,7 +87,7 @@ jobs:
         with:
           node-version: '22'
       - name: Engine tests must pass before publishing
-        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-immutable-snapshot.test.js test/radar-near-match.test.js test/radar-v5-quality.test.js test/radar-v5-final.test.js test/radar-research-order.test.js test/radar-v6-top10.test.js test/radar-v6-owner-top10.test.js test/radar-v8-custom-top10.test.js test/radar-p0-production.test.js test/radar-pons-ledger.test.js test/radar-snapshot-freshness.test.js test/radar-discovery-quality.test.js test/radar-robinhood-pons-quality-p0.test.js test/radar-pre-catalyst.test.js
+        run: node --test test/radar-intel.test.js test/radar-v4.test.js test/radar-immutable-snapshot.test.js test/radar-near-match.test.js test/radar-v5-quality.test.js test/radar-v5-final.test.js test/radar-research-order.test.js test/radar-v6-top10.test.js test/radar-v6-owner-top10.test.js test/radar-v8-custom-top10.test.js test/radar-p0-production.test.js test/radar-pons-ledger.test.js test/radar-snapshot-freshness.test.js test/radar-discovery-quality.test.js test/radar-robinhood-pons-quality-p0.test.js test/radar-pre-catalyst.test.js test/radar-snapshot-reliability.test.js test/radar-freshness-release-326.test.js test/radar-pons-membership-integrity.test.js test/radar-railway-dispatch.test.js test/radar-railway-dispatch-reliability.test.js
       - name: Check out data branch (or create it the first time)
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -145,10 +155,12 @@ jobs:
           const sha=process.env.PUBLISHED_SHA,ref=process.env.DATA_REF;
           (async()=>{
            for(let i=0;i<12;i++){
-            const r=await fetch("https://raw.githubusercontent.com/${{ github.repository }}/"+sha+"/radar-v4/snapshot.json");
+            try{
+            const r=await fetch("https://raw.githubusercontent.com/${{ github.repository }}/"+sha+"/radar-v4/snapshot.json",{redirect:"error",signal:AbortSignal.timeout(10000)});
             if(r.ok){const j=await r.json();const v=S.validate(j);
              console.log("::notice title=radar-v4 readback::"+JSON.stringify({ref,sha,firstRun:process.env.FIRST_RUN,http:r.status,valid:v,generatedAt:j.generatedAt,shown:Object.fromEntries(Object.entries(j.sections).map(([n,x])=>[n,x.rows.length]))}));
-             if(!v.ok)process.exit(4);return;}
+             if(!v.ok||j.engineCommit!==process.env.GITHUB_SHA)process.exit(4);return;}
+            }catch(e){console.log("::warning title=radar-v4 readback retry::"+String(e?.name||"FETCH_FAILED"));}
             await new Promise(r=>setTimeout(r,10000));
            }
            console.log("::error title=radar-v4 readback::published snapshot not readable");process.exit(5);
@@ -168,6 +180,8 @@ jobs:
           REPO: ${{ github.repository }}
           LEVEL: ${{ needs.freshness.outputs.level }}
           AGE: ${{ needs.freshness.outputs.age_min }}
+          OLDEST_SECTION_AGE: ${{ needs.freshness.outputs.oldest_section_age_min }}
+          SECTION_LEVELS: ${{ needs.freshness.outputs.section_levels }}
           BUILD: ${{ needs.snapshot.result }}
           DEGRADED: ${{ needs.snapshot.outputs.degraded }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -175,7 +189,7 @@ jobs:
           title="Radar Production snapshot needs attention"
           num=$(gh issue list -R "$REPO" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
           if [ "$BUILD" = "failure" ] || [ "$BUILD" = "cancelled" ] || { [ "$BUILD" = "skipped" ] && [ "$LEVEL" != "FRESH" ]; }; then
-            body="Production snapshot build: ${BUILD}. Published snapshot age before this run: ${AGE:-unknown} min (level ${LEVEL}). Run: ${RUN_URL}. The site keeps serving the last valid snapshot (STALE after 6 h, legacy fallback after 24 h) until a run publishes again."
+            body="Production snapshot build: ${BUILD}. Publication age before this run: ${AGE:-unknown} min; oldest observed section: ${OLDEST_SECTION_AGE:-unknown} min (level ${LEVEL}; section levels ${SECTION_LEVELS:-unknown}). Run: ${RUN_URL}. The site keeps serving the last valid snapshot (STALE after 6 h, legacy fallback after 24 h) until a run publishes again."
             echo "::error title=Radar snapshot alert::$body"
             if [ -n "$num" ]; then gh issue comment "$num" -R "$REPO" --body "$body"; else gh issue create -R "$REPO" --title "$title" --body "$body"; fi
           elif [ "$BUILD" = "success" ] && [ -n "$DEGRADED" ]; then
