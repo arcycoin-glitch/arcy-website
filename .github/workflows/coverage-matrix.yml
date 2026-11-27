@@ -1,5 +1,6 @@
 name: Coverage matrix (read-only, #337)
 # Fixed 40-token x every Search card field evidence matrix, measured against PRODUCTION (read-only GETs). No secrets.
+# Production verification trigger: #352 liquidity coverage release (33d7c9c).
 on:
   pull_request:
     paths:
