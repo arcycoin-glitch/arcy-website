@@ -16,7 +16,8 @@ const PROFILES=Object.freeze({
  '1716a2d2068f5816644c6717836c817a11dda64ca3f99b6223efad2764f1824b':'COMPLIANCE_ROLE_TOKEN',
  '697ac51ddd373bb754030b8f10021c0e17ef54912b3ebf9c5d1845d8d698bc43':'COMPLIANCE_ROLE_TOKEN',
  'd39017d4a57fc82f293ddf7d7b780064636a94ba6f66d4bca5be6fb5d17762f5':'COMPLIANCE_ROLE_TOKEN',
- '8b0d6fcd1ea483267b044f497bbf6389e565c88a4b9cbe4390b471590497626f':'UPGRADEABLE_NO_DIRECT_MINT'
+ '8b0d6fcd1ea483267b044f497bbf6389e565c88a4b9cbe4390b471590497626f':'UPGRADEABLE_NO_DIRECT_MINT',
+ ...require('./mechanics-yul').REVIEWED
 });
 const PROXY_SOURCES=Object.freeze({
  '4622819b48b8b59aa16f771794980f7d976ad2e5c7b8131cef249f35bce94f3d':'REVIEWED_TRANSPARENT_EIP1967',
@@ -100,6 +101,20 @@ async function apply({profile,fields,details,proof,fact,word,call,address,block,
    ...proof,launchFactory:factory,scope:'Factory controls initial-buy recipient exemption. Deployer metadata is not ownership; transfer limits and expiry remain distinct from taxes.'},'VERIFIED_SOURCE_AND_STATE');
   for(const signature of ['poolFee()','restrictionEndBlock()','maxWalletBps()','maxTxBps()']){
    const raw=await word(address,signature);if(raw)details.observations.push({method:signature,raw:BigInt(raw).toString(),block,...proof,scope:'Reviewed configured parameter; pool fees/restrictions are not token trading-tax percentages.'});
+  }
+ }
+ if(profile==='IMMUTABLE_LAUNCH_RESTRICTIONS'){
+  // Complete runtime review of the exact matched Yul object (see mechanics-yul.js REVIEWED). Fields only for the non-delegating
+  // runtime that the record matched; restriction state is read at the pinned block below.
+  fields.tradingTaxes=noTokenFee('Every permitted transfer debits and credits the same value with one Transfer event. Launch-block and restriction-window buy limits (max wallet, cumulative buy per tx.origin) can revert; they never deduct. poolFee is the configured pool fee tier, not a token tax.');
+  if(direct){
+   fields.mintCapability=fact('NONE DETECTED ✓','Reviewed complete runtime: no write to totalSupply after construction',{
+    ...proof,scope:'Supply is minted once in the constructor. The runtime has exactly five storage writes (allowances, balances, cumulative-buy counter) and no issuance path.'},'VERIFIED_SOURCE');
+   fields.ownerAdmin=fields.ownerAdmin||fact('NONE DETECTED ✓','Reviewed complete runtime: no owner/admin storage, no setter, all parameters immutable',{
+    ...proof,scope:'No privileged function exists in this exact runtime: no owner, role, pause, blacklist or parameter setter; launchFactory and deployer only appear as immutable exemptions from the launch buy limits. External pool, factory or hook privileges are not audited here.'},'VERIFIED_SOURCE');
+  }
+  for(const signature of ['restrictionEndBlock()','poolFee()']){
+   const raw=await word(address,signature);if(raw)details.observations.push({method:signature,raw:BigInt(raw).toString(),block,...proof,scope:'Reviewed immutable parameter; launch limits and pool fee tier are not token tax percentages.'});
   }
  }
  if(profile==='COMPLIANCE_ROLE_TOKEN'){

@@ -48,6 +48,7 @@ const CAPABILITIES=Object.freeze({
  FIXED_SUPPLY_POOL_SETUP:['LAUNCH_LIMITS','MAX_WALLET'],
  MINIME_CONTROLLED:['TRADING_TOGGLE','CONTROLLER_VETO'],
  FIXED_LAUNCH_RESTRICTIONS:['LAUNCH_LIMITS','MAX_WALLET','BUY_LIMITS'],
+ IMMUTABLE_LAUNCH_RESTRICTIONS:['LAUNCH_LIMITS','MAX_WALLET','BUY_LIMITS'],
  ROLE_TIMELOCK_TRANSFER:['TRANSFER_ROLE_GATE','INVESTOR_VESTING'],
  OWNER_RULES_BLACKLIST_FIXED_SUPPLY:['BLACKLIST','PAIR_SETUP_GATE','BUY_HOLDING_LIMITS']
 });
@@ -110,7 +111,7 @@ async function derive({profile,fields,details,proof,word,address,block,kind=null
   return out(o?(o.value?'Controller-gated transfers · enabled':'Transfers DISABLED by controller'):'Controller-gated transfers','Reviewed MiniMe transfersEnabled + controller onTransfer hook'+(o?' + pinned transfersEnabled()':''),
    'The controller can disable all transfers (enableTransfers) and, when it is a contract, veto each transfer through onTransfer; the controller can also move tokens without allowance and destroy balances (see Owner & Admin).',o?'VERIFIED_SOURCE_AND_STATE':'VERIFIED_SOURCE',o?{transfersEnabled:o.value}:{});
  }
- if(profile==='FIXED_LAUNCH_RESTRICTIONS'){
+ if(profile==='FIXED_LAUNCH_RESTRICTIONS'||profile==='IMMUTABLE_LAUNCH_RESTRICTIONS'){
   const end=observation(details,proof,block,'restrictionEndBlock()',x=>/^\d+$/.test(x.raw||''));
   if(!end||!/^0x[0-9a-f]+$/i.test(block||''))return null;
   const active=BigInt(block)<=BigInt(end.raw);
