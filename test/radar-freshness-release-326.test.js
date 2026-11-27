@@ -19,6 +19,9 @@ test('future or malformed publication and source timestamps never masquerade as 
 test('snapshot freshness watchdog covers a hanging response body and HTTP failures',async()=>{
  await assert.rejects(F.readSnapshot('https://example.test',{timeoutMs:15,fetcher:async()=>({ok:true,text:()=>new Promise(()=>{})})}),e=>e.code==='SNAPSHOT_TIMEOUT');
  await assert.rejects(F.readSnapshot('https://example.test',{fetcher:async()=>({ok:false,status:503})}),e=>e.code==='HTTP_503');
+ let cancelled=false;
+ await assert.rejects(F.readSnapshot('https://example.test',{fetcher:async()=>new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array(3000001));},cancel(){cancelled=true;}}))}),e=>e.code==='SNAPSHOT_TOO_LARGE');
+ assert.equal(cancelled,true,'oversized snapshot stream is not retained');
 });
 test('serialized scheduler dispatch has an opt-in server freshness gate and preview stays the default',()=>{
  const workflow=fs.readFileSync(require('node:path').join(__dirname,'../.github/workflows/radar-v4-snapshot.yml'),'utf8');

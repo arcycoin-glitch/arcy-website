@@ -39,7 +39,15 @@ async function readSnapshot(url,{fetcher=global.fetch,timeoutMs=20000}={}){
  try{return await Promise.race([(async()=>{
   response=await fetcher(url,{headers:{accept:'application/json','cache-control':'no-cache'},redirect:'error',signal:controller.signal});
   if(!response.ok)throw Object.assign(Error('SNAPSHOT_HTTP'),{code:'HTTP_'+response.status});
-  const text=await response.text();if(Buffer.byteLength(text)>3000000)throw Object.assign(Error('SNAPSHOT_SIZE'),{code:'SNAPSHOT_TOO_LARGE'});
+  let text;
+  if(response.body?.getReader){
+   const reader=response.body.getReader(),parts=[];let bytes=0;
+   try{for(;;){const part=await reader.read();if(part.done)break;bytes+=part.value.byteLength;
+    if(bytes>3000000)throw Object.assign(Error('SNAPSHOT_SIZE'),{code:'SNAPSHOT_TOO_LARGE'});parts.push(Buffer.from(part.value));}
+    text=Buffer.concat(parts).toString('utf8');
+   }catch(error){Promise.resolve().then(()=>reader.cancel()).catch(()=>{});throw error;}
+  }else text=await response.text();
+  if(Buffer.byteLength(text)>3000000)throw Object.assign(Error('SNAPSHOT_SIZE'),{code:'SNAPSHOT_TOO_LARGE'});
   return JSON.parse(text);
  })(),new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();Promise.resolve().then(()=>response?.body?.cancel?.()).catch(()=>{});reject(Object.assign(Error('SNAPSHOT_TIMEOUT'),{code:'SNAPSHOT_TIMEOUT'}));},timeoutMs);})]);}
  finally{clearTimeout(timer);}

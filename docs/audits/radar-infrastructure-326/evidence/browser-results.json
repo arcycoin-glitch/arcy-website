@@ -1,0 +1,645 @@
+{
+  "base": "https://www.arcyusdc.xyz",
+  "at": "2026-11-27T07:04:31.548Z",
+  "records": [
+    {
+      "network": "pons",
+      "width": 320,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "pons"
+      ],
+      "rows": [
+        "/search/token/robinhood/0xaa07a0e9209e16ac99708c3ec70159c6ef3128a3",
+        "/search/token/robinhood/0xedbf91223639800bcd5756815caf908df3b890be",
+        "/search/token/robinhood/0x6511c233790ec10f7d673c64dc82c3f941d57828",
+        "/search/token/robinhood/0xe8ffd7e24187f72afb08d75b1bb13088a989a791",
+        "/search/token/robinhood/0x39dbed3a2bd333467115de45665cc57f813c4571",
+        "/search/token/robinhood/0x07ebb29a38fbcb41563817e5e19f2cec619c90d2",
+        "/search/token/robinhood/0x7fe995a80075df3dc8ae11a9b82c7fe4202cd87f",
+        "/search/token/robinhood/0x7dbf38976f6d3b9c529e7d9484a71898b409ee6a",
+        "/search/token/robinhood/0x1f243c6638a6becd787f326b240227687a3835bc",
+        "/search/token/robinhood/0x2acfaedcb9e1e1f69cf50a7ea7bab5afa0868c19"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "pons",
+      "width": 390,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "pons"
+      ],
+      "rows": [
+        "/search/token/robinhood/0xaa07a0e9209e16ac99708c3ec70159c6ef3128a3",
+        "/search/token/robinhood/0xedbf91223639800bcd5756815caf908df3b890be",
+        "/search/token/robinhood/0x6511c233790ec10f7d673c64dc82c3f941d57828",
+        "/search/token/robinhood/0xe8ffd7e24187f72afb08d75b1bb13088a989a791",
+        "/search/token/robinhood/0x39dbed3a2bd333467115de45665cc57f813c4571",
+        "/search/token/robinhood/0x07ebb29a38fbcb41563817e5e19f2cec619c90d2",
+        "/search/token/robinhood/0x7fe995a80075df3dc8ae11a9b82c7fe4202cd87f",
+        "/search/token/robinhood/0x7dbf38976f6d3b9c529e7d9484a71898b409ee6a",
+        "/search/token/robinhood/0x1f243c6638a6becd787f326b240227687a3835bc",
+        "/search/token/robinhood/0x2acfaedcb9e1e1f69cf50a7ea7bab5afa0868c19"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "pons",
+      "width": 800,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "pons"
+      ],
+      "rows": [
+        "/search/token/robinhood/0xaa07a0e9209e16ac99708c3ec70159c6ef3128a3",
+        "/search/token/robinhood/0xedbf91223639800bcd5756815caf908df3b890be",
+        "/search/token/robinhood/0x6511c233790ec10f7d673c64dc82c3f941d57828",
+        "/search/token/robinhood/0xe8ffd7e24187f72afb08d75b1bb13088a989a791",
+        "/search/token/robinhood/0x39dbed3a2bd333467115de45665cc57f813c4571",
+        "/search/token/robinhood/0x07ebb29a38fbcb41563817e5e19f2cec619c90d2",
+        "/search/token/robinhood/0x7fe995a80075df3dc8ae11a9b82c7fe4202cd87f",
+        "/search/token/robinhood/0x7dbf38976f6d3b9c529e7d9484a71898b409ee6a",
+        "/search/token/robinhood/0x1f243c6638a6becd787f326b240227687a3835bc",
+        "/search/token/robinhood/0x2acfaedcb9e1e1f69cf50a7ea7bab5afa0868c19"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "pons",
+      "width": 1024,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "pons"
+      ],
+      "rows": [
+        "/search/token/robinhood/0xaa07a0e9209e16ac99708c3ec70159c6ef3128a3",
+        "/search/token/robinhood/0xedbf91223639800bcd5756815caf908df3b890be",
+        "/search/token/robinhood/0x6511c233790ec10f7d673c64dc82c3f941d57828",
+        "/search/token/robinhood/0xe8ffd7e24187f72afb08d75b1bb13088a989a791",
+        "/search/token/robinhood/0x39dbed3a2bd333467115de45665cc57f813c4571",
+        "/search/token/robinhood/0x07ebb29a38fbcb41563817e5e19f2cec619c90d2",
+        "/search/token/robinhood/0x7fe995a80075df3dc8ae11a9b82c7fe4202cd87f",
+        "/search/token/robinhood/0x7dbf38976f6d3b9c529e7d9484a71898b409ee6a",
+        "/search/token/robinhood/0x1f243c6638a6becd787f326b240227687a3835bc",
+        "/search/token/robinhood/0x2acfaedcb9e1e1f69cf50a7ea7bab5afa0868c19"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "pons",
+      "width": 1440,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "pons"
+      ],
+      "rows": [
+        "/search/token/robinhood/0xaa07a0e9209e16ac99708c3ec70159c6ef3128a3",
+        "/search/token/robinhood/0xedbf91223639800bcd5756815caf908df3b890be",
+        "/search/token/robinhood/0x6511c233790ec10f7d673c64dc82c3f941d57828",
+        "/search/token/robinhood/0xe8ffd7e24187f72afb08d75b1bb13088a989a791",
+        "/search/token/robinhood/0x39dbed3a2bd333467115de45665cc57f813c4571",
+        "/search/token/robinhood/0x07ebb29a38fbcb41563817e5e19f2cec619c90d2",
+        "/search/token/robinhood/0x7fe995a80075df3dc8ae11a9b82c7fe4202cd87f",
+        "/search/token/robinhood/0x7dbf38976f6d3b9c529e7d9484a71898b409ee6a",
+        "/search/token/robinhood/0x1f243c6638a6becd787f326b240227687a3835bc",
+        "/search/token/robinhood/0x2acfaedcb9e1e1f69cf50a7ea7bab5afa0868c19"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "arc",
+      "width": 320,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "arc"
+      ],
+      "rows": [
+        "/search/token/arc/0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed",
+        "/search/token/arc/0xece5ca8bf9220718e5727754026757512212cb3c",
+        "/search/token/arc/0xd36687146385f7dc84a18fea3d00319d39d6d1a0",
+        "/search/token/arc/0x394d38f807ee0027a182216f5e67a15ae441fa2e",
+        "/search/token/arc/0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+        "/search/token/arc/0x29316db42ff99f640fd4d1bb169635b6318cd430",
+        "/search/token/arc/0x08adbf431569a1aacac2606d2adcd18f4ebf2a71",
+        "/search/token/arc/0x643098f125e765081fec0b67384bfe5ca498f24a",
+        "/search/token/arc/0xa37c1f9b2483b3b45ced74b10e19223aa76d18f2",
+        "/search/token/arc/0x28f986a61e078795639f239675582a12b4cf7f01"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "arc",
+      "width": 390,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "arc"
+      ],
+      "rows": [
+        "/search/token/arc/0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed",
+        "/search/token/arc/0xece5ca8bf9220718e5727754026757512212cb3c",
+        "/search/token/arc/0xd36687146385f7dc84a18fea3d00319d39d6d1a0",
+        "/search/token/arc/0x394d38f807ee0027a182216f5e67a15ae441fa2e",
+        "/search/token/arc/0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+        "/search/token/arc/0x29316db42ff99f640fd4d1bb169635b6318cd430",
+        "/search/token/arc/0x08adbf431569a1aacac2606d2adcd18f4ebf2a71",
+        "/search/token/arc/0x643098f125e765081fec0b67384bfe5ca498f24a",
+        "/search/token/arc/0xa37c1f9b2483b3b45ced74b10e19223aa76d18f2",
+        "/search/token/arc/0x28f986a61e078795639f239675582a12b4cf7f01"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "arc",
+      "width": 800,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "arc"
+      ],
+      "rows": [
+        "/search/token/arc/0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed",
+        "/search/token/arc/0xece5ca8bf9220718e5727754026757512212cb3c",
+        "/search/token/arc/0xd36687146385f7dc84a18fea3d00319d39d6d1a0",
+        "/search/token/arc/0x394d38f807ee0027a182216f5e67a15ae441fa2e",
+        "/search/token/arc/0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+        "/search/token/arc/0x29316db42ff99f640fd4d1bb169635b6318cd430",
+        "/search/token/arc/0x08adbf431569a1aacac2606d2adcd18f4ebf2a71",
+        "/search/token/arc/0x643098f125e765081fec0b67384bfe5ca498f24a",
+        "/search/token/arc/0xa37c1f9b2483b3b45ced74b10e19223aa76d18f2",
+        "/search/token/arc/0x28f986a61e078795639f239675582a12b4cf7f01"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "arc",
+      "width": 1024,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "arc"
+      ],
+      "rows": [
+        "/search/token/arc/0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed",
+        "/search/token/arc/0xece5ca8bf9220718e5727754026757512212cb3c",
+        "/search/token/arc/0xd36687146385f7dc84a18fea3d00319d39d6d1a0",
+        "/search/token/arc/0x394d38f807ee0027a182216f5e67a15ae441fa2e",
+        "/search/token/arc/0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+        "/search/token/arc/0x29316db42ff99f640fd4d1bb169635b6318cd430",
+        "/search/token/arc/0x08adbf431569a1aacac2606d2adcd18f4ebf2a71",
+        "/search/token/arc/0x643098f125e765081fec0b67384bfe5ca498f24a",
+        "/search/token/arc/0xa37c1f9b2483b3b45ced74b10e19223aa76d18f2",
+        "/search/token/arc/0x28f986a61e078795639f239675582a12b4cf7f01"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "arc",
+      "width": 1440,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "arc"
+      ],
+      "rows": [
+        "/search/token/arc/0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed",
+        "/search/token/arc/0xece5ca8bf9220718e5727754026757512212cb3c",
+        "/search/token/arc/0xd36687146385f7dc84a18fea3d00319d39d6d1a0",
+        "/search/token/arc/0x394d38f807ee0027a182216f5e67a15ae441fa2e",
+        "/search/token/arc/0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+        "/search/token/arc/0x29316db42ff99f640fd4d1bb169635b6318cd430",
+        "/search/token/arc/0x08adbf431569a1aacac2606d2adcd18f4ebf2a71",
+        "/search/token/arc/0x643098f125e765081fec0b67384bfe5ca498f24a",
+        "/search/token/arc/0xa37c1f9b2483b3b45ced74b10e19223aa76d18f2",
+        "/search/token/arc/0x28f986a61e078795639f239675582a12b4cf7f01"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "ethereum",
+      "width": 320,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "ethereum"
+      ],
+      "rows": [
+        "/search/token/ethereum/0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
+        "/search/token/ethereum/0x56072c95faa701256059aa122697b133aded9279",
+        "/search/token/ethereum/0x57e114b691db790c35207b2e685d4a43181e6061",
+        "/search/token/ethereum/0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+        "/search/token/ethereum/0x5a98fcbea516cf06857215779fd812ca3bef1b32",
+        "/search/token/ethereum/0x514910771af9ca656af840dff83e8264ecf986ca",
+        "/search/token/ethereum/0x0b38210ea11411557c13457d4da7dc6ea731b88a",
+        "/search/token/ethereum/0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+        "/search/token/ethereum/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+        "/search/token/ethereum/0xc944e90c64b2c07662a292be6244bdf05cda44a7"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "ethereum",
+      "width": 390,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "ethereum"
+      ],
+      "rows": [
+        "/search/token/ethereum/0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
+        "/search/token/ethereum/0x56072c95faa701256059aa122697b133aded9279",
+        "/search/token/ethereum/0x57e114b691db790c35207b2e685d4a43181e6061",
+        "/search/token/ethereum/0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+        "/search/token/ethereum/0x5a98fcbea516cf06857215779fd812ca3bef1b32",
+        "/search/token/ethereum/0x514910771af9ca656af840dff83e8264ecf986ca",
+        "/search/token/ethereum/0x0b38210ea11411557c13457d4da7dc6ea731b88a",
+        "/search/token/ethereum/0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+        "/search/token/ethereum/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+        "/search/token/ethereum/0xc944e90c64b2c07662a292be6244bdf05cda44a7"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "ethereum",
+      "width": 800,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "ethereum"
+      ],
+      "rows": [
+        "/search/token/ethereum/0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
+        "/search/token/ethereum/0x56072c95faa701256059aa122697b133aded9279",
+        "/search/token/ethereum/0x57e114b691db790c35207b2e685d4a43181e6061",
+        "/search/token/ethereum/0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+        "/search/token/ethereum/0x5a98fcbea516cf06857215779fd812ca3bef1b32",
+        "/search/token/ethereum/0x514910771af9ca656af840dff83e8264ecf986ca",
+        "/search/token/ethereum/0x0b38210ea11411557c13457d4da7dc6ea731b88a",
+        "/search/token/ethereum/0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+        "/search/token/ethereum/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+        "/search/token/ethereum/0xc944e90c64b2c07662a292be6244bdf05cda44a7"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "ethereum",
+      "width": 1024,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "ethereum"
+      ],
+      "rows": [
+        "/search/token/ethereum/0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
+        "/search/token/ethereum/0x56072c95faa701256059aa122697b133aded9279",
+        "/search/token/ethereum/0x57e114b691db790c35207b2e685d4a43181e6061",
+        "/search/token/ethereum/0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+        "/search/token/ethereum/0x5a98fcbea516cf06857215779fd812ca3bef1b32",
+        "/search/token/ethereum/0x514910771af9ca656af840dff83e8264ecf986ca",
+        "/search/token/ethereum/0x0b38210ea11411557c13457d4da7dc6ea731b88a",
+        "/search/token/ethereum/0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+        "/search/token/ethereum/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+        "/search/token/ethereum/0xc944e90c64b2c07662a292be6244bdf05cda44a7"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "ethereum",
+      "width": 1440,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "ethereum"
+      ],
+      "rows": [
+        "/search/token/ethereum/0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
+        "/search/token/ethereum/0x56072c95faa701256059aa122697b133aded9279",
+        "/search/token/ethereum/0x57e114b691db790c35207b2e685d4a43181e6061",
+        "/search/token/ethereum/0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+        "/search/token/ethereum/0x5a98fcbea516cf06857215779fd812ca3bef1b32",
+        "/search/token/ethereum/0x514910771af9ca656af840dff83e8264ecf986ca",
+        "/search/token/ethereum/0x0b38210ea11411557c13457d4da7dc6ea731b88a",
+        "/search/token/ethereum/0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+        "/search/token/ethereum/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+        "/search/token/ethereum/0xc944e90c64b2c07662a292be6244bdf05cda44a7"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "robinhood",
+      "width": 320,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "robinhood"
+      ],
+      "rows": [
+        "/search/token/robinhood/0x2d8d6f4a93acd7a916a5a654ec8b690ba3b3eadd",
+        "/search/token/robinhood/0x000de658153f47f23e92973c8eb1e89762703676",
+        "/search/token/robinhood/0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111",
+        "/search/token/robinhood/0xe934e36a439c94017b64a3fece66af12099abf50",
+        "/search/token/robinhood/0xfce34d21a92069100e3226638140706cf03a266e",
+        "/search/token/robinhood/0x18e674231a58c239dc7daedcffe15ec3a24cff5c",
+        "/search/token/robinhood/0x020bfc650a365f8bb26819deaabf3e21291018b4",
+        "/search/token/robinhood/0xf3081494b87e8d5fb7960f066e931d1d0e6e3d67",
+        "/search/token/robinhood/0x88ad8ddf1e3898412146a534538d418c6f8a9062",
+        "/search/token/robinhood/0x45242320dbb855eea8fd36804c6487e10e97fcf9"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "robinhood",
+      "width": 390,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "robinhood"
+      ],
+      "rows": [
+        "/search/token/robinhood/0x2d8d6f4a93acd7a916a5a654ec8b690ba3b3eadd",
+        "/search/token/robinhood/0x000de658153f47f23e92973c8eb1e89762703676",
+        "/search/token/robinhood/0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111",
+        "/search/token/robinhood/0xe934e36a439c94017b64a3fece66af12099abf50",
+        "/search/token/robinhood/0xfce34d21a92069100e3226638140706cf03a266e",
+        "/search/token/robinhood/0x18e674231a58c239dc7daedcffe15ec3a24cff5c",
+        "/search/token/robinhood/0x020bfc650a365f8bb26819deaabf3e21291018b4",
+        "/search/token/robinhood/0xf3081494b87e8d5fb7960f066e931d1d0e6e3d67",
+        "/search/token/robinhood/0x88ad8ddf1e3898412146a534538d418c6f8a9062",
+        "/search/token/robinhood/0x45242320dbb855eea8fd36804c6487e10e97fcf9"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "robinhood",
+      "width": 800,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "robinhood"
+      ],
+      "rows": [
+        "/search/token/robinhood/0x2d8d6f4a93acd7a916a5a654ec8b690ba3b3eadd",
+        "/search/token/robinhood/0x000de658153f47f23e92973c8eb1e89762703676",
+        "/search/token/robinhood/0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111",
+        "/search/token/robinhood/0xe934e36a439c94017b64a3fece66af12099abf50",
+        "/search/token/robinhood/0xfce34d21a92069100e3226638140706cf03a266e",
+        "/search/token/robinhood/0x18e674231a58c239dc7daedcffe15ec3a24cff5c",
+        "/search/token/robinhood/0x020bfc650a365f8bb26819deaabf3e21291018b4",
+        "/search/token/robinhood/0xf3081494b87e8d5fb7960f066e931d1d0e6e3d67",
+        "/search/token/robinhood/0x88ad8ddf1e3898412146a534538d418c6f8a9062",
+        "/search/token/robinhood/0x45242320dbb855eea8fd36804c6487e10e97fcf9"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "robinhood",
+      "width": 1024,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "robinhood"
+      ],
+      "rows": [
+        "/search/token/robinhood/0x2d8d6f4a93acd7a916a5a654ec8b690ba3b3eadd",
+        "/search/token/robinhood/0x000de658153f47f23e92973c8eb1e89762703676",
+        "/search/token/robinhood/0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111",
+        "/search/token/robinhood/0xe934e36a439c94017b64a3fece66af12099abf50",
+        "/search/token/robinhood/0xfce34d21a92069100e3226638140706cf03a266e",
+        "/search/token/robinhood/0x18e674231a58c239dc7daedcffe15ec3a24cff5c",
+        "/search/token/robinhood/0x020bfc650a365f8bb26819deaabf3e21291018b4",
+        "/search/token/robinhood/0xf3081494b87e8d5fb7960f066e931d1d0e6e3d67",
+        "/search/token/robinhood/0x88ad8ddf1e3898412146a534538d418c6f8a9062",
+        "/search/token/robinhood/0x45242320dbb855eea8fd36804c6487e10e97fcf9"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    },
+    {
+      "network": "robinhood",
+      "width": 1440,
+      "overflow": 0,
+      "tabs": [
+        "pons",
+        "arc",
+        "ethereum",
+        "robinhood"
+      ],
+      "visible": [
+        "robinhood"
+      ],
+      "rows": [
+        "/search/token/robinhood/0x2d8d6f4a93acd7a916a5a654ec8b690ba3b3eadd",
+        "/search/token/robinhood/0x000de658153f47f23e92973c8eb1e89762703676",
+        "/search/token/robinhood/0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111",
+        "/search/token/robinhood/0xe934e36a439c94017b64a3fece66af12099abf50",
+        "/search/token/robinhood/0xfce34d21a92069100e3226638140706cf03a266e",
+        "/search/token/robinhood/0x18e674231a58c239dc7daedcffe15ec3a24cff5c",
+        "/search/token/robinhood/0x020bfc650a365f8bb26819deaabf3e21291018b4",
+        "/search/token/robinhood/0xf3081494b87e8d5fb7960f066e931d1d0e6e3d67",
+        "/search/token/robinhood/0x88ad8ddf1e3898412146a534538d418c6f8a9062",
+        "/search/token/robinhood/0x45242320dbb855eea8fd36804c6487e10e97fcf9"
+      ],
+      "info": 10,
+      "state": "10 candidates · ? provider-returned pools inspected · 0 fields NOT VERIFIED · As of 07:37 AM"
+    }
+  ],
+  "responses": [
+    {
+      "network": "robinhood",
+      "http": 200,
+      "count": 10,
+      "asOf": "2026-11-27T04:37:54.673Z",
+      "freshness": "FRESH",
+      "addresses": [
+        "0x2d8d6f4a93acd7a916a5a654ec8b690ba3b3eadd",
+        "0x000de658153f47f23e92973c8eb1e89762703676",
+        "0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111",
+        "0xe934e36a439c94017b64a3fece66af12099abf50",
+        "0xfce34d21a92069100e3226638140706cf03a266e",
+        "0x18e674231a58c239dc7daedcffe15ec3a24cff5c",
+        "0x020bfc650a365f8bb26819deaabf3e21291018b4",
+        "0xf3081494b87e8d5fb7960f066e931d1d0e6e3d67",
+        "0x88ad8ddf1e3898412146a534538d418c6f8a9062",
+        "0x45242320dbb855eea8fd36804c6487e10e97fcf9"
+      ]
+    },
+    {
+      "network": "arc",
+      "http": 200,
+      "count": 10,
+      "asOf": "2026-11-27T04:37:54.673Z",
+      "freshness": "FRESH",
+      "addresses": [
+        "0x4621a0baa0b5d97aae77704cf2a84dabe78a4fed",
+        "0xece5ca8bf9220718e5727754026757512212cb3c",
+        "0xd36687146385f7dc84a18fea3d00319d39d6d1a0",
+        "0x394d38f807ee0027a182216f5e67a15ae441fa2e",
+        "0xbc43ce8dec648ea298c4275559b81d6261c90b67",
+        "0x29316db42ff99f640fd4d1bb169635b6318cd430",
+        "0x08adbf431569a1aacac2606d2adcd18f4ebf2a71",
+        "0x643098f125e765081fec0b67384bfe5ca498f24a",
+        "0xa37c1f9b2483b3b45ced74b10e19223aa76d18f2",
+        "0x28f986a61e078795639f239675582a12b4cf7f01"
+      ]
+    },
+    {
+      "network": "ethereum",
+      "http": 200,
+      "count": 10,
+      "asOf": "2026-11-27T04:37:54.673Z",
+      "freshness": "FRESH",
+      "addresses": [
+        "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
+        "0x56072c95faa701256059aa122697b133aded9279",
+        "0x57e114b691db790c35207b2e685d4a43181e6061",
+        "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+        "0x5a98fcbea516cf06857215779fd812ca3bef1b32",
+        "0x514910771af9ca656af840dff83e8264ecf986ca",
+        "0x0b38210ea11411557c13457d4da7dc6ea731b88a",
+        "0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+        "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+        "0xc944e90c64b2c07662a292be6244bdf05cda44a7"
+      ]
+    },
+    {
+      "network": "pons",
+      "http": 200,
+      "count": 10,
+      "asOf": "2026-11-27T04:37:54.673Z",
+      "freshness": "FRESH",
+      "addresses": [
+        "0xaa07a0e9209e16ac99708c3ec70159c6ef3128a3",
+        "0xedbf91223639800bcd5756815caf908df3b890be",
+        "0x6511c233790ec10f7d673c64dc82c3f941d57828",
+        "0xe8ffd7e24187f72afb08d75b1bb13088a989a791",
+        "0x39dbed3a2bd333467115de45665cc57f813c4571",
+        "0x07ebb29a38fbcb41563817e5e19f2cec619c90d2",
+        "0x7fe995a80075df3dc8ae11a9b82c7fe4202cd87f",
+        "0x7dbf38976f6d3b9c529e7d9484a71898b409ee6a",
+        "0x1f243c6638a6becd787f326b240227687a3835bc",
+        "0x2acfaedcb9e1e1f69cf50a7ea7bab5afa0868c19"
+      ]
+    }
+  ],
+  "errors": []
+}

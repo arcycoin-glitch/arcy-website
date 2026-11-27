@@ -58,6 +58,17 @@ async function audit(snapshot,{onchain=false,now=Date.now()}={}){
    const code=await rpc(n,listed.map(r=>['eth_getCode',[r.address,block]]));
    result.onchain[n]={chainId:expected[n],block,provider:new URL(chain(n).publicRpc).hostname,
     code:listed.map((r,i)=>({section:r.section,address:r.address,codePresent:/^0x(?:[0-9a-f]{2})+$/i.test(code[i]||''),bytes:(code[i]?.length-2)/2}))};
+   if(n==='robinhood')try{
+    const pons=require('../lib/radar-v2/pons'),{PONS}=require('../lib/radar-v2/sources');
+    const launches=listed.filter(r=>r.section==='pons');
+    const requests=PONS.factories.flatMap(factory=>launches.map(row=>({factory,address:row.address,
+     call:['eth_call',[{to:factory,data:pons.calldata(pons.SEL.getLaunchedToken,row.address)},block]]})));
+    const replies=await rpc(n,requests.map(r=>r.call));
+    const observations=requests.map((r,i)=>({...r,raw:replies[i],...pons.launchObservation(replies[i],r.address,PONS.versions[r.factory])}));
+    result.ponsMembership={chainId:4663,block,method:'Pinned getLaunchedToken(address) at each official factory',logicalReads:requests.length,
+     verified:launches.filter(r=>observations.some(o=>o.address===r.address&&o.status==='MEMBER')).length,
+     observations:observations.map(({call,...r})=>r)};
+   }catch(e){result.ponsMembership={chainId:4663,block,error:e.message};}
   }catch(e){result.onchain[n]={error:e.message};}
   try{
    const market=await require('../lib/radar-v2/dexscreener').tokens(n,listed.map(r=>r.address),{fetcher:global.fetch,now:Date.now});
