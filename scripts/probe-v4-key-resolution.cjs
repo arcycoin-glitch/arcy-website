@@ -26,19 +26,10 @@ const signed = (x, bits) => { const m = 1n << BigInt(bits); x &= m - 1n; return 
       const counted = async (m, p) => { calls++; return rpc(m, p); };
       let res;
       try {
-        const head = parseInt(block, 16), cb = await C.creationBlock(counted, { stateView: v.stateView, poolId: id, head });
-        const logs = await counted('eth_getLogs', [{ address: v.poolManager, topics: [INIT, id], fromBlock: '0x' + cb.toString(16), toBlock: '0x' + cb.toString(16) }]);
-        if (!Array.isArray(logs) || logs.length !== 1) {
-          // diagnostics: wider +/-2 block window and the unfiltered-by-id events of that block
-          let near = null;
-          try { const w = await rpc('eth_getLogs', [{ address: v.poolManager, topics: [INIT], fromBlock: '0x' + Math.max(0, cb - 300).toString(16), toBlock: '0x' + (cb + 300).toString(16) }]);
-            near = Array.isArray(w) ? { n: w.length, match: w.filter(x => (x.topics[1] || '').toLowerCase() === id.toLowerCase()).map(x => parseInt(x.blockNumber, 16) - cb), offsets: w.slice(0, 6).map(x => parseInt(x.blockNumber, 16) - cb) } : typeof w; } catch (e) { near = 'ERR ' + String(e.message).slice(0, 60); }
-          let any = null;
-          throw Object.assign(Error('LOGS'), { code: 'V4_LOG_COUNT', diag: { cb, got: Array.isArray(logs) ? logs.length : typeof logs, near } });
-        }
-        const l = logs[0], d = words(l.data), k = { currency0: '0x' + l.topics[2].slice(-40), currency1: '0x' + l.topics[3].slice(-40), fee: Number(d[0] & 0xffffffn), tickSpacing: Number(signed(d[1], 24)), hooks: '0x' + (d[2] & ((1n << 160n) - 1n)).toString(16).padStart(40, '0') };
-        if (O.poolId(k) !== id) throw Object.assign(Error('HASH'), { code: 'V4_KEY_HASH_MISMATCH' });
-        s.bisect++; res = { ok: true, creationBlock: cb };
+        const head = parseInt(block, 16), L = require('../search/server/lib/market-volume').LIMITS[n];
+        const key = await C.resolveKey(counted, { stateView: v.stateView, poolManager: v.poolManager, poolId: id, head, chunk: Math.min(L.span, 1000000), windows: 6, hash: O.poolId });
+        const cb = key.bisectedBlock; res = { ok: true, creationBlock: cb, initializeOffset: key.initializeBlock - cb };
+        s.bisect++;
       } catch (e) { const c = String(e.code || e.message).slice(0, 40); s.bisectFail[c] = (s.bisectFail[c] || 0) + 1; res = { ok: false, code: c, diag: e.diag }; if (e.diag && (s.diagShown = (s.diagShown || 0) + 1) <= 6) console.log('V4_DIAG ' + JSON.stringify({ network: n, symbol: t.symbol, id: id.slice(0, 14), ...e.diag })); }
       s.calls.push(calls); s.ms.push(Date.now() - t0);
       if (res.ok || !res.diag) console.log('V4_ROW_SHORT ' + JSON.stringify({ network: n, symbol: t.symbol, id: id.slice(0, 14), existing: typeof existing === 'string' ? existing : 'OK:' + existing.resolvedVia, bisect: res, calls, ms: Date.now() - t0 }));
