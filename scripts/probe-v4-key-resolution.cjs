@@ -30,10 +30,11 @@ const signed = (x, bits) => { const m = 1n << BigInt(bits); x &= m - 1n; return 
         const logs = await counted('eth_getLogs', [{ address: v.poolManager, topics: [INIT, id], fromBlock: '0x' + cb.toString(16), toBlock: '0x' + cb.toString(16) }]);
         if (!Array.isArray(logs) || logs.length !== 1) {
           // diagnostics: wider +/-2 block window and the unfiltered-by-id events of that block
-          let wide = null, any = null;
-          try { const w = await rpc('eth_getLogs', [{ address: v.poolManager, topics: [INIT, id], fromBlock: '0x' + Math.max(0, cb - 2).toString(16), toBlock: '0x' + (cb + 2).toString(16) }]); wide = Array.isArray(w) ? w.map(x => parseInt(x.blockNumber, 16) - cb) : typeof w; } catch (e) { wide = 'ERR ' + String(e.message).slice(0, 50); }
-          try { const a = await rpc('eth_getLogs', [{ address: v.poolManager, fromBlock: '0x' + cb.toString(16), toBlock: '0x' + cb.toString(16) }]); any = Array.isArray(a) ? a.length : typeof a; } catch (e) { any = 'ERR ' + String(e.message).slice(0, 50); }
-          throw Object.assign(Error('LOGS'), { code: 'V4_LOG_COUNT', diag: { cb, got: Array.isArray(logs) ? logs.length : typeof logs, wideOffsets: wide, anyEventsInBlock: any } });
+          let near = null;
+          try { const w = await rpc('eth_getLogs', [{ address: v.poolManager, topics: [INIT], fromBlock: '0x' + Math.max(0, cb - 300).toString(16), toBlock: '0x' + (cb + 300).toString(16) }]);
+            near = Array.isArray(w) ? { n: w.length, match: w.filter(x => (x.topics[1] || '').toLowerCase() === id.toLowerCase()).map(x => parseInt(x.blockNumber, 16) - cb), offsets: w.slice(0, 6).map(x => parseInt(x.blockNumber, 16) - cb) } : typeof w; } catch (e) { near = 'ERR ' + String(e.message).slice(0, 60); }
+          let any = null;
+          throw Object.assign(Error('LOGS'), { code: 'V4_LOG_COUNT', diag: { cb, got: Array.isArray(logs) ? logs.length : typeof logs, near } });
         }
         const l = logs[0], d = words(l.data), k = { currency0: '0x' + l.topics[2].slice(-40), currency1: '0x' + l.topics[3].slice(-40), fee: Number(d[0] & 0xffffffn), tickSpacing: Number(signed(d[1], 24)), hooks: '0x' + (d[2] & ((1n << 160n) - 1n)).toString(16).padStart(40, '0') };
         if (O.poolId(k) !== id) throw Object.assign(Error('HASH'), { code: 'V4_KEY_HASH_MISMATCH' });
