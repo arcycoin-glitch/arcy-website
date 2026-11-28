@@ -1,0 +1,122 @@
+name: Provider independence (isolated outage simulation, read-only)
+# Measures the fixed 800-field matrix (40 tokens x 20 fields) with and without DEX Screener / GeckoTerminal / Blockscout, in ONE environment:
+# A = normal, B = same code with the provider(s) failing at fetch level (scripts/provider-outage-shim.cjs, local servers only).
+# Real chains only, no secrets, nothing is written or deployed. Holder snapshots come from the unsigned-checkpoint cache, re-signed with a
+# fresh ephemeral key in the prep job (private key never leaves the runner; only the public key and snapshots are shared via artifact).
+on:
+  workflow_dispatch:
+    inputs:
+      scenarios:
+        description: 'JSON list of outage scenarios'
+        default: '["dexscreener","geckoterminal","blockscout","all"]'
+  pull_request:
+    paths:
+      - 'scripts/provider-outage-shim.cjs'
+      - '.github/workflows/provider-independence.yml'
+permissions:
+  contents: read
+concurrency:
+  group: provider-independence-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+jobs:
+  prep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Ephemeral signing key
+        run: node -e "const c=require('crypto'),fs=require('fs');const {privateKey,publicKey}=c.generateKeyPairSync('ed25519');fs.writeFileSync('/tmp/sign.pem',privateKey.export({format:'pem',type:'pkcs8'}));fs.mkdirSync('/tmp/share',{recursive:true});fs.writeFileSync('/tmp/share/pub.pem',publicKey.export({format:'pem',type:'spki'}))"
+      - name: Census fingerprint
+        id: fp
+        run: echo "fp=$(node scripts/ci-census-cache.cjs fingerprint)" >> "$GITHUB_OUTPUT"
+      - name: Restore bounded-complete checkpoints
+        id: reuse
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /tmp/holder-index
+            /tmp/census-provenance
+          key: holder-complete-4663-v2-${{ steps.fp.outputs.fp }}
+      - name: Validate cache provenance
+        id: valid
+        env: { ARC_INDEX_CACHE_DIR: /tmp/holder-index }
+        run: |
+          if [ "${{ steps.reuse.outputs.cache-hit }}" = "true" ] && node scripts/ci-census-cache.cjs validate; then echo "reuse=true" >> "$GITHUB_OUTPUT"; else echo "reuse=false" >> "$GITHUB_OUTPUT"; rm -rf /tmp/holder-index /tmp/census-provenance; fi
+      - name: Restore rolling checkpoints
+        if: steps.valid.outputs.reuse != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/holder-index
+          key: holder-index-4663-${{ github.run_id }}
+          restore-keys: holder-index-4663-
+      - name: Chain-4663 census top-up + re-sign (resumes; never restarts from block 0)
+        env:
+          ARC_HOLDER_STORAGE: local
+          ARC_INDEX_CACHE_DIR: /tmp/holder-index
+          ARC_HOLDER_PUBLISHED_DIR: /tmp/share/pub
+          CENSUS_BUDGET_MS: '1800000'
+        run: |
+          export ARC_HOLDER_SIGNING_KEY="$(cat /tmp/sign.pem)"
+          node scripts/holder-chain-census.cjs | grep -E "CENSUS_TOTAL" || true
+      - name: Save rolling checkpoints
+        if: always() && steps.valid.outputs.reuse != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/holder-index
+          key: holder-index-4663-${{ github.run_id }}
+      - name: Share signed snapshots + public key (no private key)
+        run: |
+          ! grep -rl "PRIVATE KEY" /tmp/share
+          tar -C /tmp/share -czf /tmp/share.tgz .
+      - uses: actions/upload-artifact@v4
+        with: { name: holder-share, path: /tmp/share.tgz, retention-days: 1 }
+  scenario:
+    needs: prep
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        outage: ${{ fromJSON(github.event.inputs.scenarios || '["dexscreener","geckoterminal","blockscout","all"]') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - uses: actions/download-artifact@v4
+        with: { name: holder-share, path: /tmp/dl }
+      - name: Local publication server (TLS) with the shared snapshots
+        run: |
+          mkdir -p /tmp/share && tar -C /tmp/share -xzf /tmp/dl/share.tgz
+          openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/tls.key -out /tmp/tls.crt -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost" 2>/dev/null
+          sudo "$(which node)" scripts/ci-publication-server.cjs /tmp/share/pub /tmp/tls.crt /tmp/tls.key > /tmp/pubsrv.log 2>&1 &
+          sleep 2
+          export NODE_EXTRA_CA_CERTS=/tmp/tls.crt ARC_HOLDER_PUBLISHED_URL=https://localhost/snapshots/ ARC_HOLDER_PUBLIC_KEY="$(cat /tmp/share/pub.pem)"
+          (PORT=3001 SEARCH_MARKET_ONCHAIN_CHECK=on SEARCH_MARKET_ONCHAIN_VOLUME=on node dev.cjs > /tmp/a.log 2>&1 &)
+          (PORT=3002 SEARCH_MARKET_ONCHAIN_CHECK=on SEARCH_MARKET_ONCHAIN_VOLUME=on ARCY_SIM_OUTAGE="${{ matrix.outage }}" ARCY_SIM_OUTAGE_COUNTS=/tmp/outage-counts.json NODE_OPTIONS="--require $PWD/scripts/provider-outage-shim.cjs" node dev.cjs > /tmp/b.log 2>&1 &)
+          sleep 4
+      - name: Interleaved A (normal) vs B (outage ${{ matrix.outage }})
+        env:
+          AB_BASE_A: http://127.0.0.1:3001
+          AB_BASE_B: http://127.0.0.1:3002
+          AB_OUT_A: /tmp/cov-a.json
+          AB_OUT_B: /tmp/cov-b.json
+          COVERAGE_PACE_MS: '1200'
+          AB_WARMUP: '1'
+        run: node scripts/coverage-ab.cjs
+      - name: Outage evidence (calls actually blocked) and comparison
+        if: always()
+        run: |
+          echo "SHIM_COUNTS $(cat /tmp/outage-counts.json 2>/dev/null)"
+          node scripts/coverage-compare.cjs /tmp/cov-a.json /tmp/cov-b.json "normal -> outage:${{ matrix.outage }}" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: outage-${{ matrix.outage }}
+          path: |
+            /tmp/cov-a.json
+            /tmp/cov-b.json
+            /tmp/outage-counts.json
+          retention-days: 14
