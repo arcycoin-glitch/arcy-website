@@ -61,3 +61,15 @@ test('market-cross: provider outage is filled from the chain; a healthy provider
   assert.equal(kept.priceUsd.value, 5); assert.equal(called, 0);
   D._reset(); void discovery;
 });
+
+test('classification: discovered price and liquidity are on-chain verified, the pool count is single-source (lower bound), nothing is cross-verified', async () => {
+  const { classify } = require('../search/server/lib/evidence-class');
+  D._reset();
+  const r = await D.inspect('robinhood', TOKEN, { rpc: chainRpc(), ethRpc: ethRpc(), now: NOW, env });
+  assert.equal(classify(r.fields.priceUsd, { card: 'activity', now: NOW }).evidenceClass, 'ON_CHAIN_VERIFIED');
+  assert.equal(classify(r.fields.liquidityUsd, { card: 'liquidity', now: NOW }).evidenceClass, 'ON_CHAIN_VERIFIED');
+  assert.equal(classify(r.fields.dexPairCount, { card: 'liquidity', now: NOW }).evidenceClass, 'SINGLE_SOURCE');
+  // a provider-listed pool set still caps a derived value at SINGLE_SOURCE (unchanged rule)
+  const providerPriced = { ...r.fields.priceUsd, evidence: [{ provider: 'DEX Screener', sourceUrl: 'https://dexscreener.com/x', pairs: ['p'], method: 'baseToken priceUsd' }] };
+  assert.equal(classify(providerPriced, { card: 'activity', now: NOW }).evidenceClass, 'SINGLE_SOURCE');
+});
