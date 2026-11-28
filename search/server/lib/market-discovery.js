@@ -72,7 +72,7 @@ async function inspect(network,address,{rpc=O.rpcFor(network),ethRpc=O.rpcFor('e
   let total=0;const parts=[];
   for(const p of live){const v=p.x.amounts[token]*tokenUsd+p.x.amounts[p.x.quote]*p.q.usd;if(!Number.isFinite(v)||v<0)continue;total+=v;parts.push({pool:p.pool,kind:p.x.kind,protocol:p.protocol,usd:v});}
   fields.liquidityUsd={...base,value:total,evidence:ev({pairs:parts.map(p=>p.pool),pools:parts,basis:'pool token balances x on-chain token price (deepest pool) x Chainlink quote USD',scope:scope+' Lower bound of chain-wide liquidity.'})};
-  fields.dexPairCount={...base,value:parts.length+' discovered pool'+(parts.length===1?'':'s')+' (on-chain, reviewed factories)',evidence:ev({pairs:parts.map(p=>p.pool),method:VERSION+' pool count'})};
+  fields.dexPairCount={...base,status:'ON_CHAIN_POOL_COUNT_LOWER_BOUND',value:parts.length+' discovered pool'+(parts.length===1?'':'s')+' (on-chain, reviewed factories)',evidence:ev({pairs:parts.map(p=>p.pool),method:VERSION+' pool count'})};
  }catch(e){profile.reasons.all=e.code||'DISCOVERY_FAILED';}
  profile.calls=state.calls;profile.ms=Date.now()-t0;profile.scope='reviewed-factory pools';
  if(cache.size>300)cache.delete(cache.keys().next().value);

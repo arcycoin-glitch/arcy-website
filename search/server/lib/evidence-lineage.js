@@ -17,7 +17,12 @@ const flat=(f)=>{
  for(const e of Array.isArray(f.evidence)?f.evidence:[])walk(e,0);
  return out;
 };
+// Evidence produced by ARCY's own chain readers (market-onchain / market-volume / market-discovery): pools were identified and read
+// from chain state at a recorded block and the USD quote comes from an identity-checked Chainlink feed. The `pairs` list here is the
+// set of pools ARCY read, not a provider-reported list, so it must not be mistaken for an off-chain market input.
+const OWN_CHAIN_READER=/^arcy-market-(onchain|volume|discovery)-\d/;
 function originOf(e){
+ if(e.block!==undefined&&e.block!==null&&typeof e.method==='string'&&OWN_CHAIN_READER.test(e.method)&&typeof e.provider==='string'&&/rpc|on-?chain/i.test(e.provider)&&!e.url&&!e.sourceUrl)return 'ONCHAIN';
  if(typeof e.provider==='string'&&e.provider&&!/rpc|on-?chain/i.test(e.provider))return 'MARKET_API';
  if(typeof e.sourceUrl==='string'||typeof e.legacySource==='string')return 'MARKET_API';
  if(typeof e.url==='string'&&(e.block===undefined||e.block===null))return 'MARKET_API';   // provider endpoint without a chain block (observed: api.dexscreener.com / api.geckoterminal.com)
