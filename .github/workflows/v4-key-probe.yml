@@ -16,4 +16,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
-      - run: node scripts/probe-v4-key-resolution.cjs | grep -E "V4_ROW|V4_SUMMARY|REPORT_FAIL"
+      - run: node scripts/probe-v4-key-resolution.cjs | grep -E "V4_DIAG|V4_SUMMARY|REPORT_FAIL"

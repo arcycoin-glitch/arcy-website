@@ -28,13 +28,19 @@ const signed = (x, bits) => { const m = 1n << BigInt(bits); x &= m - 1n; return 
       try {
         const head = parseInt(block, 16), cb = await C.creationBlock(counted, { stateView: v.stateView, poolId: id, head });
         const logs = await counted('eth_getLogs', [{ address: v.poolManager, topics: [INIT, id], fromBlock: '0x' + cb.toString(16), toBlock: '0x' + cb.toString(16) }]);
-        if (!Array.isArray(logs) || logs.length !== 1) throw Object.assign(Error('LOGS_' + (Array.isArray(logs) ? logs.length : 'X')), { code: 'V4_LOG_COUNT' });
+        if (!Array.isArray(logs) || logs.length !== 1) {
+          // diagnostics: wider +/-2 block window and the unfiltered-by-id events of that block
+          let wide = null, any = null;
+          try { const w = await rpc('eth_getLogs', [{ address: v.poolManager, topics: [INIT, id], fromBlock: '0x' + Math.max(0, cb - 2).toString(16), toBlock: '0x' + (cb + 2).toString(16) }]); wide = Array.isArray(w) ? w.map(x => parseInt(x.blockNumber, 16) - cb) : typeof w; } catch (e) { wide = 'ERR ' + String(e.message).slice(0, 50); }
+          try { const a = await rpc('eth_getLogs', [{ address: v.poolManager, fromBlock: '0x' + cb.toString(16), toBlock: '0x' + cb.toString(16) }]); any = Array.isArray(a) ? a.length : typeof a; } catch (e) { any = 'ERR ' + String(e.message).slice(0, 50); }
+          throw Object.assign(Error('LOGS'), { code: 'V4_LOG_COUNT', diag: { cb, got: Array.isArray(logs) ? logs.length : typeof logs, wideOffsets: wide, anyEventsInBlock: any } });
+        }
         const l = logs[0], d = words(l.data), k = { currency0: '0x' + l.topics[2].slice(-40), currency1: '0x' + l.topics[3].slice(-40), fee: Number(d[0] & 0xffffffn), tickSpacing: Number(signed(d[1], 24)), hooks: '0x' + (d[2] & ((1n << 160n) - 1n)).toString(16).padStart(40, '0') };
         if (O.poolId(k) !== id) throw Object.assign(Error('HASH'), { code: 'V4_KEY_HASH_MISMATCH' });
         s.bisect++; res = { ok: true, creationBlock: cb };
-      } catch (e) { const c = String(e.code || e.message).slice(0, 40); s.bisectFail[c] = (s.bisectFail[c] || 0) + 1; res = { ok: false, code: c }; }
+      } catch (e) { const c = String(e.code || e.message).slice(0, 40); s.bisectFail[c] = (s.bisectFail[c] || 0) + 1; res = { ok: false, code: c, diag: e.diag }; if (e.diag && (s.diagShown = (s.diagShown || 0) + 1) <= 6) console.log('V4_DIAG ' + JSON.stringify({ network: n, symbol: t.symbol, id: id.slice(0, 14), ...e.diag })); }
       s.calls.push(calls); s.ms.push(Date.now() - t0);
-      console.log('V4_ROW ' + JSON.stringify({ network: n, symbol: t.symbol, id: id.slice(0, 14), existing: typeof existing === 'string' ? existing : 'OK:' + existing.resolvedVia, bisect: res, calls, ms: Date.now() - t0 }));
+      if (res.ok || !res.diag) console.log('V4_ROW_SHORT ' + JSON.stringify({ network: n, symbol: t.symbol, id: id.slice(0, 14), existing: typeof existing === 'string' ? existing : 'OK:' + existing.resolvedVia, bisect: res, calls, ms: Date.now() - t0 }));
       await wait(500);
     }
   }
