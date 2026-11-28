@@ -99,10 +99,66 @@ function comparable(a,b,context){
  }
  return true;
 }
+// Compatible-scope turnover (same provider response, differing pool lists). DEX Screener sums liquidity only over pools that report a
+// liquidity.usd and volume over every returned pool, so the two pair lists can differ by volume-only pools. When both fields come from
+// the SAME provider response (same URL and retrieval time) and carry first-party per-pool values, turnover is computed over exactly the
+// pools that hold the liquidity: sum(volume of those pools) / sum(liquidity of those pools). Pools without liquidity are excluded and
+// reported; nothing is estimated and no pool is attributed a value the provider did not return.
+function poolIntersectionTurnover(a,b,context){
+ if(!valid(a,context)||!valid(b,context)||a.source!=='DEX Screener'||b.source!=='DEX Screener')return null;
+ const x=a.evidence[0],y=b.evidence[0],u=x.url??x.sourceUrl,v=y.url??y.sourceUrl;
+ if(typeof u!=='string'||u!==v||!/^https:\/\/dexscreener\.com\//.test(u)||!x.checkedAt||x.checkedAt!==y.checkedAt)return null;
+ const lp=x.pairs,lv=x.pairLiquidityUsd,vp=y.pairs,vv=y.pairVolumeUsd;
+ if(![lp,lv,vp,vv].every(Array.isArray)||lp.length!==lv.length||vp.length!==vv.length||!lp.length)return null;
+ if(lp.some(p=>typeof p!=='string')||new Set(lp).size!==lp.length||new Set(vp).size!==vp.length)return null;
+ const vol=new Map(vp.map((p,i)=>[p,vv[i]]));
+ let liq=0,num=0;
+ for(let i=0;i<lp.length;i++){
+  const l=lv[i],q=vol.get(lp[i]);
+  if(!Number.isFinite(l)||l<0||!Number.isFinite(q)||q<0)return null; // every liquidity pool needs a first-party volume value
+  liq+=l;num+=q;
+ }
+ // The per-pool values must reproduce the reported total (rounding only), or the evidence is not what the field claims.
+ if(!(liq>0)||Math.abs(liq-Number(a.value))>Math.max(1e-6,Math.abs(Number(a.value))*1e-9))return null;
+ const lset=new Set(lp),extra=vp.filter(p=>!lset.has(p));
+ const extraUsd=extra.reduce((t,p)=>t+(vol.get(p)||0),0);
+ const pct=num/liq*100;
+ if(!Number.isFinite(pct)||pct>1e12)return null;
+ return {value:Math.round(pct*1e8)/1e8,status:'SOURCE_REPORTED',dataState:'DATA_FOUND',
+  source:a.source+' (derived)',network:context.network,chainId:context.chainId,
+  evidence:[{network:context.network,chainId:context.chainId,address:context.address,sourceUrl:u,checkedAt:x.checkedAt,
+   method:'24h volume USD of the liquidity-reporting pools / their pool liquidity USD x 100',
+   numerator24hUsd:num,denominatorLiquidityUsd:liq,pools:lp.length,volumeOnlyPoolsExcluded:extra.length,volumeOnlyUsdExcluded:extraUsd,
+   scope:'Same provider response, restricted to the pools that report liquidity; volume of pools without a liquidity value is excluded. Not chain-wide DEX turnover. Not a liquidity lock, sell execution guarantee, or investment safety rating.'}]};
+}
+// Same-pool on-chain turnover: both the liquidity and the volume cross-check were reproduced from the chain for the SAME pool set
+// (identical pool addresses/ids), each AGREEing with the provider. Value = on-chain swap volume / on-chain pool TVL of those pools.
+function onchainTurnover(a,b,context){
+ if(a?.crossCheck?.state!=='AGREE'||b?.crossCheck?.state!=='AGREE')return null;
+ const cx=f=>(f.evidence||[]).find(e=>e?.role==='cross-check'&&e.method==='arcy-market-onchain-1'&&Array.isArray(e.pools)&&e.pools.length);
+ const l=cx(a),v=cx(b);
+ if(!l||!v||l.source!==v.source)return null;
+ const ids=e=>e.pools.map(p=>String(p.pool).toLowerCase()).sort();
+ const li=ids(l),vi=ids(v);
+ if(JSON.stringify(li)!==JSON.stringify(vi)||new Set(li).size!==li.length)return null;
+ const tvl=l.pools.reduce((t,p)=>t+(Number.isFinite(p.usd)?p.usd:NaN),0),vol=v.pools.reduce((t,p)=>t+(Number.isFinite(p.usd)?p.usd:NaN),0);
+ if(!(tvl>0)||!Number.isFinite(vol)||vol<0)return null;
+ const pct=vol/tvl*100;if(!Number.isFinite(pct)||pct>1e12)return null;
+ return {value:Math.round(pct*1e8)/1e8,status:'SOURCE_REPORTED',dataState:'DATA_FOUND',
+  source:l.source+' (derived)',network:context.network,chainId:context.chainId,
+  evidence:[{network:context.network,chainId:context.chainId,address:context.address,checkedAt:new Date().toISOString(),
+   method:'on-chain 24h swap volume USD / on-chain pool liquidity USD x 100, identical pool set',
+   numerator24hUsd:vol,denominatorLiquidityUsd:tvl,pools:li.length,poolIds:li,
+   scope:'Only the pools reproduced from the chain for both inputs (a lower bound of the provider scope). Not chain-wide DEX turnover. Not a liquidity lock, sell execution guarantee, or investment safety rating.'}]};
+}
 function liquidity(fields,context){
  const a=fields?.liquidityUsd,b=fields?.volume24h;
- if(!comparable(a,b,context))return missing(
-  'Comparable same-provider, exact-contract 24h volume and USD pool reserves were not available.','LIQUIDITY_VOLUME_NOT_COMPARABLE');
+ if(!comparable(a,b,context)){
+  const alt=poolIntersectionTurnover(a,b,context)||onchainTurnover(a,b,context);
+  if(alt)return alt;
+  return missing(
+   'Comparable same-provider, exact-contract 24h volume and USD pool reserves were not available.','LIQUIDITY_VOLUME_NOT_COMPARABLE');
+ }
  const liq=Number(a.value),volume=Number(b.value);
  if(!Number.isFinite(liq)||!Number.isFinite(volume)||liq<=0||volume<0)return missing(
   'Pool USD liquidity must be positive and 24h trading volume must be nonnegative.','LIQUIDITY_VOLUME_UNAVAILABLE');
