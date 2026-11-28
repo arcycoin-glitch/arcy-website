@@ -1,6 +1,7 @@
 name: Coverage matrix (read-only, #337)
 # Fixed 40-token x every Search card field evidence matrix, measured against PRODUCTION (read-only GETs). No secrets.
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - 'scripts/coverage-matrix.cjs'
@@ -10,7 +11,7 @@ permissions:
 jobs:
   matrix:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
