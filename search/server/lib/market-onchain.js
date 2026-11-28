@@ -114,6 +114,9 @@ async function v4Key(id,{network,rpc,call,block}){
    if(poolId(c)===id){k=c;via='PositionManager.poolKeys(bytes25)';}
   }
  }catch(e){if(e.code==='ONCHAIN_BUDGET_EXHAUSTED'||e.code==='ONCHAIN_TIMEOUT')throw e;}
+ if(!k){ // 2) persisted PoolKey from the durable snapshot (resolved offline by bounded historical search); re-proved by hash, never trusted
+  try{const S=require('./market-verify-snapshot'),c=S.v4KeyFor(await S.load({}),network,id);if(c&&poolId(c)===id){k=c;via='persisted PoolKey (durable snapshot), keccak256(abi.encode(PoolKey)) == poolId';}}catch{}
+ }
  if(!k){
   let logs;try{logs=await rpc('eth_getLogs',[{address:v.poolManager,topics:[INITIALIZE,id],fromBlock:'0x0',toBlock:block}]);}catch(e){if(e.code==='ONCHAIN_BUDGET_EXHAUSTED'||e.code==='ONCHAIN_TIMEOUT')throw e;throw code('V4_POOL_KEY_UNAVAILABLE');}
   if(!Array.isArray(logs)||logs.length!==1)throw code('V4_POOL_KEY_UNAVAILABLE',{logs:Array.isArray(logs)?logs.length:null});
@@ -297,5 +300,6 @@ function startVolume(network,token,primary,{rpc,usdOf}){
  volRunning.set(key,job);volQueues.set(network,job.then(()=>{},()=>{}));return job;
 }
 function _volume(){return {cache:volCache,running:volRunning};}
+function _seedKey(network,id,k){if(poolId(k)===id)poolKeys.set(network+id,{...k,resolvedVia:k.resolvedVia||'seeded hash-proven PoolKey'});}
 function _reset(){cache.clear();poolKeys.clear();volCache.clear();volRunning.clear();volQueues.clear();}
-module.exports={_volume,volumeEnabled,VERSION,V4,FEEDS,QUOTES,NATIVE,SOURCE,TOLERANCE,MAX_CALLS,inspect,v4Key,rpcFor,namehash,readPool,poolId,fromSqrt,quoteUsd,enabled,_reset};
+module.exports={_seedKey,_volume,volumeEnabled,VERSION,V4,FEEDS,QUOTES,NATIVE,SOURCE,TOLERANCE,MAX_CALLS,inspect,v4Key,rpcFor,namehash,readPool,poolId,fromSqrt,quoteUsd,enabled,_reset};

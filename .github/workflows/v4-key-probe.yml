@@ -1,0 +1,20 @@
+name: v4 PoolKey resolution probe (read-only)
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/probe-v4-key-resolution.cjs'
+      - 'search/server/lib/v4-creation.js'
+      - '.github/workflows/v4-key-probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - run: node scripts/probe-v4-key-resolution.cjs | grep -E "V4_DIAG|V4_SUMMARY|REPORT_FAIL"
+# probe rerun 1795874489

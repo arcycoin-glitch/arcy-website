@@ -44,6 +44,14 @@ function volumeField(doc,network,token,primary,{now=Date.now()}={}){
  if(!ev.pairs.every(p=>provider.has(p)))return {reason:'VOLUME_SNAPSHOT_SCOPE_CHANGED'};
  return {field:{...f,freshness:{...(f.freshness||{}),state:'SNAPSHOT',snapshotGeneratedAt:doc.generatedAt,ageMs:Math.max(0,age)}}};
 }
+// Persisted, hash-proven V4 PoolKeys (#365/#367). A PoolKey is immutable, so a stored key never goes stale; the CALLER re-proves
+// keccak256(abi.encode(PoolKey)) == poolId before use, so the document is trusted for nothing.
+const A40=/^0x[0-9a-f]{40}$/;
+function v4KeyFor(doc,network,id){
+ const k=doc?.v4Keys?.[network+':'+String(id).toLowerCase()];
+ if(!k||![k.currency0,k.currency1,k.hooks].every(a=>typeof a==='string'&&A40.test(a))||!Number.isInteger(k.fee)||!Number.isInteger(k.tickSpacing))return null;
+ return {currency0:k.currency0,currency1:k.currency1,fee:k.fee,tickSpacing:k.tickSpacing,hooks:k.hooks};
+}
 // Provider-independent record (#367): 24h volume + same-block TVL over the token's persisted REGISTRY pool list (factory-discovered and
 // previously provider-observed pools, every one re-proved on-chain by the volume engine). No provider value is needed to read it.
 function discoveredVolumeField(doc,network,token,{now=Date.now()}={}){
@@ -60,4 +68,4 @@ function registryPools(doc,network,token,{now=Date.now()}={}){
  return r.pools.filter(x=>x&&POOL.test(String(x.pool))&&Number.isFinite(Date.parse(x.lastSeen))&&now-Date.parse(x.lastSeen)<=REGISTRY_MAX_AGE_MS).map(x=>String(x.pool).toLowerCase());
 }
 function _reset(){cached=null;pending=null;}
-module.exports={load,volumeField,discoveredVolumeField,registryPools,REGISTRY_MAX_AGE_MS,valid,SCHEMA,FRESH_MS,COVERAGE_MIN,REF,FILE,_reset};
+module.exports={load,v4KeyFor,volumeField,discoveredVolumeField,registryPools,REGISTRY_MAX_AGE_MS,valid,SCHEMA,FRESH_MS,COVERAGE_MIN,REF,FILE,_reset};
