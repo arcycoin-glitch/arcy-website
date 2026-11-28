@@ -6,7 +6,7 @@
 // provider pools the current report summed. Missing/invalid/stale snapshot => no field (existing behaviour unchanged).
 const HOST='raw.githubusercontent.com',REPO_PATH='/arcycoin-glitch/arcy-website/',FILE='/market-verify/snapshot.json',REF='market-verify-snapshots';
 const REF_API='https://api.github.com/repos/arcycoin-glitch/arcy-website/git/ref/heads/';
-const SCHEMA='arcy-market-verify-snapshot/1',FRESH_MS=3*3600000,CACHE_MS=5*60000,MAX_BYTES=2000000,TIMEOUT_MS=1500,COVERAGE_MIN=0.95;
+const SCHEMA='arcy-market-verify-snapshot/1',FRESH_MS=3*3600000,CACHE_MS=5*60000,MAX_BYTES=2000000,TIMEOUT_MS=1500,COVERAGE_MIN=0.95,REGISTRY_MAX_AGE_MS=14*86400000;
 const ADDRESS=/^0x[0-9a-f]{40}$/,POOL=/^0x(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 let cached=null,pending=null;
 function valid(doc,now){
@@ -52,5 +52,20 @@ function v4KeyFor(doc,network,id){
  if(!k||![k.currency0,k.currency1,k.hooks].every(a=>typeof a==='string'&&A40.test(a))||!Number.isInteger(k.fee)||!Number.isInteger(k.tickSpacing))return null;
  return {currency0:k.currency0,currency1:k.currency1,fee:k.fee,tickSpacing:k.tickSpacing,hooks:k.hooks};
 }
+// Provider-independent record (#367): 24h volume + same-block TVL over the token's persisted REGISTRY pool list (factory-discovered and
+// previously provider-observed pools, every one re-proved on-chain by the volume engine). No provider value is needed to read it.
+function discoveredVolumeField(doc,network,token,{now=Date.now()}={}){
+ if(!doc)return {reason:'VOLUME_SNAPSHOT_UNAVAILABLE'};
+ const age=now-Date.parse(doc.generatedAt);if(!(age>=-60000&&age<=FRESH_MS))return {reason:'VOLUME_SNAPSHOT_STALE'};
+ const e=doc.entries[network+':'+String(token).toLowerCase()],f=e?.volumeDiscovered;
+ if(!f)return {reason:e?.volumeDiscoveredReason||'VOLUME_REGISTRY_NO_RECORD'};
+ const ev=f.evidence?.[0];
+ if(f.dataState!=='DATA_FOUND'||!(Number(f.value)>=0)||ev?.method!=='arcy-market-volume-1'||!Array.isArray(ev.pairs)||!ev.pairs.length||!ev.pairs.every(p=>POOL.test(p))||!Array.isArray(ev.pools)||ev.pools.length!==ev.pairs.length)return {reason:'VOLUME_REGISTRY_RECORD_INVALID'};
+ return {field:{...f,freshness:{...(f.freshness||{}),state:'SNAPSHOT',snapshotGeneratedAt:doc.generatedAt,ageMs:Math.max(0,age)}}};
+}
+function registryPools(doc,network,token,{now=Date.now()}={}){
+ const r=doc?.registry?.[network+':'+String(token).toLowerCase()];if(!r||!Array.isArray(r.pools))return [];
+ return r.pools.filter(x=>x&&POOL.test(String(x.pool))&&Number.isFinite(Date.parse(x.lastSeen))&&now-Date.parse(x.lastSeen)<=REGISTRY_MAX_AGE_MS).map(x=>String(x.pool).toLowerCase());
+}
 function _reset(){cached=null;pending=null;}
-module.exports={load,v4KeyFor,volumeField,valid,SCHEMA,FRESH_MS,COVERAGE_MIN,REF,FILE,_reset};
+module.exports={load,v4KeyFor,volumeField,discoveredVolumeField,registryPools,REGISTRY_MAX_AGE_MS,valid,SCHEMA,FRESH_MS,COVERAGE_MIN,REF,FILE,_reset};

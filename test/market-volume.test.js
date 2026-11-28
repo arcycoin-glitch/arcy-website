@@ -62,3 +62,17 @@ test('VOL-CRV Curve 2-coin pool: TokenExchange quote side counted once per swap;
  V._reset();r=await V.inspect('robinhood',TOKEN,primary([P]),{rpc:coins(true),usdOf,now:Date.now()});
  assert.equal(r.field,null);assert.equal(r.profile.reason,'CURVE_POOL_NOT_TWO_COIN');
 });
+test('VOL-LIQ same-block pool TVL is read for the SAME pool list in durable mode; unsupported quote leaves it off without failing the volume',async()=>{
+ V._reset();M._reset?.();const E=10n**18n;
+ const swaps={[POOL+':'+V.TOPIC.V3]:[{n:HEAD-20-100,data:v3(-5n*E,2n*E)}]};
+ const base=chain({swaps});
+ // V2-style reserves: 1000 TOKEN (18d) vs 2 WETH (18d) => pool TVL = 1000*price*3000 + 2*3000 = 12000 USD
+ const rpc=async(m,p)=>{if(m==='eth_call'&&p[0].data==='0x0902f1ac'&&p[0].to===POOL)return '0x'+W(1000n*E)+W(2n*E)+W(0);return base(m,p);};
+ const r=await V.inspect('robinhood',TOKEN,primary([POOL]),{rpc,usdOf,now:Date.now(),durable:true});
+ assert.ok(r.field,'reason '+r.profile.reason);
+ const pool=r.field.evidence[0].pools[0];
+ assert.ok(Number.isFinite(pool.liquidityUsd)||typeof pool.liquidityReason==='string','liquidity read or reasoned, never silently absent');
+ if(Number.isFinite(pool.liquidityUsd))assert.equal(r.field.evidence[0].liquidityAtToBlockUsd,pool.liquidityUsd);
+ const off=await V.inspect('robinhood',TOKEN,primary([POOL]),{rpc,usdOf,now:Date.now(),durable:true,withLiquidity:false});
+ assert.equal(off.field.evidence[0].pools[0].liquidityUsd,undefined);
+});

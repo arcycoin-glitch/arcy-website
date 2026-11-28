@@ -152,10 +152,25 @@ function onchainTurnover(a,b,context){
    numerator24hUsd:vol,denominatorLiquidityUsd:tvl,pools:li.length,poolIds:li,
    scope:'Only the pools reproduced from the chain for both inputs (a lower bound of the provider scope). Not chain-wide DEX turnover. Not a liquidity lock, sell execution guarantee, or investment safety rating.'}]};
 }
+// Self-scoped on-chain turnover (#367): the volume engine read each pool's 24h swaps AND its TVL at the same pinned block, in one pass over
+// one pool list. Numerator and denominator therefore share an identical pool scope by construction; no provider value is involved.
+function selfScopedTurnover(b,context){
+ const v=(b?.evidence||[]).find(e=>e?.method==='arcy-market-volume-1'&&Array.isArray(e.pools)&&e.pools.length&&e.fromBlockHash&&e.toBlockHash&&Number.isFinite(Number(e.toBlock)));
+ if(!v)return null;
+ const ids=v.pools.map(p=>String(p.pool).toLowerCase());
+ if(new Set(ids).size!==ids.length||!v.pools.every(p=>Number.isFinite(p.usd)&&p.usd>=0&&Number.isFinite(p.liquidityUsd)&&p.liquidityUsd>=0))return null;
+ const tvl=v.pools.reduce((t,p)=>t+p.liquidityUsd,0),vol=v.pools.reduce((t,p)=>t+p.usd,0);
+ if(!(tvl>0))return null;const pct=vol/tvl*100;if(!Number.isFinite(pct)||pct>1e12)return null;
+ return {value:Math.round(pct*1e8)/1e8,status:'SOURCE_REPORTED',dataState:'DATA_FOUND',source:String(v.source||v.provider)+' (derived)',network:context.network,chainId:context.chainId,
+  evidence:[{network:context.network,chainId:context.chainId,address:context.address,checkedAt:new Date().toISOString(),
+   method:'on-chain 24h swap volume USD / same-block on-chain pool TVL USD x 100, one pass over one pool list',
+   numerator24hUsd:vol,denominatorLiquidityUsd:tvl,pools:ids.length,poolIds:[...ids].sort(),toBlock:Number(v.toBlock),
+   scope:'Only the pools in this on-chain pass (a lower bound of the provider scope). Not chain-wide DEX turnover. Not a liquidity lock, sell execution guarantee, or investment safety rating.'}]};
+}
 function liquidity(fields,context){
  const a=fields?.liquidityUsd,b=fields?.volume24h;
  if(!comparable(a,b,context)){
-  const alt=poolIntersectionTurnover(a,b,context)||onchainTurnover(a,b,context);
+  const alt=poolIntersectionTurnover(a,b,context)||onchainTurnover(a,b,context)||selfScopedTurnover(b,context);
   if(alt)return alt;
   return missing(
    'Comparable same-provider, exact-contract 24h volume and USD pool reserves were not available.','LIQUIDITY_VOLUME_NOT_COMPARABLE');
