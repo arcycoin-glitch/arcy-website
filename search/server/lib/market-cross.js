@@ -52,12 +52,19 @@ const FILL=['priceUsd','liquidityUsd','dexPairCount'];
 const usable=f=>f&&f.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined;
 // Provider-independent fill (market-discovery.js): pools discovered from reviewed on-chain factories. It only fills fields the provider
 // path did not deliver (provider down, token not listed) and never replaces a provider value, so a healthy provider changes nothing.
-async function fillFromChain(network,address,fields,{discoveryInspect,env,now}){
- if(!discoveryInspect||FILL.every(k=>usable(fields?.[k])))return {fields,filled:[]};
- let r;try{r=await discoveryInspect(network,address,{env,now:now()});}catch{return {fields,filled:[]};}
- const out={...(fields||{})},filled=[];
- for(const k of FILL)if(!usable(out[k])&&usable(r?.fields?.[k])){out[k]=r.fields[k];filled.push(k);}
- return {fields:out,filled,profile:r?.profile};
+async function fillFromChain(network,address,fields,{discoveryInspect,env,now,snapshotLoad=(o)=>require('./market-verify-snapshot').load(o)}){
+ const out={...(fields||{})},filled=[];let profile;
+ if(discoveryInspect&&!FILL.every(k=>usable(out[k]))){
+  let r=null;try{r=await discoveryInspect(network,address,{env,now:now()});}catch{}
+  for(const k of FILL)if(!usable(out[k])&&usable(r?.fields?.[k])){out[k]=r.fields[k];filled.push(k);}
+  profile=r?.profile;
+ }
+ // Provider-independent 24h volume (+ same-block TVL for turnover) from the durable snapshot's persisted pool registry.
+ if(!usable(out.volume24h)){
+  try{const S=require('./market-verify-snapshot'),doc=await snapshotLoad({now:now(),env}),v=S.discoveredVolumeField(doc,network,address,{now:now()});
+   if(v.field){out.volume24h=v.field;filled.push('volume24h');}}catch{}
+ }
+ return filled.length?{fields:out,filled,profile}:{fields,filled:[]};
 }
 async function inspect(network,address,{dexInspect=dex.inspect,geckoInspect=gecko.inspect,onchainInspect=onchain.inspect,discoveryInspect=require('./market-discovery').inspect,now=Date.now,env=process.env}={}){
  const t=now();

@@ -8,7 +8,7 @@
 // Paced per chain (Arc public RPC rate limits), bounded per token and in total.
 process.env.SEARCH_MARKET_ONCHAIN_CHECK='on';
 const fs=require('node:fs'),path=require('node:path');
-const M=require('../search/server/lib/market-onchain'),MV=require('../search/server/lib/market-volume'),DEX=require('../search/server/lib/dex-market'),S=require('../search/server/lib/market-verify-snapshot');
+const MD=require('../search/server/lib/market-discovery'),M=require('../search/server/lib/market-onchain'),MV=require('../search/server/lib/market-volume'),DEX=require('../search/server/lib/dex-market'),S=require('../search/server/lib/market-verify-snapshot');
 const args=Object.fromEntries(process.argv.slice(2).reduce((a,x,i,arr)=>x.startsWith('--')?[...a,[x.slice(2),arr[i+1]]]:a,[]));
 const OUT=args.out||'market-verify/snapshot.json',TOTAL_MS=Number(process.env.MARKET_VERIFY_BUDGET_MS||45*60000),PACE={arc:600,robinhood:150,ethereum:150};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -29,6 +29,9 @@ async function tokens(){
 (async()=>{
  const t0=Date.now(),list=await tokens(),entries={},stats={tokens:list.length,verified:0,reasons:{},calls:0};
  const rpcs={},eth=M.rpcFor('ethereum');
+ const prev=await S.load({now:Date.now()}).catch(()=>null),registry={};
+ for(const [k,v] of Object.entries(prev?.registry||{}))if(v&&Array.isArray(v.pools))registry[k]=v; // checkpoint: carried over even for tokens not reached this run
+ const DROP=/^(POOL_DOES_NOT_CONTAIN_TOKEN|POOL_KIND_UNSUPPORTED|POOL_ID_INVALID|V4_|POOL_KIND_AMBIGUOUS)/;
  for(const t of list){
   if(Date.now()-t0>TOTAL_MS){stats.reasons.TOTAL_BUDGET_EXHAUSTED=(stats.reasons.TOTAL_BUDGET_EXHAUSTED||0)+1;continue;}
   const key=t.network+':'+t.address,rec={symbol:t.symbol,origin:t.origin,computedAt:null};entries[key]=rec;
@@ -36,6 +39,7 @@ async function tokens(){
    const primary=await DEX.inspect(t.network,t.address);
    const ev=(primary?.volume24h?.evidence||[]).find(e=>Array.isArray(e?.pairs)&&Array.isArray(e?.pairVolumeUsd)&&e.pairs.length===e.pairVolumeUsd.length);
    const total=Number(primary?.volume24h?.value);
+   rec._providerPools=[...new Set((primary?.volume24h?.evidence||[]).flatMap(e=>Array.isArray(e?.pairs)?e.pairs:[]).map(x=>String(x).toLowerCase()))];
    if(!ev||!(total>0)){rec.volumeReason='PROVIDER_VOLUME_UNAVAILABLE';}
    else{
     const ranked=ev.pairs.map((p,i)=>({pool:String(p).toLowerCase(),v:Number(ev.pairVolumeUsd[i])||0})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
@@ -58,11 +62,38 @@ async function tokens(){
     }
    }
   }catch(e){rec.volumeReason=e.code||'VOLUME_JOB_FAILED';}
+  // Provider-independent record (#367): persisted pool registry + 24h volume and same-block TVL over it. Runs whether or not DEX Screener answered.
+  try{
+   const now=new Date().toISOString(),known=new Map((registry[key]?.pools||[]).map(x=>[String(x.pool).toLowerCase(),x]));
+   const seenProvider=(rec._providerPools||[]);delete rec._providerPools;
+   for(const p of seenProvider)known.set(p,{pool:p,source:'provider',firstSeen:known.get(p)?.firstSeen||now,lastSeen:now});
+   const rpc=rpcs[t.network]||=paced(M.rpcFor(t.network),PACE[t.network]||200);
+   if(MD.supported(t.network)){const d=await MD.discover(t.network,t.address,(to,data)=>rpc('eth_call',[{to,data},'latest']));
+    for(const x of d.pools)known.set(x.pool,{pool:x.pool,source:'factory',protocol:x.protocol,firstSeen:known.get(x.pool)?.firstSeen||now,lastSeen:now});}
+   const keep=[...known.values()].filter(x=>Date.now()-Date.parse(x.lastSeen)<=S.REGISTRY_MAX_AGE_MS).sort((a,b)=>Date.parse(b.lastSeen)-Date.parse(a.lastSeen)).slice(0,30);
+   registry[key]={pools:keep,updatedAt:now};
+   if(!keep.length)rec.volumeDiscoveredReason='REGISTRY_EMPTY';
+   else{
+    const usdOf=a=>M.quoteUsd(a,{ethRpc:eth,now:Date.now()}),opts={rpc,usdOf,durable:true,maxPools:30,maxCalls:1500,timeoutMs:180000,withLiquidity:true};
+    let pools=keep.map(x=>x.pool);const excluded=[];
+    let r=await MV.inspect(t.network,t.address,{volume24h:{evidence:[{pairs:pools}]}},opts);stats.calls+=r.profile.calls||0;
+    if(!r.field&&DROP.test(String(r.profile.reason))&&pools.length>1){
+     // classify each pool alone, drop only deterministic identity failures (stated in the record), then read the surviving set once
+     const good=[];for(const p of pools){const one=await MV.inspect(t.network,t.address,{volume24h:{evidence:[{pairs:[p]}]}},{...opts,withLiquidity:false,maxCalls:300,timeoutMs:60000});stats.calls+=one.profile.calls||0;
+      if(one.field||!DROP.test(String(one.profile.reason)))good.push(p);else excluded.push({pool:p,reason:String(one.profile.reason).slice(0,60)});}
+     if(good.length&&good.length<pools.length){pools=good;r=await MV.inspect(t.network,t.address,{volume24h:{evidence:[{pairs:pools}]}},opts);stats.calls+=r.profile.calls||0;}
+    }
+    if(r.field){r.field.evidence[0]={...r.field.evidence[0],registryPools:pools.length,registryExcluded:excluded,
+     scope:'Persisted pool registry (factory-discovered and previously provider-observed pools), each re-proved on-chain; excluded pools are listed. Quote-side Swap amounts x CURRENT Chainlink quote USD; TVL read at the same pinned block. Lower bound of chain-wide volume.'};
+     rec.volumeDiscovered=r.field;stats.discovered=(stats.discovered||0)+1;}
+    else rec.volumeDiscoveredReason=String(r.profile.reason||'VOLUME_REGISTRY_FAILED').slice(0,80);
+   }
+  }catch(e){rec.volumeDiscoveredReason=String(e.code||'VOLUME_REGISTRY_JOB_FAILED').slice(0,80);}
   rec.computedAt=new Date().toISOString();
   if(rec.volumeReason)stats.reasons[rec.volumeReason.replace(/ \(.*/,'')]=(stats.reasons[rec.volumeReason.replace(/ \(.*/,'')]||0)+1;
   console.log('MV '+JSON.stringify({key,symbol:t.symbol,ok:Boolean(rec.volume24h),reason:rec.volumeReason||null,error:rec.volumeError||null,value:rec.volume24h?Math.round(rec.volume24h.value):null}));
  }
- const doc={schema:S.SCHEMA,generatedAt:new Date().toISOString(),engineCommit:process.env.GITHUB_SHA||null,elapsedMs:Date.now()-t0,stats,entries};
+ const doc={schema:S.SCHEMA,generatedAt:new Date().toISOString(),engineCommit:process.env.GITHUB_SHA||null,elapsedMs:Date.now()-t0,stats,entries,registry};
  if(!S.valid(doc,Date.now()))throw Error('INVALID_SNAPSHOT');
  fs.mkdirSync(path.dirname(OUT),{recursive:true});fs.writeFileSync(OUT,JSON.stringify(doc));
  console.log('MV_SUMMARY '+JSON.stringify({...stats,elapsedMs:doc.elapsedMs}));

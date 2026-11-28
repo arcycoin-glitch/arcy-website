@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 
 test('Search external source failures fail closed, and no unsupported market numbers are invented',async()=>{
  const original=global.fetch;let requests=0;
- global.fetch=async()=>{requests++;throw Error('Simulated market provider outage')};
+ global.fetch=async(u)=>{if(/api\.github\.com|raw\.githubusercontent\.com/.test(String(u?.url||u)))throw Error('Snapshot read is not a market provider call');requests++;throw Error('Simulated market provider outage')};
  try{
   for(const adapter of [
    require('../search/server/lib/market'),
