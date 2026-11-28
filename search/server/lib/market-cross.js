@@ -48,16 +48,38 @@ function merge(primary,secondary,{now,secondaryReason}){
  return out;
 }
 function attachProfile(fields,profile){if(profile)Object.defineProperty(fields,'onchainProfile',{value:profile,enumerable:false});return fields;}
-async function inspect(network,address,{dexInspect=dex.inspect,geckoInspect=gecko.inspect,onchainInspect=onchain.inspect,now=Date.now,env=process.env}={}){
+const FILL=['priceUsd','liquidityUsd','dexPairCount'];
+const usable=f=>f&&f.dataState==='DATA_FOUND'&&f.value!==null&&f.value!==undefined;
+// Provider-independent fill (market-discovery.js): pools discovered from reviewed on-chain factories. It only fills fields the provider
+// path did not deliver (provider down, token not listed) and never replaces a provider value, so a healthy provider changes nothing.
+async function fillFromChain(network,address,fields,{discoveryInspect,env,now}){
+ if(!discoveryInspect||FILL.every(k=>usable(fields?.[k])))return {fields,filled:[]};
+ let r;try{r=await discoveryInspect(network,address,{env,now:now()});}catch{return {fields,filled:[]};}
+ const out={...(fields||{})},filled=[];
+ for(const k of FILL)if(!usable(out[k])&&usable(r?.fields?.[k])){out[k]=r.fields[k];filled.push(k);}
+ return {fields:out,filled,profile:r?.profile};
+}
+async function inspect(network,address,{dexInspect=dex.inspect,geckoInspect=gecko.inspect,onchainInspect=onchain.inspect,discoveryInspect=require('./market-discovery').inspect,now=Date.now,env=process.env}={}){
  const t=now();
  // GeckoTerminal stays opt-in (terms review). Optional secondary (SEARCH_MARKET_ONCHAIN_CHECK=on) = the chain itself (market-onchain.js): the provider's own pools
  // re-read at a pinned block; free, permitted, budgeted (<=24 calls, 2.5 s) and isolated (a failure only adds a reasonCode).
  if(!enabled(env)){
-  const primary=await dexInspect(network,address);
-  if(!onchainInspect||!onchain.enabled(env))return primary;
+  let primary=null,providerError=null;
+  try{primary=await dexInspect(network,address);}catch(e){providerError=e;}
+  if(!primary){
+   // Provider outage: independent on-chain discovery or the original failure (unchanged behaviour when discovery is off/empty).
+   const unavailable=dex.unavailable('The market provider was unavailable.',providerError?.code||'MARKET_PROVIDER_UNAVAILABLE');
+   const f=await fillFromChain(network,address,unavailable,{discoveryInspect,env,now});
+   if(!f.filled.length)throw providerError||Error('No market provider');
+   return attachProfile(f.fields,f.profile);
+  }
+  if(!onchainInspect||!onchain.enabled(env)){const f=await fillFromChain(network,address,primary,{discoveryInspect,env,now});return f.filled.length?attachProfile(f.fields,f.profile):primary;}
   let r;try{r=await onchainInspect(network,address,primary);}catch{return primary;}
-  if(!r||!r.fields||!Object.keys(r.fields).length)return attachProfile(merge(primary,null,{now:t,secondaryReason:r?.profile?.reasons||{all:'ONCHAIN_NO_DATA'}}),r?.profile);
-  return attachProfile(merge(primary,r.fields,{now:t,secondaryReason:r.profile?.reasons||{}}),r.profile);
+  let merged;
+  if(!r||!r.fields||!Object.keys(r.fields).length)merged=attachProfile(merge(primary,null,{now:t,secondaryReason:r?.profile?.reasons||{all:'ONCHAIN_NO_DATA'}}),r?.profile);
+  else merged=attachProfile(merge(primary,r.fields,{now:t,secondaryReason:r.profile?.reasons||{}}),r.profile);
+  const f=await fillFromChain(network,address,merged,{discoveryInspect,env,now});
+  return f.filled.length?attachProfile(f.fields,r?.profile||f.profile):merged;
  }
  const useSecondary=t>=coolUntil;
  const [d,g]=await Promise.allSettled([dexInspect(network,address),useSecondary?geckoInspect(network,address):Promise.reject(Object.assign(Error('skipped'),{code:'SECONDARY_COOLDOWN'}))]);
@@ -68,8 +90,14 @@ async function inspect(network,address,{dexInspect=dex.inspect,geckoInspect=geck
   const e=g.reason||{};secondaryReason=e.code||'SECONDARY_SOURCE_UNAVAILABLE';
   if(/HTTP (429|5\d\d)/.test(String(e.message))){coolUntil=t+COOLDOWN_MS;secondaryReason=/429/.test(e.message)?'SECONDARY_RATE_LIMITED':'SECONDARY_SERVER_ERROR';}
  }
- if(!primary&&!secondary)throw d.reason||g.reason||Error('No market provider');
- return merge(primary,secondary,{now:t,secondaryReason});
+ if(!primary&&!secondary){
+  const f=await fillFromChain(network,address,dex.unavailable('Both market providers were unavailable.',d.reason?.code||'MARKET_PROVIDER_UNAVAILABLE'),{discoveryInspect,env,now});
+  if(!f.filled.length)throw d.reason||g.reason||Error('No market provider');
+  return attachProfile(f.fields,f.profile);
+ }
+ const merged=merge(primary,secondary,{now:t,secondaryReason});
+ const f=await fillFromChain(network,address,merged,{discoveryInspect,env,now});
+ return f.filled.length?f.fields:merged;
 }
 function _reset(){coolUntil=0;coolReason=null;}
-module.exports={inspect,merge,enabled,TOLERANCE,_reset};
+module.exports={inspect,merge,enabled,TOLERANCE,_reset,fillFromChain};
