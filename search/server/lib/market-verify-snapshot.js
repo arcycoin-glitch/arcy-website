@@ -44,5 +44,13 @@ function volumeField(doc,network,token,primary,{now=Date.now()}={}){
  if(!ev.pairs.every(p=>provider.has(p)))return {reason:'VOLUME_SNAPSHOT_SCOPE_CHANGED'};
  return {field:{...f,freshness:{...(f.freshness||{}),state:'SNAPSHOT',snapshotGeneratedAt:doc.generatedAt,ageMs:Math.max(0,age)}}};
 }
+// Persisted, hash-proven V4 PoolKeys (#365/#367). A PoolKey is immutable, so a stored key never goes stale; the CALLER re-proves
+// keccak256(abi.encode(PoolKey)) == poolId before use, so the document is trusted for nothing.
+const A40=/^0x[0-9a-f]{40}$/;
+function v4KeyFor(doc,network,id){
+ const k=doc?.v4Keys?.[network+':'+String(id).toLowerCase()];
+ if(!k||![k.currency0,k.currency1,k.hooks].every(a=>typeof a==='string'&&A40.test(a))||!Number.isInteger(k.fee)||!Number.isInteger(k.tickSpacing))return null;
+ return {currency0:k.currency0,currency1:k.currency1,fee:k.fee,tickSpacing:k.tickSpacing,hooks:k.hooks};
+}
 function _reset(){cached=null;pending=null;}
-module.exports={load,volumeField,valid,SCHEMA,FRESH_MS,COVERAGE_MIN,REF,FILE,_reset};
+module.exports={load,v4KeyFor,volumeField,valid,SCHEMA,FRESH_MS,COVERAGE_MIN,REF,FILE,_reset};
