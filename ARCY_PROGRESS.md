@@ -256,3 +256,12 @@ Detailed evidence: docs/SEARCH_PRIORITY_DATA_20261027.md. Older docs/SEARCH_DATA
 - Tests: full suite 1772 tests, all pass after baseline refresh (search-v3-data 18/18).
 - Open: CI evidence (production baseline, before/after, cohort, browser); Next Unlock stays 0/40 unless proven.
 - Next: read CI annotations, update #83/#77/#337/#326. No merge/deploy.
+
+## 2026-11-28 — On-chain independence (main f736f86)
+Merged: #361 outage shim, #362 compatible-scope turnover, #363 on-chain market discovery fallback, #364 turnover cross-check method fix, #366 discovery lineage (own RPC reads = ON_CHAIN).
+Outage runs (core 480 obs, A normal vs B outage, run 46135719588): usable/verified —
+ normal 91.3-92.1 / 56.3-56.5; DEX Screener off 75.2 / 51.3; GeckoTerminal off 90.2 / 55.0; Blockscout off 85.6 / 54.8; all three off 69.2 / 49.0.
+Provider independence (B/A): DexScreener usable 81.7% verified 90.8%; Gecko 98.2/97.8; Blockscout 94.1/97.4; all 75.8/87.0.
+Open: TOLLY/ARGUS/LONG/KAIRO turnover still LIQUIDITY_VOLUME_NOT_COMPARABLE (cross-check LIQUIDITY_SCOPE_EXCEEDS_BUDGET 13/29 pools); HOOKR/HMM recovered.
+Open: #365 (draft) V4 creation-block bisection works, single-block Initialize logs return 0; probe widened to +-300 blocks, needs dispatch. Not wired into v4Key.
+Mechanics: 17 fields lack legal evidence; unchanged. PONS publication: operator must set ARC_HOLDER_MAX_WALLETS on Railway.
