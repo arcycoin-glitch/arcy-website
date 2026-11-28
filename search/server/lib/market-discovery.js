@@ -39,17 +39,25 @@ async function discover(network,token,call){
  }
  return {pools:[...found].slice(0,MAX_POOLS).map(([pool,via])=>({pool,...via})),skipped};
 }
-async function inspect(network,address,{rpc=O.rpcFor(network),ethRpc=O.rpcFor('ethereum'),now=Date.now(),maxCalls=MAX_CALLS,timeoutMs=TIMEOUT_MS,env=process.env}={}){
+// Persisted pool registry (durable snapshot, #367): pools previously seen for this token (factory-discovered or provider-observed). They are
+// CANDIDATES only: each is re-read on-chain at the pinned block (token membership, reserves, quote USD) exactly like a factory pool.
+async function registryCandidates(network,token,now,env){
+ try{const S=require('./market-verify-snapshot'),doc=await S.load({now,env});return S.registryPools(doc,network,token,{now}).filter(x=>ADDR.test(x));}catch{return [];}
+}
+async function inspect(network,address,{rpc=O.rpcFor(network),ethRpc=O.rpcFor('ethereum'),now=Date.now(),maxCalls=MAX_CALLS,timeoutMs=TIMEOUT_MS,env=process.env,registry=registryCandidates}={}){
  const token=String(address||'').toLowerCase(),profile={version:VERSION,calls:0,ms:0,reasons:{},scope:null};
  if(!enabled(env)||!rpc||!ADDR.test(token)){profile.reasons.all=!enabled(env)?'DISCOVERY_DISABLED':'NETWORK_UNSUPPORTED';return {fields:{},profile};}
- if(!supported(network)){profile.reasons.all='NO_REVIEWED_FACTORY_FOR_NETWORK';return {fields:{},profile};}
+ const known=await registry(network,token,now,env);
+ if(!supported(network)&&!known.length){profile.reasons.all='NO_REVIEWED_FACTORY_FOR_NETWORK';return {fields:{},profile};}
  const key=network+'|'+token,hit=cache.get(key);if(hit&&now-hit.at<CACHE_MS)return {fields:structuredClone(hit.fields),profile:{...hit.profile,cached:true}};
  const t0=Date.now(),state={calls:0,deadline:t0+timeoutMs},fields={};
  const budget=r=>async(m,p)=>{if(state.calls>=maxCalls)throw fail('ONCHAIN_BUDGET_EXHAUSTED');if(Date.now()>state.deadline)throw fail('ONCHAIN_TIMEOUT');state.calls++;return r(m,p);};
  const r=budget(rpc),er=budget(ethRpc);
  try{
   const block=await r('eth_blockNumber',[]),call=(to,data)=>r('eth_call',[{to,data},block]),ctx={network,token,rpc:r,call,block};
-  const {pools,skipped}=await discover(network,token,call);
+  const found=supported(network)?await discover(network,token,call):{pools:[],skipped:{}};
+  const {skipped}=found,seen=new Set(found.pools.map(p=>p.pool));
+  const pools=[...found.pools,...known.filter(x=>!seen.has(x)).map(pool=>({pool,protocol:'registry'}))].slice(0,MAX_POOLS);
   if(Object.keys(skipped).length)profile.reasons.skipped=skipped;
   if(!pools.length){profile.reasons.all='NO_POOL_AGAINST_REVIEWED_QUOTES';return {fields,profile};}
   const usd={},usdOf=async a=>usd[a]||=await O.quoteUsd(a,{ethRpc:er,now});
@@ -64,7 +72,7 @@ async function inspect(network,address,{rpc=O.rpcFor(network),ethRpc=O.rpcFor('e
   live.sort((a,b)=>b.quoteSideUsd-a.quoteSideUsd);
   const best=live[0],tokenUsd=best.x.price*best.q.usd,at=new Date(now).toISOString();
   if(!(tokenUsd>0)||!Number.isFinite(tokenUsd))throw fail('TOKEN_USD_INVALID');
-  const scope='Pools found on-chain through reviewed factories ('+(REGISTRY[network].v3.length?'Uniswap V3':'')+(REGISTRY[network].v2.length?(REGISTRY[network].v3.length?', ':'')+'V2-compatible':'')+') against the reviewed quote assets only. Not an exhaustive pool census: other venues, quote assets and hook-gated V4 pools are not included.';
+  const scope='Pools found on-chain through reviewed factories ('+((REGISTRY[network]||{v3:[],v2:[]}).v3.length?'Uniswap V3':'')+((REGISTRY[network]||{v3:[],v2:[]}).v2.length?((REGISTRY[network]||{v3:[]}).v3.length?', ':'')+'V2-compatible':'')+') and the persisted pool registry, each re-read on-chain, against the reviewed quote assets only. Not an exhaustive pool census: other venues, quote assets and hook-gated V4 pools are not included.';
   const ev=(extra)=>[{provider:O.SOURCE[network],source:O.SOURCE[network],network,chainId:{ethereum:1,robinhood:4663,arc:5042}[network],address:token,block,checkedAt:at,method:VERSION,discovery:'factory registry (getPool/getPair)',scope,...extra}];
   const fresh={retrievedAt:at,ageMs:0,basis:'pinned-block chain read at '+block};
   const chainId={ethereum:1,robinhood:4663,arc:5042}[network],base={status:'ON_CHAIN_DERIVED',dataState:'DATA_FOUND',source:O.SOURCE[network],network,chainId,freshness:fresh};

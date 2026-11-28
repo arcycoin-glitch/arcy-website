@@ -47,3 +47,13 @@ test('a volume cross-check labelled with the liquidity method is not accepted (m
   const v = { ...volF({ source: 'Other' }), crossCheck: { state: 'AGREE' }, evidence: [...volF().evidence, oc([['0xp1', 100]])] };
   assert.equal(D.liquidity({ liquidityUsd: l, volume24h: v }, ctx).dataState, 'NOT_VERIFIED');
 });
+const sv = (pools, over = {}) => ({ value: 1, status: 'ON_CHAIN_DERIVED', dataState: 'DATA_FOUND', source: 'Arc RPC pool state', evidence: [{ source: 'Arc RPC pool state', method: 'arcy-market-volume-1', fromBlockHash: '0x' + 'a'.repeat(64), toBlockHash: '0x' + 'b'.repeat(64), toBlock: 10, pools, ...over }] });
+test('self-scoped on-chain turnover: volume and same-block TVL from one pool list; any missing TVL or duplicate pool => none', () => {
+  const none = { liquidityUsd: { dataState: 'NOT_VERIFIED' } };
+  const ok = D.liquidity({ ...none, volume24h: sv([{ pool: '0xp1', usd: 30, liquidityUsd: 100 }, { pool: '0xp2', usd: 10, liquidityUsd: 300 }]) }, ctx);
+  assert.equal(ok.dataState, 'DATA_FOUND'); assert.equal(ok.value, 10); assert.equal(ok.evidence[0].pools, 2);
+  for (const pools of [[{ pool: '0xp1', usd: 30 }], [{ pool: '0xp1', usd: 3, liquidityUsd: 10 }, { pool: '0xP1', usd: 3, liquidityUsd: 10 }], [{ pool: '0xp1', usd: 3, liquidityUsd: 0 }]]) {
+    assert.equal(D.liquidity({ ...none, volume24h: sv(pools) }, ctx).dataState, 'NOT_VERIFIED');
+  }
+  assert.equal(D.liquidity({ ...none, volume24h: sv([{ pool: '0xp1', usd: 3, liquidityUsd: 10 }], { toBlockHash: undefined }) }, ctx).dataState, 'NOT_VERIFIED');
+});

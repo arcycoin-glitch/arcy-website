@@ -63,7 +63,21 @@ function quoteAmount(kind,l,quoteIs0,quoteIdx){const w=words(l.data);
  if(w.length<6)throw code('MALFORMED_SWAP_LOG');return abs(signed(quoteIs0?w[0]:w[1],128));}
 // durable=true (background job only, never a report request): same identity/log/USD rules; the pool-count and Arc window guards
 // exist only to bound request latency, so a durable caller lifts them and supplies its own call/time budget.
-async function inspect(network,address,primary,{rpc=M.rpcFor?.(network),ethRpc,usdOf,block,now=Date.now(),maxCalls=MAX_CALLS,timeoutMs=TIMEOUT_MS,durable=false,maxPools=MAX_POOLS}={}){
+// Pool TVL at the SAME pinned block as the volume window (best effort, never fails the volume). Same maths as market-onchain's coverage
+// path: pool token balances x the pool's own on-chain price x Chainlink quote USD (V4: tick-state principal). Used only to give turnover an
+// identical-pool denominator (#367): numerator and denominator come from one pass over one pool list.
+async function poolLiquidity(p,{network,token,r,toBlock,usdOf}){
+ const hex='0x'+toBlock.toString(16),call=(to,data)=>r('eth_call',[{to,data},hex]),ctx={network,token,rpc:r,call,block:hex};
+ const x=await M.readPool(p,ctx);if(!x.quoteAsset)throw code('QUOTE_ASSET_UNSUPPORTED');
+ const q=await usdOf(x.quoteAsset);let tokAmt,quoteAmt;
+ if(x.kind==='UNISWAP_V4'){
+  const v=M.V4[network],k=x.poolKey,pr=await require('./v4-tvl').poolPrincipal({call,getCode:a=>r('eth_getCode',[a,hex]),stateView:v.stateView,poolId:p,key:k,tick:x.tick,sqrtPriceX96:x.sqrtPriceX96});
+  const tokIs0=k.currency0===token;tokAmt=(tokIs0?pr.amount0Raw:pr.amount1Raw)/10**x.decimals[token];quoteAmt=(tokIs0?pr.amount1Raw:pr.amount0Raw)/10**x.decimals[x.quote];
+ }else{tokAmt=x.amounts?.[token];quoteAmt=x.amounts?.[x.quote];}
+ const value=tokAmt*x.price*q.usd+quoteAmt*q.usd;
+ if(!Number.isFinite(value)||value<0)throw code('POOL_TVL_INVALID');return value;
+}
+async function inspect(network,address,primary,{rpc=M.rpcFor?.(network),ethRpc,usdOf,block,now=Date.now(),maxCalls=MAX_CALLS,timeoutMs=TIMEOUT_MS,durable=false,maxPools=MAX_POOLS,withLiquidity=durable}={}){
  const token=String(address||'').toLowerCase(),profile={calls:0,ms:0,pools:0,swaps:0,splits:0,reason:null},t0=Date.now();
  const pools=[...new Set((primary?.volume24h?.evidence||[]).flatMap(e=>Array.isArray(e?.pairs)?e.pairs:[]).map(x=>String(x).toLowerCase()))].sort();
  const limits=LIMITS[network];
@@ -104,11 +118,16 @@ async function inspect(network,address,primary,{rpc=M.rpcFor?.(network),ethRpc,u
    if(!Number.isFinite(v)||v<0)throw code('VOLUME_INVALID');usd+=v;parts.push({pool:p,kind,swaps:acc.length,quote,quoteAsset:q.asset,usd:v});}
   // reorg guard: both anchors must still be canonical after every log read
   const [a,b]=[await header(r,w.from.n),await header(r,toBlock)];if(a.hash!==w.from.hash||b.hash!==w.to.hash)throw code('VOLUME_WINDOW_REORGED');
+  // Same-block pool TVL for the SAME pools (best effort; a failure only leaves liquidityUsd off that pool).
+  if(withLiquidity)for(const part of parts){
+   try{part.liquidityUsd=await poolLiquidity(part.pool,{network,token,r,toBlock,usdOf});}
+   catch(e){part.liquidityReason=String(e.code||'POOL_LIQUIDITY_READ_FAILED').slice(0,60);}
+  }
   profile.pools=pools.length;profile.calls=state.calls;profile.splits=state.splits;profile.ms=Date.now()-t0;
   const at=new Date(now).toISOString();
   return {field:{value:usd,status:'ON_CHAIN_DERIVED',dataState:'DATA_FOUND',source:M.SOURCE[network],network,
    evidence:[{provider:M.SOURCE[network],source:M.SOURCE[network],network,pairs:pools,method:'arcy-market-volume-1',fromBlock:w.from.n,toBlock,fromBlockHash:w.from.hash,toBlockHash:w.to.hash,
-    windowSeconds:w.to.ts-w.from.ts,swaps:profile.swaps,pools:parts,basis:'Sum over the provider pool set of quote-side swap amounts in the last 24h of blocks x CURRENT Chainlink quote USD (not per-swap historical prices).',checkedAt:at}],
+    windowSeconds:w.to.ts-w.from.ts,swaps:profile.swaps,pools:parts,...(parts.length&&parts.every(x=>Number.isFinite(x.liquidityUsd))?{liquidityAtToBlockUsd:parts.reduce((t,x)=>t+x.liquidityUsd,0)}:{}),basis:'Sum over the provider pool set of quote-side swap amounts in the last 24h of blocks x CURRENT Chainlink quote USD (not per-swap historical prices).',checkedAt:at}],
    freshness:{retrievedAt:at,ageMs:0,basis:'pinned-block log window ending at '+toBlock}},profile};
  }catch(e){profile.calls=state.calls;if(!e.code)profile.error=String(e.message||e).slice(0,160);return fail(e.code||'VOLUME_READ_FAILED');}
 }
