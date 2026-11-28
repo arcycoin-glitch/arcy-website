@@ -31,13 +31,19 @@ test('identical pair lists keep the original total-based path', () => {
   const a = liqF({}, { pairs: ['p1', 'p2'] }), b = volF({ value: 40 }, { pairs: ['p1', 'p2'], pairVolumeUsd: [10, 30] });
   const r = D.liquidity({ liquidityUsd: a, volume24h: b }, ctx); assert.equal(r.value, 10); assert.equal(r.evidence[0].volumeOnlyPoolsExcluded, undefined);
 });
-const oc = (pools, kind) => ({ source: 'Robinhood Chain RPC pool state', role: 'cross-check', method: 'arcy-market-onchain-1', pools: pools.map(([pool, usd]) => ({ pool, usd })), pairs: pools.map(p => p[0]) });
+const oc = (pools, method = 'arcy-market-onchain-1') => ({ source: 'Robinhood Chain RPC pool state', role: 'cross-check', method, pools: pools.map(([pool, usd]) => ({ pool, usd })), pairs: pools.map(p => p[0]) });
 test('same on-chain pool set for liquidity and volume: on-chain turnover; different sets or missing AGREE: none', () => {
   const l = { ...liqF({}, { pairs: ['x'], pairLiquidityUsd: [1] }), source: 'DexScreener', crossCheck: { state: 'AGREE' }, evidence: [...liqF().evidence, oc([['0xp1', 1000], ['0xp2', 3000]])] };
-  const v = { ...volF(), crossCheck: { state: 'AGREE' }, evidence: [...volF().evidence, oc([['0xp2', 200], ['0xp1', 200]])] };
+  const v = { ...volF(), crossCheck: { state: 'AGREE' }, evidence: [...volF().evidence, oc([['0xp2', 200], ['0xp1', 200]], 'arcy-market-volume-1')] };
   const r = D.liquidity({ liquidityUsd: l, volume24h: v }, ctx);
   assert.equal(r.dataState, 'DATA_FOUND'); assert.equal(r.value, 10); assert.equal(r.evidence[0].pools, 2);
-  const v2 = { ...v, evidence: [...volF().evidence, oc([['0xp1', 200]])] };
+  const v2 = { ...v, evidence: [...volF().evidence, oc([['0xp1', 200]], 'arcy-market-volume-1')] };
   assert.equal(D.liquidity({ liquidityUsd: l, volume24h: v2 }, ctx).dataState, 'NOT_VERIFIED');
   assert.equal(D.liquidity({ liquidityUsd: { ...l, crossCheck: { state: 'UNAVAILABLE' } }, volume24h: v }, ctx).dataState, 'NOT_VERIFIED');
+});
+
+test('a volume cross-check labelled with the liquidity method is not accepted (methods must match their metric)', () => {
+  const l = { ...liqF({}, { pairs: ['x'], pairLiquidityUsd: [1] }), crossCheck: { state: 'AGREE' }, evidence: [...liqF().evidence, oc([['0xp1', 1000]])] };
+  const v = { ...volF({ source: 'Other' }), crossCheck: { state: 'AGREE' }, evidence: [...volF().evidence, oc([['0xp1', 100]])] };
+  assert.equal(D.liquidity({ liquidityUsd: l, volume24h: v }, ctx).dataState, 'NOT_VERIFIED');
 });

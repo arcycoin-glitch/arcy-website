@@ -135,8 +135,9 @@ function poolIntersectionTurnover(a,b,context){
 // (identical pool addresses/ids), each AGREEing with the provider. Value = on-chain swap volume / on-chain pool TVL of those pools.
 function onchainTurnover(a,b,context){
  if(a?.crossCheck?.state!=='AGREE'||b?.crossCheck?.state!=='AGREE')return null;
- const cx=f=>(f.evidence||[]).find(e=>e?.role==='cross-check'&&e.method==='arcy-market-onchain-1'&&Array.isArray(e.pools)&&e.pools.length);
- const l=cx(a),v=cx(b);
+ // Liquidity cross-check method: arcy-market-onchain-1 (pool reserves); volume cross-check method: arcy-market-volume-1 (24h swap logs).
+ const cx=(f,m)=>(f.evidence||[]).find(e=>e?.role==='cross-check'&&e.method===m&&Array.isArray(e.pools)&&e.pools.length);
+ const l=cx(a,'arcy-market-onchain-1'),v=cx(b,'arcy-market-volume-1');
  if(!l||!v||l.source!==v.source)return null;
  const ids=e=>e.pools.map(p=>String(p.pool).toLowerCase()).sort();
  const li=ids(l),vi=ids(v);
